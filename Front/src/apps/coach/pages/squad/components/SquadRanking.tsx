@@ -1,9 +1,9 @@
 import { useMemo, useState } from "react";
-import { Button, ButtonGroup } from "@mui/material";
+import type { CSSProperties } from "react";
 import type { PlayerRating } from "../../../types/playerRating";
 import type { CreateRatingPayload, CreateGoalkeeperRatingPayload } from "../../../services/playerRatingService";
 import playerRatingService from "../../../services/playerRatingService";
-import PlayerCromo from "./PlayerCromo";
+import RankingPlayerRow from "./RankingPlayerRow";
 import EditRatingDialog from "./EditRatingDialog";
 import EditGoalkeeperRatingDialog from "./EditGoalkeeperRatingDialog";
 import styles from "./SquadRanking.module.css";
@@ -76,7 +76,7 @@ function buildTiers(
   return { tiers, unrated };
 }
 
-const MEDALS = ["\uD83E\uDD47", "\uD83E\uDD48", "\uD83E\uDD49"];
+const PODIUM_COLORS = ["#f2c14e", "#c9ced6", "#d08a4e"];
 
 function pickInitialSubRatings(rating: PlayerRating | undefined): Partial<Record<string, number>> {
   if (!rating) return {};
@@ -135,50 +135,6 @@ export default function SquadRanking({ teamId: _teamId, players, latestRatings, 
   const podiumTiers = tiers.slice(0, 3);
   const restTiers = tiers.slice(3);
 
-  function renderTierBlock(tier: Tier, className: string) {
-    return (
-      <div key={tier.rank} className={className}>
-        <div className={styles.tierHeader}>
-          <span className={styles.tierRank}>
-            {tier.rank <= 3 ? MEDALS[tier.rank - 1] : `#${tier.rank}`}
-          </span>
-          <span className={styles.tierScore}>{tier.score.toFixed(1)}</span>
-          {tier.players.length > 1 && (
-            <span className={styles.tierTie}>
-              {tier.players.length} empatados
-            </span>
-          )}
-        </div>
-        <div className={styles.grid}>
-          {tier.players.map((p) => {
-            const rating = latestRatings[p.teamPlayerId];
-            return (
-              <PlayerCromo
-                key={p.teamPlayerId}
-                displayName={p.displayName}
-                alias={p.alias}
-                photoSrc={p.photoSrc}
-                dorsal={p.dorsal}
-                position={p.position}
-                rating={
-                  rating
-                    ? {
-                        technical: rating.technical,
-                        tactical: rating.tactical,
-                        physical: rating.physical,
-                        competitiveness: rating.competitiveness,
-                      }
-                    : null
-                }
-                onEdit={() => setEditPlayer(p)}
-              />
-            );
-          })}
-        </div>
-      </div>
-    );
-  }
-
   if (loading) {
     return <div className={styles.empty}>Cargando...</div>;
   }
@@ -189,95 +145,104 @@ export default function SquadRanking({ teamId: _teamId, players, latestRatings, 
 
   return (
     <div className={styles.container}>
-      <div className={styles.filterRow}>
-        <span className={styles.filterLabel}>Ordenar por:</span>
-        <ButtonGroup size="small" variant="outlined">
-          {SORT_OPTIONS.map(({ key, label }) => (
-            <Button
-              key={key}
-              onClick={() => setSortBy(key)}
-              variant={sortBy === key ? "contained" : "outlined"}
-            >
-              {label}
-            </Button>
-          ))}
-        </ButtonGroup>
+      <div className={styles.sortChips}>
+        <span className={styles.filterLabel}>Ordenar por</span>
+        {SORT_OPTIONS.map(({ key, label }) => (
+          <button
+            key={key}
+            type="button"
+            className={`${styles.chip} ${sortBy === key ? styles.chipActive : ""}`}
+            aria-pressed={sortBy === key}
+            onClick={() => setSortBy(key)}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
       {podiumTiers.length > 0 && (
-        <div className={styles.podiumStage}>
-          {([podiumTiers[1], podiumTiers[0], podiumTiers[2]] as (Tier | undefined)[]).map((tier, slotIdx) => {
-            if (!tier) return <div key={`empty-${slotIdx}`} className={styles.podiumSlotEmpty} />;
-            const rank = tier.rank;
-            const platformClass =
-              rank === 1 ? styles.platform1 : rank === 2 ? styles.platform2 : styles.platform3;
-            return (
-              <div key={tier.rank} className={styles.podiumSlot}>
-                <div className={styles.podiumCards}>
-                  {tier.players.map((p) => {
-                    const rating = latestRatings[p.teamPlayerId];
-                    return (
-                      <PlayerCromo
-                        key={p.teamPlayerId}
-                        displayName={p.displayName}
-                        alias={p.alias}
-                        photoSrc={p.photoSrc}
-                        dorsal={p.dorsal}
-                        position={p.position}
-                        rating={
-                          rating
-                            ? {
-                                technical: rating.technical,
-                                tactical: rating.tactical,
-                                physical: rating.physical,
-                                competitiveness: rating.competitiveness,
-                              }
-                            : null
-                        }
-                        onEdit={() => setEditPlayer(p)}
-                      />
-                    );
-                  })}
-                </div>
-                <div className={`${styles.podiumPlatform} ${platformClass}`}>
-                  <span className={styles.podiumMedal}>{MEDALS[rank - 1]}</span>
+        <div className={styles.podium}>
+          {podiumTiers.map((tier, index) => (
+            <section
+              key={tier.rank}
+              className={styles.podiumCard}
+              style={{ "--medal": PODIUM_COLORS[index] } as CSSProperties}
+              aria-label={`Puesto ${tier.rank}`}
+            >
+              <div className={styles.podiumHeader}>
+                <span className={styles.podiumPlace} aria-hidden="true">{tier.rank}</span>
+                <div className={styles.podiumScoreBlock}>
                   <span className={styles.podiumScore}>{tier.score.toFixed(1)}</span>
                   {tier.players.length > 1 && (
-                    <span className={styles.podiumTie}>{tier.players.length} empatados</span>
+                    <span className={styles.tieLabel}>{tier.players.length} empatados</span>
                   )}
                 </div>
               </div>
-            );
-          })}
+              <div className={styles.playerList}>
+                {tier.players.map((p) => (
+                  <RankingPlayerRow
+                    key={p.teamPlayerId}
+                    displayName={p.displayName}
+                    alias={p.alias}
+                    photoSrc={p.photoSrc}
+                    dorsal={p.dorsal}
+                    position={p.position}
+                    rated
+                    onAction={() => setEditPlayer(p)}
+                  />
+                ))}
+              </div>
+            </section>
+          ))}
         </div>
       )}
 
       {restTiers.length > 0 && (
-        <div className={styles.tiersRow}>
-          {restTiers.map((tier) => renderTierBlock(tier, styles.tier))}
+        <div className={styles.rows}>
+          {restTiers.map((tier) => (
+            <div key={tier.rank} className={styles.row} role="group" aria-label={`Puesto ${tier.rank}`}>
+              <span className={styles.rowRank}>#{tier.rank}</span>
+              <div className={styles.rowPlayers}>
+                {tier.players.map((p) => (
+                  <RankingPlayerRow
+                    key={p.teamPlayerId}
+                    displayName={p.displayName}
+                    alias={p.alias}
+                    photoSrc={p.photoSrc}
+                    dorsal={p.dorsal}
+                    position={p.position}
+                    rated
+                    onAction={() => setEditPlayer(p)}
+                  />
+                ))}
+                {tier.players.length > 1 && (
+                  <span className={styles.tieLabel}>{tier.players.length} empatados</span>
+                )}
+              </div>
+              <span className={styles.rowScore}>{tier.score.toFixed(1)}</span>
+            </div>
+          ))}
         </div>
       )}
 
       {unrated.length > 0 && (
-        <div className={styles.tier}>
-          <div className={styles.tierHeader}>
-            <span className={styles.tierRankUnrated}>Sin valorar</span>
-          </div>
-          <div className={styles.grid}>
+        <section className={styles.unrated} aria-label="Sin valorar">
+          <h2 className={styles.unratedTitle}>Sin valorar</h2>
+          <div className={styles.unratedGrid}>
             {unrated.map((p) => (
-              <PlayerCromo
+              <RankingPlayerRow
                 key={p.teamPlayerId}
                 displayName={p.displayName}
                 alias={p.alias}
                 photoSrc={p.photoSrc}
                 dorsal={p.dorsal}
                 position={p.position}
-                rating={null}
-                onEdit={() => setEditPlayer(p)}
+                onAction={() => setEditPlayer(p)}
+                dashed
               />
             ))}
           </div>
-        </div>
+        </section>
       )}
       {editPlayer && (
         isGoalkeeperPosition(editPlayer.position) ? (

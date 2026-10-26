@@ -1,17 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import CloseIcon from "@mui/icons-material/Close";
 import GradingOutlinedIcon from "@mui/icons-material/GradingOutlined";
 import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
-import { Button, ToggleButton, ToggleButtonGroup } from "@mui/material";
+import { Button } from "@mui/material";
 import { exportAllPlayersPdf, exportPlayerPdf } from "../squadPdfExport";
 import type { RatingSortKey } from "../squadPdfExport";
 import type { PlayerRating } from "../../../types/playerRating";
 import { positionAccent } from "../rating/positionCategory";
-import PlayerCromo from "./PlayerCromo";
-import SubRatingsPanel from "./SubRatingsPanel";
+import RatingPlayerCard from "./RatingPlayerCard";
 import styles from "./SquadRatings.module.css";
 
 type PlayerEntry = {
@@ -23,10 +19,6 @@ type PlayerEntry = {
   photoSrc?: string | null;
   to?: string;
 };
-
-function resolvedPlayerName(p: PlayerEntry): string {
-  return p.alias?.trim() ? p.alias.trim() : p.displayName;
-}
 
 type Props = {
   teamId: string;
@@ -114,8 +106,8 @@ export default function SquadRatings({ teamId: _teamId, players, latestRatings, 
 
   useEffect(() => {
     if (!expandedId) return;
-    // El panel aparece debajo del cromo en móvil/tablet; sin esto queda fuera
-    // de la vista y el usuario lo percibe como vacío hasta hacer scroll manual.
+    // El panel se abre dentro de la tarjeta; sin esto puede quedar fuera de la
+    // vista en móvil y el usuario lo percibe como vacío hasta hacer scroll manual.
     const panel = document.getElementById(`sub-ratings-panel-${expandedId}`);
     if (typeof panel?.scrollIntoView === "function") {
       panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -133,41 +125,40 @@ export default function SquadRatings({ teamId: _teamId, players, latestRatings, 
     <div className={styles.container}>
       {!readOnly && (
         <div className={styles.toolbar}>
-          <ToggleButtonGroup
-            value={sortKey}
-            exclusive
-            onChange={(_, v) => { if (v) setSortKey(v as SortKey); }}
-            size="small"
-            className={styles.sortGroup}
-          >
+          <div className={styles.sortChips}>
             {SORT_OPTIONS.map(({ key, label }) => (
-              <ToggleButton key={key} value={key} className={styles.sortBtn}>
+              <button
+                key={key}
+                type="button"
+                className={`${styles.chip} ${sortKey === key ? styles.chipActive : ""}`}
+                aria-pressed={sortKey === key}
+                onClick={() => setSortKey(key)}
+              >
                 {label}
-              </ToggleButton>
+              </button>
             ))}
-          </ToggleButtonGroup>
+          </div>
 
-          <div style={{ display: "flex", gap: 8 }}>
+          <div className={styles.toolbarActions}>
             <Button
-              size="small"
               variant="contained"
               startIcon={<GradingOutlinedIcon />}
               onClick={() => navigate(`/coach/squad/rating-sheet${squadSearch}`)}
+              className={styles.toolbarButton}
             >
               Valorar plantilla
             </Button>
 
             <Button
-              size="small"
               variant="outlined"
               startIcon={<PictureAsPdfOutlinedIcon />}
               onClick={() => exportAllPlayersPdf(players, latestRatings, teamName, pdfSortKey)}
+              className={styles.toolbarButton}
             >
               PDF plantilla
             </Button>
 
             <Button
-              size="small"
               variant="outlined"
               startIcon={<PictureAsPdfOutlinedIcon />}
               onClick={() => {
@@ -175,6 +166,7 @@ export default function SquadRatings({ teamId: _teamId, players, latestRatings, 
                   exportPlayerPdf(p, latestRatings[p.teamPlayerId] ?? null, teamName);
                 }
               }}
+              className={styles.toolbarButton}
             >
               PDF individuales
             </Button>
@@ -184,80 +176,33 @@ export default function SquadRatings({ teamId: _teamId, players, latestRatings, 
       {grouped.map(([position, group]) => {
         const accent = positionAccent(position);
         return (
-          <div key={position} className={styles.positionPanel}>
-            <div className={styles.positionPanelAccent} style={{ background: accent }} />
-            <div className={styles.positionPanelHeader}>
-              <span className={styles.positionTitle}>{position}</span>
+          <section key={position} className={styles.positionGroup} aria-label={position}>
+            <div className={styles.positionHeader}>
+              <span className={styles.positionAccent} style={{ background: accent }} />
+              <h2 className={styles.positionTitle}>{position}</h2>
               <span className={styles.positionCount}>{group.length}</span>
             </div>
             <div className={styles.grid}>
-              {group.map((p) => {
-                const rating = latestRatings[p.teamPlayerId];
-                const isCollapsed = expandedId !== p.teamPlayerId;
-                const panelId = `sub-ratings-panel-${p.teamPlayerId}`;
-                return (
-                  <div key={p.teamPlayerId} className={styles.playerRow}>
-                    <div className={styles.cromoCell}>
-                      <PlayerCromo
-                        displayName={p.displayName}
-                        alias={p.alias}
-                        photoSrc={p.photoSrc}
-                        dorsal={p.dorsal}
-                        position={p.position}
-                        rating={
-                          rating
-                            ? {
-                                technical: rating.technical,
-                                tactical: rating.tactical,
-                                physical: rating.physical,
-                                competitiveness: rating.competitiveness,
-                              }
-                            : null
-                        }
-                        to={p.to}
-                        onEdit={readOnly ? undefined : () => navigate(`/coach/squad/${p.teamPlayerId}/rating/new${squadSearch}`)}
-                        onHistory={readOnly ? undefined : () => navigate(`/coach/squad/${p.teamPlayerId}/rating/history${squadSearch}`)}
-                        onPrint={() => exportPlayerPdf(p, latestRatings[p.teamPlayerId] ?? null, teamName)}
-                      />
-                    </div>
-                    <button
-                      className={`${styles.toggleTab} ${!isCollapsed ? styles.toggleTabOpen : ""}`}
-                      onClick={() => togglePanel(p.teamPlayerId)}
-                      title={isCollapsed ? "Ver subvaloraciones" : "Ocultar subvaloraciones"}
-                      aria-expanded={!isCollapsed}
-                      aria-controls={panelId}
-                    >
-                      {isCollapsed ? (
-                        <ChevronRightIcon sx={{ fontSize: 16 }} />
-                      ) : (
-                        <ChevronLeftIcon sx={{ fontSize: 16 }} />
-                      )}
-                    </button>
-                    <div
-                      id={panelId}
-                      className={`${styles.panelSlider} ${isCollapsed ? styles.panelSliderCollapsed : ""}`}
-                      role={isCollapsed ? undefined : "region"}
-                      aria-label={isCollapsed ? undefined : `Valoraciones detalladas de ${resolvedPlayerName(p)}`}
-                      aria-hidden={isCollapsed}
-                    >
-                      {!isCollapsed && (
-                        <button
-                          type="button"
-                          className={styles.mobileCloseBtn}
-                          onClick={() => togglePanel(p.teamPlayerId)}
-                          aria-label="Cerrar valoraciones"
-                        >
-                          <CloseIcon sx={{ fontSize: 16 }} />
-                          Cerrar
-                        </button>
-                      )}
-                      <SubRatingsPanel rating={rating ?? null} />
-                    </div>
-                  </div>
-                );
-              })}
+              {group.map((p) => (
+                <RatingPlayerCard
+                  key={p.teamPlayerId}
+                  displayName={p.displayName}
+                  alias={p.alias}
+                  photoSrc={p.photoSrc}
+                  dorsal={p.dorsal}
+                  position={p.position}
+                  rating={latestRatings[p.teamPlayerId] ?? null}
+                  to={p.to}
+                  expanded={expandedId === p.teamPlayerId}
+                  onToggle={() => togglePanel(p.teamPlayerId)}
+                  panelId={`sub-ratings-panel-${p.teamPlayerId}`}
+                  onEdit={readOnly ? undefined : () => navigate(`/coach/squad/${p.teamPlayerId}/rating/new${squadSearch}`)}
+                  onHistory={readOnly ? undefined : () => navigate(`/coach/squad/${p.teamPlayerId}/rating/history${squadSearch}`)}
+                  onPrint={() => exportPlayerPdf(p, latestRatings[p.teamPlayerId] ?? null, teamName)}
+                />
+              ))}
             </div>
-          </div>
+          </section>
         );
       })}
     </div>

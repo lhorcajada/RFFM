@@ -1,15 +1,18 @@
-import { Box, Button, Chip, Stack, Tab, Tabs, Typography } from "@mui/material";
+import { Box, Button, Stack, Tab, Tabs } from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
 import SquadRatings from "./components/SquadRatings";
 import SquadRanking from "./components/SquadRanking";
 import IdealLineup from "./components/IdealLineup";
-import PlayerCromo from "./components/PlayerCromo";
+import SquadPlayerCard from "./components/SquadPlayerCard";
+import SquadSummary from "./components/SquadSummary";
+import SquadFilters from "./components/SquadFilters";
+import { categoryAccent, positionCategory } from "./rating/positionCategory";
+import { CATEGORY_ORDER, positionCategoryLabel } from "./utils/positionGroups";
 import { useNavigate } from "react-router-dom";
 import { useSearchParams } from "react-router-dom";
 import { coachAuthService } from "../../services/authService";
 import { getMyProfile } from "../../services/coachApi";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import useTeamAndClub from "../../hooks/useTeamAndClub.tsx";
@@ -30,48 +33,6 @@ import { useAuditPageAccess } from "../../../../shared/hooks/useAuditPageAccess"
 import styles from "./Squad.module.css";
 
 const useTabState = useState;
-
-function positionCategory(position: string): number {
-  const p = position.toLowerCase();
-  if (p.includes("portero") || p.includes("keeper") || p.includes("arquero")) return 0;
-  if (
-    p.includes("defensa") || p.includes("central") || p.includes("lateral") ||
-    p.includes("libero") || p.includes("stopper")
-  ) return 1;
-  if (
-    p.includes("centrocampista") || p.includes("medio") || p.includes("pivote") ||
-    p.includes("interior") || p.includes("volante")
-  ) return 2;
-  if (
-    p.includes("delantero") || p.includes("extremo") || p.includes("punta") ||
-    p.includes("ariete") || p.includes("winger")
-  ) return 3;
-  return 4;
-}
-
-function positionAccent(position: string): string {
-  const cat = positionCategory(position);
-  if (cat === 0) return "#f59e0b";
-  if (cat === 1) return "#3b82f6";
-  if (cat === 2) return "#10b981";
-  if (cat === 3) return "#ef4444";
-  return "#6b7280";
-}
-
-function groupByPosition(players: any[]) {
-  const groups: Record<string, any[]> = {};
-  for (const p of players) {
-    const key = p.position?.trim() || "Sin posición";
-    if (!groups[key]) groups[key] = [];
-    groups[key].push(p);
-  }
-  return Object.entries(groups).sort(([a], [b]) => {
-    const ca = positionCategory(a);
-    const cb = positionCategory(b);
-    if (ca !== cb) return ca - cb;
-    return a.localeCompare(b, "es");
-  });
-}
 
 export default function Squad() {
   useAuditPageAccess('Squad');
@@ -128,7 +89,48 @@ export default function Squad() {
     setLatestRatings((prev) => ({ ...prev, [rating.teamPlayerId]: rating }));
   }
 
-  const playersByPosition = useMemo(() => groupByPosition(players), [players]);
+  const [categoryFilter, setCategoryFilter] = useState<number | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  function clearRosterFilters() {
+    setCategoryFilter(null);
+    setSearchQuery("");
+  }
+
+  const filterCategories = useMemo(
+    () =>
+      CATEGORY_ORDER.filter((category) => players.some((p) => positionCategory(p.position) === category)).map(
+        (category) => ({
+          key: category,
+          label: positionCategoryLabel(category),
+          count: players.filter((p) => positionCategory(p.position) === category).length,
+        })
+      ),
+    [players]
+  );
+
+  const visibleGroups = useMemo(() => {
+    const needle = searchQuery.trim().toLowerCase();
+    const entries = players
+      .map((player, idx) => ({
+        player,
+        key: player.id ?? `${player.name ?? ""}-${player.lastName ?? ""}-${idx}`,
+      }))
+      .filter(({ player }) => {
+        const matchesCategory = categoryFilter === null || positionCategory(player.position) === categoryFilter;
+        const searchable = `${player.name ?? ""} ${player.lastName ?? ""} ${player.alias ?? ""}`.toLowerCase();
+        return matchesCategory && (!needle || searchable.includes(needle));
+      });
+
+    return CATEGORY_ORDER.map((category) => ({
+      category,
+      label: positionCategoryLabel(category),
+      accent: categoryAccent(category),
+      players: entries
+        .filter(({ player }) => positionCategory(player.position) === category)
+        .sort((a, b) => (a.player.dorsal ?? 999) - (b.player.dorsal ?? 999)),
+    })).filter((group) => group.players.length > 0);
+  }, [players, categoryFilter, searchQuery]);
 
   const photoByTeamPlayerId = useMemo(() => {
     const map: Record<string, string | null> = {};
@@ -336,8 +338,6 @@ export default function Squad() {
             value={activeTab}
             onChange={(_, v) => setActiveTab(v)}
             className={styles.tabs}
-            variant="scrollable"
-            scrollButtons="auto"
           >
             <Tab label="Plantilla" />
             {!isFan && <Tab label="Valoraciones" />}
@@ -347,23 +347,16 @@ export default function Squad() {
           </Tabs>
 
           {activeTab === 0 && !loadingPlayers && players.length > 0 && (
-            <div className={styles.totalCount}>
-              <Chip
-                label={`${players.length} jugador${players.length !== 1 ? "es" : ""}`}
-                size="small"
-                color="primary"
-                variant="outlined"
+            <>
+              <SquadSummary players={players} />
+              <SquadFilters
+                categories={filterCategories}
+                selected={categoryFilter}
+                onSelect={setCategoryFilter}
+                query={searchQuery}
+                onQueryChange={setSearchQuery}
               />
-            </div>
-          )}
-          {activeTab === 0 && !isFan && Object.keys(leagueStats).length > 0 && (
-            <div className={styles.leagueNotice} role="note">
-              <InfoOutlinedIcon fontSize="small" className={styles.leagueNoticeIcon} />
-              <span>
-                <strong>Datos de liga.</strong> Goles, convocatorias, titularidades, tarjetas y minutos
-                cuentan solo partidos de liga; no incluyen amistosos ni torneos.
-              </span>
-            </div>
+            </>
           )}
           {activeTab === 0 && loadingPlayers && (
             <div className={styles.list}>
@@ -377,24 +370,32 @@ export default function Squad() {
               </div>
             </div>
           )}
-          {activeTab === 0 && !loadingPlayers && playersByPosition.length > 0 && (
-            <div className={styles.positionsDashboard}>
-              {playersByPosition.map(([position, group]) => {
-                const accent = positionAccent(position);
+          {activeTab === 0 && !loadingPlayers && players.length > 0 && visibleGroups.length === 0 && (
+            <div className={styles.list}>
+              <div className={styles.cardWrap}>
+                <EmptyState description={"No hay jugadores para mostrar."} />
+                <Button variant="outlined" size="small" onClick={clearRosterFilters}>
+                  Quitar filtros
+                </Button>
+              </div>
+            </div>
+          )}
+          {activeTab === 0 && !loadingPlayers && visibleGroups.length > 0 && (
+            <div className={styles.positionGroups}>
+              {visibleGroups.map(({ category, label, accent, players: group }) => {
                 const seasonParam = new URLSearchParams(window.location.search).get("seasonId");
                 return (
-                  <div key={position} className={styles.positionPanel}>
-                    <div className={styles.positionPanelAccent} style={{ background: accent }} />
-                    <div className={styles.positionPanelHeader}>
-                      <span className={styles.positionPanelTitle}>{position}</span>
-                      <span className={styles.positionPanelCount}>{group.length}</span>
+                  <section key={category} className={styles.positionGroup} aria-label={label}>
+                    <div className={styles.positionGroupHeader}>
+                      <span className={styles.positionGroupAccent} style={{ background: accent }} />
+                      <h2 className={styles.positionGroupTitle}>{label}</h2>
+                      <span className={styles.positionGroupCount}>{group.length}</span>
                     </div>
-                    <div className={styles.positionPanelGrid}>
-                      {group.map((p, idx) => {
-                        const key = p.id ?? `${p.name ?? ""}-${p.lastName ?? ""}-${idx}`;
+                    <div className={styles.cardGrid}>
+                      {group.map(({ player: p, key }) => {
                         const displayName = ((p.name ?? "") + " " + (p.lastName ?? "")).trim() || "Jugador";
                         return (
-                          <PlayerCromo
+                          <SquadPlayerCard
                             key={key}
                             displayName={displayName}
                             alias={p.alias}
@@ -412,17 +413,8 @@ export default function Squad() {
                                 );
                               }
                             } : undefined}
-                            rating={(() => {
-                              if (isFan) return null;
-                              // Only restrict once we know the associated player; while loading, show nothing to avoid flicker
-                              if (isPlayerOrFamily && loadingProfile) return null;
-                              if (isPlayerOrFamily && associatedPlayerId && p.id !== associatedTeamPlayerId) return null;
-                              const r = latestRatings[p.id];
-                              return r
-                                ? { technical: r.technical, tactical: r.tactical, physical: r.physical, competitiveness: r.competitiveness }
-                                : null;
-                            })()}
-                            leagueStats={!isFan && (!isPlayerOrFamily || (!loadingProfile && p.id === associatedTeamPlayerId)) ? (leagueStats[p.id] ?? null) : null}
+                            leagueStats={!isFan ? (leagueStats[p.id] ?? null) : null}
+                            hideMinutes={isPlayerOrFamily}
                             readiness={playerStatsMap[p.id]?.readiness ?? null}
                             fatigue={playerStatsMap[p.id]?.fatigue ?? null}
                             formStatus={playerStatsMap[p.id]?.formStatus}
@@ -437,12 +429,12 @@ export default function Squad() {
                         );
                       })}
                     </div>
-                  </div>
+                  </section>
                 );
               })}
             </div>
           )}
-          {activeTab === 0 && !loadingPlayers && playersByPosition.length > 0 && (
+          {activeTab === 0 && !loadingPlayers && visibleGroups.length > 0 && (
             <div className={styles.formLegendRow}>
               <PlayerFormLegend />
             </div>

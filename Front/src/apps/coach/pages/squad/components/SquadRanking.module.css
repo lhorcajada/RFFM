@@ -1,7 +1,7 @@
 .container {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 24px;
   padding-top: 8px;
 }
 
@@ -11,201 +11,171 @@
   padding: 40px 0;
 }
 
-.filterRow {
+.sortChips {
   display: flex;
-  gap: 8px;
   flex-wrap: wrap;
   align-items: center;
+  gap: 8px;
 }
 
 .filterLabel {
-  font-size: 0.75rem;
-  opacity: 0.6;
-}
-
-/* ── Tier (escalón) ── */
-.tier {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 14px 16px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  position: relative;
-}
-
-.tierHeader {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.tierRank {
-  font-size: 2rem;
-  font-weight: 800;
-  line-height: 1;
-  min-width: 36px;
-}
-
-.tierScore {
   font-size: 0.9rem;
-  font-weight: 700;
-  opacity: 0.85;
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
-  padding: 2px 10px;
+  color: rgba(255, 255, 255, 0.65);
+  margin-right: 4px;
 }
 
-.tierTie {
-  font-size: 0.72rem;
-  opacity: 0.5;
-  font-style: italic;
+.chip {
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.85);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
 }
 
-.tierRankUnrated {
-  font-size: 0.8rem;
-  opacity: 0.4;
-  font-style: italic;
+.chipActive {
+  background: #ff8a1f;
+  border-color: #ff8a1f;
+  color: #1a0f03;
 }
 
-.grid {
+.chip:focus-visible {
+  outline: 2px solid #ff9a3c;
+  outline-offset: 2px;
+}
+
+.podium {
   display: grid;
-  grid-template-columns: repeat(auto-fill, 210px);
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
 }
 
-/* ── Real podium ── */
-.podiumStage {
+.podiumCard {
   display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--medal);
+}
+
+.podiumHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.podiumPlace {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--medal);
+  color: #14110a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+.podiumScoreBlock {
+  display: flex;
+  flex-direction: column;
   align-items: flex-end;
-  justify-content: center;
-  gap: 6px;
-  padding-top: 16px;
-}
-
-.podiumSlot {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  flex: 1;
-  max-width: 240px;
-  min-width: 0;
-}
-
-.podiumSlotEmpty {
-  flex: 1;
-  max-width: 240px;
-}
-
-.podiumCards {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 8px;
-  margin-bottom: 10px;
-  width: 100%;
-}
-
-.podiumPlatform {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  border-radius: 8px 8px 0 0;
-  padding: 10px 8px;
-  gap: 2px;
-}
-
-.platform1 {
-  height: 90px;
-  background: linear-gradient(175deg, #ffd700 0%, #c8960c 100%);
-  color: #3a2800;
-  box-shadow: 0 -4px 20px rgba(255, 215, 0, 0.25);
-}
-
-.platform2 {
-  height: 65px;
-  background: linear-gradient(175deg, #d8d8d8 0%, #909090 100%);
-  color: #1a1a1a;
-  box-shadow: 0 -4px 16px rgba(180, 180, 180, 0.18);
-}
-
-.platform3 {
-  height: 45px;
-  background: linear-gradient(175deg, #e07b3a 0%, #a0501a 100%);
-  color: #fff0e8;
-  box-shadow: 0 -4px 16px rgba(200, 120, 50, 0.2);
-}
-
-.podiumMedal {
-  font-size: 1.4rem;
-  line-height: 1;
 }
 
 .podiumScore {
-  font-size: 0.85rem;
+  font-size: 2.4rem;
   font-weight: 800;
-  letter-spacing: 0.02em;
+  line-height: 1;
+  color: #ff9a3c;
+  font-variant-numeric: tabular-nums;
 }
 
-.podiumTie {
-  font-size: 0.62rem;
-  opacity: 0.8;
-  font-style: italic;
+.tieLabel {
+  align-self: flex-start;
+  padding: 2px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.09);
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.85);
 }
 
-/* ── Rest tiers: horizontal flex, wrapping ── */
-.tiersRow {
+.podiumScoreBlock .tieLabel {
+  align-self: flex-end;
+  margin-top: 4px;
+}
+
+.playerList {
   display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  align-items: flex-start;
+  flex-direction: column;
+  gap: 10px;
 }
 
-.tiersRow > .tier {
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  min-height: 64px;
+  box-sizing: border-box;
+}
+
+.rowRank {
+  width: 44px;
+  flex: none;
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.rowPlayers {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
   flex: 1;
-  min-width: 200px;
+  min-width: 0;
 }
 
-.tiersRow .grid {
-  grid-template-columns: repeat(auto-fill, minmax(160px, 185px));
+.rowScore {
+  flex: none;
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #ff9a3c;
+  font-variant-numeric: tabular-nums;
 }
 
-@media (max-width: 600px) {
-  .grid {
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-    justify-content: center;
-  }
-
-  .tiersRow .grid {
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  }
-
-  .podiumStage {
-    flex-wrap: wrap;
-    gap: 12px;
-  }
-
-  .podiumSlot,
-  .podiumSlotEmpty {
-    flex: 1 1 100px;
-    max-width: 140px;
-  }
-
-  .tiersRow {
-    justify-content: center;
-  }
-
-  .tiersRow > .tier {
-    min-width: 0;
-    width: 100%;
-  }
-
-  .filterRow .MuiButton-root {
-    font-size: 0.68rem;
-    padding: 3px 8px;
-  }
+.unrated {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
+.unratedTitle {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.unratedGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}

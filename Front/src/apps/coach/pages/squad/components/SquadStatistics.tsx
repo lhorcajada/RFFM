@@ -16,7 +16,7 @@ import ShowChartIcon from "@mui/icons-material/ShowChart";
 import avatarFallback from "../../../../../assets/avatar.svg";
 import type { PlayerStatistics } from "../../../services/teamPlayerStatisticsService";
 import { exportSquadStatisticsPdf } from "../squadStatsPdfExport";
-import { calledButAbsentLabel, injuryLabel, matchAbsenceLines } from "../playerStatsText";
+import { injuryLabel, matchAbsenceLines } from "../playerStatsText";
 import SeasonMinutesTarget from "./SeasonMinutesTarget";
 import MatchAbsencesList from "./MatchAbsencesList";
 import PlayerFormBars from "../../../components/PlayerFormBars/PlayerFormBars";
@@ -152,7 +152,7 @@ export default function SquadStatistics({ players, loading, teamName, photoUrls,
           <FormControl
             size="small"
             className={styles.positionFilter}
-            sx={{ width: { xs: "100%", sm: 180 }, minWidth: 0 }}
+            sx={{ width: { xs: "auto", sm: 180 }, minWidth: 0 }}
           >
             <InputLabel id="squad-statistics-position-filter-label">Posición</InputLabel>
             <Select
@@ -175,7 +175,7 @@ export default function SquadStatistics({ players, loading, teamName, photoUrls,
             size="small"
             startIcon={<PictureAsPdfOutlinedIcon />}
             onClick={() => exportSquadStatisticsPdf(filteredAndSorted, teamName)}
-            sx={{ width: { xs: "100%", sm: "auto" }, whiteSpace: "nowrap" }}
+            sx={{ whiteSpace: "nowrap", flexShrink: 0 }}
           >
             Exportar PDF
           </Button>
@@ -269,9 +269,6 @@ export default function SquadStatistics({ players, loading, teamName, photoUrls,
                 <div className={styles.statItem}>
                   <span className={styles.statValue}>{player.friendlies.attended} de {player.friendlies.possible}</span>
                   <span className={styles.statLabel}>Amistosos</span>
-                  {calledButAbsentLabel(player.friendlies.calledButAbsent) && (
-                    <span className={styles.statAbsentNote}>{calledButAbsentLabel(player.friendlies.calledButAbsent)}</span>
-                  )}
                 </div>
                 <div className={styles.statItem}>
                   <span className={styles.statValue}>{player.league.attended} de {player.league.possible}</span>

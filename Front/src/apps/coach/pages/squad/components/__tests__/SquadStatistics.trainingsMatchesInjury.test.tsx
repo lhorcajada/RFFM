@@ -60,7 +60,7 @@ describe("SquadStatistics — entrenamientos, partidos y lesión reciente", () =
     expect(within(card).getByText("7 de 8")).toBeInTheDocument();
   });
 
-  it("muestra una línea indicando cuántas veces fue convocado pero no asistió, solo en amistosos (no en entrenamientos)", () => {
+  it("no repite en la tarjeta que fue convocado a un amistoso y no asistió: el detalle va en el desplegable", () => {
     render(
       <SquadStatistics
         players={[
@@ -77,9 +77,7 @@ describe("SquadStatistics — entrenamientos, partidos y lesión reciente", () =
     );
 
     const card = screen.getByTestId("squad-stat-card-p1");
-    const notAttendedTexts = within(card).getAllByText((_, el) => el?.textContent === "No asistió a 1 partido al que fue convocado");
-    // Only the "Amistosos" tile shows the note here — trainings never shows it.
-    expect(notAttendedTexts).toHaveLength(1);
+    expect(within(card).queryByText(/No asistió a/)).not.toBeInTheDocument();
   });
 
   it("en liga no dice que fue convocado: explica cada ausencia con su motivo", () => {

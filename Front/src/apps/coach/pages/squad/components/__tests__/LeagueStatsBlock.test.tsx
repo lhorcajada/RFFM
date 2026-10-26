@@ -1,8 +1,7 @@
 import React from "react";
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { MemoryRouter } from "react-router-dom";
-import PlayerCromo from "../PlayerCromo";
+import LeagueStatsBlock from "../LeagueStatsBlock";
 import type { LeaguePlayerStats } from "../../../../services/leagueStatsService";
 
 const stats: LeaguePlayerStats = {
@@ -15,17 +14,9 @@ const stats: LeaguePlayerStats = {
   minutesPlayed: 810,
 };
 
-function renderCromo(leagueStats?: LeaguePlayerStats | null) {
-  return render(
-    <MemoryRouter>
-      <PlayerCromo displayName="Juan Pérez" leagueStats={leagueStats} />
-    </MemoryRouter>
-  );
-}
-
-describe("PlayerCromo — bloque «Solo liga»", () => {
+describe("LeagueStatsBlock", () => {
   it("etiqueta el bloque como solo liga", () => {
-    renderCromo(stats);
+    render(<LeagueStatsBlock stats={stats} />);
 
     expect(screen.getByText("Solo liga")).toBeInTheDocument();
   });
@@ -38,22 +29,27 @@ describe("PlayerCromo — bloque «Solo liga»", () => {
     ["Rojas", "1"],
     ["Minutos", "810"],
   ])("muestra %s con su valor", (label, value) => {
-    renderCromo(stats);
+    render(<LeagueStatsBlock stats={stats} />);
 
     const item = screen.getByText(label).parentElement as HTMLElement;
     expect(within(item).getByText(value)).toBeInTheDocument();
   });
 
   it("muestra los ceros cuando el jugador no tiene datos de liga", () => {
-    renderCromo({ ...stats, goals: 0, callUps: 0, starts: 0, yellowCards: 0, redCards: 0, minutesPlayed: 0 });
+    render(
+      <LeagueStatsBlock
+        stats={{ ...stats, goals: 0, callUps: 0, starts: 0, yellowCards: 0, redCards: 0, minutesPlayed: 0 }}
+      />
+    );
 
-    expect(screen.getByText("Solo liga")).toBeInTheDocument();
     expect(screen.getAllByText("0")).toHaveLength(6);
   });
 
-  it("no muestra el bloque sin datos de liga", () => {
-    renderCromo(null);
+  it("oculta los minutos cuando se pide, y mantiene el resto de cifras", () => {
+    render(<LeagueStatsBlock stats={stats} hideMinutes />);
 
-    expect(screen.queryByText("Solo liga")).not.toBeInTheDocument();
+    expect(screen.queryByText("Minutos")).not.toBeInTheDocument();
+    expect(screen.getByText("Goles")).toBeInTheDocument();
+    expect(screen.getAllByText(/^\d+$/)).toHaveLength(5);
   });
 });

@@ -1,9 +1,8 @@
 .container {
   display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
+  flex-direction: column;
+  gap: 24px;
   padding-top: 8px;
-  align-items: flex-start;
 }
 
 .empty {
@@ -13,223 +12,86 @@
   width: 100%;
 }
 
-/* ─── PDF export toolbar ─── */
-
 .toolbar {
-  width: 100%;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 4px 0 8px;
-  flex-wrap: wrap;
 }
 
-.sortGroup {
+.sortChips,
+.toolbarActions {
   display: flex;
-  flex-shrink: 0;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
-.sortBtn {
-  font-size: 0.68rem !important;
-  padding: 3px 9px !important;
-  text-transform: none !important;
-  line-height: 1.4 !important;
-  color: rgba(255, 255, 255, 0.5) !important;
-  border-color: rgba(255, 255, 255, 0.12) !important;
+.chip {
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.85);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
 }
 
-.sortBtn:hover {
-  background: rgba(255, 255, 255, 0.07) !important;
-  color: rgba(255, 255, 255, 0.85) !important;
+.chipActive {
+  background: #ff8a1f;
+  border-color: #ff8a1f;
+  color: #1a0f03;
 }
 
-.sortBtn.Mui-selected {
-  background: rgba(200, 75, 0, 0.22) !important;
-  color: #ff9040 !important;
-  border-color: rgba(200, 75, 0, 0.5) !important;
+.chip:focus-visible {
+  outline: 2px solid #ff9a3c;
+  outline-offset: 2px;
 }
 
-@media (max-width: 600px) {
-  .toolbar .MuiButton-root {
-    font-size: 0.7rem;
-    padding: 4px 10px;
-    min-height: 30px;
-  }
+.toolbarButton {
+  min-height: 44px;
 }
 
-/* ─── Position panel (igual que Plantilla) ─── */
-
-.positionPanel {
-  flex: 0 0 auto;
-  border-radius: 14px;
-  overflow: visible;
-  background: linear-gradient(160deg, #19192e 0%, #0d0d1e 100%);
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
-  max-width: 100%;
+.positionGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
-.positionPanelAccent {
-  height: 3px;
-  width: 100%;
-  border-radius: 14px 14px 0 0;
-}
-
-.positionPanelHeader {
+.positionHeader {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 14px 9px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  gap: 12px;
+}
+
+.positionAccent {
+  width: 6px;
+  height: 28px;
+  border-radius: 3px;
 }
 
 .positionTitle {
-  flex: 1;
-  font-size: 0.72rem;
-  font-weight: 900;
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.14em;
-  color: rgba(255, 255, 255, 0.88);
+  letter-spacing: 0.04em;
 }
 
 .positionCount {
-  font-size: 0.68rem;
-  font-weight: 700;
+  padding: 2px 10px;
+  border-radius: 12px;
   background: rgba(255, 255, 255, 0.09);
-  border-radius: 10px;
-  padding: 2px 8px;
-  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.8rem;
+  font-weight: 600;
 }
-
-/* ─── Grid inside panel: 2 columns of player rows ─── */
 
 .grid {
-  padding: 10px;
   display: grid;
-  grid-template-columns: repeat(2, auto);
-  gap: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 14px;
   align-items: start;
 }
-
-/* ─── Player row (cromo + toggle + sliding panel) ─── */
-
-.playerRow {
-  display: flex;
-  align-items: stretch;
-}
-
-.cromoCell {
-  width: 210px;
-  flex-shrink: 0;
-}
-
-.toggleTab {
-  width: 22px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 165, 0, 0.08);
-  border: none;
-  border-top: 1px solid rgba(255, 165, 0, 0.2);
-  border-bottom: 1px solid rgba(255, 165, 0, 0.2);
-  border-left: 2px solid rgba(255, 140, 0, 0.35);
-  cursor: pointer;
-  color: rgba(255, 165, 0, 0.6);
-  padding: 0;
-  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
-}
-
-.toggleTab:hover {
-  background: rgba(255, 140, 0, 0.2);
-  color: rgba(255, 180, 60, 1);
-  border-left-color: rgba(255, 140, 0, 0.8);
-}
-
-.toggleTabOpen {
-  background: rgba(255, 140, 0, 0.15);
-  color: rgba(255, 180, 60, 0.9);
-  border-left-color: rgba(255, 140, 0, 0.7);
-}
-
-/* ─── Sliding panel ─── */
-
-.panelSlider {
-  width: 480px;
-  flex-shrink: 0;
-  overflow: hidden;
-  transition: width 0.28s cubic-bezier(0.4, 0, 0.2, 1);
-  background: linear-gradient(170deg, #1c1c30 0%, #07071a 100%);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-left: none;
-  border-radius: 0 14px 14px 0;
-}
-
-.panelSliderCollapsed {
-  width: 0;
-  height: 0;
-}
-
-.mobileCloseBtn {
-  display: none;
-}
-
-/* ─── Tablet & mobile: single column, panel wraps full-width below the
-     cromo instead of squeezing into a narrow fixed sidebar ─── */
-@media (max-width: 960px) {
-  .grid {
-    grid-template-columns: 1fr;
-    justify-items: center;
-    justify-content: center;
-  }
-
-  .playerRow {
-    flex-wrap: wrap;
-    width: 100%;
-    max-width: 420px;
-  }
-
-  .panelSlider {
-    width: 100%;
-    flex-basis: 100%;
-    border-radius: 0 0 14px 14px;
-    border-left: 1px solid rgba(255, 255, 255, 0.08);
-    margin-top: 8px;
-  }
-
-  .panelSliderCollapsed {
-    width: 0;
-    flex-basis: 0;
-    margin-top: 0;
-    border: none;
-  }
-
-  .mobileCloseBtn {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    align-self: flex-end;
-    margin: 6px 8px 0 0;
-    padding: 4px 10px;
-    background: rgba(255, 140, 0, 0.15);
-    border: 1px solid rgba(255, 140, 0, 0.35);
-    border-radius: 8px;
-    color: rgba(255, 180, 60, 0.95);
-    font-size: 0.7rem;
-    font-weight: 600;
-    cursor: pointer;
-  }
-
-  .mobileCloseBtn:hover {
-    background: rgba(255, 140, 0, 0.25);
-  }
-}
-
-/* ─── Mobile: compact cromos ─── */
-@media (max-width: 600px) {
-  .cromoCell {
-    width: 150px;
-  }
-}
-

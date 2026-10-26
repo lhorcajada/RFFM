@@ -107,20 +107,37 @@ describe("Squad — datos de liga en la pestaña Plantilla", () => {
     getTeamLeagueStatsMock.mockResolvedValue([leagueFor("tp-1", 7), leagueFor("tp-2", 2)]);
   });
 
-  it("el entrenador ve el aviso de datos de liga y el bloque «Solo liga» en cada jugador", async () => {
+  it("el entrenador ve el bloque «Solo liga» en cada jugador y ningún aviso aparte", async () => {
     renderSquad();
 
-    expect(await screen.findByText(/cuentan solo partidos de liga/i)).toBeInTheDocument();
     await waitFor(() => expect(screen.getAllByText("Solo liga")).toHaveLength(2));
   });
 
-  it("el jugador solo ve las cifras de su propio jugador", async () => {
+  it("el jugador ve las cifras de liga de todos los jugadores, sin minutos", async () => {
     getRolesMock.mockReturnValue(["player"]);
     getMyProfileMock.mockResolvedValue({ playerId: "tp-1" });
 
     renderSquad();
 
-    await waitFor(() => expect(screen.getAllByText("Solo liga")).toHaveLength(1));
+    await waitFor(() => expect(screen.getAllByText("Solo liga")).toHaveLength(2));
+    expect(screen.queryByText("Minutos")).not.toBeInTheDocument();
+    expect(screen.getAllByText("Goles")).toHaveLength(2);
+  });
+
+  it("el familiar también ve las cifras de todos los jugadores, sin minutos", async () => {
+    getRolesMock.mockReturnValue(["familymember"]);
+    getMyProfileMock.mockResolvedValue({ playerId: "tp-1" });
+
+    renderSquad();
+
+    await waitFor(() => expect(screen.getAllByText("Solo liga")).toHaveLength(2));
+    expect(screen.queryByText("Minutos")).not.toBeInTheDocument();
+  });
+
+  it("el entrenador sí ve los minutos", async () => {
+    renderSquad();
+
+    await waitFor(() => expect(screen.getAllByText("Minutos")).toHaveLength(2));
   });
 
   it("el aficionado no ve cifras ni aviso", async () => {
@@ -130,7 +147,6 @@ describe("Squad — datos de liga en la pestaña Plantilla", () => {
 
     await screen.findByText("Juan Pérez");
     expect(screen.queryByText("Solo liga")).not.toBeInTheDocument();
-    expect(screen.queryByText(/cuentan solo partidos de liga/i)).not.toBeInTheDocument();
   });
 
   it("si fallan los datos de liga las tarjetas se muestran sin el bloque", async () => {

@@ -18,11 +18,14 @@ export function isGoalkeeperPosition(position?: string | null): boolean {
   return positionCategory(position) === GOALKEEPER_CATEGORY;
 }
 
-export function positionAccent(position?: string | null): string {
-  const cat = positionCategory(position);
-  if (cat === GOALKEEPER_CATEGORY) return "#f59e0b";
-  if (cat === DEFENDER_CATEGORY) return "#3b82f6";
-  if (cat === MIDFIELDER_CATEGORY) return "#10b981";
-  if (cat === FORWARD_CATEGORY) return "#ef4444";
+export function categoryAccent(category: number): string {
+  if (category === GOALKEEPER_CATEGORY) return "#f59e0b";
+  if (category === DEFENDER_CATEGORY) return "#3b82f6";
+  if (category === MIDFIELDER_CATEGORY) return "#10b981";
+  if (category === FORWARD_CATEGORY) return "#ef4444";
   return "#6b7280";
+}
+
+export function positionAccent(position?: string | null): string {
+  return categoryAccent(positionCategory(position));
 }

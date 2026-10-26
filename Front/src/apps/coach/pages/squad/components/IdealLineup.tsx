@@ -467,6 +467,7 @@ const IdealLineup = forwardRef<IdealLineupHandle, IdealLineupProps>(function Ide
                 key={f.id}
                 type="button"
                 className={`${styles.formationBtn} ${formationId === f.id ? styles.formationBtnActive : ""}`}
+                aria-pressed={formationId === f.id}
                 onClick={() => setFormationId(f.id)}
               >
                 {f.name}
@@ -492,7 +493,7 @@ const IdealLineup = forwardRef<IdealLineupHandle, IdealLineupProps>(function Ide
           <FootballField slotDefs={slotDefs} slots={slots} playersById={playersById} />
 
           {/* Available players */}
-          <div className={styles.playerListPanel}>
+          <section className={styles.playerListPanel} aria-label={panelTitle ?? "Jugadores disponibles"}>
             <div className={styles.panelHeader}>
               {panelTitle ?? "Jugadores disponibles"}
               <div className={styles.panelHeaderRight}>
@@ -539,7 +540,7 @@ const IdealLineup = forwardRef<IdealLineupHandle, IdealLineupProps>(function Ide
                 </div>
               )}
             </div>
-          </div>
+          </section>
           {extraPanel}
         </div>
       </div>

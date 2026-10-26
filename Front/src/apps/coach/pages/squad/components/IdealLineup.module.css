@@ -14,30 +14,36 @@
 .formationPicker {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
 }
 
 .formationBtn {
-  padding: 4px 12px;
-  border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.05);
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 0.75rem;
-  font-weight: 700;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.85);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 500;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
 
 .formationBtn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.08);
 }
 
-.formationBtnActive {
-  background: rgba(77, 157, 224, 0.2);
-  border-color: rgba(77, 157, 224, 0.7);
-  color: #4d9de0;
+.formationBtn:focus-visible {
+  outline: 2px solid #ff9a3c;
+  outline-offset: 2px;
+}
+
+.formationBtnActive,
+.formationBtnActive:hover {
+  background: #ff8a1f;
+  border-color: #ff8a1f;
+  color: #1a0f03;
 }
 
 .content {
@@ -51,9 +57,9 @@
 .playerListPanel {
   flex: 1 1 0;
   min-width: 200px;
-  background: linear-gradient(160deg, #19192e 0%, #0d0d1e 100%);
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -62,11 +68,11 @@
 .panelHeader {
   padding: 10px 14px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-  font-size: 0.72rem;
-  font-weight: 900;
+  font-size: 0.9rem;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: rgba(255, 255, 255, 0.65);
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.85);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -111,8 +117,8 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.62rem;
-  color: rgba(255, 255, 255, 0.45);
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.65);
 }
 
 .playerList {
