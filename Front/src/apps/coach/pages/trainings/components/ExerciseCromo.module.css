@@ -305,7 +305,8 @@
 
 .actionBtn {
   color: rgba(255, 255, 255, 0.35) !important;
-  padding: 3px !important;
+  min-width: 44px;
+  min-height: 44px;
   border-radius: 6px !important;
   transition: color 0.15s ease, background 0.15s ease !important;
 }

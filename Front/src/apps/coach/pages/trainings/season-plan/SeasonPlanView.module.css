@@ -63,14 +63,98 @@
   margin-right: 8px;
 }
 
+.summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.summaryStat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(77, 157, 224, 0.15);
+  border-radius: 8px;
+  padding: 10px 12px;
+  min-width: 0;
+}
+
+.summaryValue {
+  font-size: 1.5rem !important;
+  font-weight: 800 !important;
+  line-height: 1.1 !important;
+  color: #4d9de0 !important;
+}
+
+.summaryValueWarn {
+  color: #f0b429 !important;
+}
+
+.summaryLabel {
+  font-size: 0.7rem !important;
+  color: rgba(212, 212, 212, 0.6) !important;
+}
+
+.microciclosGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: 10px;
+  align-items: start;
+}
+
 .microcicloCard {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(77, 157, 224, 0.1);
+  border-radius: 8px;
+  padding: 10px 12px;
+  min-width: 0;
+}
+
+.microcicloCardCurrent {
+  border-color: #4d9de0;
+  background: rgba(77, 157, 224, 0.08);
+}
+
+.currentChip {
+  background-color: #4d9de0 !important;
+  color: #0d0d1f !important;
+  font-size: 0.68rem !important;
+  font-weight: 700 !important;
+  height: 20px !important;
+}
+
+.dateBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 44px;
+  min-height: 44px;
   border-radius: 6px;
-  padding: 8px 12px;
+  background: rgba(77, 157, 224, 0.15);
+  color: #4d9de0;
+}
+
+.dateBlockDay {
+  font-size: 1rem !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  color: inherit !important;
+}
+
+.dateBlockMonth {
+  font-size: 0.62rem !important;
+  text-transform: uppercase;
+  color: #a8d4f5 !important;
+}
+
+.microcicloAction {
+  min-height: 44px !important;
 }
 
 .microcicloRow {
@@ -241,10 +325,11 @@
 
   .microcicloAction {
     margin-left: auto !important;
-    padding: 2px 8px !important;
-    min-height: 0 !important;
-    font-size: 0.72rem !important;
-    line-height: 1.4 !important;
+    font-size: 0.78rem !important;
+  }
+
+  .sessionRowEditable {
+    min-height: 44px;
   }
 
   .microcicloAction :global(.MuiButton-startIcon) {

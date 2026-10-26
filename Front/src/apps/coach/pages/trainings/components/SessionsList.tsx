@@ -57,10 +57,27 @@ function countSessions<T>(items: T[], count: (item: T) => number) {
   return items.reduce((total, item) => total + count(item), 0);
 }
 
+function dateBlockParts(iso: string | null) {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return {
+    day: d.toLocaleDateString("es-ES", { day: "2-digit" }),
+    month: d.toLocaleDateString("es-ES", { month: "short" }).replace(".", ""),
+  };
+}
+
 function SessionCard({ session, selected, actions }: { session: TrainingSession; selected: boolean; actions: SessionActions }) {
+  const dateBlock = dateBlockParts(session.date);
   return (
-    <Box className={styles.sessionCard}>
+    <Box className={`${styles.sessionCard} ${selected ? styles.sessionCardSelected : ""}`}>
       <Checkbox size="small" checked={selected} onChange={() => actions.onToggleSelected(session.id)} />
+      {dateBlock && (
+        <Box className={styles.dateBlock} data-testid={`session-date-${session.id}`} aria-hidden="true">
+          <Typography className={styles.dateBlockDay}>{dateBlock.day}</Typography>
+          <Typography className={styles.dateBlockMonth}>{dateBlock.month}</Typography>
+        </Box>
+      )}
       <Box className={styles.sessionInfo}>
         <Typography className={styles.sessionName}>{session.name}</Typography>
         <Typography className={styles.sessionDate}>{formatDate(session.date)}</Typography>

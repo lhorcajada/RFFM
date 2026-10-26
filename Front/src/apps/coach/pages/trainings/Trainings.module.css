@@ -4,21 +4,59 @@
 
 .tabs {
   margin-bottom: 16px;
+  min-height: 44px !important;
 }
 
-.tabs .MuiTab-root {
+.tabs :global(.MuiTabs-flexContainer) {
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(77, 157, 224, 0.15);
+  border-radius: 10px;
+}
+
+.tabs :global(.MuiTabs-indicator) {
+  display: none;
+}
+
+.tabs :global(.MuiTab-root) {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 44px;
+  border-radius: 8px;
   color: rgba(212, 212, 212, 0.55) !important;
   font-size: 0.85rem !important;
   text-transform: none;
-  min-width: 120px;
 }
 
-.tabs .Mui-selected {
+.tabs :global(.MuiTab-root.Mui-selected) {
   color: #4d9de0 !important;
+  background: rgba(77, 157, 224, 0.15);
 }
 
-.tabs .MuiTabs-indicator {
-  background-color: #4d9de0 !important;
+@media (max-width: 400px) {
+  .tabs :global(.MuiTab-root) {
+    flex: 1 1 100%;
+  }
+}
+
+.countText {
+  font-size: 0.78rem !important;
+  color: rgba(212, 212, 212, 0.6) !important;
+  margin-left: auto !important;
+}
+
+.selectionBar {
+  min-height: 44px;
+  padding: 0 10px 0 2px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+}
+
+.selectionBarActive {
+  background: rgba(77, 157, 224, 0.12);
+  border-color: rgba(77, 157, 224, 0.4);
 }
 
 .loadingBox {

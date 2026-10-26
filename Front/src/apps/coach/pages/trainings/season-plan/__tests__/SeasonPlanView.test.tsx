@@ -1,6 +1,6 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import SeasonPlanView from "../SeasonPlanView";
 import type { SeasonPlan } from "../../../../types/seasonPlan";
 
@@ -239,5 +239,45 @@ describe("SeasonPlanView — loading", () => {
     render(<SeasonPlanView plan={null} loading onCreatePlan={vi.fn()} onCreateSession={vi.fn()} />);
 
     expect(screen.getByRole("progressbar")).toBeInTheDocument();
+  });
+});
+
+describe("SeasonPlanView — resumen de la planificación", () => {
+  it("muestra macrociclos, sesiones planificadas y semanas sin sesiones", () => {
+    render(<SeasonPlanView plan={buildPlan()} loading={false} onCreatePlan={vi.fn()} onCreateSession={vi.fn()} />);
+
+    expect(within(screen.getByRole("group", { name: "Macrociclos" })).getByText("1")).toBeInTheDocument();
+    expect(within(screen.getByRole("group", { name: "Sesiones planificadas" })).getByText("1")).toBeInTheDocument();
+    expect(within(screen.getByRole("group", { name: "Semanas sin sesiones" })).getByText("1")).toBeInTheDocument();
+  });
+
+  it("no muestra el resumen cuando no hay planificación", () => {
+    render(<SeasonPlanView plan={null} loading={false} onCreatePlan={vi.fn()} onCreateSession={vi.fn()} />);
+
+    expect(screen.queryByRole("group", { name: "Macrociclos" })).not.toBeInTheDocument();
+  });
+});
+
+describe("SeasonPlanView — semana actual", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("marca con «Semana actual» el microciclo que contiene la fecha de hoy", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 8, 10, 12, 0, 0));
+    render(<SeasonPlanView plan={buildPlan()} loading={false} onCreatePlan={vi.fn()} onCreateSession={vi.fn()} />);
+
+    const currentWeek = screen.getByTestId("microciclo-row-4");
+    expect(within(currentWeek).getByText("Semana actual")).toBeInTheDocument();
+    expect(within(screen.getByTestId("microciclo-row-3")).queryByText("Semana actual")).not.toBeInTheDocument();
+  });
+
+  it("no muestra «Semana actual» si hoy queda fuera de todos los microciclos", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2027, 0, 10, 12, 0, 0));
+    render(<SeasonPlanView plan={buildPlan()} loading={false} onCreatePlan={vi.fn()} onCreateSession={vi.fn()} />);
+
+    expect(screen.queryByText("Semana actual")).not.toBeInTheDocument();
   });
 });

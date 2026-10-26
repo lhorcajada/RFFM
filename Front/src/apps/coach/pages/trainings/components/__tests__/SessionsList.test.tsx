@@ -97,4 +97,12 @@ describe("SessionsList", () => {
 
     expect(handlers.onEdit).toHaveBeenCalledWith("x");
   });
+
+  it("muestra el bloque de fecha con día y mes de la sesión", () => {
+    renderList([plannedSession("a", "2026-09-02")]);
+
+    const block = screen.getByTestId("session-date-a");
+    expect(block).toHaveTextContent("02");
+    expect(block).toHaveTextContent(/sep/i);
+  });
 });

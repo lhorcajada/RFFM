@@ -24,6 +24,9 @@ import {
 import { useNavigate, useLocation } from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import AddIcon from "@mui/icons-material/Add";
+import EventNoteOutlinedIcon from "@mui/icons-material/EventNoteOutlined";
+import FitnessCenterIcon from "@mui/icons-material/FitnessCenter";
+import ListAltOutlinedIcon from "@mui/icons-material/ListAltOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
@@ -433,11 +436,10 @@ export default function Trainings() {
           <Tabs
             value={tab}
             onChange={(_, v) => setTab(v)}
-            className={styles.tabs}
-          >
-            <Tab label="Planificación" />
-            <Tab label="Ejercicios" />
-            <Tab label="Sesiones" />
+            className={styles.tabs}          >
+            <Tab icon={<EventNoteOutlinedIcon />} iconPosition="start" label="Planificación" />
+            <Tab icon={<FitnessCenterIcon />} iconPosition="start" label="Ejercicios" />
+            <Tab icon={<ListAltOutlinedIcon />} iconPosition="start" label="Sesiones" />
           </Tabs>
 
           {/* ── Planificación tab ─────────────────────────────── */}
@@ -499,6 +501,11 @@ export default function Trainings() {
                     ))}
                   </Select>
                 </FormControl>
+                {!loadingEx && exercises.length > 0 && (
+                  <Typography className={styles.countText}>
+                    {exercises.length === 1 ? "1 ejercicio" : `${exercises.length} ejercicios`}
+                  </Typography>
+                )}
               </Box>
 
               {loadingEx ? (
@@ -546,14 +553,25 @@ export default function Trainings() {
                   </Select>
                 </FormControl>
                 {sessions.length > 0 && !loadingSess && (
-                  <Stack direction="row" spacing={1} alignItems="center">
+                  <Stack
+                    direction="row"
+                    spacing={1}
+                    alignItems="center"
+                    className={`${styles.selectionBar} ${selectedSessionIds.length > 0 ? styles.selectionBarActive : ""}`}
+                  >
                     <Checkbox
                       size="small"
                       checked={selectedSessionIds.length === sessions.length}
                       indeterminate={selectedSessionIds.length > 0 && selectedSessionIds.length < sessions.length}
                       onChange={toggleSelectAllSessions}
                     />
-                    <Typography className={styles.selectAllText}>Seleccionar todo</Typography>
+                    <Typography className={styles.selectAllText}>
+                      {selectedSessionIds.length === 0
+                        ? "Seleccionar todo"
+                        : selectedSessionIds.length === 1
+                          ? "1 sesión seleccionada"
+                          : `${selectedSessionIds.length} sesiones seleccionadas`}
+                    </Typography>
                   </Stack>
                 )}
               </Box>
