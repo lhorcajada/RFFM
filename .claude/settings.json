@@ -43,18 +43,20 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "Bash(git commit|git push|Bash(npm run build|dotnet build",
+        "matcher": "Bash",
         "hooks": [
           {
             "type": "command",
-            "command": "powershell -File .claude/hooks/test-coverage.ps1 -Layer all",
-            "statusMessage": "🧪 Running tests and validating coverage...",
+            "if": "Bash(git commit *)",
+            "command": "powershell -File .claude/hooks/test-coverage.ps1 -Layer auto",
+            "statusMessage": "Running affected tests...",
             "continueOnBlock": true
           },
           {
             "type": "command",
-            "command": "powershell -File .claude/hooks/build-all.ps1 -Layer all",
-            "statusMessage": "🔨 Compiling frontend and backend...",
+            "if": "Bash(git push *)",
+            "command": "powershell -File .claude/hooks/test-coverage.ps1 -Layer auto",
+            "statusMessage": "Running affected tests...",
             "continueOnBlock": true
           }
         ]
