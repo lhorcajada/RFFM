@@ -28,4 +28,4 @@
 - [x] `dotnet build` + `dotnet test` y `npm run build` + `npx vitest run --maxWorkers=2`.
 - [x] `openspec validate squad-league-stats --strict`.
 - [x] Comprobación visual a ~360 px y en escritorio.
-- [ ] Commits tras confirmación del usuario (API y web por separado).
+- [x] Commits tras confirmación del usuario (API y web por separado).
