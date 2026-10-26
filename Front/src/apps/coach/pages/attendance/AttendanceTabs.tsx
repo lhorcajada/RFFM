@@ -583,7 +583,7 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isLeagueM
     (p?.id != null ? playerPhotos[String(p.id)] : null) ?? (p?.urlPhoto ? playerPhotos[String(p.urlPhoto)] : null) ?? null;
 
   const canEditThisConvocationFor = (c: ConvocationItem) =>
-    !isPlayerOrFamily || matchesAssociatedPlayer(c.player, associatedPlayerId);
+    !isPlayerOrFamily || (canEdit && matchesAssociatedPlayer(c.player, associatedPlayerId));
 
   const openDeconvokeDialog = (cv: ConvocationItem) => {
     if (!canEdit) return alert("No se puede editar: el evento ya ha comenzado.");
