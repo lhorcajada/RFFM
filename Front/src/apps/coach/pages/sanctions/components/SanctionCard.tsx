@@ -1,7 +1,4 @@
-import { Chip, IconButton, Paper, Stack, Tooltip, Typography } from "@mui/material";
-import DeleteIcon from "@mui/icons-material/Delete";
-import EditIcon from "@mui/icons-material/Edit";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import { Button, Chip, LinearProgress, Paper, Stack, Tooltip, Typography } from "@mui/material";
 import EuroIcon from "@mui/icons-material/Euro";
 import SportsSoccerIcon from "@mui/icons-material/SportsSoccer";
 import type { SanctionRecord } from "../../../services/teamplayerSanctionService";
@@ -50,6 +47,10 @@ export default function SanctionCard({
   const playerName =
     ((player.name ?? "") + " " + (player.lastName ?? "")).trim() || player.alias;
   const photo = photoSrc ?? defaultAvatar;
+  const paidPercent =
+    sanction.fine && sanction.fine > 0
+      ? Math.min(Math.round(((sanction.amountPaid ?? 0) / sanction.fine) * 100), 100)
+      : 0;
 
   return (
     <Paper
@@ -132,46 +133,44 @@ export default function SanctionCard({
         </Stack>
 
         {isEconomic && (
-          <Stack direction="row" spacing={2} flexWrap="wrap" className={styles.metaRow}>
-            <span>
-              <span className={styles.fieldLabel}>Multa</span> {sanction.fine} €
-            </span>
-            <span>
-              <span className={styles.fieldLabel}>Pagado</span>{" "}
-              {sanction.amountPaid != null ? `${sanction.amountPaid} €` : "—"}
-            </span>
-            <span>
-              <span className={styles.fieldLabel}>Pendiente</span>{" "}
-              {pendingAmount != null ? `${pendingAmount} €` : "—"}
-            </span>
-          </Stack>
+          <div className={styles.moneyBlock}>
+            <Stack direction="row" justifyContent="space-between" className={styles.metaRow}>
+              <span>
+                <span className={styles.fieldLabel}>Multa</span> {sanction.fine} €
+              </span>
+              <span>
+                <span className={styles.fieldLabel}>Pagado</span>{" "}
+                {sanction.amountPaid != null ? `${sanction.amountPaid} €` : "—"}
+              </span>
+            </Stack>
+            <LinearProgress
+              variant="determinate"
+              value={paidPercent}
+              color="success"
+              aria-label="Porcentaje pagado"
+              className={styles.progress}
+            />
+            <Typography variant="body2" className={pendingAmount ? styles.pendingAmount : styles.settled}>
+              {pendingAmount ? `Pendiente ${pendingAmount} €` : "Multa abonada"}
+            </Typography>
+          </div>
         )}
 
         {canManage && (
-          <Stack direction="row" spacing={0.5} justifyContent="flex-end">
-            <Tooltip title="Editar">
-              <IconButton size="small" onClick={onEdit} aria-label="Editar">
-                <EditIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
+          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap className={styles.actions}>
             {isPending && (
-              <Tooltip title="Levantar sanción">
-                <IconButton size="small" color="success" onClick={onLift} aria-label="Levantar sanción">
-                  <CheckCircleIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
+              <Button variant="outlined" color="success" onClick={onLift} className={styles.actionButton}>
+                Levantar sanción
+              </Button>
             )}
-            <Tooltip title={canDelete ? "Eliminar" : "No se puede eliminar una sanción ya cumplida"}>
-              <span>
-                <IconButton
-                  size="small"
-                  color="error"
-                  disabled={!canDelete}
-                  onClick={onDelete}
-                  aria-label="Eliminar"
-                >
-                  <DeleteIcon fontSize="small" />
-                </IconButton>
+            <Button variant="outlined" color="inherit" onClick={onEdit} className={styles.actionButton}>
+              Editar
+            </Button>
+            <Tooltip title={canDelete ? "" : "No se puede eliminar una sanción ya cumplida"}>
+              <span className={styles.deleteSlot}>
+                <Button color="error" disabled={!canDelete} onClick={onDelete} className={styles.actionButton}>
+                  Eliminar
+                </Button>
               </span>
             </Tooltip>
           </Stack>

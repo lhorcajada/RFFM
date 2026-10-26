@@ -5,9 +5,9 @@
 .cardList {
   width: 100%;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
-  gap: 12px;
-  align-items: start;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 440px), 1fr));
+  gap: 16px;
+  align-items: stretch;
 }
 
 .addDialogFields {
@@ -15,4 +15,10 @@
   flex-direction: column;
   gap: 16px;
   padding-top: 8px;
+}
+
+.filterCount {
+  margin-left: 6px;
+  opacity: 0.8;
+  font-variant-numeric: tabular-nums;
 }

@@ -148,6 +148,13 @@ export default function Sanctions() {
     );
   }, [rows, canFilterMine, filterMode, myPlayerId, statusFilter]);
 
+  const statusCounts = useMemo(() => {
+    const scoped =
+      canFilterMine && filterMode === "mine" ? rows.filter((r) => r.player.id === myPlayerId) : rows;
+    const pending = scoped.filter((r) => getStatus(r.sanction) === "Pending").length;
+    return { all: scoped.length, pending, paid: scoped.length - pending };
+  }, [rows, canFilterMine, filterMode, myPlayerId]);
+
   const eventsById = useMemo(() => new Map(events.map((e) => [e.id, e])), [events]);
 
   /** Team-wide totals for the summary header, independent of the "mine/all" filter
@@ -506,6 +513,9 @@ export default function Sanctions() {
               size="small"
             >
               {opt.label}
+              <span aria-hidden className={styles.filterCount}>
+                {statusCounts[opt.value]}
+              </span>
             </Button>
           ))}
         </Stack>

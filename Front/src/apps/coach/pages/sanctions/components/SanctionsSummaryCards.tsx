@@ -1,4 +1,4 @@
-import { Paper, Stack, Typography } from "@mui/material";
+import { LinearProgress, Paper, Stack, Typography } from "@mui/material";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import PendingActionsIcon from "@mui/icons-material/PendingActions";
 import SavingsIcon from "@mui/icons-material/Savings";
@@ -20,6 +20,9 @@ export default function SanctionsSummaryCards({
   totalPending,
   fundBalance,
 }: SanctionsSummaryCardsProps) {
+  const totalPaid = Math.max(totalFine - totalPending, 0);
+  const paidPercent = totalFine > 0 ? Math.round((totalPaid / totalFine) * 100) : 0;
+
   return (
     <Stack
       direction="row"
@@ -29,6 +32,28 @@ export default function SanctionsSummaryCards({
       className={styles.summaryRow}
       data-testid="sanctions-summary-cards"
     >
+      <Paper variant="outlined" className={`${styles.summaryCard} ${styles.pendingCard}`}>
+        <PendingActionsIcon color="warning" />
+        <div className={styles.pendingBody}>
+          <Typography variant="caption" className={styles.summaryLabel}>
+            Total pendiente
+          </Typography>
+          <Typography variant="h4" component="p" className={styles.pendingValue}>
+            {formatAmount(totalPending)}
+          </Typography>
+          <LinearProgress
+            variant="determinate"
+            value={paidPercent}
+            color="success"
+            aria-label="Porcentaje cobrado"
+            className={styles.progress}
+          />
+          <Typography variant="body2" className={styles.summaryLabel}>
+            {`${formatAmount(totalPaid)} cobrados de ${formatAmount(totalFine)}`}
+          </Typography>
+        </div>
+      </Paper>
+
       <Paper variant="outlined" className={styles.summaryCard}>
         <ReceiptLongIcon color="warning" />
         <div>
@@ -37,18 +62,6 @@ export default function SanctionsSummaryCards({
           </Typography>
           <Typography variant="subtitle1" className={styles.summaryValue}>
             {formatAmount(totalFine)}
-          </Typography>
-        </div>
-      </Paper>
-
-      <Paper variant="outlined" className={styles.summaryCard}>
-        <PendingActionsIcon color="error" />
-        <div>
-          <Typography variant="caption" className={styles.summaryLabel}>
-            Total pendiente
-          </Typography>
-          <Typography variant="subtitle1" className={styles.summaryValue}>
-            {formatAmount(totalPending)}
           </Typography>
         </div>
       </Paper>

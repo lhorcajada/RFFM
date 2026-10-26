@@ -11,7 +11,7 @@
   border-radius: 10px;
   background: var(--rffm-card-bg, #1c1c30);
   border-color: rgba(255, 255, 255, 0.08);
-  flex: 1 1 160px;
+  flex: 1 1 200px;
   min-width: 0;
 }
 
@@ -23,4 +23,30 @@
 .summaryValue {
   font-weight: 700;
   color: var(--rffm-text, #f0f0f0);
+}
+
+.pendingCard {
+  flex: 2 1 420px;
+  align-items: flex-start;
+  padding: 16px 18px;
+}
+
+.pendingBody {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.pendingValue {
+  font-size: 3rem;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--rffm-primary, #ff8a3d);
+}
+
+.progress {
+  height: 8px;
+  border-radius: 4px;
 }
