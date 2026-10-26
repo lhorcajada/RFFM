@@ -32,6 +32,7 @@ import gameModelService from "../../services/gameModelService";
 import seasonService, { type Season } from "../../services/seasonService";
 import type { GameModel as GameModelType } from "../../types/gameModel";
 import GameModelTree from "./components/GameModelTree";
+import GameModelView from "./components/GameModelView";
 import styles from "./GameModel.module.css";
 
 export default function GameModel() {
@@ -279,7 +280,7 @@ export default function GameModel() {
             </Box>
 
             <Box className={styles.documentContent}>
-              <GameModelTree gameModel={gameModel} />
+              <GameModelView gameModel={gameModel} />
             </Box>
           </Box>
         )}

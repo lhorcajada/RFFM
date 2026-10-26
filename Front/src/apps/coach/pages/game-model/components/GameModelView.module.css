@@ -1,0 +1,347 @@
+.layout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  align-items: flex-start;
+  color: #e8e8ea;
+}
+
+.side {
+  flex: 0 0 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+@media (max-width: 640px) {
+  .side {
+    flex: 1 1 100%;
+  }
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border-radius: 14px;
+  background: #0e0f2b;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.navLabel {
+  padding: 6px 10px 8px;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #a3a3b5;
+}
+
+.phaseButton,
+.phaseButtonActive {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 48px;
+  padding: 0 14px;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+
+.phaseButton {
+  border: 1px solid transparent;
+  background: transparent;
+  color: #c9c9d4;
+}
+
+.phaseButtonActive {
+  border: 1px solid rgba(77, 157, 224, 0.6);
+  background: rgba(77, 157, 224, 0.16);
+  color: #ffffff;
+}
+
+.phaseButton:focus-visible,
+.phaseButtonActive:focus-visible {
+  outline: 2px solid #4d9de0;
+  outline-offset: 2px;
+}
+
+.phaseCount {
+  min-width: 24px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.08);
+  color: #c9c9d4;
+}
+
+.phaseButtonActive .phaseCount {
+  background: #4d9de0;
+  color: #04122a;
+}
+
+.issues {
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: rgba(241, 196, 15, 0.08);
+  border: 1px solid rgba(241, 196, 15, 0.28);
+}
+
+.issuesTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #f1c40f;
+}
+
+.issuesCount {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: #f1c40f;
+  color: #1a1400;
+  font-size: 0.75rem;
+}
+
+.issueList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.issueItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: #d6d6da;
+}
+
+.issueStatus {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #f1c40f;
+}
+
+.content {
+  flex: 999 1 560px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.phaseTitle {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #7ab8f5;
+}
+
+.principleCard {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  border-radius: 16px;
+  background: #0e0f2b;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.principleHead {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.badge {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #4d9de0;
+  color: #04122a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.principleBody {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.principleTitle {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #4ec9b0;
+}
+
+.texto {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: #d6d6da;
+}
+
+.subGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+}
+
+.subCard {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding: 16px;
+  border-radius: 12px;
+  background: #151638;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.subTitle {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.numero {
+  color: #ff7a1a;
+  font-weight: 600;
+}
+
+.zona {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-left: 12px;
+  border-left: 2px solid rgba(78, 201, 176, 0.35);
+}
+
+.zonaTitle {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #4ec9b0;
+}
+
+.ssp {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sspHead {
+  display: flex;
+  gap: 8px;
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.sspRole {
+  font-weight: 600;
+  color: #e8e8ea;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chip {
+  display: inline-flex;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(78, 201, 176, 0.14);
+  color: #7be0cb;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.chipRef {
+  color: #a3a3b5;
+}
+
+.nota {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: #e8e8ea;
+  border-left: 3px solid #4d9de0;
+  background: rgba(77, 157, 224, 0.1);
+}
+
+.notaLabel {
+  color: #7ab8f5;
+}
+
+.nota_riesgo_aceptado {
+  border-left-color: #e74c3c;
+  background: rgba(231, 76, 60, 0.1);
+}
+
+.nota_riesgo_aceptado .notaLabel {
+  color: #ff8a7c;
+}
+
+.nota_objetivo_temporada {
+  border-left-color: #f1c40f;
+  background: rgba(241, 196, 15, 0.09);
+}
+
+.nota_objetivo_temporada .notaLabel {
+  color: #f1c40f;
+}
+
+.nota_excepcion {
+  border-left-color: #2ecc71;
+  background: rgba(46, 204, 113, 0.09);
+}
+
+.nota_excepcion .notaLabel {
+  color: #4ee88a;
+}
+
+.empty {
+  margin: 0;
+  padding: 24px 0;
+  color: #c9c9d4;
+}
+
+@media print {
+  .layout {
+    display: none !important;
+  }
+}
