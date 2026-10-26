@@ -133,23 +133,17 @@ describe("AttendanceEventChart", () => {
     expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
   });
 
-  it("'Ver como tabla' muestra una tabla con TODOS los eventos (no solo la ventana) y cambia el texto del botón", () => {
+  it("'Ver detalle por evento' muestra una lista con TODOS los eventos (no solo la ventana), sin tabla", () => {
     renderChart(makeEvents(8));
 
-    const toggle = screen.getByRole("button", { name: /ver como tabla/i });
-    fireEvent.click(toggle);
+    fireEvent.click(screen.getByRole("button", { name: /ver detalle por evento/i }));
 
-    expect(screen.getByRole("button", { name: /ocultar tabla/i })).toBeInTheDocument();
-    const table = screen.getByRole("table");
-    // All 8 events must be listed, including ones outside the default window (1..3).
-    expect(within(table).getByText("Entrenamiento 1")).toBeInTheDocument();
-    expect(within(table).getByText("Entrenamiento 8")).toBeInTheDocument();
-    const rows = within(table).getAllByRole("row");
-    expect(rows.length).toBe(8 + 1); // header + 8 data rows
-
-    // Regression: the table must scroll horizontally inside its own container
-    // instead of overflowing the page on narrow (mobile) viewports.
-    expect(table.parentElement?.className).toMatch(/chartTableScroll/);
+    expect(screen.getByRole("button", { name: /ocultar detalle/i })).toBeInTheDocument();
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    const list = screen.getByRole("list");
+    expect(within(list).getAllByRole("listitem")).toHaveLength(8);
+    expect(within(list).getByText("Entrenamiento 1")).toBeInTheDocument();
+    expect(within(list).getByText("Entrenamiento 8")).toBeInTheDocument();
   });
 
   it("renderiza el patrón EmptyState (no un gráfico vacío) cuando no hay eventos", () => {
@@ -157,6 +151,6 @@ describe("AttendanceEventChart", () => {
 
     expect(screen.getByText(/sin datos de entrenamientos/i)).toBeInTheDocument();
     expect(screen.queryByRole("img", { name: /gráfico/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /ver como tabla/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /ver detalle por evento/i })).not.toBeInTheDocument();
   });
 });

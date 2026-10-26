@@ -205,14 +205,12 @@ describe("AttendanceSummaryContent — desglose evento a evento del Dashboard (E
       // Aggregate header: 1 attend / 1 absent -> 50%.
       await waitFor(() => expect(within(trainingCard).getByText("50%")).toBeInTheDocument());
 
-      // Per-event breakdown (via "Ver como tabla") must show the same rich-classifier
+      // Per-event breakdown (via "Ver detalle por evento") must show the same rich-classifier
       // numbers for the single finished training event, not 0/0 from the simple classifier.
-      fireEvent.click(within(trainingCard).getByRole("button", { name: /ver como tabla/i }));
-      const row = within(trainingCard).getByRole("row", { name: /entreno 1/i });
-      const cells = within(row).getAllByRole("cell");
-      // columns: título, fecha, asisten, no asisten, %
-      expect(cells[2]).toHaveTextContent("1");
-      expect(cells[3]).toHaveTextContent("1");
+      fireEvent.click(within(trainingCard).getByRole("button", { name: /ver detalle por evento/i }));
+      const row = within(trainingCard).getByText("Entreno 1").closest("li") as HTMLElement;
+      expect(row).toHaveTextContent("1 asisten");
+      expect(row).toHaveTextContent("1 no asisten");
     }
   );
 

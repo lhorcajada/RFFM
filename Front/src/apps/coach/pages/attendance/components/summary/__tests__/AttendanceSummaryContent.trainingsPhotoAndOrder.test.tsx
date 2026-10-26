@@ -203,7 +203,7 @@ describe("AttendanceSummaryContent — foto y orden del jugador asociado (entren
     screen.getByRole("tab", { name: /entrenamientos/i }).click();
 
     // Jugador Uno (dorsal 9) 100% vs Jugador Dos (dorsal 2) 0% — the rate wins over the dorsal.
-    await waitFor(() => expect(screen.getByText("100% asistencia")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("100%")).toBeInTheDocument());
     const cards = screen.getAllByText(/Jugador (Uno|Dos)/);
     expect(cards[0]).toHaveTextContent("Jugador Uno");
     expect(cards[1]).toHaveTextContent("Jugador Dos");
@@ -280,12 +280,11 @@ describe("AttendanceSummaryContent — foto y orden del jugador asociado (entren
     // Training's card no longer shows raw Eventos/Asisten/No asisten totals directly —
     // it's now a per-event chart with the aggregate % in the header (dashboard-per-event-
     // attendance-charts change). Verify the same numbers via the header % and the
-    // "Ver como tabla" breakdown, built with training's own richer classifier.
+    // "Ver detalle por evento" breakdown, built with training's own richer classifier.
     expect(within(trainingCard).getByText("50%")).toBeInTheDocument();
-    fireEvent.click(within(trainingCard).getByRole("button", { name: /ver como tabla/i }));
-    const row = within(trainingCard).getByRole("row", { name: /entreno 1/i });
-    const cells = within(row).getAllByRole("cell");
-    expect(cells[2]).toHaveTextContent("1");
-    expect(cells[3]).toHaveTextContent("1");
+    fireEvent.click(within(trainingCard).getByRole("button", { name: /ver detalle por evento/i }));
+    const row = within(trainingCard).getByText("Entreno 1").closest("li") as HTMLElement;
+    expect(row).toHaveTextContent("1 asisten");
+    expect(row).toHaveTextContent("1 no asisten");
   });
 });

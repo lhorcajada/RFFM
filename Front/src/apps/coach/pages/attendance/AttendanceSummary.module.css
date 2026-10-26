@@ -114,9 +114,19 @@
   margin-left: auto;
 }
 
+.matchToolbar :global(.MuiButton-root),
+.matchToolbarRight :global(.MuiIconButton-root) {
+  min-height: 44px;
+  border-radius: 12px;
+}
+
+.matchToolbarRight :global(.MuiIconButton-root) {
+  min-width: 44px;
+}
+
 .matchCardsGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr));
   gap: 12px;
   align-items: start;
 }
@@ -149,10 +159,10 @@
 
 .matchCardIdentityText {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  flex: 1 1 auto;
+  gap: 2px;
   min-width: 0;
-  flex-wrap: wrap;
 }
 
 .matchDorsalBadge {
@@ -193,6 +203,34 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.matchCardPosition {
+  color: var(--att-muted, #a8a097);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.matchSeasonMinutes {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex: 0 0 auto;
+  line-height: 1;
+  text-align: right;
+}
+
+.matchSeasonMinutesValue {
+  font-size: 1.9rem;
+  font-weight: 800;
+  color: var(--att-accent);
+}
+
+.matchSeasonMinutesLabel {
+  margin-top: 2px;
+  font-size: 0.75rem;
+  opacity: 0.7;
 }
 
 .matchFormStripHint {
@@ -403,10 +441,6 @@
   background: rgba(255, 255, 255, 0.08) !important;
 }
 
-.matchMetricChipInfo {
-  background: rgba(33, 150, 243, 0.18) !important;
-}
-
 .matchMetricChipTechnical,
 .matchMetricChipUnavailable,
 .matchMetricChipInjury,
@@ -433,10 +467,13 @@
 .matchLegend {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px 16px;
   flex-wrap: wrap;
   margin-bottom: 12px;
-  opacity: 0.85;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: var(--att-surface);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .matchLegendItem {
@@ -526,93 +563,231 @@
   }
 }
 
+/* --- Trainings tab redesign (search, sort, player cards) --- */
+
+.trainingsRoot {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.trainingControls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.trainingSearch {
+  flex: 1 1 260px;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: var(--att-surface);
+  color: #a8a097;
+}
+
+.trainingSearchInput {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #f4efe9;
+  font: inherit;
+  font-size: 15px;
+}
+
+.trainingSearch:focus-within {
+  border-color: var(--att-accent);
+}
+
+.trainingSortGroup {
+  display: flex;
+  gap: 6px;
+}
+
+.trainingSortButton {
+  min-height: 48px;
+  padding: 0 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: transparent;
+  color: #c9c1b8;
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.trainingSortButtonActive {
+  border-color: var(--att-accent);
+  background: rgba(255, 138, 43, 0.14);
+  color: #ffb066;
+  font-weight: 700;
+}
+
+.trainingSummaryLine {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  color: #c9c1b8;
+  font-size: 14px;
+}
+
+.trainingSummaryLine strong {
+  color: #f4efe9;
+}
+
+.trainingSummaryLine .trainingAverage {
+  color: #ff9a4d;
+}
+
 .trainingCard {
   width: 100%;
   min-width: 0;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 16px;
-  background: linear-gradient(165deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.03));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 18px !important;
+  background: var(--att-surface) !important;
   overflow: hidden;
 }
 
+.trainingCard::before {
+  display: none;
+}
+
 .trainingCardSummary {
-  padding: 0 16px;
+  padding: 16px !important;
 }
 
 .trainingCardSummary :global(.MuiAccordionSummary-content) {
-  margin: 12px 0;
+  margin: 0;
+  min-width: 0;
 }
 
-.trainingCardSummary :global(.MuiAccordionSummary-expandIconWrapper) {
-  color: rgba(255, 255, 255, 0.8);
+.trainingCardBody {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
 .trainingCardHeader {
-  width: 100%;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.trainingIdentityText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .playerName {
   font-weight: 700 !important;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.trainingCardIdentity {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
+.trainingSessions {
+  font-size: 13px;
+  color: #a8a097;
 }
 
 .trainingCardAvatar {
-  width: 40px !important;
-  height: 40px !important;
+  width: 44px !important;
+  height: 44px !important;
 }
 
-.trainingMetrics {
+.trainingRate {
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.rateGood {
+  color: #6fd39c;
+}
+
+.rateMid {
+  color: #ffb066;
+}
+
+.rateLow {
+  color: #ff8a7a;
+}
+
+.trainingBar {
+  height: 8px !important;
+  border-radius: 4px;
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.trainingBar.rateGood :global(.MuiLinearProgress-bar) {
+  background-color: #6fd39c;
+}
+
+.trainingBar.rateMid :global(.MuiLinearProgress-bar) {
+  background-color: #ffb066;
+}
+
+.trainingBar.rateLow :global(.MuiLinearProgress-bar) {
+  background-color: #ff8a7a;
+}
+
+.trainingCardFooter {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
   gap: 8px;
-  justify-content: flex-end;
+  font-size: 13px;
 }
 
-.metricChip,
-.metricChipSuccess,
-.metricChipWarn,
-.metricChipMuted {
-  font-weight: 600 !important;
+.trainingAbsentLabel {
+  color: #ffb066;
 }
 
-.metricChipSuccess {
-  background: rgba(76, 175, 80, 0.18) !important;
+.trainingToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #c9c1b8;
 }
 
-.metricChipWarn {
-  background: rgba(255, 152, 0, 0.18) !important;
+.trainingChevron,
+.trainingChevronOpen {
+  transition: transform 0.2s;
 }
 
-.metricChipMuted {
-  background: rgba(255, 255, 255, 0.08) !important;
+.trainingChevronOpen {
+  transform: rotate(180deg);
 }
 
 .trainingCardDetails {
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  padding: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 14px 16px 16px !important;
+  background: rgba(0, 0, 0, 0.2);
 }
 
 .absencePanel {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 .absencePanelTitle {
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  opacity: 0.7;
+  font-size: 12px !important;
+  color: #a8a097;
 }
 
 .noAbsenceText {
@@ -631,30 +806,49 @@
 
 .absenceItem {
   display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 8px;
+  align-items: center;
+  gap: 12px;
   padding: 10px 12px;
   border-radius: 12px;
-  background: rgba(0, 0, 0, 0.18);
+  background: var(--att-surface);
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.absenceDate {
-  font-weight: 700;
-  white-space: nowrap;
+.absenceDateTile {
+  flex: 0 0 auto;
+  min-width: 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.1;
 }
 
-.absenceSeparator {
-  opacity: 0.5;
+.absenceDay {
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.absenceMonth {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: #a8a097;
+}
+
+.absenceText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .absenceReason {
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 700;
 }
 
 .absenceEvent {
-  opacity: 0.78;
+  font-size: 13px;
+  color: #a8a097;
 }
 
 /* --- Per-event attendance chart (Dashboard tab) --- */
@@ -754,31 +948,175 @@
   font-weight: 700;
 }
 
-.chartTableToggle {
+.chartDetailToggle {
   align-self: flex-start;
 }
 
-.chartTableScroll {
-  width: 100%;
+.chartDetailList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.chartDetailRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 12px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--att-surface-2);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.chartDetailMain {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
-  overflow-x: auto;
 }
 
-.chartTable {
-  width: 100%;
-  min-width: 420px;
-  border-collapse: collapse;
-  font-size: 0.85rem;
+.chartDetailTitle {
+  font-weight: 700;
+  overflow-wrap: anywhere;
 }
 
-.chartTable th,
-.chartTable td {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 6px 8px;
-  text-align: left;
-}
-
-.chartTable th {
+.chartDetailMeta,
+.chartDetailCounts {
   opacity: 0.75;
-  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+.chartDetailCounts {
+  grid-column: 1;
+}
+
+.chartDetailRate {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  font-size: 1.1rem;
+}
+
+/* --- Panel redesign (global ring + category cards) --- */
+
+:global(:root) {
+  --att-bg: #0f0e0d;
+  --att-surface: #1a1816;
+  --att-surface-2: #23201d;
+  --att-accent: #ff8a2b;
+}
+
+.globalCard,
+.categoryCard {
+  background: var(--att-surface);
+  border-radius: 16px;
+}
+
+.globalCard {
+  grid-column: 1 / -1;
+}
+
+.globalBody {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.ring {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  flex: 0 0 auto;
+}
+
+.ringSvg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.ringTrack,
+.ringValue {
+  fill: none;
+  stroke-width: 9;
+}
+
+.ringTrack {
+  stroke: rgba(255, 255, 255, 0.1);
+}
+
+.ringValue {
+  stroke: var(--att-accent);
+  stroke-linecap: round;
+}
+
+.ringCenter {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0 22px;
+}
+
+.ringPercent {
+  font-size: 1.9rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.ringCaption {
+  margin-top: 4px;
+  font-size: 0.65rem;
+  opacity: 0.75;
+}
+
+.globalStats {
+  flex: 1 1 200px;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.globalStat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px;
+  border-radius: 12px;
+  background: var(--att-surface-2);
+  font-size: 1.2rem;
+}
+
+.categoryChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.categoryChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--att-surface-2);
+  font-size: 0.78rem;
+}
+
+@media (max-width: 400px) {
+  .globalBody {
+    justify-content: center;
+  }
+
+  .globalStats {
+    flex-basis: 100%;
+  }
 }

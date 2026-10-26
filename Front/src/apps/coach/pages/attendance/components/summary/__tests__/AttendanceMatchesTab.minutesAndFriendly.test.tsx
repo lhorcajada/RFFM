@@ -97,7 +97,7 @@ describe("AttendanceMatchesTab — minutos y amistosos", () => {
     const row = makeRow({ seasonMinutesPlayed: undefined as unknown as number });
     render(<AttendanceMatchesTab rows={[row]} columns={[officialColumn, friendlyColumn]} />);
 
-    expect(screen.getByText("0 min temporada")).toBeInTheDocument();
+    expect(screen.getByLabelText("0 minutos de temporada")).toBeInTheDocument();
     expect(screen.queryByText(/undefined/i)).not.toBeInTheDocument();
   });
 
@@ -147,7 +147,7 @@ describe("AttendanceMatchesTab — resumen de tarjeta colapsada", () => {
     expect(screen.getByText("2 partidos")).toBeInTheDocument();
     expect(screen.getByText("1 tit.")).toBeInTheDocument();
     expect(screen.getByText("1 técnica")).toBeInTheDocument();
-    expect(screen.getByText("245 min temporada")).toBeInTheDocument();
+    expect(screen.getByLabelText("245 minutos de temporada")).toBeInTheDocument();
   });
 
   it("no muestra chips de motivo de desconvocatoria cuando su contador es 0", () => {

@@ -360,10 +360,9 @@ describe("AttendanceSummaryContent — partidos amistosos y minutos", () => {
 
     // Partidos card no longer shows a raw "Eventos" total — it's now a per-event chart
     // (dashboard-per-event-attendance-charts change). Verify both finished matches (the
-    // official one and the friendly) show up as rows in its "Ver como tabla" breakdown.
-    fireEvent.click(within(matchCard).getByRole("button", { name: /ver como tabla/i }));
-    const matchTable = within(matchCard).getByRole("table");
-    expect(within(matchTable).getAllByRole("row").length).toBe(2 + 1); // header + 2 events
+    // official one and the friendly) show up as rows in its "Ver detalle por evento" breakdown.
+    fireEvent.click(within(matchCard).getByRole("button", { name: /ver detalle por evento/i }));
+    expect(within(matchCard).getAllByRole("listitem")).toHaveLength(2);
 
     // Otros eventos has zero finished events -> empty state, not an empty chart.
     expect(within(otherCard).getByText(/sin datos de otros eventos/i)).toBeInTheDocument();

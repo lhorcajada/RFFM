@@ -191,9 +191,9 @@ export default function AttendanceMatchesTab({ rows, columns, onRefresh, loading
         </Box>
       </Box>
 
-      <Box className={styles.matchLegend} aria-label="Leyenda de estados de convocatoria">
+      <Box className={styles.matchLegend} role="list" aria-label="Leyenda de estados de convocatoria">
         {MATCH_LEGEND_STATES.map((state) => (
-          <span key={state} className={styles.matchLegendItem}>
+          <span key={state} role="listitem" className={styles.matchLegendItem}>
             <span aria-hidden="true" className={`${styles.matchLegendSwatch} ${stateClassMap[state]}`} />
             <span>{`${MATCH_STATE_ABBREV[state]} · ${MATCH_STATE_LABELS[state]}`}</span>
           </span>
@@ -233,16 +233,34 @@ export default function AttendanceMatchesTab({ rows, columns, onRefresh, loading
                     <Typography variant="subtitle1" className={styles.playerName}>
                       {row.playerName}
                     </Typography>
+                    {row.position && (
+                      <Typography variant="caption" className={styles.matchCardPosition}>
+                        {row.position}
+                      </Typography>
+                    )}
+                  </Box>
+                  <Box
+                    role="group"
+                    aria-label={`${row.seasonMinutesPlayed ?? 0} minutos de temporada`}
+                    className={styles.matchSeasonMinutes}
+                  >
+                    <span className={styles.matchSeasonMinutesValue}>{row.seasonMinutesPlayed ?? 0}</span>
+                    <span className={styles.matchSeasonMinutesLabel}>min temporada</span>
                   </Box>
                 </Box>
 
-                <Box className={styles.matchCardStatsRow}>
-                  <Chip size="small" className={styles.matchMetricChip} label={`${row.totalMatches} partidos`} />
-                  <Chip size="small" className={styles.matchMetricChipSuccess} label={`${row.startedMatches} tit.`} />
+                <Box
+                  className={styles.matchCardStatsRow}
+                  role="list"
+                  aria-label="Contadores de temporada"
+                >
+                  <Chip size="small" className={styles.matchMetricChip} role="listitem" label={`${row.totalMatches} partidos`} />
+                  <Chip size="small" className={styles.matchMetricChipSuccess} role="listitem" label={`${row.startedMatches} tit.`} />
                   {row.technicalDecisionMatches > 0 && (
                     <Chip
                       size="small"
                       className={styles.matchMetricChipTechnical}
+                      role="listitem"
                       label={`${row.technicalDecisionMatches} técnica`}
                     />
                   )}
@@ -250,6 +268,7 @@ export default function AttendanceMatchesTab({ rows, columns, onRefresh, loading
                     <Chip
                       size="small"
                       className={styles.matchMetricChipUnavailable}
+                      role="listitem"
                       label={`${row.unavailableMatches} no disp.`}
                     />
                   )}
@@ -257,6 +276,7 @@ export default function AttendanceMatchesTab({ rows, columns, onRefresh, loading
                     <Chip
                       size="small"
                       className={styles.matchMetricChipInjury}
+                      role="listitem"
                       label={`${row.injuryMatches} lesión`}
                     />
                   )}
@@ -264,17 +284,13 @@ export default function AttendanceMatchesTab({ rows, columns, onRefresh, loading
                     <Chip
                       size="small"
                       className={styles.matchMetricChipIllness}
+                      role="listitem"
                       label={`${row.illnessMatches} enferm.`}
                     />
                   )}
-                  <Chip
-                    size="small"
-                    className={styles.matchMetricChipInfo}
-                    label={`${row.seasonMinutesPlayed ?? 0} min temporada`}
-                  />
                 </Box>
 
-                <Box className={styles.matchFormStrip}>
+                <Box className={styles.matchFormStrip} role="list" aria-label="Forma: últimos 5 partidos">
                   {formStripOmittedCount > 0 && (
                     <span className={styles.matchFormStripHint}>últimos {FORM_STRIP_MAX_MATCHES}</span>
                   )}
@@ -283,6 +299,7 @@ export default function AttendanceMatchesTab({ rows, columns, onRefresh, loading
                     return (
                       <span
                         key={column.eventId}
+                        role="listitem"
                         className={`${styles.matchCell} ${stateClassMap[state]}`}
                         title={cellTitle(state, minutesPlayed)}
                       >
@@ -295,11 +312,15 @@ export default function AttendanceMatchesTab({ rows, columns, onRefresh, loading
             </AccordionSummary>
 
             <AccordionDetails className={styles.trainingCardDetails}>
-              <Box className={styles.matchDetailList}>
+              <Box
+                className={styles.matchDetailList}
+                role="list"
+                aria-label={`Detalle de partidos de ${row.playerName}`}
+              >
                 {columns.map((column) => {
                   const { state, minutesPlayed, minutesReason } = findCell(row, column);
                   return (
-                    <Box key={column.eventId} className={styles.matchDetailRow}>
+                    <Box key={column.eventId} className={styles.matchDetailRow} role="listitem">
                       <Box className={styles.matchDetailMain}>
                         <Typography variant="body2" component="div" className={styles.matchDetailLabel}>
                           {column.label}

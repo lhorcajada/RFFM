@@ -35,13 +35,13 @@ describe("AttendanceTrainingsTab — totales posibles y porcentaje de asistencia
   it("muestra el total de entrenamientos posibles (no el total de eventos del equipo)", () => {
     render(<AttendanceTrainingsTab rows={[makeRow({ totalTrainings: 4 })]} />);
 
-    expect(screen.getByText("4 posibles")).toBeInTheDocument();
+    expect(screen.getByText("3 de 4 sesiones")).toBeInTheDocument();
   });
 
   it("muestra el porcentaje de asistencia respecto al total posible", () => {
     // attended: 3, total posible: 4 -> 75%
     render(<AttendanceTrainingsTab rows={[makeRow({ attendedTrainings: 3, totalTrainings: 4 })]} />);
 
-    expect(screen.getByText("75% asistencia")).toBeInTheDocument();
+    expect(screen.getAllByText("75%").length).toBeGreaterThan(0);
   });
 });

@@ -48,7 +48,7 @@ export default function AttendanceEventChart({ title, icon, color, aggregate, ev
   const maxStart = Math.max(0, events.length - WINDOW_SIZE);
   const [start, setStart] = useState(maxStart);
   const [hoveredEventId, setHoveredEventId] = useState<string | null>(null);
-  const [showTable, setShowTable] = useState(false);
+  const [showDetail, setShowDetail] = useState(false);
 
   const windowEvents = useMemo(
     () => events.slice(start, start + WINDOW_SIZE),
@@ -63,13 +63,28 @@ export default function AttendanceEventChart({ title, icon, color, aggregate, ev
   const barWidth = slotWidth * 0.6;
 
   return (
-    <article className={styles.card}>
+    <article className={`${styles.card} ${styles.categoryCard}`}>
       <div className={styles.cardHeader}>
         <div className={styles.iconWrap} style={{ color }}>
           {icon}
         </div>
         <h3 className={styles.cardTitle}>{title}</h3>
         <span className={styles.chartHeaderAggregate}>{rate(aggregate)}%</span>
+      </div>
+
+      <div className={styles.categoryChips}>
+        <span className={styles.categoryChip}>
+          <span>Eventos</span>
+          <strong>{aggregate.events}</strong>
+        </span>
+        <span className={styles.categoryChip}>
+          <span>Asisten</span>
+          <strong>{aggregate.attend}</strong>
+        </span>
+        <span className={styles.categoryChip}>
+          <span>No asisten</span>
+          <strong>{aggregate.absent}</strong>
+        </span>
       </div>
 
       {events.length === 0 ? (
@@ -181,37 +196,27 @@ export default function AttendanceEventChart({ title, icon, color, aggregate, ev
           <Button
             size="small"
             variant="outlined"
-            className={styles.chartTableToggle}
-            onClick={() => setShowTable((v) => !v)}
+            className={styles.chartDetailToggle}
+            onClick={() => setShowDetail((v) => !v)}
           >
-            {showTable ? "Ocultar tabla" : "Ver como tabla"}
+            {showDetail ? "Ocultar detalle" : "Ver detalle por evento"}
           </Button>
 
-          {showTable && (
-            <div className={styles.chartTableScroll}>
-              <table className={styles.chartTable}>
-                <thead>
-                  <tr>
-                    <th>Evento</th>
-                    <th>Fecha</th>
-                    <th>Asisten</th>
-                    <th>No asisten</th>
-                    <th>%</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {events.map((point) => (
-                    <tr key={point.eventId}>
-                      <td>{point.title}</td>
-                      <td>{formatDate(point.date)}</td>
-                      <td>{point.attend}</td>
-                      <td>{point.absent}</td>
-                      <td>{pointRate(point)}%</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+          {showDetail && (
+            <ul className={styles.chartDetailList}>
+              {events.map((point) => (
+                <li key={point.eventId} className={styles.chartDetailRow}>
+                  <div className={styles.chartDetailMain}>
+                    <span className={styles.chartDetailTitle}>{point.title}</span>
+                    <span className={styles.chartDetailMeta}>{formatDate(point.date)}</span>
+                  </div>
+                  <span className={styles.chartDetailCounts}>
+                    {point.attend} asisten · {point.absent} no asisten
+                  </span>
+                  <strong className={styles.chartDetailRate}>{pointRate(point)}%</strong>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
       )}

@@ -190,8 +190,7 @@ describe("AttendanceSummaryContent - número de llamadas HTTP", () => {
     const trainingsTab = await screen.findByRole("tab", { name: /entrenamientos/i });
     trainingsTab.click();
 
-    expect(await screen.findByText("1 posibles")).toBeInTheDocument();
-    expect(screen.getByText("1 asistidos")).toBeInTheDocument();
+    expect(await screen.findByText("1 de 1 sesiones")).toBeInTheDocument();
     expect(screen.getByText("0 no asistidos")).toBeInTheDocument();
     expect(screen.queryByText("Entrenamiento antiguo")).not.toBeInTheDocument();
   });
