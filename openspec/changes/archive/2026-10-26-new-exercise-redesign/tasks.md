@@ -19,4 +19,4 @@
 - [x] `npx vitest run src/apps/coach/pages/trainings` + `npm run build`.
 - [x] `openspec validate new-exercise-redesign --strict`.
 - [x] Comprobación visual a escritorio y ~980 px.
-- [ ] Commits tras confirmación del usuario.
+- [x] Commits tras confirmación del usuario.
