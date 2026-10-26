@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -112,5 +112,30 @@ describe("Injured - pestañas", () => {
     expect(screen.getByRole("tab", { name: /lesionados/i })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /protocolo/i })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /documentos/i })).toBeInTheDocument();
+  });
+
+  it("agrupa las pestañas en un tablist accesible con 3 pestañas", () => {
+    renderPage();
+
+    const tablist = screen.getByRole("tablist");
+    expect(within(tablist).getAllByRole("tab")).toHaveLength(3);
+  });
+
+  it("marca Lesionados como pestaña seleccionada por defecto", () => {
+    renderPage();
+
+    expect(screen.getByRole("tab", { name: /lesionados/i })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: /protocolo/i })).toHaveAttribute("aria-selected", "false");
+    expect(screen.getByRole("tab", { name: /documentos/i })).toHaveAttribute("aria-selected", "false");
+  });
+
+  it("al pulsar Documentos pasa a ser la única pestaña seleccionada", async () => {
+    const { default: userEvent } = await import("@testing-library/user-event");
+    renderPage();
+
+    await userEvent.click(screen.getByRole("tab", { name: /documentos/i }));
+
+    expect(screen.getByRole("tab", { name: /documentos/i })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: /lesionados/i })).toHaveAttribute("aria-selected", "false");
   });
 });

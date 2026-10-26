@@ -26,7 +26,7 @@ beforeEach(() => {
 });
 
 describe("InjuryProtocolPanel", () => {
-  it("un coach ve el editor y los botones Guardar y Eliminar protocolo", async () => {
+  it("un coach ve el editor y los botones Guardar protocolo y Eliminar", async () => {
     mockGetInjuryProtocol.mockResolvedValue({
       teamId: "team-1",
       content: "<p>Contenido actual</p>",
@@ -38,7 +38,7 @@ describe("InjuryProtocolPanel", () => {
 
     await waitFor(() => expect(mockGetInjuryProtocol).toHaveBeenCalledWith("team-1"));
 
-    expect(await screen.findByRole("button", { name: /guardar/i })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /guardar protocolo/i })).toBeInTheDocument();
     expect(
       await screen.findByRole("button", { name: /eliminar protocolo/i })
     ).toBeInTheDocument();
@@ -97,7 +97,7 @@ describe("InjuryProtocolPanel", () => {
 
     render(<InjuryProtocolPanel teamId="team-1" isCoach={true} />);
 
-    const saveButton = await screen.findByRole("button", { name: /guardar/i });
+    const saveButton = await screen.findByRole("button", { name: /guardar protocolo/i });
     await userEvent.click(saveButton);
 
     await waitFor(() => expect(mockUpdateInjuryProtocol).toHaveBeenCalledTimes(1));
@@ -129,5 +129,75 @@ describe("InjuryProtocolPanel", () => {
     await userEvent.click(confirmButtons[confirmButtons.length - 1]);
 
     await waitFor(() => expect(mockDeleteInjuryProtocol).toHaveBeenCalledWith("team-1"));
+  });
+
+  it("muestra el título Protocolo de lesiones y el chip Publicado cuando hay contenido", async () => {
+    mockGetInjuryProtocol.mockResolvedValue({
+      teamId: "team-1",
+      content: "<p>Contenido actual</p>",
+      updatedAt: "2026-01-01T00:00:00Z",
+      attachments: [],
+    });
+
+    render(<InjuryProtocolPanel teamId="team-1" isCoach={true} />);
+
+    expect(await screen.findByText("Protocolo de lesiones")).toBeInTheDocument();
+    expect(screen.getByText("Publicado")).toBeInTheDocument();
+  });
+
+  it("no muestra el chip Publicado cuando el coach aún no ha guardado contenido", async () => {
+    mockGetInjuryProtocol.mockResolvedValue({
+      teamId: "team-1",
+      content: null,
+      updatedAt: null,
+      attachments: [],
+    });
+
+    render(<InjuryProtocolPanel teamId="team-1" isCoach={true} />);
+
+    await screen.findByText("Protocolo de lesiones");
+    expect(screen.queryByText("Publicado")).not.toBeInTheDocument();
+  });
+
+  it("el coach ve la barra de formato con sus 5 botones accesibles", async () => {
+    mockGetInjuryProtocol.mockResolvedValue({
+      teamId: "team-1",
+      content: "<p>Contenido actual</p>",
+      updatedAt: null,
+      attachments: [],
+    });
+
+    render(<InjuryProtocolPanel teamId="team-1" isCoach={true} />);
+
+    for (const name of ["Negrita", "Cursiva", "Título", "Lista", "Lista numerada"]) {
+      expect(await screen.findByRole("button", { name })).toBeInTheDocument();
+    }
+  });
+
+  it("el modo solo lectura no muestra la barra de formato", async () => {
+    mockGetInjuryProtocol.mockResolvedValue({
+      teamId: "team-1",
+      content: "<p>Contenido actual</p>",
+      updatedAt: null,
+      attachments: [],
+    });
+
+    render(<InjuryProtocolPanel teamId="team-1" isCoach={false} />);
+
+    await screen.findByText("Contenido actual");
+    expect(screen.queryByRole("button", { name: "Negrita" })).not.toBeInTheDocument();
+  });
+
+  it("muestra la última actualización al pie", async () => {
+    mockGetInjuryProtocol.mockResolvedValue({
+      teamId: "team-1",
+      content: "<p>Contenido actual</p>",
+      updatedAt: "2026-01-01T12:00:00Z",
+      attachments: [],
+    });
+
+    render(<InjuryProtocolPanel teamId="team-1" isCoach={false} />);
+
+    expect(await screen.findByText(/última actualización/i)).toBeInTheDocument();
   });
 });

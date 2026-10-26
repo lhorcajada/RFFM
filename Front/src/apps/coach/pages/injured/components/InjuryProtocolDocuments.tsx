@@ -1,9 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Button, CircularProgress, IconButton, Stack, Tooltip, Typography } from "@mui/material";
+import { Button, CircularProgress, Stack, Typography } from "@mui/material";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
-import DeleteIcon from "@mui/icons-material/Delete";
-import DownloadIcon from "@mui/icons-material/Download";
-import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import EmptyState from "../../../../../shared/components/ui/EmptyState/EmptyState";
 import ConfirmDialog from "../../../../../shared/components/ui/ConfirmDialog/ConfirmDialog";
 import { fetchPublicStorageFile } from "../../../../../shared/services/imageService";
@@ -21,6 +18,14 @@ type Props = {
 };
 
 const MAX_SIZE_BYTES = 10 * 1024 * 1024;
+
+function formatUploadDate(value: string): string {
+  return new Date(value).toLocaleDateString("es-ES", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}
 
 function notify(message: string, severity: "success" | "error") {
   window.dispatchEvent(
@@ -115,29 +120,33 @@ export default function InjuryProtocolDocuments({ teamId, isCoach }: Props) {
   return (
     <div className={styles.wrapper}>
       {isCoach && (
-        <div className={styles.toolbar}>
+        <div className={styles.uploadZone}>
           <input
             ref={fileInputRef}
             type="file"
             hidden
             onChange={handleFileSelected}
           />
+          <div className={styles.uploadText}>
+            <Typography className={styles.uploadTitle}>Añadir documento</Typography>
+            <Typography className={styles.uploadHint}>Solo PDF · máximo 10 MB</Typography>
+            {uploadError && (
+              <Typography variant="caption" color="error">
+                {uploadError}
+              </Typography>
+            )}
+          </div>
           <Button
             startIcon={
               uploading ? <CircularProgress size={16} color="inherit" /> : <UploadFileIcon />
             }
             onClick={() => fileInputRef.current?.click()}
             variant="contained"
-            size="small"
             disabled={uploading}
+            className={styles.uploadButton}
           >
             Subir documento
           </Button>
-          {uploadError && (
-            <Typography variant="caption" color="error">
-              {uploadError}
-            </Typography>
-          )}
         </div>
       )}
 
@@ -155,40 +164,39 @@ export default function InjuryProtocolDocuments({ teamId, isCoach }: Props) {
           {attachments.map((att) => (
             <div key={att.id} className={styles.card}>
               <div className={styles.cardHeader}>
-                <PictureAsPdfIcon color="error" />
+                <div className={styles.pdfBadge}>PDF</div>
                 <div className={styles.fileInfo}>
                   <Typography className={styles.fileName}>{att.fileName}</Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {new Date(att.uploadedAt).toLocaleDateString("es-ES")}
+                  <Typography className={styles.fileDate}>
+                    {`Subido el ${formatUploadDate(att.uploadedAt)}`}
                   </Typography>
                 </div>
               </div>
               <div className={styles.actions}>
-                <Tooltip title="Descargar">
-                  <IconButton
-                    size="small"
-                    onClick={() => handleDownload(att)}
-                    aria-label={`Descargar ${att.fileName}`}
-                    disabled={downloadingId === att.id}
-                  >
-                    {downloadingId === att.id ? (
-                      <CircularProgress size={16} />
-                    ) : (
-                      <DownloadIcon fontSize="small" />
-                    )}
-                  </IconButton>
-                </Tooltip>
+                <Button
+                  variant="contained"
+                  onClick={() => handleDownload(att)}
+                  aria-label={`Descargar ${att.fileName}`}
+                  disabled={downloadingId === att.id}
+                  className={styles.downloadButton}
+                  startIcon={
+                    downloadingId === att.id ? (
+                      <CircularProgress size={16} color="inherit" />
+                    ) : undefined
+                  }
+                >
+                  Descargar
+                </Button>
                 {isCoach && (
-                  <Tooltip title="Eliminar">
-                    <IconButton
-                      size="small"
-                      color="error"
-                      onClick={() => setDeleteTarget(att)}
-                      aria-label="Eliminar"
-                    >
-                      <DeleteIcon fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
+                  <Button
+                    variant="outlined"
+                    color="error"
+                    onClick={() => setDeleteTarget(att)}
+                    aria-label="Eliminar"
+                    className={styles.deleteButton}
+                  >
+                    Eliminar
+                  </Button>
                 )}
               </div>
             </div>

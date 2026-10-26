@@ -1,15 +1,49 @@
 .tabsWrap {
   margin-top: 8px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  padding: 4px;
+  border-radius: 14px;
   background: var(--rffm-card-bg, #1c1c30);
-  border-radius: 10px 10px 0 0;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.tab {
+  min-height: 44px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--rffm-muted, #a59f9f);
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.tabActive {
+  background: var(--rffm-primary, #1976d2);
+  color: var(--rffm-text, #f0f0f0);
+  font-weight: 700;
 }
 
 .tabPanel {
-  background: var(--rffm-card-bg, #1c1c30);
-  border-radius: 0 0 10px 10px;
-  padding: 16px;
+  padding: 16px 0;
   min-height: 120px;
+}
+
+@media (min-width: 900px) {
+  .tabs {
+    display: inline-flex;
+  }
+
+  .tab {
+    padding: 0 24px;
+    font-size: 0.9375rem;
+  }
 }
 
 @media (max-width: 600px) {
@@ -17,6 +51,6 @@
     margin-top: 4px;
   }
   .tabPanel {
-    padding: 10px 10px 24px;
+    padding: 12px 0 24px;
   }
 }

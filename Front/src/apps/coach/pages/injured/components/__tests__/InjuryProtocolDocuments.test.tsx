@@ -146,4 +146,40 @@ describe("InjuryProtocolDocuments", () => {
       expect(mockDeleteAttachment).toHaveBeenCalledWith("team-1", "att-1")
     );
   });
+
+  it("el coach ve la zona de subida con la ayuda Solo PDF y máximo 10 MB", async () => {
+    render(<InjuryProtocolDocuments teamId="team-1" isCoach={true} />);
+
+    expect(await screen.findByText(/solo pdf · máximo 10 mb/i)).toBeInTheDocument();
+  });
+
+  it("un rol distinto de coach no ve la zona de subida", async () => {
+    render(<InjuryProtocolDocuments teamId="team-1" isCoach={false} />);
+
+    await screen.findByText("protocolo.pdf");
+    expect(screen.queryByText(/solo pdf · máximo 10 mb/i)).not.toBeInTheDocument();
+  });
+
+  it("cada tarjeta muestra la etiqueta PDF, el nombre y la fecha de subida", async () => {
+    mockGetInjuryProtocol.mockResolvedValue({
+      teamId: "team-1",
+      content: null,
+      updatedAt: null,
+      attachments: [{ ...attachments[0], uploadedAt: "2026-01-01T12:00:00Z" }],
+    });
+
+    render(<InjuryProtocolDocuments teamId="team-1" isCoach={false} />);
+
+    expect(await screen.findByText("protocolo.pdf")).toBeInTheDocument();
+    expect(screen.getByText("PDF")).toBeInTheDocument();
+    expect(screen.getByText("Subido el 01/01/2026")).toBeInTheDocument();
+  });
+
+  it("los botones de la tarjeta tienen texto visible Descargar y Eliminar", async () => {
+    render(<InjuryProtocolDocuments teamId="team-1" isCoach={true} />);
+
+    await screen.findByText("protocolo.pdf");
+    expect(screen.getByRole("button", { name: /descargar protocolo\.pdf/i })).toHaveTextContent("Descargar");
+    expect(screen.getByRole("button", { name: "Eliminar" })).toHaveTextContent("Eliminar");
+  });
 });

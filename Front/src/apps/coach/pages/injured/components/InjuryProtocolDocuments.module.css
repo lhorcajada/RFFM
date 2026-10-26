@@ -1,29 +1,54 @@
 .wrapper {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 }
 
-.toolbar {
+.uploadZone {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 18px;
+  border-radius: 16px;
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  color: var(--rffm-text, #f0f0f0);
+}
+
+.uploadText {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.uploadTitle {
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.uploadHint {
+  font-size: 0.8125rem;
+  color: var(--rffm-muted, #a59f9f);
+}
+
+.uploadButton {
+  min-height: 44px;
+  padding: 0 20px;
+  border-radius: 10px;
 }
 
 .cardsGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
 }
 
 .card {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 12px;
-  border-radius: 10px;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 16px;
   background: var(--rffm-card-bg, #1c1c30);
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
@@ -31,8 +56,22 @@
 .cardHeader {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   min-width: 0;
+}
+
+.pdfBadge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 44px;
+  height: 52px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--rffm-status-declined, #f69a9a);
+  font-size: 0.75rem;
+  font-weight: 800;
 }
 
 .fileInfo {
@@ -40,17 +79,52 @@
   flex-direction: column;
   gap: 2px;
   min-width: 0;
+  flex: 1;
 }
 
 .fileName {
   font-weight: 600;
-  font-size: 0.875rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: 0.9375rem;
+  color: var(--rffm-text, #f0f0f0);
+  overflow-wrap: anywhere;
+}
+
+.fileDate {
+  font-size: 0.8125rem;
+  color: var(--rffm-muted, #a59f9f);
 }
 
 .actions {
   display: flex;
-  gap: 4px;
+  gap: 8px;
+}
+
+.downloadButton,
+.deleteButton {
+  min-height: 44px;
+  border-radius: 10px;
+}
+
+.downloadButton {
+  flex: 2;
+}
+
+.deleteButton {
+  flex: 1;
+  color: var(--rffm-status-declined, #f69a9a);
+  border-color: var(--rffm-status-declined, #f69a9a);
+}
+
+@media (min-width: 900px) {
+  .uploadZone {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px;
+  }
+
+  .cardsGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+  }
 }

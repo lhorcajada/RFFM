@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Button, Stack, Tab, Tabs } from "@mui/material";
+import { Button, Stack } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
@@ -12,6 +12,8 @@ import InjuredPlayersList from "./components/InjuredPlayersList";
 import InjuryProtocolPanel from "./components/InjuryProtocolPanel";
 import InjuryProtocolDocuments from "./components/InjuryProtocolDocuments";
 import styles from "./Injured.module.css";
+
+const TAB_LABELS = ["Lesionados", "Protocolo", "Documentos"] as const;
 
 export default function Injured() {
   useAuditPageAccess('Injured');
@@ -44,16 +46,20 @@ export default function Injured() {
         }
       >
         <div className={styles.tabsWrap}>
-          <Tabs
-            value={activeTab}
-            onChange={(_, v) => setActiveTab(v)}
-            variant="scrollable"
-            scrollButtons="auto"
-          >
-            <Tab label="Lesionados" />
-            <Tab label="Protocolo" />
-            <Tab label="Documentos" />
-          </Tabs>
+          <div role="tablist" aria-label="Secciones de lesionados" className={styles.tabs}>
+            {TAB_LABELS.map((label, index) => (
+              <button
+                key={label}
+                type="button"
+                role="tab"
+                aria-selected={activeTab === index}
+                className={`${styles.tab} ${activeTab === index ? styles.tabActive : ""}`}
+                onClick={() => setActiveTab(index)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className={styles.tabPanel}>

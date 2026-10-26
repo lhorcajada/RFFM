@@ -1,40 +1,65 @@
 .wrapper {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    "title"
+    "toolbar"
+    "editor"
+    "updated"
+    "actions";
+  gap: 14px;
+  max-width: 920px;
+  padding: 14px;
+  border-radius: 16px;
+  background: var(--rffm-card-bg, #1c1c30);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--rffm-text, #f0f0f0);
 }
 
-.toolbar {
+.titleRow {
+  grid-area: title;
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
 }
 
+.title {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.publishedChip {
+  font-weight: 700;
+  color: var(--rffm-status-accepted, #4fd6a0);
+  background: rgba(255, 255, 255, 0.08);
+}
+
 .formatButtons {
+  grid-area: toolbar;
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: 6px;
 }
 
-.editorCard,
-.readonlyCard {
+.formatButton {
+  min-width: 44px;
+  min-height: 44px;
   border-radius: 10px;
-  padding: 16px;
-  background: var(--rffm-card-bg, #1c1c30);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: var(--rffm-text, #f0f0f0);
-  min-height: 160px;
 }
 
-.readonlyCard {
-  opacity: 0.95;
+.editorArea {
+  grid-area: editor;
+  border-radius: 12px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  min-height: 240px;
+  line-height: 1.6;
 }
 
 .editorContent :global(.ProseMirror) {
   outline: none;
-  min-height: 140px;
+  min-height: 200px;
 }
 
 .editorContent :global(.ProseMirror p) {
@@ -42,12 +67,56 @@
 }
 
 .updatedAt {
-  display: block;
-  padding-bottom: 8px;
+  grid-area: updated;
+  color: var(--rffm-muted, #a59f9f);
 }
 
-@media (max-width: 700px) {
-  .updatedAt {
-    padding-bottom: 24px;
+.actions {
+  grid-area: actions;
+  display: flex;
+  gap: 8px;
+}
+
+.deleteButton,
+.saveButton {
+  min-height: 44px;
+  border-radius: 10px;
+}
+
+.deleteButton {
+  flex: 1;
+  color: var(--rffm-status-declined, #f69a9a);
+  border-color: var(--rffm-status-declined, #f69a9a);
+}
+
+.saveButton {
+  flex: 2;
+}
+
+@media (min-width: 900px) {
+  .wrapper {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "title actions"
+      "toolbar toolbar"
+      "editor editor"
+      "updated updated";
+    gap: 18px;
+    padding: 24px;
+  }
+
+  .actions {
+    align-self: center;
+  }
+
+  .deleteButton,
+  .saveButton {
+    flex: none;
+    padding: 0 20px;
+  }
+
+  .editorArea {
+    padding: 24px 28px;
+    min-height: 360px;
   }
 }

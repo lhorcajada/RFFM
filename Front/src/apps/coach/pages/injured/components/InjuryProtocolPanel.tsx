@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
-import { Button, CircularProgress, Stack, Typography } from "@mui/material";
-import SaveIcon from "@mui/icons-material/Save";
-import DeleteIcon from "@mui/icons-material/Delete";
+import type { ReactNode } from "react";
+import { Button, Chip, CircularProgress, Stack, Typography } from "@mui/material";
 import FormatBoldIcon from "@mui/icons-material/FormatBold";
 import FormatItalicIcon from "@mui/icons-material/FormatItalic";
 import FormatListBulletedIcon from "@mui/icons-material/FormatListBulleted";
@@ -120,84 +119,96 @@ export default function InjuryProtocolPanel({ teamId, isCoach }: Props) {
     );
   }
 
+  const hasContent = !!content;
+  const formatButtons: { label: string; active: boolean; run: () => void; icon: ReactNode }[] = [
+    {
+      label: "Negrita",
+      active: !!editor?.isActive("bold"),
+      run: () => editor?.chain().focus().toggleBold().run(),
+      icon: <FormatBoldIcon fontSize="small" />,
+    },
+    {
+      label: "Cursiva",
+      active: !!editor?.isActive("italic"),
+      run: () => editor?.chain().focus().toggleItalic().run(),
+      icon: <FormatItalicIcon fontSize="small" />,
+    },
+    {
+      label: "Título",
+      active: !!editor?.isActive("heading", { level: 2 }),
+      run: () => editor?.chain().focus().toggleHeading({ level: 2 }).run(),
+      icon: <TitleIcon fontSize="small" />,
+    },
+    {
+      label: "Lista",
+      active: !!editor?.isActive("bulletList"),
+      run: () => editor?.chain().focus().toggleBulletList().run(),
+      icon: <FormatListBulletedIcon fontSize="small" />,
+    },
+    {
+      label: "Lista numerada",
+      active: !!editor?.isActive("orderedList"),
+      run: () => editor?.chain().focus().toggleOrderedList().run(),
+      icon: <FormatListNumberedIcon fontSize="small" />,
+    },
+  ];
+
   return (
     <div className={styles.wrapper}>
+      <div className={styles.titleRow}>
+        <Typography component="h2" className={styles.title}>
+          Protocolo de lesiones
+        </Typography>
+        {hasContent && <Chip label="Publicado" size="small" className={styles.publishedChip} />}
+      </div>
+
       {isCoach && (
-        <div className={styles.toolbar}>
-          <div className={styles.formatButtons}>
+        <div className={styles.formatButtons}>
+          {formatButtons.map((b) => (
             <Button
-              size="small"
-              variant={editor?.isActive("bold") ? "contained" : "outlined"}
-              onClick={() => editor?.chain().focus().toggleBold().run()}
-              aria-label="Negrita"
+              key={b.label}
+              variant={b.active ? "contained" : "outlined"}
+              onClick={b.run}
+              aria-label={b.label}
+              className={styles.formatButton}
             >
-              <FormatBoldIcon fontSize="small" />
+              {b.icon}
             </Button>
-            <Button
-              size="small"
-              variant={editor?.isActive("italic") ? "contained" : "outlined"}
-              onClick={() => editor?.chain().focus().toggleItalic().run()}
-              aria-label="Cursiva"
-            >
-              <FormatItalicIcon fontSize="small" />
-            </Button>
-            <Button
-              size="small"
-              variant={editor?.isActive("heading", { level: 2 }) ? "contained" : "outlined"}
-              onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()}
-              aria-label="Título"
-            >
-              <TitleIcon fontSize="small" />
-            </Button>
-            <Button
-              size="small"
-              variant={editor?.isActive("bulletList") ? "contained" : "outlined"}
-              onClick={() => editor?.chain().focus().toggleBulletList().run()}
-              aria-label="Lista"
-            >
-              <FormatListBulletedIcon fontSize="small" />
-            </Button>
-            <Button
-              size="small"
-              variant={editor?.isActive("orderedList") ? "contained" : "outlined"}
-              onClick={() => editor?.chain().focus().toggleOrderedList().run()}
-              aria-label="Lista numerada"
-            >
-              <FormatListNumberedIcon fontSize="small" />
-            </Button>
-          </div>
-          <Stack direction="row" spacing={1}>
-            <Button
-              startIcon={<DeleteIcon />}
-              onClick={() => setDeleteOpen(true)}
-              variant="outlined"
-              color="error"
-              size="small"
-              disabled={!content}
-            >
-              Eliminar protocolo
-            </Button>
-            <Button
-              startIcon={<SaveIcon />}
-              onClick={handleSave}
-              variant="contained"
-              size="small"
-              disabled={saving}
-            >
-              Guardar
-            </Button>
-          </Stack>
+          ))}
         </div>
       )}
 
-      <div className={isCoach ? styles.editorCard : styles.readonlyCard}>
+      <div className={styles.editorArea}>
         <EditorContent editor={editor} className={styles.editorContent} />
       </div>
 
       {updatedAt && (
-        <Typography variant="caption" color="text.secondary" className={styles.updatedAt}>
+        <Typography variant="caption" className={styles.updatedAt}>
           Última actualización: {new Date(updatedAt).toLocaleString("es-ES")}
         </Typography>
+      )}
+
+      {isCoach && (
+        <div className={styles.actions}>
+          <Button
+            onClick={() => setDeleteOpen(true)}
+            variant="outlined"
+            color="error"
+            disabled={!content}
+            aria-label="Eliminar protocolo"
+            className={styles.deleteButton}
+          >
+            Eliminar
+          </Button>
+          <Button
+            onClick={handleSave}
+            variant="contained"
+            disabled={saving}
+            className={styles.saveButton}
+          >
+            Guardar protocolo
+          </Button>
+        </div>
       )}
 
       <ConfirmDialog
