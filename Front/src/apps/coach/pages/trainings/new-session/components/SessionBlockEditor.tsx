@@ -22,6 +22,11 @@ import {
 } from "@dnd-kit/core";
 import trainingService from "../../../../services/trainingService";
 import type { Exercise, SessionBlockRequest } from "../../../../types/training";
+import TacticalBoardSnapshotPreview, {
+  hasBoardObjects,
+  tryParseBoardSnapshot,
+} from "../../../../components/TacticalBoardSnapshotPreview";
+import { exerciseMediaUrl } from "../../exerciseMedia";
 import { TIPO_LABELS } from "../../exerciseTypeLabels";
 import ExercisePickerDialog from "./ExercisePickerDialog";
 import styles from "./SessionBlockEditor.module.css";
@@ -72,11 +77,12 @@ const blockIndexFromDndId = (id: string | number) => Number(String(id).replace("
 interface ExerciseInfoCardProps {
   exerciseId: string;
   exercise?: Exercise;
+  teamId?: string;
   onRemove: () => void;
   onEdit?: () => void;
 }
 
-function ExerciseInfoCard({ exerciseId, exercise, onRemove, onEdit }: ExerciseInfoCardProps) {
+function ExerciseInfoCard({ exerciseId, exercise, teamId, onRemove, onEdit }: ExerciseInfoCardProps) {
   const name = exercise?.name ?? exerciseId;
   const sections = exercise
     ? [
@@ -85,6 +91,9 @@ function ExerciseInfoCard({ exerciseId, exercise, onRemove, onEdit }: ExerciseIn
         { label: "Logística", text: exercise.logistica },
       ].filter((s) => s.text?.trim())
     : [];
+
+  const parsedSnapshot = exercise ? tryParseBoardSnapshot(exercise.boardStateJson) : null;
+  const boardSnapshot = parsedSnapshot && hasBoardObjects(parsedSnapshot) ? parsedSnapshot : null;
 
   return (
     <Box component="article" aria-label={name} className={styles.exerciseCard}>
@@ -109,8 +118,19 @@ function ExerciseInfoCard({ exerciseId, exercise, onRemove, onEdit }: ExerciseIn
         </Box>
       )}
 
-      {exercise?.urlImage && (
-        <img src={exercise.urlImage} alt={`Dibujo de ${name}`} className={styles.exerciseImage} loading="lazy" />
+      {exercise?.urlImage ? (
+        <img
+          src={exerciseMediaUrl(exercise.urlImage)}
+          alt={`Dibujo de ${name}`}
+          className={styles.exerciseImage}
+          loading="lazy"
+        />
+      ) : (
+        boardSnapshot && (
+          <Box className={styles.exerciseBoard}>
+            <TacticalBoardSnapshotPreview snapshot={boardSnapshot} teamId={teamId} />
+          </Box>
+        )
       )}
 
       {sections.map((section) => (
@@ -252,6 +272,9 @@ export default function SessionBlockEditor({
               <>
                 <Box className={styles.blockHeader}>
                   {dragHandle}
+                  <span className={styles.blockBadge} data-testid={`block-badge-${blockIndex + 1}`} aria-hidden="true">
+                    {blockIndex + 1}
+                  </span>
                   <TextField
                     label="Nombre del bloque"
                     value={block.nombre}
@@ -295,12 +318,17 @@ export default function SessionBlockEditor({
                   />
                 )}
 
+                {block.exercises.length === 0 && (
+                  <Typography className={styles.emptyBlock}>Este bloque aún no tiene ejercicios.</Typography>
+                )}
+
                 <Box className={styles.exercisesRow}>
                   {block.exercises.map((ex, exIndex) => (
                     <ExerciseInfoCard
                       key={exIndex}
                       exerciseId={ex.exerciseId}
                       exercise={exercises.find((e) => e.id === ex.exerciseId)}
+                      teamId={teamId}
                       onRemove={() => removeExercise(blockIndex, exIndex)}
                       onEdit={onRequestEditExercise ? () => onRequestEditExercise(ex.exerciseId) : undefined}
                     />

@@ -208,6 +208,9 @@ export default function NewSessionPage() {
   const handleRequestEditExercise = (exerciseId: string) =>
     goToExerciseEditor(new URLSearchParams({ exerciseId }), null);
 
+  const blockCount = sessionForm.form.blocks.length;
+  const exerciseCount = sessionForm.form.blocks.reduce((total, b) => total + b.exercises.length, 0);
+
   return (
     <BaseLayout hideFooterMenu>
       <Box className={styles.page}>
@@ -263,135 +266,171 @@ export default function NewSessionPage() {
         </Box>
 
         <Box className={styles.body}>
-          <Typography className={styles.pageTitle}>
+          <Typography component="h1" className={styles.pageTitle}>
             {sessionForm.savedSessionId ? "Editar sesión" : "Nueva sesión de entrenamiento"}
           </Typography>
 
-          <TextField
-            label="Nombre"
-            value={sessionForm.form.name}
-            onChange={(e) => sessionForm.setField("name", e.target.value)}
-            fullWidth
-            size="small"
-            className={styles.field}
-          />
+          <Box className={styles.layout}>
+            <Box className={styles.main}>
+              <Box component="section" aria-labelledby="session-data-title" className={styles.card}>
+                <Typography component="h2" id="session-data-title" className={styles.sectionTitle}>
+                  Datos de la sesión
+                </Typography>
 
-          <Autocomplete<MicrocicloOption, false>
-            size="small"
-            options={microcicloOptions}
-            getOptionLabel={(o) => o.label}
-            isOptionEqualToValue={(a, b) => a.id === b.id}
-            value={microcicloOptions.find((o) => o.id === sessionForm.form.microcicloId) ?? null}
-            onChange={(_, value) => sessionForm.setField("microcicloId", value?.id ?? null)}
-            renderInput={(params) => <TextField {...params} label="Ubicación en el plan (opcional)" />}
-            className={styles.field}
-          />
-
-          <Box className={styles.row}>
-            <TextField
-              label="Fecha (opcional — déjala vacía para una sesión sin programar)"
-              type="date"
-              value={sessionForm.form.date ?? ""}
-              onChange={(e) => sessionForm.setField("date", e.target.value || null)}
-              size="small"
-              InputLabelProps={{ shrink: true }}
-              className={styles.dateField}
-            />
-            <TextField
-              label="Inicio"
-              type="time"
-              value={sessionForm.form.startTime ?? ""}
-              onChange={(e) => sessionForm.setField("startTime", e.target.value || null)}
-              size="small"
-              InputLabelProps={{ shrink: true }}
-              className={styles.timeField}
-            />
-            <TextField
-              label="Fin (opcional)"
-              type="time"
-              value={sessionForm.form.endTime ?? ""}
-              onChange={(e) => sessionForm.setField("endTime", e.target.value || null)}
-              size="small"
-              InputLabelProps={{ shrink: true }}
-              className={styles.timeField}
-            />
-          </Box>
-
-          <Box className={styles.row}>
-            <TextField
-              label="Lugar (opcional)"
-              value={sessionForm.form.location ?? ""}
-              onChange={(e) => sessionForm.setField("location", e.target.value || null)}
-              size="small"
-              className={styles.flex1}
-            />
-            <Autocomplete<SportEventResponse, false>
-              size="small"
-              options={dailySportEvents.events}
-              loading={dailySportEvents.loading}
-              disabled={!sessionForm.form.date}
-              getOptionLabel={sportEventOptionLabel}
-              isOptionEqualToValue={(a, b) => a.id === b.id}
-              value={dailySportEvents.events.find((e) => e.id === sessionForm.form.sportEventId) ?? null}
-              onChange={(_, value) => sessionForm.setField("sportEventId", value?.id ?? null)}
-              renderInput={(params) => (
                 <TextField
-                  {...params}
-                  label={
-                    sessionForm.form.date
-                      ? "Evento deportivo (opcional)"
-                      : "Evento deportivo (elige antes una fecha)"
-                  }
+                  label="Nombre"
+                  value={sessionForm.form.name}
+                  onChange={(e) => sessionForm.setField("name", e.target.value)}
+                  fullWidth
+                  size="small"
+                  className={styles.field}
                 />
+
+                <Autocomplete<MicrocicloOption, false>
+                  size="small"
+                  options={microcicloOptions}
+                  getOptionLabel={(o) => o.label}
+                  isOptionEqualToValue={(a, b) => a.id === b.id}
+                  value={microcicloOptions.find((o) => o.id === sessionForm.form.microcicloId) ?? null}
+                  onChange={(_, value) => sessionForm.setField("microcicloId", value?.id ?? null)}
+                  renderInput={(params) => <TextField {...params} label="Ubicación en el plan (opcional)" />}
+                  className={styles.field}
+                />
+
+                <TextField
+                  label="Objetivo general (opcional)"
+                  value={sessionForm.form.objetivoGeneral ?? ""}
+                  onChange={(e) => sessionForm.setField("objetivoGeneral", e.target.value || null)}
+                  fullWidth
+                  multiline
+                  minRows={2}
+                  size="small"
+                  className={styles.field}
+                />
+
+                <TextField
+                  label="Mapa de campo general (opcional)"
+                  value={sessionForm.form.mapaCampoTexto ?? ""}
+                  onChange={(e) => sessionForm.setField("mapaCampoTexto", e.target.value || null)}
+                  fullWidth
+                  multiline
+                  minRows={2}
+                  size="small"
+                  className={styles.field}
+                  placeholder="Referencia o (pendiente)"
+                />
+              </Box>
+
+              <Box component="section" aria-labelledby="session-blocks-title" className={styles.blocksSection}>
+                <Typography component="h2" id="session-blocks-title" className={styles.sectionTitle}>
+                  Bloques
+                </Typography>
+                <SessionBlockEditor
+                  blocks={sessionForm.form.blocks}
+                  onChange={(blocks) => sessionForm.setField("blocks", blocks)}
+                  clubId={clubId}
+                  teamId={teamId}
+                  onRequestInlineExercise={handleRequestInlineExercise}
+                  onRequestEditExercise={handleRequestEditExercise}
+                />
+              </Box>
+
+              {sessionForm.error && (
+                <Typography color="error" className={styles.error}>
+                  {sessionForm.error}
+                </Typography>
               )}
-              className={styles.flex1}
-            />
+            </Box>
+
+            <Box component="aside" className={styles.aside}>
+              <Box component="section" aria-labelledby="session-when-title" className={styles.card}>
+                <Typography component="h2" id="session-when-title" className={styles.sectionTitle}>
+                  Cuándo y dónde
+                </Typography>
+
+                <TextField
+                  label="Fecha (opcional — déjala vacía para una sesión sin programar)"
+                  type="date"
+                  value={sessionForm.form.date ?? ""}
+                  onChange={(e) => sessionForm.setField("date", e.target.value || null)}
+                  size="small"
+                  InputLabelProps={{ shrink: true }}
+                  className={styles.field}
+                />
+                <Box className={styles.row}>
+                  <TextField
+                    label="Inicio"
+                    type="time"
+                    value={sessionForm.form.startTime ?? ""}
+                    onChange={(e) => sessionForm.setField("startTime", e.target.value || null)}
+                    size="small"
+                    InputLabelProps={{ shrink: true }}
+                    className={styles.flex1}
+                  />
+                  <TextField
+                    label="Fin (opcional)"
+                    type="time"
+                    value={sessionForm.form.endTime ?? ""}
+                    onChange={(e) => sessionForm.setField("endTime", e.target.value || null)}
+                    size="small"
+                    InputLabelProps={{ shrink: true }}
+                    className={styles.flex1}
+                  />
+                </Box>
+                <TextField
+                  label="Lugar (opcional)"
+                  value={sessionForm.form.location ?? ""}
+                  onChange={(e) => sessionForm.setField("location", e.target.value || null)}
+                  size="small"
+                  className={styles.field}
+                />
+                <Autocomplete<SportEventResponse, false>
+                  size="small"
+                  options={dailySportEvents.events}
+                  loading={dailySportEvents.loading}
+                  disabled={!sessionForm.form.date}
+                  getOptionLabel={sportEventOptionLabel}
+                  isOptionEqualToValue={(a, b) => a.id === b.id}
+                  value={dailySportEvents.events.find((e) => e.id === sessionForm.form.sportEventId) ?? null}
+                  onChange={(_, value) => sessionForm.setField("sportEventId", value?.id ?? null)}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label={
+                        sessionForm.form.date
+                          ? "Evento deportivo (opcional)"
+                          : "Evento deportivo (elige antes una fecha)"
+                      }
+                    />
+                  )}
+                  className={styles.field}
+                />
+                {sessionForm.form.date && !dailySportEvents.loading && dailySportEvents.events.length === 0 && (
+                  <Alert severity="info">No hay eventos deportivos para esta fecha.</Alert>
+                )}
+              </Box>
+
+              <Box component="section" aria-labelledby="session-summary-title" aria-label="Resumen" className={styles.card}>
+                <Typography component="h2" id="session-summary-title" className={styles.sectionTitle}>
+                  Resumen
+                </Typography>
+                <Box className={styles.summaryGrid}>
+                  <Box className={styles.summaryStat}>
+                    <span className={styles.summaryValue} data-testid="summary-blocks">
+                      {blockCount}
+                    </span>
+                    <span className={styles.summaryLabel}>{blockCount === 1 ? "bloque" : "bloques"}</span>
+                  </Box>
+                  <Box className={styles.summaryStat}>
+                    <span className={styles.summaryValue} data-testid="summary-exercises">
+                      {exerciseCount}
+                    </span>
+                    <span className={styles.summaryLabel}>{exerciseCount === 1 ? "ejercicio" : "ejercicios"}</span>
+                  </Box>
+                </Box>
+              </Box>
+            </Box>
           </Box>
-
-          {sessionForm.form.date && !dailySportEvents.loading && dailySportEvents.events.length === 0 && (
-            <Alert severity="info" className={styles.field}>
-              No hay eventos deportivos para esta fecha.
-            </Alert>
-          )}
-
-          <TextField
-            label="Objetivo general (opcional)"
-            value={sessionForm.form.objetivoGeneral ?? ""}
-            onChange={(e) => sessionForm.setField("objetivoGeneral", e.target.value || null)}
-            fullWidth
-            multiline
-            minRows={2}
-            size="small"
-            className={styles.field}
-          />
-
-          <TextField
-            label="Mapa de campo general (opcional)"
-            value={sessionForm.form.mapaCampoTexto ?? ""}
-            onChange={(e) => sessionForm.setField("mapaCampoTexto", e.target.value || null)}
-            fullWidth
-            multiline
-            minRows={2}
-            size="small"
-            className={styles.field}
-            placeholder="Referencia o (pendiente)"
-          />
-
-          <Typography className={styles.sectionTitle}>Bloques</Typography>
-          <SessionBlockEditor
-            blocks={sessionForm.form.blocks}
-            onChange={(blocks) => sessionForm.setField("blocks", blocks)}
-            clubId={clubId}
-            teamId={teamId}
-            onRequestInlineExercise={handleRequestInlineExercise}
-            onRequestEditExercise={handleRequestEditExercise}
-          />
-
-          {sessionForm.error && (
-            <Typography color="error" className={styles.error}>
-              {sessionForm.error}
-            </Typography>
-          )}
         </Box>
       </Box>
     </BaseLayout>

@@ -33,9 +33,8 @@
   flex: 1;
   overflow-y: auto;
   padding: 16px;
-  max-width: 900px;
   width: 100%;
-  margin: 0 auto;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
 }
@@ -92,4 +91,76 @@
 
 .error {
   margin-top: 8px !important;
+}
+
+.layout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.main {
+  flex: 999 1 560px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.aside {
+  flex: 1 1 300px;
+  min-width: 0;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+@media (max-width: 900px) {
+  .aside {
+    max-width: none;
+    flex-basis: 100%;
+  }
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  border: 1px solid rgba(77, 157, 224, 0.25);
+  border-radius: 14px;
+  background: rgba(12, 22, 42, 0.6);
+}
+
+.blocksSection {
+  display: flex;
+  flex-direction: column;
+}
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.summaryStat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 8px;
+  border-radius: 10px;
+  background: rgba(7, 7, 26, 0.6);
+}
+
+.summaryValue {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.1;
+}
+
+.summaryLabel {
+  font-size: 0.85rem;
+  color: #a8d4f5;
 }
