@@ -16,3 +16,6 @@ infra/terraform/crash.log
 # Local Netlify folder
 .netlify
 exports/
+
+# Dependencias (también si se generan por error en la raíz)
+node_modules/
