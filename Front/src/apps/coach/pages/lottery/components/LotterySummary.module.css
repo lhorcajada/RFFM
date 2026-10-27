@@ -1,6 +1,51 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.hero {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border-color: transparent;
+  background: linear-gradient(135deg, var(--mui-palette-primary-main, #4d9de0) 0%, var(--mui-palette-secondary-main, #4ec9b0) 100%);
+  color: #0d0d1f;
+}
+
+.heroLabel {
+  font-weight: 600;
+  color: #0d0d1f;
+}
+
+.heroValue {
+  font-size: 2.4rem;
+  line-height: 1;
+  font-weight: 700;
+  color: #0d0d1f;
+}
+
+.track {
+  height: 10px;
+  border-radius: 6px;
+  background-color: rgba(13, 13, 31, 0.25);
+}
+
+.track > span {
+  background-color: #0d0d1f;
+}
+
+.heroHint {
+  font-weight: 600;
+  color: #0d0d1f;
+}
+
 .row {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
   width: 100%;
 }
@@ -33,6 +78,6 @@
 
 @media (max-width: 600px) {
   .row {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(1, minmax(0, 1fr));
   }
 }

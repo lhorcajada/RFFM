@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Avatar, Button, IconButton, Menu, MenuItem, Paper, Typography } from "@mui/material";
+import { Avatar, Button, Chip, IconButton, Menu, MenuItem, Paper, Typography } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import type { LotteryBook } from "../../../services/lotteryService";
@@ -64,7 +64,15 @@ export default function LotteryPlayerCard({ player, books, canEdit, onDeliver, o
       {books.map((book) => (
         <div key={book.id} className={book.amountReturned === null ? styles.book : `${styles.book} ${styles.returned}`}>
           <div className={styles.bookInfo}>
-            <Typography className={styles.bookNumber}>Taco {book.bookNumber}</Typography>
+            <div className={styles.bookTitle}>
+              <Typography className={styles.bookNumber}>Taco {book.bookNumber}</Typography>
+              <Chip
+                size="small"
+                label={book.amountReturned === null ? "Por devolver" : "Devuelto"}
+                color={book.amountReturned === null ? "warning" : "success"}
+                variant="outlined"
+              />
+            </div>
             <Typography variant="caption" className={styles.bookMeta}>
               {book.firstTicketNumber}–{book.lastTicketNumber} · entregado {formatShortDate(book.deliveredOn)}
             </Typography>

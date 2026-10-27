@@ -397,7 +397,7 @@ export default function Lottery() {
           </>
         )}
 
-        <Stack spacing={1}>
+        <Box className={styles.list}>
           {visiblePlayers.length === 0 && (
             <Typography variant="body2" className={styles.muted}>
               {canEdit ? "No hay jugadores en este filtro." : "No tienes tacos asignados en esta campaña."}
@@ -422,7 +422,7 @@ export default function Lottery() {
               onDelete={setDeleteTarget}
             />
           ))}
-        </Stack>
+        </Box>
 
         <LotteryClubDeliveryCard
           campaign={campaign}

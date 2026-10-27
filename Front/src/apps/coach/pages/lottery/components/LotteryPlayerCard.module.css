@@ -49,11 +49,17 @@
   padding: 8px 10px;
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.04);
-  border-left: 4px solid var(--rffm-warning, #ffa726);
 }
 
 .returned {
-  border-left-color: var(--rffm-success, #66bb6a);
+  background: rgba(78, 201, 176, 0.06);
+}
+
+.bookTitle {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .bookInfo {
