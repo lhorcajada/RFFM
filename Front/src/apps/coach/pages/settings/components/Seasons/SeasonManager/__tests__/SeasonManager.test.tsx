@@ -47,7 +47,7 @@ describe("SeasonManager", () => {
     mockUseMediaQuery.mockReturnValue(false);
   });
 
-  it("en escritorio muestra las temporadas en una tabla", async () => {
+  it("en escritorio muestra las temporadas como tarjetas, nunca como tabla", async () => {
     mockGetSeasons.mockResolvedValue([
       { id: "season-1", name: "Temporada 25/26", startDate: "2025-08-01", endDate: "2026-06-30", active: true },
     ]);
@@ -55,10 +55,35 @@ describe("SeasonManager", () => {
 
     render(<SeasonManager clubId="club-1" />);
 
-    expect(await screen.findByRole("table")).toBeInTheDocument();
-    expect(screen.getByRole("columnheader", { name: "Nombre" })).toBeInTheDocument();
-    expect(screen.getByText("Temporada 25/26")).toBeInTheDocument();
-    expect(screen.queryByTestId("season-row-card-season-1")).not.toBeInTheDocument();
+    expect(await screen.findByTestId("season-row-card-season-1")).toBeInTheDocument();
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+  });
+
+  it("separa la temporada activa de las anteriores", async () => {
+    mockGetSeasons.mockResolvedValue([
+      { id: "season-1", name: "Temporada 25/26", startDate: "2025-08-01", endDate: "2026-06-30", active: true },
+      { id: "season-0", name: "Temporada 24/25", startDate: "2024-08-01", endDate: "2025-06-30", active: false },
+    ]);
+
+    render(<SeasonManager clubId="club-1" />);
+
+    await screen.findByText("Temporada 25/26");
+    expect(screen.getByText("Temporada activa")).toBeInTheDocument();
+    expect(screen.getByText("Anteriores")).toBeInTheDocument();
+    expect(screen.getByTestId("season-row-card-season-0")).toBeInTheDocument();
+  });
+
+  it("abre el formulario de edición en un panel con el título de la temporada", async () => {
+    mockGetSeasons.mockResolvedValue([
+      { id: "season-1", name: "Temporada 25/26", startDate: "2025-08-01", endDate: "2026-06-30", active: true },
+    ]);
+
+    render(<SeasonManager clubId="club-1" />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Editar temporada" }));
+
+    const panel = await screen.findByRole("dialog", { name: "Editar temporada" });
+    expect(within(panel).getByLabelText("Nombre")).toBeInTheDocument();
   });
 
   it("en móvil/tablet muestra las temporadas como tarjetas con acciones funcionales", async () => {
@@ -78,9 +103,6 @@ describe("SeasonManager", () => {
     expect(within(card).getByText("2025-08-01")).toBeInTheDocument();
     expect(within(card).getByText("2026-06-30")).toBeInTheDocument();
     expect(within(card).getByText("Activa")).toBeInTheDocument();
-
-    await userEvent.click(within(card).getByRole("button", { name: "Editar temporada" }));
-    expect(await screen.findByLabelText("Nombre")).toBeInTheDocument();
 
     await userEvent.click(within(card).getByRole("button", { name: "Eliminar temporada" }));
     const dialog = await screen.findByRole("dialog");

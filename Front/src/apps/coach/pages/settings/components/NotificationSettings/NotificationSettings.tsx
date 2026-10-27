@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import styles from "./NotificationSettings.module.css";
 import {
   Backdrop,
   CircularProgress,
@@ -107,7 +108,7 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({
 
   if (!supported && requiresHomeScreenInstallForPush()) {
     return (
-      <Typography variant="body2" color="text.secondary">
+      <Typography variant="body2" className={styles.note}>
         En iPhone las notificaciones push solo funcionan desde la app instalada. Abre esta web
         en Safari, pulsa Compartir → «Añadir a pantalla de inicio», abre la app desde ese icono
         y activa aquí las notificaciones.
@@ -117,15 +118,16 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({
 
   if (!supported) {
     return (
-      <Typography variant="body2" color="text.secondary">
+      <Typography variant="body2" className={styles.note}>
         Tu navegador no soporta notificaciones push.
       </Typography>
     );
   }
 
   return (
-    <Stack spacing={1}>
+    <Stack spacing={1} className={styles.card}>
       <FormControlLabel
+        className={styles.toggle}
         control={
           <Switch
             checked={subscribed}
@@ -137,7 +139,7 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({
         }
         label="Notificaciones push"
       />
-      <Typography variant="body2" color="text.secondary">
+      <Typography variant="body2" className={styles.description}>
         Recibe avisos de convocatorias, sanciones, lesiones y noticias aunque no tengas la
         aplicación abierta.
       </Typography>

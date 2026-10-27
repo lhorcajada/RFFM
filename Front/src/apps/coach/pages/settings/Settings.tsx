@@ -9,10 +9,30 @@ import { coachAuthService } from "../../services/authService";
 import styles from "./Settings.module.css";
 import ClubSelector from "./components/ClubSelector/ClubSelector";
 import MyTeams from "./components/MyTeams/MyTeams";
-import { Button, Stack } from "@mui/material";
+import { Button, Stack, useMediaQuery } from "@mui/material";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import HomeWorkOutlinedIcon from "@mui/icons-material/HomeWorkOutlined";
+import EventNoteOutlinedIcon from "@mui/icons-material/EventNoteOutlined";
+import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
+import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNoneOutlined";
 import SeasonOption from "./components/Seasons/SeasonOption/SeasonOption";
 import NotificationSettings from "./components/NotificationSettings/NotificationSettings";
 import { useAuditPageAccess } from "../../../../shared/hooks/useAuditPageAccess";
+
+type SettingsSection = "seasons" | "clubs" | "teams" | "notifications";
+
+const SECTIONS: {
+  key: SettingsSection;
+  label: string;
+  description: string;
+  icon: React.ReactNode;
+  coachOnly: boolean;
+}[] = [
+  { key: "clubs", label: "Mis clubes", description: "Elige tu club preferido.", icon: <HomeWorkOutlinedIcon fontSize="small" />, coachOnly: true },
+  { key: "seasons", label: "Temporadas", description: "Gestiona las temporadas de tu club preferido.", icon: <EventNoteOutlinedIcon fontSize="small" />, coachOnly: true },
+  { key: "teams", label: "Mis equipos", description: "Elige tu equipo preferido.", icon: <GroupsOutlinedIcon fontSize="small" />, coachOnly: true },
+  { key: "notifications", label: "Notificaciones", description: "Avisos que quieres recibir.", icon: <NotificationsNoneOutlinedIcon fontSize="small" />, coachOnly: false },
+];
 
 const Settings: React.FC = () => {
   useAuditPageAccess('Settings');
@@ -29,11 +49,18 @@ const Settings: React.FC = () => {
   const location = useLocation();
   const initialSection = isPlayerOrFamily
     ? "notifications"
-    : (location.state as { section?: "seasons" | "clubs" | "teams" | "notifications" } | null)
+    : (location.state as { section?: SettingsSection } | null)
         ?.section ?? "seasons";
-  const [selectedSection, setSelectedSection] = useState<
-    "seasons" | "clubs" | "teams" | "notifications"
-  >(initialSection);
+  const [selectedSection, setSelectedSection] = useState<SettingsSection>(initialSection);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const isMobile = useMediaQuery("(max-width:600px)");
+  const visibleSections = SECTIONS.filter((section) => !section.coachOnly || !isPlayerOrFamily);
+  const activeSection = SECTIONS.find((section) => section.key === selectedSection) ?? SECTIONS[1];
+
+  const selectSection = (key: SettingsSection) => {
+    setSelectedSection(key);
+    setMenuOpen(false);
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -135,50 +162,60 @@ const Settings: React.FC = () => {
       >
           <div className={styles.root}>
           {/* ── Left category sidebar ── */}
-          <nav className={styles.categoryNav}>
-            {!isPlayerOrFamily && (
-              <>
-                <div
-                  className={`${styles.categoryItem} ${selectedSection === "clubs" ? styles.categoryItemActive : ""}`}
-                  onClick={() => setSelectedSection("clubs")}
-                >
-                  Mis clubes
+          {isMobile ? (
+            <div className={styles.sectionPicker}>
+              <button
+                type="button"
+                className={styles.sectionPickerButton}
+                aria-haspopup="true"
+                aria-expanded={menuOpen}
+                aria-label={`Sección: ${activeSection.label}`}
+                onClick={() => setMenuOpen((open) => !open)}
+              >
+                <span className={styles.sectionPickerText}>
+                  <span className={styles.sectionPickerCaption}>Sección</span>
+                  <span>{activeSection.label}</span>
+                </span>
+                <ExpandMoreIcon className={menuOpen ? styles.chevronOpen : undefined} />
+              </button>
+              {menuOpen && (
+                <div role="menu" className={styles.sectionMenu}>
+                  {visibleSections.map((section) => (
+                    <button
+                      key={section.key}
+                      type="button"
+                      role="menuitem"
+                      className={`${styles.sectionMenuItem} ${selectedSection === section.key ? styles.sectionMenuItemActive : ""}`}
+                      onClick={() => selectSection(section.key)}
+                    >
+                      {section.label}
+                    </button>
+                  ))}
                 </div>
-                <div
-                  className={`${styles.categoryItem} ${selectedSection === "seasons" ? styles.categoryItemActive : ""}`}
-                  onClick={() => setSelectedSection("seasons")}
-                >
-                  Temporadas
-                </div>
-                <div
-                  className={`${styles.categoryItem} ${selectedSection === "teams" ? styles.categoryItemActive : ""}`}
-                  onClick={() => setSelectedSection("teams")}
-                >
-                  Mis equipos
-                </div>
-              </>
-            )}
-            <div
-              className={`${styles.categoryItem} ${selectedSection === "notifications" ? styles.categoryItemActive : ""}`}
-              onClick={() => setSelectedSection("notifications")}
-            >
-              Notificaciones
+              )}
             </div>
-          </nav>
+          ) : (
+            <nav className={styles.categoryNav} aria-label="Secciones de ajustes">
+              {visibleSections.map((section) => (
+                <button
+                  key={section.key}
+                  type="button"
+                  className={`${styles.categoryItem} ${selectedSection === section.key ? styles.categoryItemActive : ""}`}
+                  aria-current={selectedSection === section.key ? "page" : undefined}
+                  onClick={() => selectSection(section.key)}
+                >
+                  {section.icon}
+                  {section.label}
+                </button>
+              ))}
+            </nav>
+          )}
 
           {/* ── Right settings panel ── */}
           <div className={styles.settingsPanel}>
-            {/* Panel header */}
             <div className={styles.panelHeader}>
-              <span className={styles.panelHeaderTitle}>
-                {selectedSection === "seasons"
-                  ? "Temporadas"
-                  : selectedSection === "clubs"
-                  ? "Mis clubes"
-                  : selectedSection === "teams"
-                  ? "Mis equipos"
-                  : "Notificaciones"}
-              </span>
+              <h2 className={styles.panelHeaderTitle}>{activeSection.label}</h2>
+              <span className={styles.panelHeaderDescription}>{activeSection.description}</span>
             </div>
 
             <div className={styles.panelContent}>

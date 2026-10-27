@@ -64,7 +64,7 @@ describe("TeamManager", () => {
     });
   });
 
-  it("en escritorio muestra los equipos en una tabla", async () => {
+  it("en escritorio muestra los equipos como tarjetas, nunca como tabla", async () => {
     mockGetTeams.mockResolvedValue([
       {
         id: "team-1",
@@ -77,10 +77,9 @@ describe("TeamManager", () => {
 
     render(<TeamManager clubId="club-1" />);
 
-    expect(await screen.findByRole("table")).toBeInTheDocument();
-    expect(screen.getByRole("columnheader", { name: "Nombre" })).toBeInTheDocument();
-    expect(screen.getByText("Alevín A")).toBeInTheDocument();
-    expect(screen.queryByTestId("team-row-card-team-1")).not.toBeInTheDocument();
+    const card = await screen.findByTestId("team-row-card-team-1");
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    expect(within(card).getByText("Alevín A")).toBeInTheDocument();
   });
 
   it("en móvil/tablet muestra los equipos como tarjetas en vez de tabla", async () => {

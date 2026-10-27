@@ -21,10 +21,7 @@
 }
 
 .listWrap {
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
-  overflow: hidden;
-  background: rgba(0, 0, 0, 0.14);
+  min-width: 0;
 }
 
 .listHeader {
@@ -70,4 +67,31 @@
   .layout {
     grid-template-columns: 1fr;
   }
+}
+
+.sections {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 0;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.groupLabel {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--rffm-dash-accent, #4d9de0);
+}
+
+.cardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
 }

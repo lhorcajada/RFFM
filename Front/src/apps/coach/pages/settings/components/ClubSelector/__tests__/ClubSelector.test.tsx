@@ -46,17 +46,25 @@ describe("ClubSelector", () => {
     });
   });
 
-  it("en escritorio muestra los clubes en una tabla", async () => {
+  it("en escritorio muestra los clubes como tarjetas, nunca como tabla", async () => {
     mockUseMediaQuery.mockReturnValue(false);
     const onChange = vi.fn();
 
     render(<ClubSelector initialValue={null} onChange={onChange} />);
 
-    expect(await screen.findByRole("table")).toBeInTheDocument();
-    expect(screen.getByRole("columnheader", { name: "Nombre" })).toBeInTheDocument();
-    expect(screen.getByText("España")).toBeInTheDocument();
-    expect(screen.getByText("ABC123")).toBeInTheDocument();
-    expect(screen.queryByTestId("club-row-card-club-1")).not.toBeInTheDocument();
+    const card = await screen.findByTestId("club-row-card-club-1");
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    expect(within(card).getByText("España")).toBeInTheDocument();
+    expect(within(card).getByText("ABC123")).toBeInTheDocument();
+  });
+
+  it("abre la creación de club en un panel con su título", async () => {
+    render(<ClubSelector initialValue={null} onChange={vi.fn()} />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Crear club" }));
+
+    const panel = await screen.findByRole("dialog", { name: "Crear club" });
+    expect(within(panel).getByLabelText("Nombre")).toBeInTheDocument();
   });
 
   it("en móvil/tablet muestra los clubes como tarjetas con acciones funcionales", async () => {
@@ -107,7 +115,7 @@ describe("ClubSelector", () => {
     expect(screen.queryByText("Código de invitación")).not.toBeInTheDocument();
   });
 
-  it("muestra la columna Código de invitación cuando al menos un club tiene código visible", async () => {
+  it("muestra el código de invitación en cada tarjeta cuando al menos un club tiene código visible", async () => {
     mockUseMediaQuery.mockReturnValue(false);
     const onChange = vi.fn();
     mockGetUserClubs.mockResolvedValue([
@@ -135,7 +143,7 @@ describe("ClubSelector", () => {
 
     render(<ClubSelector initialValue={null} onChange={onChange} />);
 
-    await waitFor(() => expect(screen.getByText("Código de invitación")).toBeInTheDocument());
-    expect(screen.getByText("ABC123")).toBeInTheDocument();
+    expect(await screen.findByText("ABC123")).toBeInTheDocument();
+    expect(screen.getAllByText("Código de invitación")).toHaveLength(2);
   });
 });

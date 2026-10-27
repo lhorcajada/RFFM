@@ -12,6 +12,7 @@ interface SettingsRowCardProps {
   fields: SettingsRowCardField[];
   actions?: React.ReactNode;
   className?: string;
+  highlighted?: boolean;
   "data-testid"?: string;
 }
 
@@ -24,11 +25,12 @@ export default function SettingsRowCard({
   fields,
   actions,
   className,
+  highlighted,
   ["data-testid"]: dataTestId,
 }: SettingsRowCardProps) {
   return (
     <article
-      className={`${styles.card} ${className ?? ""}`.trim()}
+      className={`${styles.card} ${highlighted ? styles.highlighted : ""} ${className ?? ""}`.trim()}
       data-testid={dataTestId}
       role="group"
       aria-label={typeof title === "string" ? title : undefined}

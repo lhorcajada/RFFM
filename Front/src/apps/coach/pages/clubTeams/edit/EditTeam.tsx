@@ -5,6 +5,7 @@ import ContentLayout from "../../../../../shared/components/ui/ContentLayout/Con
 import ClubHeader from "../../../components/ClubHeader/ClubHeader";
 import { Box, Button, CircularProgress, TextField, Typography } from "@mui/material";
 import styles from "../ClubTeams.module.css";
+import formStyles from "../TeamForm.module.css";
 import teamService from "../../../services/teamService";
 import rffmCompetitionService from "../../../services/rffmCompetitionService";
 import CategorySelect from "../../../components/CategorySelect/CategorySelect";
@@ -228,122 +229,125 @@ export default function EditTeam() {
         title="Editar equipo"
         subtitle={id ? <ClubHeader clubId={id} /> : "-"}
         actionBar={
-          <>
-            <Button variant="outlined" size="small" onClick={() => navigate(teamsListPath)}>
-              Volver
-            </Button>
-            <Button variant="contained" size="small" onClick={handleSubmit} disabled={saving || loading}>
-              {saving ? "Guardando..." : "Guardar"}
-            </Button>
-          </>
+          <Button variant="outlined" size="small" onClick={() => navigate(teamsListPath)}>
+            Volver
+          </Button>
         }
       >
-        <Box className={styles.page}>
+        <Box className={`${styles.page} ${formStyles.page}`}>
           {loading ? (
             <Box display="flex" justifyContent="center" py={4}>
               <CircularProgress size={28} />
             </Box>
           ) : (
             <>
-              {error && (
-                <Typography color="error" variant="body2" sx={{ mb: 1 }}>
-                  {error}
-                </Typography>
-              )}
+              {error && <div className={formStyles.errorBox}>{error}</div>}
 
-              <TextField
-                label="Nombre"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                fullWidth
-                margin="normal"
-              />
+              <div className={formStyles.sections}>
+                <section className={formStyles.section}>
+                  <h2 id="team-data-title" className={formStyles.sectionTitle}>
+                    Datos del equipo
+                  </h2>
 
-              <CategorySelect value={categoryId} onChange={(c) => setCategoryId(c?.id ?? null)} />
+                  <TextField
+                    label="Nombre"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    fullWidth
+                  />
 
-              <LeagueSelect
-                categoryId={categoryId}
-                value={leagueId}
-                onChange={(l) => setLeagueId(l?.id ?? null)}
-              />
+                  <CategorySelect value={categoryId} onChange={(c) => setCategoryId(c?.id ?? null)} />
 
-              <Box mt={2} mb={1}>
-                <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                  Competición RFFM (catálogo real de la federación)
-                </Typography>
-                <RffmCompetitionSelect
-                  competitionId={rffmCompetitionId}
-                  groupId={rffmGroupId}
-                  onChange={(v) => {
-                    const leagueChanged = v.competitionId !== rffmCompetitionId || v.groupId !== rffmGroupId;
-                    if (leagueChanged) setRffmTeamCode(null);
-                    setRffmCompetitionId(v.competitionId);
-                    setRffmGroupId(v.groupId);
-                  }}
-                />
-                <RffmTeamSelect
-                  competitionId={rffmCompetitionId}
-                  groupId={rffmGroupId}
-                  teamCode={rffmTeamCode}
-                  onChange={setRffmTeamCode}
-                />
-                <Typography variant="caption" color="text.secondary" component="p" sx={{ mt: 1 }}>
-                  Plazas de la clasificación según las Bases de ascensos y descensos de la categoría.
-                </Typography>
-                <Box display="flex" flexWrap="wrap" gap={1} mb={1}>
-                  {standingSpotFields.map((field) => (
-                    <TextField
-                      key={field.label}
-                      label={field.label}
-                      type="number"
-                      size="small"
-                      margin="dense"
-                      value={field.value ?? ""}
-                      onChange={(e) => field.setValue(parseSpots(e.target.value))}
-                      inputProps={{ min: 0, max: STANDING_SPOTS_MAX }}
-                      sx={{ flex: "1 1 140px" }}
+                  <LeagueSelect
+                    categoryId={categoryId}
+                    value={leagueId}
+                    onChange={(l) => setLeagueId(l?.id ?? null)}
+                  />
+
+                  <div className={formStyles.photoBox}>
+                    {!photo && existingPhotoPreview && (
+                      <img
+                        src={existingPhotoPreview}
+                        alt="Foto actual del equipo"
+                        className={formStyles.photoPreview}
+                      />
+                    )}
+                    <FileImagePicker
+                      id="team-photo"
+                      label="Seleccionar nueva foto del equipo"
+                      accept="image/png, image/jpeg"
+                      file={photo}
+                      onChange={(f) => setPhoto(f)}
                     />
-                  ))}
-                </Box>
-                {rffmCompetitionError && (
-                  <Typography color="error" variant="body2" sx={{ mb: 1 }}>
-                    {rffmCompetitionError}
-                  </Typography>
-                )}
-                <Button
-                  variant="outlined"
-                  size="small"
-                  onClick={handleSaveRffmCompetition}
-                  disabled={savingRffmCompetition}
-                >
-                  {savingRffmCompetition ? "Guardando..." : "Guardar competición RFFM"}
+                  </div>
+                </section>
+
+                <section className={formStyles.section}>
+                  <div>
+                    <h2 id="team-rffm-title" className={formStyles.sectionTitle}>
+                      Competición RFFM
+                    </h2>
+                    <p className={formStyles.sectionHint}>
+                      Catálogo real de la federación. Se guarda por separado.
+                    </p>
+                  </div>
+
+                  <RffmCompetitionSelect
+                    competitionId={rffmCompetitionId}
+                    groupId={rffmGroupId}
+                    onChange={(v) => {
+                      const leagueChanged = v.competitionId !== rffmCompetitionId || v.groupId !== rffmGroupId;
+                      if (leagueChanged) setRffmTeamCode(null);
+                      setRffmCompetitionId(v.competitionId);
+                      setRffmGroupId(v.groupId);
+                    }}
+                  />
+                  <RffmTeamSelect
+                    competitionId={rffmCompetitionId}
+                    groupId={rffmGroupId}
+                    teamCode={rffmTeamCode}
+                    onChange={setRffmTeamCode}
+                  />
+
+                  <div className={formStyles.spotsBox}>
+                    <p className={formStyles.sectionHint}>
+                      Plazas de la clasificación según las Bases de ascensos y descensos de la categoría.
+                    </p>
+                    <div className={formStyles.spotsRow}>
+                      {standingSpotFields.map((field) => (
+                        <TextField
+                          key={field.label}
+                          label={field.label}
+                          type="number"
+                          value={field.value ?? ""}
+                          onChange={(e) => field.setValue(parseSpots(e.target.value))}
+                          inputProps={{ min: 0, max: STANDING_SPOTS_MAX }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  {rffmCompetitionError && <div className={formStyles.errorBox}>{rffmCompetitionError}</div>}
+                  <div className={formStyles.sectionActions}>
+                    <Button
+                      variant="outlined"
+                      onClick={handleSaveRffmCompetition}
+                      disabled={savingRffmCompetition}
+                    >
+                      {savingRffmCompetition ? "Guardando..." : "Guardar competición RFFM"}
+                    </Button>
+                  </div>
+                </section>
+              </div>
+
+              <div className={formStyles.actionBar}>
+                <Button onClick={() => navigate(teamsListPath)} disabled={saving}>
+                  Cancelar
                 </Button>
-              </Box>
-
-              <Box mt={1.5} mb={1}>
-                <FileImagePicker
-                  id="team-photo"
-                  label="Seleccionar nueva foto del equipo"
-                  accept="image/png, image/jpeg"
-                  file={photo}
-                  onChange={(f) => setPhoto(f)}
-                />
-              </Box>
-
-              {!photo && existingPhotoPreview && (
-                <Box mt={1}>
-                  <Typography variant="caption" color="text.secondary">
-                    Foto actual
-                  </Typography>
-                  <Box mt={0.5}>
-                    <img
-                      src={existingPhotoPreview}
-                      alt="Foto actual del equipo"
-                      style={{ width: 72, height: 90, objectFit: "cover", borderRadius: 8 }}
-                    />
-                  </Box>
-                </Box>
-              )}
+                <Button variant="contained" onClick={handleSubmit} disabled={saving || loading}>
+                  {saving ? "Guardando..." : "Guardar"}
+                </Button>
+              </div>
             </>
           )}
         </Box>

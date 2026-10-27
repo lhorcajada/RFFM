@@ -1,5 +1,5 @@
 import React from "react";
-import { Button, CircularProgress, FormControlLabel, Switch, TextField, Typography } from "@mui/material";
+import { Button, CircularProgress, FormControlLabel, Switch, TextField } from "@mui/material";
 import SeasonClubField from "../SeasonClubField/SeasonClubField";
 import styles from "./SeasonEditorForm.module.css";
 
@@ -26,7 +26,6 @@ interface SeasonEditorFormProps {
 export default function SeasonEditorForm({
   form,
   isEditing,
-  selectedSeasonLabel,
   saving,
   clubId,
   onClubIdChange,
@@ -41,10 +40,6 @@ export default function SeasonEditorForm({
 
   return (
     <div className={styles.panel}>
-      <Typography variant="subtitle1" fontWeight={700}>
-        {isEditing ? "Editar temporada" : "Crear temporada"}
-      </Typography>
-
       <div className={styles.formGrid}>
         {!isEditing && (
           <div className={styles.fullWidth}>
@@ -82,12 +77,6 @@ export default function SeasonEditorForm({
           />
         </div>
       </div>
-
-      <Typography variant="body2" className={styles.helperText}>
-        {isEditing
-          ? `Estás editando ${selectedSeasonLabel ?? "esta temporada"}.`
-          : "Completa el formulario para crear una nueva temporada."}
-      </Typography>
 
       <div className={styles.actionButtons}>
         {!isEditing && (

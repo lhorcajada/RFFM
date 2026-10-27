@@ -86,6 +86,22 @@ describe("EditTeam - competición real RFFM", () => {
     expect(screen.getByLabelText("Grupo RFFM")).toBeInTheDocument();
   });
 
+  it("organiza el formulario en las secciones «Datos del equipo» y «Competición RFFM»", async () => {
+    renderEditTeam();
+
+    expect(await screen.findByRole("heading", { name: "Datos del equipo" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Competición RFFM" })).toBeInTheDocument();
+  });
+
+  it("vuelve al listado de equipos al pulsar Cancelar sin guardar", async () => {
+    renderEditTeam();
+
+    await userEvent.click(await screen.findByRole("button", { name: "Cancelar" }));
+
+    expect(mockNavigate).toHaveBeenCalledWith("/coach/clubs/club-1/teams");
+    expect(mockUpdateTeam).not.toHaveBeenCalled();
+  });
+
   it("guarda la asociación de competición y grupo RFFM al equipo", async () => {
     renderEditTeam();
 

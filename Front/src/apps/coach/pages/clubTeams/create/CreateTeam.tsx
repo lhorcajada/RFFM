@@ -5,6 +5,7 @@ import ContentLayout from "../../../../../shared/components/ui/ContentLayout/Con
 import ClubHeader from "../../../components/ClubHeader/ClubHeader";
 import { Box, TextField, Button } from "@mui/material";
 import styles from "../ClubTeams.module.css";
+import formStyles from "../TeamForm.module.css";
 import teamService from "../../../services/teamService";
 import CategorySelect from "../../../components/CategorySelect/CategorySelect";
 import LeagueSelect from "../../../components/LeagueSelect/LeagueSelect";
@@ -62,53 +63,55 @@ export default function CreateTeam() {
         title="Añadir equipo"
         subtitle={id ? <ClubHeader clubId={id} /> : "-"}
         actionBar={
-          <>
-            <Button
-              variant="outlined"
-              size="small"
-              onClick={() => navigate(-1)}
-            >
-              Volver
-            </Button>
-            <Button
-              variant="contained"
-              size="small"
-              onClick={handleSubmit}
-              disabled={saving}
-            >
-              {saving ? "Guardando..." : "Guardar"}
-            </Button>
-          </>
+          <Button variant="outlined" size="small" onClick={() => navigate(-1)}>
+            Volver
+          </Button>
         }
       >
-        <Box className={styles.page}>
-          <TextField
-            label="Nombre"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            fullWidth
-            margin="normal"
-          />
+        <Box className={`${styles.page} ${formStyles.page}`}>
+          <div className={formStyles.sections}>
+            <section className={formStyles.section}>
+              <h2 id="team-data-title" className={formStyles.sectionTitle}>
+                Datos del equipo
+              </h2>
 
-          <CategorySelect
-            value={categoryId}
-            onChange={(c) => setCategoryId(c?.id ?? null)}
-          />
+              <TextField
+                label="Nombre"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                fullWidth
+              />
 
-          <LeagueSelect
-            categoryId={categoryId}
-            value={leagueId}
-            onChange={(l) => setLeagueId(l?.id ?? null)}
-          />
+              <CategorySelect value={categoryId} onChange={(c) => setCategoryId(c?.id ?? null)} />
 
-          <div style={{ marginTop: 12 }}>
-            <FileImagePicker
-              id="team-photo"
-              label="Seleccionar foto del equipo"
-              accept="image/png, image/jpeg"
-              file={photo}
-              onChange={(f) => setPhoto(f)}
-            />
+              <LeagueSelect
+                categoryId={categoryId}
+                value={leagueId}
+                onChange={(l) => setLeagueId(l?.id ?? null)}
+              />
+
+              <div className={formStyles.photoBox}>
+                {photoPreview && (
+                  <img src={photoPreview} alt="Vista previa del equipo" className={formStyles.photoPreview} />
+                )}
+                <FileImagePicker
+                  id="team-photo"
+                  label="Seleccionar foto del equipo"
+                  accept="image/png, image/jpeg"
+                  file={photo}
+                  onChange={(f) => setPhoto(f)}
+                />
+              </div>
+            </section>
+          </div>
+
+          <div className={formStyles.actionBar}>
+            <Button onClick={() => navigate(-1)} disabled={saving}>
+              Cancelar
+            </Button>
+            <Button variant="contained" onClick={handleSubmit} disabled={saving}>
+              {saving ? "Guardando..." : "Guardar"}
+            </Button>
           </div>
         </Box>
       </ContentLayout>

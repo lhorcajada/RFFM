@@ -1,0 +1,30 @@
+.card {
+  padding: 20px;
+  border-radius: 12px;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--rffm-dash-accent, #4d9de0) 24%, transparent),
+    color-mix(in srgb, var(--rffm-dash-accent, #4d9de0) 6%, transparent)
+  );
+  border: 1px solid var(--rffm-dash-accent, #4d9de0);
+}
+
+.toggle {
+  margin: 0;
+  min-height: 44px;
+  font-weight: 600;
+}
+
+.description {
+  color: var(--rffm-dash-desc-text, rgba(232, 232, 232, 0.75));
+  line-height: 1.5;
+}
+
+.note {
+  padding: 16px 18px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--rffm-dash-accent, #4d9de0) 6%, var(--rffm-dash-card-bg, #111128));
+  border: 1px solid color-mix(in srgb, var(--rffm-dash-accent, #4d9de0) 14%, transparent);
+  color: var(--rffm-dash-desc-text, rgba(232, 232, 232, 0.75));
+  line-height: 1.5;
+}

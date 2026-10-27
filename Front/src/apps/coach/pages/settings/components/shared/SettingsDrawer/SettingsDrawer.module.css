@@ -1,0 +1,52 @@
+.paper {
+  max-width: 100%;
+  box-sizing: border-box;
+  background: var(--rffm-dash-card-bg, #111128) !important;
+  border-left: 1px solid color-mix(in srgb, var(--rffm-dash-accent, #4d9de0) 35%, transparent);
+  color: var(--rffm-dash-card-text, #e8e8e8);
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 24px 24px 16px;
+  border-bottom: 1px solid color-mix(in srgb, var(--rffm-dash-accent, #4d9de0) 18%, transparent);
+}
+
+.headerText {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.title {
+  font-weight: 700;
+  font-size: 1.4rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.subtitle {
+  font-size: 0.88rem;
+  color: var(--rffm-dash-desc-text, rgba(232, 232, 232, 0.7));
+}
+
+.close {
+  width: 44px;
+  height: 44px;
+  border: 1px solid color-mix(in srgb, var(--rffm-dash-accent, #4d9de0) 35%, transparent) !important;
+  border-radius: 8px !important;
+  color: var(--rffm-dash-card-text, #e8e8e8) !important;
+}
+
+.body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px 24px 24px;
+  overflow-y: auto;
+}

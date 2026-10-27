@@ -21,10 +21,7 @@
 }
 
 .listWrap {
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
-  overflow: hidden;
-  background: rgba(0, 0, 0, 0.14);
+  min-width: 0;
 }
 
 .listHeader {
@@ -98,4 +95,10 @@
 
 .copyButton {
   color: inherit;
+}
+
+.cardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 12px;
 }

@@ -12,24 +12,18 @@ import {
   Select,
   Stack,
   Switch,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
   TextField,
   Tooltip,
   Typography,
   IconButton,
 } from "@mui/material";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-import useMediaQuery from "@mui/material/useMediaQuery";
-import { useTheme } from "@mui/material/styles";
 import clubService from "../../../../services/clubService";
 import countryService from "../../../../services/countryService";
 import MembershipRole from "../../../../types/MembershipRole";
 import FileImagePicker from "../../../../../../shared/components/ui/FileImagePicker/FileImagePicker";
 import SettingsRowCard from "../shared/SettingsRowCard/SettingsRowCard";
+import SettingsDrawer from "../shared/SettingsDrawer/SettingsDrawer";
 import styles from "./ClubSelector.module.css";
 
 interface ClubSelectorProps {
@@ -73,8 +67,6 @@ function resolveErrorMessage(error: any, fallback: string): string {
 const ClubSelector: React.FC<ClubSelectorProps> = ({ initialValue, onChange }) => {
   const mountedRef = useRef(true);
   const objectUrlsRef = useRef<string[]>([]);
-  const theme = useTheme();
-  const isCompact = useMediaQuery(theme.breakpoints.down("lg"));
 
   const [clubs, setClubs] = useState<ClubGridItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -345,12 +337,13 @@ const ClubSelector: React.FC<ClubSelectorProps> = ({ initialValue, onChange }) =
                 </Stack>
               ) : clubs.length === 0 ? (
                 <div className={styles.emptyState}>No hay clubes disponibles para configurar.</div>
-              ) : isCompact ? (
-                <div className={styles.cardList}>
+              ) : (
+                <div className={styles.cardGrid}>
                   {clubs.map((club) => (
                     <SettingsRowCard
                       key={club.id}
                       title={club.name}
+                      highlighted={club.id === value}
                       data-testid={`club-row-card-${club.id}`}
                       fields={[
                         { label: "País", value: club.country },
@@ -400,80 +393,19 @@ const ClubSelector: React.FC<ClubSelectorProps> = ({ initialValue, onChange }) =
                     />
                   ))}
                 </div>
-              ) : (
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Nombre</TableCell>
-                      <TableCell>País</TableCell>
-                      <TableCell>Escudo</TableCell>
-                      {anyClubHasInvitationCode && <TableCell>Código de invitación</TableCell>}
-                      <TableCell>Preferido</TableCell>
-                      <TableCell>Acciones</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {clubs.map((club) => (
-                      <TableRow key={club.id} hover>
-                        <TableCell>{club.name}</TableCell>
-                        <TableCell>{club.country}</TableCell>
-                        <TableCell>
-                          {club.shieldUrl ? (
-                            <img
-                              src={club.shieldUrl}
-                              alt={`Escudo ${club.name}`}
-                              className={styles.shieldImage}
-                            />
-                          ) : (
-                            "-"
-                          )}
-                        </TableCell>
-                        {anyClubHasInvitationCode && (
-                          <TableCell>{club.invitationCode ?? "-"}</TableCell>
-                        )}
-                        <TableCell>
-                          <Switch
-                            checked={club.id === value}
-                            onChange={(e) => handleTogglePreferred(club.id, e.target.checked)}
-                            disabled={saving}
-                            size="small"
-                            inputProps={{ "aria-label": "Marcar club preferido" }}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Tooltip title="Eliminar club">
-                            <span>
-                              <IconButton
-                                color="error"
-                                size="small"
-                                onClick={() => openDeleteDialog(club)}
-                                disabled={deleteLoading || loading}
-                                aria-label={`Eliminar ${club.name}`}
-                              >
-                                <DeleteOutlineIcon fontSize="small" />
-                              </IconButton>
-                            </span>
-                          </Tooltip>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
               )}
             </div>
           </div>
         </div>
       </Stack>
 
-      <Dialog
+      <SettingsDrawer
         open={createDialogOpen}
+        title="Crear club"
+        subtitle="Serás su entrenador. Podrás invitar a más personas con el código."
         onClose={() => !createLoading && setCreateDialogOpen(false)}
-        maxWidth="sm"
-        fullWidth
       >
-        <DialogTitle>Crear club</DialogTitle>
-        <DialogContent>
-          <Stack spacing={2} sx={{ mt: 1 }}>
+          <Stack spacing={2} >
             <TextField
               label="Nombre"
               value={newClubName}
@@ -517,16 +449,15 @@ const ClubSelector: React.FC<ClubSelectorProps> = ({ initialValue, onChange }) =
               )}
             </div>
           </Stack>
-        </DialogContent>
-        <DialogActions>
+        <Stack direction="row" spacing={1} justifyContent="flex-end">
           <Button onClick={() => setCreateDialogOpen(false)} disabled={createLoading}>
             Cancelar
           </Button>
           <Button onClick={handleCreateClub} variant="contained" disabled={createLoading}>
             {createLoading ? <CircularProgress size={18} /> : "Crear"}
           </Button>
-        </DialogActions>
-      </Dialog>
+        </Stack>
+      </SettingsDrawer>
 
       <Dialog
         open={deleteDialogOpen}

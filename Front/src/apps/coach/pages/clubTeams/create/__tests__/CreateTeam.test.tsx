@@ -61,6 +61,23 @@ describe("CreateTeam", () => {
     mockCreateTeam.mockResolvedValue({ id: "team-1" });
   });
 
+  it("muestra la sección «Datos del equipo» y permite cancelar", async () => {
+    mockUseLocation.mockReturnValue({ pathname: "/coach/clubs/club-1/teams/new", state: null });
+    render(
+      <MemoryRouter>
+        <UserProvider>
+          <CreateTeam />
+        </UserProvider>
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByRole("heading", { name: "Datos del equipo" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+
+    expect(mockNavigate).toHaveBeenCalledWith(-1);
+    expect(mockCreateTeam).not.toHaveBeenCalled();
+  });
+
   it("navega a /coach/clubs/:id/teams al guardar cuando no viene de ajustes", async () => {
     mockUseLocation.mockReturnValue({ pathname: "/coach/clubs/club-1/teams/new", search: "", state: null });
 

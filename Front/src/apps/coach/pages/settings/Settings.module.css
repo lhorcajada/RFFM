@@ -10,38 +10,125 @@
 
 /* ── Left Category Sidebar ──────────────────────────────── */
 .categoryNav {
-  flex: 0 0 200px;
+  flex: 0 0 240px;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(180deg, #0b0c1a, #0e1124);
-  border-right: 1px solid rgba(77, 157, 224, 0.08);
-  padding: 8px;
+  background: transparent;
+  padding: 0 24px 0 0;
   gap: 6px;
 }
 
 .categoryItem {
-  position: relative;
-  padding: 14px 20px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: rgba(232, 232, 232, 0.45);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 0 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: color-mix(in srgb, var(--rffm-dash-accent, #4d9de0) 5%, var(--rffm-dash-card-bg, #111128));
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: rgba(232, 232, 232, 0.8);
   cursor: pointer;
-  user-select: none;
+  text-align: left;
   transition: color 0.15s ease, background 0.15s ease;
-  border-left: 3px solid transparent;
 }
 
 .categoryItem:hover {
-  color: rgba(232, 232, 232, 0.8);
-  background: rgba(77, 157, 224, 0.06);
+  color: var(--rffm-dash-card-text, #e8e8e8);
+  background: color-mix(in srgb, var(--rffm-dash-accent, #4d9de0) 8%, transparent);
 }
 
 .categoryItemActive {
-  color: #e8e8e8;
-  background: rgba(77, 157, 224, 0.1);
-  border-left-color: var(--rffm-dash-accent, #4d9de0);
+  color: var(--rffm-dash-card-text, #ffffff);
+  font-weight: 600;
+  background: color-mix(in srgb, var(--rffm-dash-accent, #4d9de0) 16%, transparent);
+  border-color: var(--rffm-dash-accent, #4d9de0);
+}
+
+/* ── Mobile section picker (replaces the horizontal tab bar) ── */
+.sectionPicker {
+  position: relative;
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+.sectionPickerButton {
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 52px;
+  padding: 0 16px;
+  border-radius: 10px;
+  border: 1px solid var(--rffm-dash-accent, #4d9de0);
+  background: color-mix(in srgb, var(--rffm-dash-accent, #4d9de0) 16%, transparent);
+  color: var(--rffm-dash-card-text, #ffffff);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sectionPickerText {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.15;
+}
+
+.sectionPickerCaption {
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--rffm-dash-accent, #4d9de0);
+  font-weight: 600;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+.sectionMenu {
+  position: absolute;
+  z-index: 5;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  border-radius: 12px;
+  background: var(--rffm-dash-card-bg, #111128);
+  border: 1px solid color-mix(in srgb, var(--rffm-dash-accent, #4d9de0) 50%, transparent);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
+}
+
+.sectionMenuItem {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: rgba(232, 232, 232, 0.85);
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sectionMenuItemActive {
+  background: color-mix(in srgb, var(--rffm-dash-accent, #4d9de0) 20%, transparent);
+  color: var(--rffm-dash-card-text, #ffffff);
+  font-weight: 600;
 }
 
 /* ── Right Settings Panel ───────────────────────────────── */
@@ -51,36 +138,28 @@
   flex-direction: column;
   background: var(--rffm-dash-card-bg, #111128);
   position: relative;
-  /* FC26 chamfered top-right corner */
-  clip-path: polygon(0 0, calc(100% - 24px) 0, 100% 24px, 100% 100%, 0 100%);
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--rffm-dash-accent, #4d9de0) 20%, transparent);
   overflow: hidden;
-}
-
-/* Chamfer accent triangle */
-.settingsPanel::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 24px;
-  height: 24px;
-  background: var(--rffm-dash-accent, #4d9de0);
-  clip-path: polygon(0 0, 100% 100%, 100% 0);
-  opacity: 0.4;
-  pointer-events: none;
-  z-index: 1;
 }
 
 /* ── Panel Section Header ───────────────────────────────── */
 .panelHeader {
   display: flex;
   align-items: center;
-  gap: 10px;
+  flex-wrap: wrap;
+  gap: 4px 12px;
   padding: 16px 24px 12px;
-  border-bottom: 1px solid rgba(77, 157, 224, 0.2);
+  border-bottom: 1px solid color-mix(in srgb, var(--rffm-dash-accent, #4d9de0) 20%, transparent);
+}
+
+.panelHeaderDescription {
+  font-size: 0.85rem;
+  color: rgba(232, 232, 232, 0.72);
 }
 
 .panelHeaderTitle {
+  margin: 0;
   font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.12em;
@@ -111,7 +190,7 @@
 }
 
 .settingRow:hover {
-  background: rgba(77, 157, 224, 0.04);
+  background: color-mix(in srgb, var(--rffm-dash-accent, #4d9de0) 4%, transparent);
 }
 
 .settingLabel {
@@ -133,7 +212,7 @@
   flex-direction: column;
   gap: 12px;
   padding: 18px 24px 22px;
-  border-top: 1px solid rgba(77, 157, 224, 0.12);
+  border-top: 1px solid color-mix(in srgb, var(--rffm-dash-accent, #4d9de0) 12%, transparent);
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
@@ -167,7 +246,7 @@
 }
 
 .seasonName {
-  color: #e8e8e8;
+  color: var(--rffm-dash-card-text, #e8e8e8);
   font-weight: 700;
 }
 
@@ -186,8 +265,8 @@
 .emptyNotice {
   padding: 10px 12px;
   border-radius: 8px;
-  border: 1px dashed rgba(77, 157, 224, 0.35);
-  background: rgba(77, 157, 224, 0.08);
+  border: 1px dashed color-mix(in srgb, var(--rffm-dash-accent, #4d9de0) 35%, transparent);
+  background: color-mix(in srgb, var(--rffm-dash-accent, #4d9de0) 8%, transparent);
   color: rgba(232, 232, 232, 0.78);
   font-size: 0.84rem;
   line-height: 1.4;
@@ -209,7 +288,7 @@
   align-items: center;
   gap: 10px;
   padding: 16px 24px;
-  border-top: 1px solid rgba(77, 157, 224, 0.15);
+  border-top: 1px solid color-mix(in srgb, var(--rffm-dash-accent, #4d9de0) 15%, transparent);
   margin-top: auto;
   background: rgba(0, 0, 0, 0.2);
 }
@@ -218,27 +297,6 @@
 @media (max-width: 600px) {
   .root {
     flex-direction: column;
-  }
-  .categoryNav {
-    flex: none;
-    flex-direction: row;
-    border-right: none;
-    border-bottom: 1px solid rgba(77, 157, 224, 0.15);
-    padding: 0;
-    overflow-x: auto;
-  }
-  .categoryItem {
-    padding: 10px 16px;
-    border-left: none;
-    border-bottom: 3px solid transparent;
-    white-space: nowrap;
-  }
-  .categoryItemActive {
-    border-left-color: transparent;
-    border-bottom-color: var(--rffm-dash-accent, #4d9de0);
-  }
-  .settingsPanel {
-    clip-path: none;
   }
   .settingRow {
     flex-direction: column;

@@ -13,16 +13,9 @@ import {
   MenuItem,
   Select,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
   Tooltip,
   Typography,
 } from "@mui/material";
-import useMediaQuery from "@mui/material/useMediaQuery";
-import { useTheme } from "@mui/material/styles";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import teamService, { TeamResponse } from "../../../../services/teamService";
@@ -44,8 +37,6 @@ interface TeamManagementDialogProps {
 
 export default function TeamManager({ open, clubId }: TeamManagementDialogProps) {
   const navigate = useNavigate();
-  const theme = useTheme();
-  const isCompact = useMediaQuery(theme.breakpoints.down("lg"));
   const [teams, setTeams] = useState<TeamResponse[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -238,8 +229,8 @@ export default function TeamManager({ open, clubId }: TeamManagementDialogProps)
                 </Stack>
               ) : teams.length === 0 ? (
                 <div className={styles.emptyState}>No hay equipos creados para esta temporada.</div>
-              ) : isCompact ? (
-                <div className={styles.cardList}>
+              ) : (
+                <div className={styles.cardGrid}>
                   {teams.map((team) => (
                     <SettingsRowCard
                       key={team.id}
@@ -261,39 +252,6 @@ export default function TeamManager({ open, clubId }: TeamManagementDialogProps)
                     />
                   ))}
                 </div>
-              ) : (
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Nombre</TableCell>
-                      <TableCell>Categoría</TableCell>
-                      <TableCell>Liga</TableCell>
-                      <TableCell>Grupo</TableCell>
-                      <TableCell>Código</TableCell>
-                      <TableCell>Acciones</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {teams.map((team) => (
-                      <TableRow key={team.id} hover>
-                        <TableCell>{team.name}</TableCell>
-                        <TableCell>{team.category?.name}</TableCell>
-                        <TableCell>{team.league?.name ?? "-"}</TableCell>
-                        <TableCell>{team.league?.group ?? "-"}</TableCell>
-                        <TableCell>{renderJoinCode(team)}</TableCell>
-                        <TableCell>
-                          {team.canEdit && (
-                            <Tooltip title="Editar equipo">
-                              <IconButton size="small" aria-label="Editar" onClick={() => goToEditTeam(team)}>
-                                <EditOutlinedIcon fontSize="inherit" />
-                              </IconButton>
-                            </Tooltip>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
               )}
             </div>
           </div>

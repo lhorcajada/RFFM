@@ -9,22 +9,16 @@ import {
   DialogTitle,
   IconButton,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
   Typography,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
-import useMediaQuery from "@mui/material/useMediaQuery";
-import { useTheme } from "@mui/material/styles";
 import seasonService, { Season } from "../../../../../services/seasonService";
 import { mapApiErrorToMessage } from "../../../../../../../shared/utils/errorMessages";
 import SeasonEditorForm, { type SeasonFormState } from "../SeasonEditorForm/SeasonEditorForm";
 import SettingsRowCard from "../../shared/SettingsRowCard/SettingsRowCard";
+import SettingsDrawer from "../../shared/SettingsDrawer/SettingsDrawer";
 import styles from "./SeasonManager.module.css";
 
 interface SeasonManagerProps {
@@ -67,8 +61,6 @@ function toIsoDate(value: string) {
 }
 
 export default function SeasonManager({ open, onClose, onChanged, clubId }: SeasonManagerProps) {
-  const theme = useTheme();
-  const isCompact = useMediaQuery(theme.breakpoints.down("lg"));
   const [seasons, setSeasons] = useState<Season[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -196,6 +188,52 @@ export default function SeasonManager({ open, onClose, onChanged, clubId }: Seas
   };
 
   const selectedSeason = seasons.find((season) => season.id === selectedSeasonId);
+  const isSeasonActive = (season: Season) => season.active ?? season.isActive ?? false;
+  const activeSeason = seasons.find(isSeasonActive) ?? null;
+  const previousSeasons = seasons.filter((season) => season !== activeSeason);
+
+  const renderSeasonCard = (season: Season, highlighted: boolean) => {
+    const isActive = isSeasonActive(season);
+    return (
+      <SettingsRowCard
+        key={season.id}
+        title={season.name ?? season.id}
+        highlighted={highlighted}
+        data-testid={`season-row-card-${season.id}`}
+        fields={[
+          { label: "Inicio", value: toInputDate(season.startDate) || "-" },
+          { label: "Fin", value: toInputDate(season.endDate) || "-" },
+          {
+            label: "Estado",
+            value: (
+              <Chip
+                size="small"
+                label={isActive ? "Activa" : "Inactiva"}
+                color={isActive ? "success" : "default"}
+                variant={isActive ? "filled" : "outlined"}
+                className={styles.statusChip}
+              />
+            ),
+          },
+        ]}
+        actions={
+          <>
+            <IconButton size="small" onClick={() => handleSelectSeason(season)} aria-label="Editar temporada">
+              <EditIcon fontSize="small" />
+            </IconButton>
+            <IconButton
+              size="small"
+              color="error"
+              onClick={() => setDeleteTarget(season)}
+              aria-label="Eliminar temporada"
+            >
+              <DeleteIcon fontSize="small" />
+            </IconButton>
+          </>
+        }
+      />
+    );
+  };
 
   const content = (
     <div className={styles.dialogContent}>
@@ -206,7 +244,7 @@ export default function SeasonManager({ open, onClose, onChanged, clubId }: Seas
 
         {error && <div className={styles.errorBox}>{error}</div>}
 
-        <div className={`${styles.layout} ${!isFormVisible ? styles.layoutSingle : ""}`}>
+        <div className={`${styles.layout} ${styles.layoutSingle}`}>
           <div className={styles.panel}>
             <div className={styles.listHeader}>
               <Typography variant="subtitle1" fontWeight={700}>
@@ -230,107 +268,36 @@ export default function SeasonManager({ open, onClose, onChanged, clubId }: Seas
                 <div className={styles.emptyState}>
                   Todavía no hay temporadas creadas.
                 </div>
-              ) : isCompact ? (
-                <div className={styles.cardList}>
-                  {seasons.map((season) => {
-                    const isActive = season.active ?? season.isActive ?? false;
-                    return (
-                      <SettingsRowCard
-                        key={season.id}
-                        title={season.name ?? season.id}
-                        data-testid={`season-row-card-${season.id}`}
-                        fields={[
-                          { label: "Inicio", value: toInputDate(season.startDate) || "-" },
-                          { label: "Fin", value: toInputDate(season.endDate) || "-" },
-                          {
-                            label: "Estado",
-                            value: (
-                              <Chip
-                                size="small"
-                                label={isActive ? "Activa" : "Inactiva"}
-                                color={isActive ? "success" : "default"}
-                                variant={isActive ? "filled" : "outlined"}
-                                className={styles.statusChip}
-                              />
-                            ),
-                          },
-                        ]}
-                        actions={
-                          <>
-                            <IconButton
-                              size="small"
-                              onClick={() => handleSelectSeason(season)}
-                              aria-label="Editar temporada"
-                            >
-                              <EditIcon fontSize="small" />
-                            </IconButton>
-                            <IconButton
-                              size="small"
-                              color="error"
-                              onClick={() => setDeleteTarget(season)}
-                              aria-label="Eliminar temporada"
-                            >
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
-                          </>
-                        }
-                      />
-                    );
-                  })}
-                </div>
               ) : (
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Nombre</TableCell>
-                      <TableCell>Inicio</TableCell>
-                      <TableCell>Fin</TableCell>
-                      <TableCell>Estado</TableCell>
-                      <TableCell align="right">Acciones</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {seasons.map((season) => {
-                      const isSelected = season.id === selectedSeasonId;
-                      const isActive = season.active ?? season.isActive ?? false;
-                      return (
-                        <TableRow key={season.id} selected={isSelected} hover>
-                          <TableCell>{season.name ?? season.id}</TableCell>
-                          <TableCell>{toInputDate(season.startDate) || "-"}</TableCell>
-                          <TableCell>{toInputDate(season.endDate) || "-"}</TableCell>
-                          <TableCell>
-                            <Chip
-                              size="small"
-                              label={isActive ? "Activa" : "Inactiva"}
-                              color={isActive ? "success" : "default"}
-                              variant={isActive ? "filled" : "outlined"}
-                              className={styles.statusChip}
-                            />
-                          </TableCell>
-                          <TableCell align="right">
-                            <Stack direction="row" spacing={0.5} justifyContent="flex-end">
-                              <IconButton size="small" onClick={() => handleSelectSeason(season)} aria-label="Editar temporada">
-                                <EditIcon fontSize="small" />
-                              </IconButton>
-                              <IconButton size="small" color="error" onClick={() => setDeleteTarget(season)} aria-label="Eliminar temporada">
-                                <DeleteIcon fontSize="small" />
-                              </IconButton>
-                            </Stack>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
+                <div className={styles.sections}>
+                  {activeSeason && (
+                    <div className={styles.group}>
+                      <span className={styles.groupLabel}>Temporada activa</span>
+                      {renderSeasonCard(activeSeason, true)}
+                    </div>
+                  )}
+                  {previousSeasons.length > 0 && (
+                    <div className={styles.group}>
+                      <span className={styles.groupLabel}>Anteriores</span>
+                      <div className={styles.cardGrid}>
+                        {previousSeasons.map((season) => renderSeasonCard(season, false))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           </div>
 
-          {isFormVisible && (
+          <SettingsDrawer
+            open={isFormVisible}
+            title={selectedSeasonId ? "Editar temporada" : "Crear temporada"}
+            subtitle={selectedSeasonId ? `Estás editando ${selectedSeason?.name ?? selectedSeason?.id ?? "esta temporada"}.` : "Completa los datos de la nueva temporada."}
+            onClose={handleCancelForm}
+          >
             <SeasonEditorForm
               form={form}
               isEditing={Boolean(selectedSeasonId)}
-              selectedSeasonLabel={selectedSeason?.name ?? selectedSeason?.id}
               saving={saving}
               clubId={activeClubId}
               onClubIdChange={setActiveClubId}
@@ -339,7 +306,7 @@ export default function SeasonManager({ open, onClose, onChanged, clubId }: Seas
               onCancel={handleCancelForm}
               onSave={handleSave}
             />
-          )}
+          </SettingsDrawer>
         </div>
       </Stack>
     </div>
