@@ -510,4 +510,81 @@ describe("TeamUsers", () => {
 
     expect(screen.getByText(/Falta el identificador del equipo/i)).toBeInTheDocument();
   });
+
+  describe("rediseño: contadores y filtros", () => {
+    async function renderLoaded() {
+      mockGetTeamUsers.mockResolvedValue(createFixture());
+      renderTeamUsers();
+      await waitFor(() => {
+        expect(screen.getByRole("list", { name: /usuarios del equipo/i })).toBeInTheDocument();
+      });
+    }
+
+    it("muestra los contadores de usuarios y pendientes", async () => {
+      await renderLoaded();
+
+      expect(screen.getByLabelText("Usuarios totales")).toHaveTextContent("3");
+      expect(screen.getByLabelText("Usuarios pendientes")).toHaveTextContent("1");
+    });
+
+    it("ofrece los filtros con su número y Todos activo al inicio", async () => {
+      await renderLoaded();
+
+      expect(screen.getByRole("button", { name: /^todos · 3$/i })).toHaveAttribute("aria-pressed", "true");
+      expect(screen.getByRole("button", { name: /^pendientes · 1$/i })).toHaveAttribute("aria-pressed", "false");
+      expect(screen.getByRole("button", { name: /^aprobados · 2$/i })).toHaveAttribute("aria-pressed", "false");
+    });
+
+    it("el filtro Pendientes solo lista a los usuarios pendientes de aprobación", async () => {
+      await renderLoaded();
+
+      await userEvent.click(screen.getByRole("button", { name: /^pendientes · 1$/i }));
+
+      expect(screen.getByRole("button", { name: /^pendientes · 1$/i })).toHaveAttribute("aria-pressed", "true");
+      expect(screen.getByText("Ayudante Coach")).toBeInTheDocument();
+      expect(screen.queryByText("Papá del Jugador")).not.toBeInTheDocument();
+    });
+
+    it("el filtro Aprobados solo lista a los usuarios aprobados", async () => {
+      await renderLoaded();
+
+      await userEvent.click(screen.getByRole("button", { name: /^aprobados · 2$/i }));
+
+      expect(screen.getByText("Papá del Jugador")).toBeInTheDocument();
+      expect(screen.queryByText("Ayudante Coach")).not.toBeInTheDocument();
+    });
+
+    it("avisa cuando el filtro no devuelve usuarios", async () => {
+      const fixture = createFixture();
+      fixture.users = fixture.users.filter((u) => u.isApproved);
+      mockGetTeamUsers.mockResolvedValue(fixture);
+      renderTeamUsers();
+      await waitFor(() => {
+        expect(screen.getByRole("list", { name: /usuarios del equipo/i })).toBeInTheDocument();
+      });
+
+      await userEvent.click(screen.getByRole("button", { name: /^pendientes · 0$/i }));
+
+      expect(screen.getByText(/no hay usuarios pendientes/i)).toBeInTheDocument();
+    });
+
+    it("aprobar a un usuario con el filtro Pendientes lo saca de la lista y actualiza los contadores", async () => {
+      mockSetTeamUserApproval.mockResolvedValue(undefined);
+      await renderLoaded();
+      await userEvent.click(screen.getByRole("button", { name: /^pendientes · 1$/i }));
+
+      await userEvent.click(within(getCard("Ayudante Coach")).getByRole("button", { name: /^aprobar$/i }));
+
+      await waitFor(() => {
+        expect(screen.queryByText("Ayudante Coach")).not.toBeInTheDocument();
+      });
+      expect(screen.getByLabelText("Usuarios pendientes")).toHaveTextContent("0");
+    });
+
+    it("muestra la inicial del alias como avatar", async () => {
+      await renderLoaded();
+
+      expect(within(getCard("Ayudante Coach")).getByText("A")).toBeInTheDocument();
+    });
+  });
 });

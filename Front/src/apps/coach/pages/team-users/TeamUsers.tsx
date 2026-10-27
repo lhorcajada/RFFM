@@ -5,12 +5,8 @@ import Snackbar from "@mui/material/Snackbar";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import Paper from "@mui/material/Paper";
-import Card from "@mui/material/Card";
-import CardContent from "@mui/material/CardContent";
 import Box from "@mui/material/Box";
-import Stack from "@mui/material/Stack";
 import IconButton from "@mui/material/IconButton";
-import Chip from "@mui/material/Chip";
 import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
@@ -22,6 +18,8 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import BlockIcon from "@mui/icons-material/Block";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import LinkIcon from "@mui/icons-material/Link";
 import styles from "./TeamUsers.module.css";
 import teamUsersService from "../../services/teamUsersService";
 import type {
@@ -60,18 +58,6 @@ function formatDate(iso: string | null): string {
   }
 }
 
-const KIND_COLORS: Record<
-  MembershipKind,
-  "default" | "primary" | "secondary" | "success" | "warning" | "info" | "error"
-> = {
-  Coach: "primary",
-  Directive: "secondary",
-  ClubMember: "info",
-  Player: "success",
-  FamilyPlayer: "warning",
-  Follower: "default",
-};
-
 const KIND_LABELS: Record<MembershipKind, string> = {
   Coach: "Entrenador",
   Directive: "Directivo de club",
@@ -79,6 +65,14 @@ const KIND_LABELS: Record<MembershipKind, string> = {
   Player: "Jugador",
   FamilyPlayer: "Familiar de jugador",
   Follower: "Seguidor",
+};
+
+type ApprovalFilter = "all" | "pending" | "approved";
+
+const FILTER_EMPTY_MESSAGES: Record<ApprovalFilter, string> = {
+  all: "No hay usuarios en este equipo todavía.",
+  pending: "No hay usuarios pendientes de aprobación.",
+  approved: "No hay usuarios aprobados.",
 };
 
 function canDelete(
@@ -115,7 +109,22 @@ export default function TeamUsers(): JSX.Element {
   const [deleting, setDeleting] = useState(false);
   const [approvalUpdatingId, setApprovalUpdatingId] = useState<string | null>(null);
 
+  const [filter, setFilter] = useState<ApprovalFilter>("all");
+
   const invalidTeamId = !teamId;
+  const pendingCount = users.filter((u) => !u.isApproved).length;
+  const approvedCount = users.length - pendingCount;
+  const visibleUsers =
+    filter === "pending"
+      ? users.filter((u) => !u.isApproved)
+      : filter === "approved"
+        ? users.filter((u) => u.isApproved)
+        : users;
+  const filters: { key: ApprovalFilter; label: string; count: number }[] = [
+    { key: "all", label: "Todos", count: users.length },
+    { key: "pending", label: "Pendientes", count: pendingCount },
+    { key: "approved", label: "Aprobados", count: approvedCount },
+  ];
 
   function showSnack(
     message: string,
@@ -224,104 +233,134 @@ export default function TeamUsers(): JSX.Element {
               <Box className={styles.loadingOverlay}>
                 <CircularProgress />
               </Box>
-            ) : users.length === 0 ? (
-              <Paper className={styles.messagePaper}>
-                <Typography className={styles.textMuted}>
-                  No hay usuarios en este equipo todavía.
-                </Typography>
-              </Paper>
             ) : (
-              <Box
-                component="ul"
-                role="list"
-                aria-label="usuarios del equipo"
-                className={styles.cardList}
-              >
-                {users.map((u) => (
-                  <Card component="li" key={u.membershipId} className={styles.card}>
-                    <CardContent>
-                      <Stack
-                        direction="row"
-                        justifyContent="space-between"
-                        alignItems="flex-start"
-                        spacing={1}
+              <>
+                <div className={styles.summary}>
+                  <div className={styles.counter} aria-label="Usuarios totales">
+                    <span className={styles.counterValue}>{users.length}</span>
+                    <span className={styles.counterLabel}>Usuarios</span>
+                  </div>
+                  <div
+                    className={`${styles.counter} ${styles.counterPending}`}
+                    aria-label="Usuarios pendientes"
+                  >
+                    <span className={styles.counterValue}>{pendingCount}</span>
+                    <span className={styles.counterLabel}>Pendientes</span>
+                  </div>
+                </div>
+
+                <div className={styles.filters} role="group" aria-label="Filtrar usuarios">
+                  {filters.map((f) => (
+                    <button
+                      key={f.key}
+                      type="button"
+                      aria-pressed={filter === f.key}
+                      className={`${styles.filterButton} ${filter === f.key ? styles.filterButtonActive : ""}`}
+                      onClick={() => setFilter(f.key)}
+                    >
+                      {f.label} · {f.count}
+                    </button>
+                  ))}
+                </div>
+
+                {visibleUsers.length === 0 ? (
+                  <Paper className={styles.messagePaper}>
+                    <Typography className={styles.textMuted}>
+                      {FILTER_EMPTY_MESSAGES[filter]}
+                    </Typography>
+                  </Paper>
+                ) : (
+                  <Box
+                    component="ul"
+                    role="list"
+                    aria-label="usuarios del equipo"
+                    className={styles.cardList}
+                  >
+                    {visibleUsers.map((u) => (
+                      <li
+                        key={u.membershipId}
+                        className={`${styles.card} ${u.isApproved ? "" : styles.cardPending}`}
                       >
-                        <Box>
-                          <Typography variant="subtitle1" component="h3" className={styles.alias}>
-                            {u.alias}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            {u.email}
-                          </Typography>
-                        </Box>
-                        {canDelete(u, callerIsCreator) && (
-                          <IconButton
-                            aria-label={`Eliminar a ${u.alias}`}
-                            size="small"
-                            onClick={() => setDeleteTarget(u)}
-                          >
-                            <DeleteOutlineIcon fontSize="small" />
-                          </IconButton>
-                        )}
-                      </Stack>
-
-                      <Stack direction="row" flexWrap="wrap" spacing={1} className={styles.chipsRow}>
-                        {u.isCreator ? (
-                          <Chip label="Creador" color="primary" size="small" />
-                        ) : (
-                          <Chip
-                            label={KIND_LABELS[u.membershipKind] ?? u.membershipKind}
-                            color={KIND_COLORS[u.membershipKind] ?? "default"}
-                            size="small"
-                          />
-                        )}
-                        <Chip
-                          label={u.isApproved ? "Aprobado" : "Pendiente de aprobación"}
-                          color={u.isApproved ? "success" : "error"}
-                          size="small"
-                          variant={u.isApproved ? "outlined" : "filled"}
-                        />
-                      </Stack>
-
-                      {canToggleApproval(u) && (
-                        <Stack direction="row" justifyContent="flex-end" className={styles.approvalRow}>
-                          {u.isApproved ? (
-                            <Button
-                              size="small"
-                              color="error"
-                              startIcon={<BlockIcon fontSize="small" />}
-                              onClick={() => toggleApproval(u)}
-                              disabled={approvalUpdatingId === u.membershipId}
+                        <div className={styles.cardHeader}>
+                          <div className={styles.avatar} aria-hidden="true">
+                            {u.alias.charAt(0).toUpperCase()}
+                          </div>
+                          <div className={styles.identity}>
+                            <h3 className={styles.alias}>{u.alias}</h3>
+                            <span className={styles.email}>{u.email}</span>
+                          </div>
+                          {canDelete(u, callerIsCreator) && (
+                            <IconButton
+                              aria-label={`Eliminar a ${u.alias}`}
+                              className={styles.deleteButton}
+                              onClick={() => setDeleteTarget(u)}
                             >
-                              Desaprobar
-                            </Button>
-                          ) : (
-                            <Button
-                              size="small"
-                              color="success"
-                              startIcon={<CheckCircleOutlineIcon fontSize="small" />}
-                              onClick={() => toggleApproval(u)}
-                              disabled={approvalUpdatingId === u.membershipId}
-                            >
-                              Aprobar
-                            </Button>
+                              <DeleteOutlineIcon fontSize="small" />
+                            </IconButton>
                           )}
-                        </Stack>
-                      )}
+                        </div>
 
-                      {u.linkedPlayerFullName && (
-                        <Typography variant="body2" className={styles.linkedPlayer}>
-                          Jugador vinculado: <strong>{u.linkedPlayerFullName}</strong>
-                        </Typography>
-                      )}
+                        <div className={styles.badges}>
+                          {u.isCreator ? (
+                            <span className={`${styles.badge} ${styles.badgeCreator}`}>Creador</span>
+                          ) : (
+                            <span className={styles.badge}>
+                              {KIND_LABELS[u.membershipKind] ?? u.membershipKind}
+                            </span>
+                          )}
+                          {u.isApproved ? (
+                            <span className={`${styles.badge} ${styles.badgeApproved}`}>
+                              <CheckCircleOutlineIcon fontSize="inherit" aria-hidden="true" />
+                              Aprobado
+                            </span>
+                          ) : (
+                            <span className={`${styles.badge} ${styles.badgePending}`}>
+                              <AccessTimeIcon fontSize="inherit" aria-hidden="true" />
+                              Pendiente de aprobación
+                            </span>
+                          )}
+                        </div>
 
-                      <Typography variant="caption" color="text.secondary" component="p">
-                        Alta: {formatDate(u.joinedAt)}
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                ))}
-              </Box>
+                        {u.linkedPlayerFullName && (
+                          <p className={styles.linkedPlayer}>
+                            <LinkIcon fontSize="inherit" aria-hidden="true" />
+                            <span>
+                              Jugador vinculado: <strong>{u.linkedPlayerFullName}</strong>
+                            </span>
+                          </p>
+                        )}
+
+                        <div className={styles.cardFooter}>
+                          <span className={styles.joined}>Alta: {formatDate(u.joinedAt)}</span>
+                          {canToggleApproval(u) &&
+                            (u.isApproved ? (
+                              <Button
+                                className={styles.actionButton}
+                                color="error"
+                                variant="outlined"
+                                startIcon={<BlockIcon fontSize="small" />}
+                                onClick={() => toggleApproval(u)}
+                                disabled={approvalUpdatingId === u.membershipId}
+                              >
+                                Desaprobar
+                              </Button>
+                            ) : (
+                              <Button
+                                className={styles.actionButton}
+                                variant="contained"
+                                startIcon={<CheckCircleOutlineIcon fontSize="small" />}
+                                onClick={() => toggleApproval(u)}
+                                disabled={approvalUpdatingId === u.membershipId}
+                              >
+                                Aprobar
+                              </Button>
+                            ))}
+                        </div>
+                      </li>
+                    ))}
+                  </Box>
+                )}
+              </>
             )}
           </>
         )}
