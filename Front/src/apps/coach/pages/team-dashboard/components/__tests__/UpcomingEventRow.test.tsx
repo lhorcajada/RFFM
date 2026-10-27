@@ -69,6 +69,16 @@ describe("UpcomingEventRow", () => {
     expect(screen.queryByText("0%")).not.toBeInTheDocument();
   });
 
+  it("dice «Sin abrir disponibilidad» al entrenador en un partido de liga sin convocados", () => {
+    renderRow({
+      variant: "coach",
+      event: { id: "e3", title: "", name: "vs A.D.C.R. LEMANS 'D'", rivalName: "A.D.C.R. LEMANS 'D'", matchCategory: "League", startTime: "2099-10-31T10:30:00" },
+      summary: { ...summary, convocados: 0, going: 0, pending: 0 },
+    });
+    expect(screen.getByRole("listitem")).toHaveTextContent("Sin abrir disponibilidad");
+    expect(screen.queryByText("Sin convocar")).not.toBeInTheDocument();
+  });
+
   it("ofrece al jugador botones de icono «Voy» y «No voy»", async () => {
     const onYes = vi.fn();
     const onNo = vi.fn();

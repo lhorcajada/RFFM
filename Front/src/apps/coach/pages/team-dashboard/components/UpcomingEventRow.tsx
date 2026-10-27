@@ -26,9 +26,16 @@ type Props = {
   actions: PlayerActions | null;
 };
 
-function CoachAttendance({ summary }: { summary: EventAttendanceSummaryDto | undefined }) {
+function CoachAttendance({
+  summary,
+  isLeagueMatch,
+}: {
+  summary: EventAttendanceSummaryDto | undefined;
+  isLeagueMatch: boolean;
+}) {
   if (!summary || summary.convocados === 0) {
-    return <StatusChip label={{ text: "Sin convocar", tone: "pending" }} />;
+    const text = isLeagueMatch ? "Sin abrir disponibilidad" : "Sin convocar";
+    return <StatusChip label={{ text, tone: "pending" }} />;
   }
   return <span className={styles.percentage}>{`${Math.round(summary.attendancePercentage)}%`}</span>;
 }
@@ -55,7 +62,7 @@ export default function UpcomingEventRow({ event, eventTypeName, summary, varian
         </Link>
         <span className={styles.detail}>{detail}</span>
       </div>
-      {variant === "coach" && <CoachAttendance summary={summary} />}
+      {variant === "coach" && <CoachAttendance summary={summary} isLeagueMatch={event.matchCategory === "League"} />}
       {actions && labels ? (
         <div className={styles.actions}>
           <IconButton aria-label={labels.yes} className={styles.yes} onClick={actions.onYes} disabled={actions.busy}>
