@@ -60,6 +60,7 @@ export default function RivalStats() {
     const mustWaitToRefresh =
       current.nextRefreshAllowedAt !== null && new Date(current.nextRefreshAllowedAt).getTime() > Date.now();
     const lastUpdate = formatDateTime(current.completedAt);
+    const totalPlayers = current.teams.reduce((sum, t) => sum + t.playerCount, 0);
     const progress = current.totalPlayers > 0 ? (current.processedPlayers / current.totalPlayers) * 100 : undefined;
 
     return (
@@ -94,8 +95,18 @@ export default function RivalStats() {
 
         {current.status === "Completed" && (
           <div className={styles.toolbar}>
+            <div className={styles.totals} role="group" aria-label="Resumen de la liga">
+              <div className={styles.total}>
+                <span className={styles.totalValue}>{current.teams.length}</span>
+                <span className={styles.totalLabel}>Equipos</span>
+              </div>
+              <div className={styles.total}>
+                <span className={styles.totalValue}>{totalPlayers}</span>
+                <span className={styles.totalLabel}>Jugadores</span>
+              </div>
+            </div>
             <div className={styles.toolbarInfo}>
-              {lastUpdate && <span>Última actualización: {lastUpdate}</span>}
+              {lastUpdate && <span className={styles.lastUpdate}>Última actualización: {lastUpdate}</span>}
               {mustWaitToRefresh && (
                 <span className={styles.hint}>
                   Podrás actualizar a partir de las {formatTime(current.nextRefreshAllowedAt as string)}.
@@ -104,10 +115,10 @@ export default function RivalStats() {
             </div>
             <Button
               variant="outlined"
-              size="small"
               startIcon={<RefreshIcon />}
               onClick={() => run(refresh)}
               disabled={requesting || mustWaitToRefresh}
+              className={styles.refresh}
             >
               Actualizar
             </Button>

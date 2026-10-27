@@ -33,15 +33,46 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 8px 12px;
+  gap: 12px 24px;
+  padding: 16px 20px;
+  border-radius: 16px;
+  background: var(--rffm-card-bg, #1c1c30);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.totals {
+  display: flex;
+  gap: 32px;
+}
+
+.total {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.totalValue {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.totalLabel {
+  font-size: 0.8rem;
+  opacity: 0.75;
 }
 
 .toolbarInfo {
   display: flex;
+  flex: 1 1 200px;
   flex-direction: column;
   gap: 2px;
-  font-size: 0.9rem;
   min-width: 0;
+}
+
+.lastUpdate {
+  font-size: 0.95rem;
+  font-weight: 600;
 }
 
 .hint {
@@ -49,8 +80,13 @@
   opacity: 0.75;
 }
 
+.refresh.refresh {
+  min-height: 44px;
+}
+
 .teams {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 480px), 1fr));
+  align-items: start;
+  gap: 12px;
 }

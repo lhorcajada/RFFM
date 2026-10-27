@@ -18,7 +18,9 @@
 
 .summary {
   margin: 0;
+  font-size: 1.25rem;
   font-weight: 700;
+  color: var(--mui-palette-primary-main, #ff8a2b);
 }
 
 .controls {
@@ -40,14 +42,14 @@
 
 .roundTitle {
   margin: 0;
-  font-size: 1rem;
+  font-size: 1.4rem;
   font-weight: 700;
 }
 
 .cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr));
+  gap: 12px;
 }
 
 .center {

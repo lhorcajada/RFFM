@@ -2,9 +2,9 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 12px;
-  border-radius: 10px;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 16px;
   background: var(--rffm-card-bg, #1c1c30);
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
@@ -72,14 +72,15 @@
 
 .bar {
   display: flex;
-  height: 8px;
-  border-radius: 4px;
+  gap: 3px;
+  height: 10px;
+  border-radius: 5px;
   overflow: hidden;
   background: rgba(255, 255, 255, 0.08);
 }
 
 .home {
-  background: var(--mui-palette-success-main, #4caf50);
+  background: var(--mui-palette-primary-main, #ff8a2b);
 }
 
 .draw {
@@ -87,7 +88,7 @@
 }
 
 .away {
-  background: var(--mui-palette-error-main, #f44336);
+  background: var(--mui-palette-info-main, #4da3ff);
 }
 
 .probabilities {
@@ -95,7 +96,8 @@
   flex-wrap: wrap;
   justify-content: space-between;
   gap: 4px 12px;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
+  font-weight: 600;
 }
 
 .details {
