@@ -23,9 +23,10 @@ import AppVersionInfo from "../AppVersionInfo/AppVersionInfo";
 
 interface AppHeaderProps {
   title?: string;
+  hideIndicators?: boolean;
 }
 
-export default function AppHeader({ title }: AppHeaderProps) {
+export default function AppHeader({ title, hideIndicators }: AppHeaderProps) {
   const { user, logout } = useUser();
   const navigate = useNavigate();
   const location = useLocation();
@@ -169,7 +170,7 @@ export default function AppHeader({ title }: AppHeaderProps) {
         </div>
 
         <div className={styles.userBox}>
-          {teamFund.visible && !isFederationApp && (
+          {teamFund.visible && !isFederationApp && !hideIndicators && (
             <IconButton
               onClick={handleOpenTeamFund}
               size="small"
@@ -182,7 +183,7 @@ export default function AppHeader({ title }: AppHeaderProps) {
               </span>
             </IconButton>
           )}
-          {isAuthValid && (
+          {isAuthValid && !hideIndicators && (
             <NotificationsBell key={isFederationApp ? "federation" : "coach"} app={isFederationApp ? "federation" : "coach"} />
           )}
           {pendingSanctions.visible && (

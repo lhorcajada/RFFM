@@ -12,6 +12,7 @@ interface BaseLayoutProps {
   className?: string;
   appTitle?: string;
   hideFooterMenu?: boolean;
+  hideHeaderIndicators?: boolean;
 }
 
 const BaseLayout: React.FC<BaseLayoutProps> = ({
@@ -19,6 +20,7 @@ const BaseLayout: React.FC<BaseLayoutProps> = ({
   className,
   appTitle,
   hideFooterMenu,
+  hideHeaderIndicators,
 }) => {
   const { pathname } = useLocation();
   const showTeamNav = isTeamNavRoute(pathname);
@@ -27,7 +29,7 @@ const BaseLayout: React.FC<BaseLayoutProps> = ({
     <Paper className={className ? `${styles.paper} ${className}` : styles.paper}>
       <div className={showTeamNav ? `${styles.layoutWrap} ${styles.withTeamNav}` : styles.layoutWrap}>
         <div className={styles.header}>
-          {appTitle ? <AppHeader title={appTitle} /> : <AppHeader />}
+          <AppHeader title={appTitle} hideIndicators={hideHeaderIndicators} />
         </div>
         <div className={styles.content}>{children}</div>
         {showTeamNav && (

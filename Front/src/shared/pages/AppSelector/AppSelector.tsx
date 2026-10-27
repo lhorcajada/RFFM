@@ -4,7 +4,6 @@ import SportsIcon from "@mui/icons-material/Sports";
 import GroupsIcon from "@mui/icons-material/Groups";
 import styles from "./AppSelector.module.css";
 import BaseLayout from "../../components/ui/BaseLayout/BaseLayout";
-import ContentLayout from "../../components/ui/ContentLayout/ContentLayout";
 import { coachAuthService } from "../../../apps/coach/services/authService";
 import { computeIsPlayerRole } from "../../../apps/coach/hooks/isPlayerRole";
 import { useTeamAppEntry } from "./hooks/useTeamAppEntry";
@@ -83,18 +82,23 @@ export default function AppSelector() {
   if (goesStraightToTeam) return <Navigate to="/coach/dashboard" replace />;
 
   return (
-    <BaseLayout hideFooterMenu>
+    <BaseLayout hideFooterMenu hideHeaderIndicators>
       <div className={styles.wrapper}>
         <div className={styles.container}>
-          <ContentLayout
-            title="Selecciona tu aplicación"
-            headerClassName={styles.headerEdgeToEdge}
-          >
-            <div className={styles.gridContainer}>
+          <header className={styles.header}>
+            <span className={styles.brand}>FutbolBase</span>
+            <h1 className={styles.title}>Selecciona tu aplicación</h1>
+            <p className={styles.help}>
+              Elige desde dónde quieres trabajar. Puedes cambiar de aplicación en cualquier
+              momento.
+            </p>
+          </header>
+          <div className={styles.gridContainer}>
               <AppCard
                 icon={<GroupsIcon className={styles.icon} />}
                 title="Federación"
-                description="Gestión de competiciones, equipos, clasificaciones y estadísticas de la Federación de Fútbol de Madrid"
+                description="Competiciones, equipos, clasificaciones y estadísticas de la Federación de Fútbol de Madrid."
+                access="Acceso: administración y federación"
                 onClick={() => {
                   if (!coachAuthService.isAuthenticated()) {
                     navigate("/login");
@@ -113,7 +117,8 @@ export default function AppSelector() {
               <AppCard
                 icon={<SportsIcon className={styles.icon} />}
                 title="Mi equipo"
-                description="Herramientas de gestión, análisis y planificación para equipos de fútbol base"
+                description="Gestión, análisis y planificación para tu equipo de fútbol base."
+                access="Entrenadores, jugadores y familias"
                 onClick={() => {
                   if (!coachAuthService.isAuthenticated()) {
                     navigate("/login");
@@ -184,8 +189,7 @@ export default function AppSelector() {
                 onClose={closeIdentityDialog}
                 onAccept={handleIdentityAccept}
               />
-            </div>
-          </ContentLayout>
+          </div>
         </div>
       </div>
     </BaseLayout>
