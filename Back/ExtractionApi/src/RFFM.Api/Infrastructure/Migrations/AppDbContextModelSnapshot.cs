@@ -5844,6 +5844,11 @@ namespace RFFM.Api.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<int>("Number")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
+
                     b.Property<DateTime?>("PaidAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -5864,8 +5869,7 @@ namespace RFFM.Api.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("JornadaId", "ApplicationUserId")
-                        .IsUnique();
+                    b.HasIndex("JornadaId", "ApplicationUserId");
 
                     b.ToTable("QuinielaTickets", "app");
                 });
