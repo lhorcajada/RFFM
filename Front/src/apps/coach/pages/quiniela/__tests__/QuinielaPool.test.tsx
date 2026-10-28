@@ -67,6 +67,7 @@ function ticket(overrides: Partial<QuinielaPaymentTicket>): QuinielaPaymentTicke
     ],
     plenoHome: 1,
     plenoAway: 0,
+    number: 1,
     ...overrides,
   };
 }
@@ -106,7 +107,7 @@ function currentFor(canManage: boolean): QuinielaCurrent {
     isOpen: true,
     jornada: payments().jornada,
     matches: [],
-    myTicket: null,
+    myTickets: [],
     pool: null,
     previous: null,
     canManage,
@@ -269,15 +270,15 @@ describe("QuinielaPool", () => {
     await screen.findByText("Pablo Vega");
     expect(screen.queryByTestId("ticket-pick")).not.toBeInTheDocument();
 
-    const toggle = screen.getByRole("button", { name: /ver boleto de pablo vega/i });
+    const toggle = screen.getByRole("button", { name: /ver boleto 1 de pablo vega/i });
     expect(toggle).toHaveAttribute("aria-expanded", "false");
     fireEvent.click(toggle);
 
     expect(screen.getAllByTestId("ticket-pick")).toHaveLength(2);
-    expect(screen.getByRole("button", { name: /ocultar boleto de pablo vega/i })).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("button", { name: /ocultar boleto 1 de pablo vega/i })).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByLabelText("Pronóstico: 1")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: /ocultar boleto de pablo vega/i }));
+    fireEvent.click(screen.getByRole("button", { name: /ocultar boleto 1 de pablo vega/i }));
     expect(screen.queryByTestId("ticket-pick")).not.toBeInTheDocument();
   });
 
@@ -415,7 +416,7 @@ describe("QuinielaPool", () => {
     renderPage();
     await screen.findByText("Pablo Vega");
 
-    fireEvent.click(screen.getByRole("button", { name: /eliminar boleto de pablo vega/i }));
+    fireEvent.click(screen.getByRole("button", { name: /eliminar boleto 1 de pablo vega/i }));
     const dialog = await screen.findByRole("dialog");
     expect(deleteQuinielaTicket).not.toHaveBeenCalled();
     fireEvent.click(within(dialog).getByRole("button", { name: /^eliminar$/i }));
@@ -424,11 +425,77 @@ describe("QuinielaPool", () => {
     await waitFor(() => expect(getQuinielaPayments).toHaveBeenCalledTimes(2));
   });
 
+  it("agrupa en una sola tarjeta los boletos de un mismo usuario", async () => {
+    getQuinielaPayments.mockResolvedValue(
+      payments({
+        tickets: [
+          ticket({ id: "t1", userId: "u1", userName: "Carla Ruiz", number: 1 }),
+          ticket({ id: "t2", userId: "u1", userName: "Carla Ruiz", number: 2, paymentStatus: "Pending", paymentMethod: null, paidAt: null }),
+          ticket({ id: "t3", userId: "u3", userName: "Pablo Vega", role: "Player", number: 1 }),
+        ],
+      }),
+    );
+    renderPage();
+    await screen.findByText("Pablo Vega");
+
+    expect(screen.getAllByText("Carla Ruiz")).toHaveLength(1);
+    const groups = screen.getAllByTestId("user-tickets");
+    expect(groups).toHaveLength(2);
+    expect(within(groups[0]).getByText(/2 boletos/i)).toBeInTheDocument();
+    expect(within(groups[0]).getAllByTestId("payment-card")).toHaveLength(2);
+    expect(within(groups[1]).getAllByTestId("payment-card")).toHaveLength(1);
+  });
+
+  it("cada boleto del grupo se revisa, paga y elimina por separado", async () => {
+    setQuinielaTicketPayment.mockResolvedValue(undefined);
+    getQuinielaPayments.mockResolvedValue(
+      payments({
+        tickets: [
+          ticket({ id: "t1", userId: "u1", userName: "Carla Ruiz", number: 1 }),
+          ticket({ id: "t2", userId: "u1", userName: "Carla Ruiz", number: 2, paymentStatus: "Pending", paymentMethod: null, paidAt: null, picks: [{ recordCode: "m1", sign: "2" }] }),
+        ],
+      }),
+    );
+    renderPage();
+    await screen.findByText("Carla Ruiz");
+
+    fireEvent.click(screen.getByRole("button", { name: /ver boleto 2 de carla ruiz/i }));
+    expect(screen.getByLabelText("Pronóstico: 2")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Pronóstico: 1")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /pagado en efectivo/i }));
+    await waitFor(() => expect(setQuinielaTicketPayment).toHaveBeenCalledWith("team-1", "j1", "t2", { paid: true, method: "Cash" }));
+
+    deleteQuinielaTicket.mockResolvedValue(undefined);
+    fireEvent.click(screen.getByRole("button", { name: /eliminar boleto 2 de carla ruiz/i }));
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: /^eliminar$/i }));
+    await waitFor(() => expect(deleteQuinielaTicket).toHaveBeenCalledWith("team-1", "j1", "t2"));
+  });
+
+  it("el filtro de pendientes muestra de cada grupo solo los boletos pendientes", async () => {
+    getQuinielaPayments.mockResolvedValue(
+      payments({
+        tickets: [
+          ticket({ id: "t1", userId: "u1", userName: "Carla Ruiz", number: 1 }),
+          ticket({ id: "t2", userId: "u1", userName: "Carla Ruiz", number: 2, paymentStatus: "Pending", paymentMethod: null, paidAt: null }),
+        ],
+      }),
+    );
+    renderPage();
+    await screen.findByText("Carla Ruiz");
+
+    fireEvent.click(screen.getByRole("button", { name: /pendientes \(1\)/i }));
+
+    expect(screen.getAllByTestId("payment-card")).toHaveLength(1);
+    expect(screen.getByText("Carla Ruiz")).toBeInTheDocument();
+  });
+
   it("no elimina el boleto si se cancela la confirmación", async () => {
     renderPage();
     await screen.findByText("Pablo Vega");
 
-    fireEvent.click(screen.getByRole("button", { name: /eliminar boleto de pablo vega/i }));
+    fireEvent.click(screen.getByRole("button", { name: /eliminar boleto 1 de pablo vega/i }));
     const dialog = await screen.findByRole("dialog");
     fireEvent.click(within(dialog).getByRole("button", { name: /cancelar/i }));
 
@@ -443,7 +510,7 @@ describe("QuinielaPool", () => {
     renderPage();
     await screen.findByText("Pablo Vega");
 
-    fireEvent.click(screen.getByRole("button", { name: /eliminar boleto de pablo vega/i }));
+    fireEvent.click(screen.getByRole("button", { name: /eliminar boleto 1 de pablo vega/i }));
     const dialog = await screen.findByRole("dialog");
     fireEvent.click(within(dialog).getByRole("button", { name: /^eliminar$/i }));
 

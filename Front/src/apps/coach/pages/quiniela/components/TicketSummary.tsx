@@ -12,6 +12,7 @@ type Props = {
   closed: boolean;
   saving: boolean;
   canSave: boolean;
+  title?: string;
   canDelete: boolean;
   deleting: boolean;
   onSave: () => void;
@@ -27,6 +28,7 @@ export default function TicketSummary({
   closed,
   saving,
   canSave,
+  title = "Tu boleto",
   canDelete,
   deleting,
   onSave,
@@ -37,7 +39,7 @@ export default function TicketSummary({
   return (
     <section className={styles.card} aria-labelledby="quiniela-ticket-title">
       <div className={styles.head}>
-        <h2 id="quiniela-ticket-title" className={styles.title}>Tu boleto</h2>
+        <h2 id="quiniela-ticket-title" className={styles.title}>{title}</h2>
         {paymentStatus ? (
           <span className={`${styles.status} ${statusClass}`}>{paymentStatusLabel(paymentStatus)}</span>
         ) : (

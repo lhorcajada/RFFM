@@ -38,6 +38,7 @@ export type QuinielaPick = {
 
 export type QuinielaTicket = {
   id: string;
+  number: number;
   picks: QuinielaPick[];
   plenoHome: number;
   plenoAway: number;
@@ -61,6 +62,7 @@ export type QuinielaWinner = {
   category: QuinielaCategory;
   hits: number;
   prize: number;
+  ticketNumber: number;
 };
 
 export type QuinielaPrevious = {
@@ -78,7 +80,7 @@ export type QuinielaCurrent = {
   isOpen: boolean;
   jornada: QuinielaJornada | null;
   matches: QuinielaMatch[];
-  myTicket: QuinielaTicket | null;
+  myTickets: QuinielaTicket[];
   pool: QuinielaPool | null;
   previous: QuinielaPrevious | null;
   canManage: boolean;
@@ -92,6 +94,7 @@ export type SaveQuinielaTicketRequest = {
 
 export type QuinielaPaymentTicket = {
   id: string;
+  number: number;
   userId: string;
   userName: string;
   role: string;
@@ -174,8 +177,12 @@ export async function saveQuinielaTicket(
   teamId: string,
   jornadaId: string,
   body: SaveQuinielaTicketRequest,
+  ticketId?: string,
 ): Promise<QuinielaTicket> {
-  const resp = await client.put<QuinielaTicket>(`${jornadaUrl(teamId, jornadaId)}/ticket`, body);
+  const url = `${jornadaUrl(teamId, jornadaId)}/my-tickets`;
+  const resp = ticketId
+    ? await client.put<QuinielaTicket>(`${url}/${encodeURIComponent(ticketId)}`, body)
+    : await client.post<QuinielaTicket>(url, body);
   return resp.data;
 }
 
@@ -206,8 +213,8 @@ export async function deleteQuinielaTicket(teamId: string, jornadaId: string, ti
   await client.delete(`${jornadaUrl(teamId, jornadaId)}/tickets/${encodeURIComponent(ticketId)}`);
 }
 
-export async function deleteMyQuinielaTicket(teamId: string, jornadaId: string): Promise<void> {
-  await client.delete(`${jornadaUrl(teamId, jornadaId)}/ticket`);
+export async function deleteMyQuinielaTicket(teamId: string, jornadaId: string, ticketId: string): Promise<void> {
+  await client.delete(`${jornadaUrl(teamId, jornadaId)}/my-tickets/${encodeURIComponent(ticketId)}`);
 }
 
 export async function resetQuiniela(teamId: string, jornadaId: string): Promise<void> {

@@ -8,6 +8,8 @@ import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import EmptyState from "../../../../shared/components/ui/EmptyState/EmptyState";
 import { useAuditPageAccess } from "../../../../shared/hooks/useAuditPageAccess";
+import { useFeatureFlag } from "../../../../shared/hooks/useFeatureFlag";
+import { FEATURE_FLAGS } from "../../../../shared/services/featureFlagsService";
 import useTeamDashboardBack from "../../hooks/useTeamDashboardBack";
 import useTeamAndClub from "../../hooks/useTeamAndClub.tsx";
 import ConfirmDialog from "../../../../shared/components/ui/ConfirmDialog/ConfirmDialog";
@@ -20,6 +22,7 @@ import PoolSummary from "./components/PoolSummary";
 import PreviousResultCard from "./components/PreviousResultCard";
 import QuinielaRulesDialog from "./components/QuinielaRulesDialog";
 import TicketSummary from "./components/TicketSummary";
+import TicketTabs, { NEW_TICKET } from "./components/TicketTabs";
 import { currentUserId, markQuinielaSeen } from "../team-dashboard/utils/quinielaNovelty";
 import styles from "./Quiniela.module.css";
 
@@ -39,6 +42,7 @@ export default function Quiniela() {
   const { team } = useTeamAndClub();
   const navigate = useNavigate();
   const teamId = team?.id ?? null;
+  const { enabled: multipleTickets } = useFeatureFlag(FEATURE_FLAGS.QuinielaMultipleTickets);
 
   const [current, setCurrent] = useState<QuinielaCurrent | null>(null);
   const [loading, setLoading] = useState(false);
@@ -50,13 +54,22 @@ export default function Quiniela() {
   const [picks, setPicks] = useState<Picks>({});
   const [plenoHome, setPlenoHome] = useState<string | null>(null);
   const [plenoAway, setPlenoAway] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string>(NEW_TICKET);
 
-  const applyCurrent = useCallback((data: QuinielaCurrent) => {
-    setCurrent(data);
-    setPicks(picksFromTicket(data.myTicket));
-    setPlenoHome(data.myTicket ? goalsToLabel(data.myTicket.plenoHome) : null);
-    setPlenoAway(data.myTicket ? goalsToLabel(data.myTicket.plenoAway) : null);
+  const selectTicket = useCallback((ticket: QuinielaTicket | null) => {
+    setSelectedId(ticket?.id ?? NEW_TICKET);
+    setPicks(picksFromTicket(ticket));
+    setPlenoHome(ticket ? goalsToLabel(ticket.plenoHome) : null);
+    setPlenoAway(ticket ? goalsToLabel(ticket.plenoAway) : null);
   }, []);
+
+  const applyCurrent = useCallback(
+    (data: QuinielaCurrent) => {
+      setCurrent(data);
+      selectTicket(data.myTickets[0] ?? null);
+    },
+    [selectTicket],
+  );
 
   const load = useCallback(
     async (id: string) => {
@@ -81,6 +94,8 @@ export default function Quiniela() {
   }, [teamId, load]);
 
   const jornada = current?.jornada ?? null;
+  const myTickets = useMemo(() => current?.myTickets ?? [], [current]);
+  const selectedTicket = myTickets.find((t) => t.id === selectedId) ?? null;
   const matches = useMemo(() => current?.matches ?? [], [current]);
   const validMatches = useMemo(() => matches.filter((m) => m.isValid), [matches]);
   const hasPleno = validMatches.some((m) => m.isPleno);
@@ -91,18 +106,34 @@ export default function Quiniela() {
   const filled = pickedCount + (hasPleno && plenoHome !== null && plenoAway !== null ? 1 : 0);
   const canSave = total > 0 && filled === total;
 
+  const handleSelectTicket = (ticketId: string) =>
+    selectTicket(ticketId === NEW_TICKET ? null : (myTickets.find((t) => t.id === ticketId) ?? null));
+
   const setSign = (recordCode: string, sign: QuinielaSign) => setPicks((prev) => ({ ...prev, [recordCode]: sign }));
 
   const handleSave = async () => {
     if (!teamId || !jornada || !canSave) return;
     setSaving(true);
     try {
-      const ticket = await saveQuinielaTicket(teamId, jornada.id, {
-        picks: validMatches.map((m) => ({ recordCode: m.recordCode, sign: picks[m.recordCode] })),
-        plenoHome: goalsFromLabel(plenoHome ?? "0"),
-        plenoAway: goalsFromLabel(plenoAway ?? "0"),
-      });
-      setCurrent((prev) => (prev ? { ...prev, myTicket: ticket } : prev));
+      const ticket = await saveQuinielaTicket(
+        teamId,
+        jornada.id,
+        {
+          picks: validMatches.map((m) => ({ recordCode: m.recordCode, sign: picks[m.recordCode] })),
+          plenoHome: goalsFromLabel(plenoHome ?? "0"),
+          plenoAway: goalsFromLabel(plenoAway ?? "0"),
+        },
+        selectedTicket?.id,
+      );
+      setCurrent((prev) =>
+        prev
+          ? {
+              ...prev,
+              myTickets: [...prev.myTickets.filter((t) => t.id !== ticket.id), ticket].sort((a, b) => a.number - b.number),
+            }
+          : prev,
+      );
+      setSelectedId(ticket.id);
       notify("Boleto guardado", "success");
     } catch (e: unknown) {
       notify(apiErrorMessage(e, "No se pudo guardar el boleto."), "error");
@@ -126,10 +157,10 @@ export default function Quiniela() {
   };
 
   const handleDeleteConfirmed = async () => {
-    if (!teamId || !jornada) return;
+    if (!teamId || !jornada || !selectedTicket) return;
     setDeleting(true);
     try {
-      await deleteMyQuinielaTicket(teamId, jornada.id);
+      await deleteMyQuinielaTicket(teamId, jornada.id, selectedTicket.id);
       setDeleteOpen(false);
       await load(teamId);
       notify("Boleto eliminado", "success");
@@ -141,7 +172,7 @@ export default function Quiniela() {
     }
   };
 
-  const renderNotOpen =(data: QuinielaCurrent) => (
+  const renderNotOpen = (data: QuinielaCurrent) => (
     <Stack spacing={2} alignItems="center" className={styles.empty}>
       <EmptyState
         title="La quiniela aún no está abierta"
@@ -194,6 +225,14 @@ export default function Quiniela() {
         )}
 
         <div className={styles.cards}>
+          {(myTickets.length > 1 || (multipleTickets && myTickets.length > 0)) && (
+            <TicketTabs
+              tickets={myTickets}
+              selectedId={selectedId}
+              canCreate={multipleTickets && !closed}
+              onSelect={handleSelectTicket}
+            />
+          )}
           <div className={styles.cardsHead}>
             <h2 className={styles.cardsTitle}>Tus pronósticos</h2>
             <span className={styles.legend}>1 = gana local · X = empate · 2 = gana visitante</span>
@@ -230,12 +269,13 @@ export default function Quiniela() {
             filled={filled}
             total={total}
             price={jornada.price}
-            paymentStatus={data.myTicket?.paymentStatus ?? null}
+            title={selectedTicket ? `Boleto ${selectedTicket.number}` : myTickets.length > 0 ? "Nuevo boleto" : "Tu boleto"}
+            paymentStatus={selectedTicket?.paymentStatus ?? null}
             paymentDeadlineUtc={jornada.paymentDeadlineUtc}
             closed={closed}
             saving={saving}
             canSave={canSave}
-            canDelete={data.myTicket !== null && data.myTicket.paymentStatus !== "Paid" && jornada.status === "Open"}
+            canDelete={selectedTicket !== null && selectedTicket.paymentStatus !== "Paid" && jornada.status === "Open"}
             deleting={deleting}
             onSave={() => void handleSave()}
             onDelete={() => setDeleteOpen(true)}

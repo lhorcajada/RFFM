@@ -1,6 +1,6 @@
 import EmojiEventsOutlinedIcon from "@mui/icons-material/EmojiEventsOutlined";
 import type { QuinielaPrevious } from "../../../services/quinielaService";
-import { categoryLabel, formatMoney } from "../../quiniela/quinielaHelpers";
+import { categoryLabel, formatMoney, ticketOwnerLabel } from "../../quiniela/quinielaHelpers";
 import styles from "./QuinielaWinnersCard.module.css";
 
 export default function QuinielaWinnersCard({ previous }: { previous: QuinielaPrevious }) {
@@ -23,9 +23,9 @@ export default function QuinielaWinnersCard({ previous }: { previous: QuinielaPr
       ) : (
         <ul className={styles.list}>
           {previous.winners.map((winner, index) => (
-            <li key={`${winner.userName}-${index}`} className={styles.row}>
+            <li key={`${winner.userName}-${winner.ticketNumber}-${index}`} className={styles.row}>
               <span className={styles.who}>
-                <span className={styles.name}>{winner.userName}</span>
+                <span className={styles.name}>{ticketOwnerLabel(winner.userName, winner.ticketNumber)}</span>
                 <span className={styles.detail}>
                   {categoryLabel(winner.category)} · {winner.hits} aciertos
                 </span>

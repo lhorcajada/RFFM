@@ -44,12 +44,20 @@ describe("quinielaService", () => {
     expect(result).toEqual({ id: "j1" });
   });
 
-  it("saveQuinielaTicket hace PUT a /ticket con el cuerpo", async () => {
-    mocked.put.mockResolvedValue({ data: { id: "tk1" } });
+  it("saveQuinielaTicket sin boleto hace POST a /my-tickets con el cuerpo", async () => {
+    mocked.post.mockResolvedValue({ data: { id: "tk1" } });
     const body = { picks: [{ recordCode: "m1", sign: "1" as const }], plenoHome: 2, plenoAway: 3 };
     const result = await saveQuinielaTicket("t1", "j1", body);
-    expect(mocked.put).toHaveBeenCalledWith("/api/teams/t1/quiniela/j1/ticket", body);
+    expect(mocked.post).toHaveBeenCalledWith("/api/teams/t1/quiniela/j1/my-tickets", body);
     expect(result).toEqual({ id: "tk1" });
+  });
+
+  it("saveQuinielaTicket con boleto hace PUT a /my-tickets/{id}", async () => {
+    mocked.put.mockResolvedValue({ data: { id: "tk 1" } });
+    const body = { picks: [{ recordCode: "m1", sign: "X" as const }], plenoHome: 0, plenoAway: 0 };
+    const result = await saveQuinielaTicket("t1", "j1", body, "tk 1");
+    expect(mocked.put).toHaveBeenCalledWith("/api/teams/t1/quiniela/j1/my-tickets/tk%201", body);
+    expect(result).toEqual({ id: "tk 1" });
   });
 
   it("getQuinielaPayments hace GET a /payments", async () => {
@@ -82,10 +90,10 @@ describe("quinielaService", () => {
     expect(mocked.delete).toHaveBeenCalledWith("/api/teams/t1/quiniela/j1/tickets/tk%201");
   });
 
-  it("deleteMyQuinielaTicket hace DELETE a /ticket", async () => {
+  it("deleteMyQuinielaTicket hace DELETE a /my-tickets/{id}", async () => {
     mocked.delete.mockResolvedValue({});
-    await deleteMyQuinielaTicket("t1", "j1");
-    expect(mocked.delete).toHaveBeenCalledWith("/api/teams/t1/quiniela/j1/ticket");
+    await deleteMyQuinielaTicket("t1", "j1", "tk 1");
+    expect(mocked.delete).toHaveBeenCalledWith("/api/teams/t1/quiniela/j1/my-tickets/tk%201");
   });
 
   it("resetQuiniela hace DELETE a la jornada", async () => {

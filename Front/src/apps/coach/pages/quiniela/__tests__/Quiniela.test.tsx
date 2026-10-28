@@ -24,6 +24,11 @@ vi.mock("../../../hooks/useTeamAndClub.tsx", () => ({
 
 vi.mock("../../../../../shared/hooks/useAuditPageAccess", () => ({ useAuditPageAccess: vi.fn() }));
 
+const useFeatureFlag = vi.fn();
+vi.mock("../../../../../shared/hooks/useFeatureFlag", () => ({
+  useFeatureFlag: (...args: unknown[]) => useFeatureFlag(...args),
+}));
+
 const getCurrentQuiniela = vi.fn();
 const saveQuinielaTicket = vi.fn();
 const openQuiniela = vi.fn();
@@ -81,7 +86,7 @@ function current(overrides: Partial<QuinielaCurrent> = {}): QuinielaCurrent {
         kickoffUtc: "2026-11-01T11:30:00Z",
       }),
     ],
-    myTicket: null,
+    myTickets: [],
     pool: { participants: 12, paidTickets: 8, collected: 8, prizePool: 11.5, possiblePrizePool: 13.5 },
     previous: null,
     canManage: false,
@@ -106,6 +111,7 @@ function cardOf(text: string): HTMLElement {
 describe("Quiniela", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    useFeatureFlag.mockReturnValue({ enabled: true, loading: false });
   });
 
   it("muestra una tarjeta por partido con los equipos", async () => {
@@ -198,6 +204,7 @@ describe("Quiniela", () => {
     getCurrentQuiniela.mockResolvedValue(current());
     saveQuinielaTicket.mockResolvedValue({
       id: "tk1",
+      number: 1,
       picks: [],
       plenoHome: 3,
       plenoAway: 1,
@@ -231,24 +238,27 @@ describe("Quiniela", () => {
         ],
         plenoHome: 3,
         plenoAway: 1,
-      }),
+      }, undefined),
     );
   });
 
   it("carga el boleto ya guardado y muestra su estado de pago", async () => {
     getCurrentQuiniela.mockResolvedValue(
       current({
-        myTicket: {
-          id: "tk1",
-          picks: [{ recordCode: "m1", sign: "X" }],
-          plenoHome: 0,
-          plenoAway: 2,
-          paymentStatus: "Pending",
-          paymentDeadlineUtc: "2026-10-30T22:59:00Z",
-          hits: null,
-          category: null,
-          prize: null,
-        },
+        myTickets: [
+          {
+            id: "tk1",
+            number: 1,
+            picks: [{ recordCode: "m1", sign: "X" }],
+            plenoHome: 0,
+            plenoAway: 2,
+            paymentStatus: "Pending",
+            paymentDeadlineUtc: "2026-10-30T22:59:00Z",
+            hits: null,
+            category: null,
+            prize: null,
+          },
+        ],
       }),
     );
     renderPage();
@@ -260,6 +270,7 @@ describe("Quiniela", () => {
   describe("eliminar mi boleto", () => {
     const savedTicket = (paymentStatus: "Pending" | "Paid" | "Expired") => ({
       id: "tk1",
+      number: 1,
       picks: [{ recordCode: "m1", sign: "X" as const }],
       plenoHome: 0,
       plenoAway: 2,
@@ -272,7 +283,7 @@ describe("Quiniela", () => {
 
     it("elimina el boleto pendiente tras confirmar y vuelve a cargar la quiniela sin boleto", async () => {
       getCurrentQuiniela
-        .mockResolvedValueOnce(current({ myTicket: savedTicket("Pending") }))
+        .mockResolvedValueOnce(current({ myTickets: [savedTicket("Pending")] }))
         .mockResolvedValueOnce(current());
       deleteMyQuinielaTicket.mockResolvedValue(undefined);
       renderPage();
@@ -283,7 +294,7 @@ describe("Quiniela", () => {
       expect(deleteMyQuinielaTicket).not.toHaveBeenCalled();
       fireEvent.click(within(dialog).getByRole("button", { name: /^eliminar$/i }));
 
-      await waitFor(() => expect(deleteMyQuinielaTicket).toHaveBeenCalledWith("team-1", "j1"));
+      await waitFor(() => expect(deleteMyQuinielaTicket).toHaveBeenCalledWith("team-1", "j1", "tk1"));
       await waitFor(() => expect(getCurrentQuiniela).toHaveBeenCalledTimes(2));
       await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
       await waitFor(() => expect(screen.queryByRole("button", { name: /eliminar mi boleto/i })).not.toBeInTheDocument());
@@ -291,7 +302,7 @@ describe("Quiniela", () => {
     });
 
     it("no elimina el boleto si se cancela la confirmación", async () => {
-      getCurrentQuiniela.mockResolvedValue(current({ myTicket: savedTicket("Pending") }));
+      getCurrentQuiniela.mockResolvedValue(current({ myTickets: [savedTicket("Pending")] }));
       renderPage();
       await screen.findByText("CD Los Olivos");
 
@@ -306,7 +317,7 @@ describe("Quiniela", () => {
     it("avisa con un snackbar si falla la eliminación", async () => {
       const listener = vi.fn();
       window.addEventListener("rffm.show_snackbar", listener);
-      getCurrentQuiniela.mockResolvedValue(current({ myTicket: savedTicket("Pending") }));
+      getCurrentQuiniela.mockResolvedValue(current({ myTickets: [savedTicket("Pending")] }));
       deleteMyQuinielaTicket.mockRejectedValue({ response: { data: { detail: "Solo puedes eliminar un boleto que aún no está pagado." } } });
       renderPage();
       await screen.findByText("CD Los Olivos");
@@ -322,14 +333,14 @@ describe("Quiniela", () => {
     });
 
     it("también permite eliminar un boleto caducado sin pagar", async () => {
-      getCurrentQuiniela.mockResolvedValue(current({ myTicket: savedTicket("Expired") }));
+      getCurrentQuiniela.mockResolvedValue(current({ myTickets: [savedTicket("Expired")] }));
       renderPage();
       await screen.findByText("CD Los Olivos");
       expect(screen.getByRole("button", { name: /eliminar mi boleto/i })).toBeInTheDocument();
     });
 
     it("no ofrece eliminar un boleto ya pagado", async () => {
-      getCurrentQuiniela.mockResolvedValue(current({ myTicket: savedTicket("Paid") }));
+      getCurrentQuiniela.mockResolvedValue(current({ myTickets: [savedTicket("Paid")] }));
       renderPage();
       await screen.findByText("CD Los Olivos");
       expect(screen.queryByRole("button", { name: /eliminar mi boleto/i })).not.toBeInTheDocument();
@@ -339,6 +350,183 @@ describe("Quiniela", () => {
       getCurrentQuiniela.mockResolvedValue(current());
       renderPage();
       await screen.findByText("CD Los Olivos");
+      expect(screen.queryByRole("button", { name: /eliminar mi boleto/i })).not.toBeInTheDocument();
+    });
+  });
+
+  describe("varios boletos por usuario", () => {
+    const ticketOf = (id: string, number: number, sign: "1" | "X" | "2", paymentStatus: "Pending" | "Paid" | "Expired" = "Pending") => ({
+      id,
+      number,
+      picks: [{ recordCode: "m1", sign }],
+      plenoHome: 0,
+      plenoAway: 1,
+      paymentStatus,
+      paymentDeadlineUtc: "2026-10-30T22:59:00Z",
+      hits: null,
+      category: null,
+      prize: null,
+    });
+    const twoTickets = () => [ticketOf("tk1", 1, "X"), ticketOf("tk2", 2, "2", "Paid")];
+    const drawOfFirstMatch = () => within(cardOf("CD Los Olivos")).getByRole("button", { name: /empate/i });
+    const awayOfFirstMatch = () => within(cardOf("CD Los Olivos")).getByRole("button", { name: /visitante/i });
+
+    it("muestra un selector con cada boleto y uno para crear otro", async () => {
+      getCurrentQuiniela.mockResolvedValue(current({ myTickets: twoTickets() }));
+      renderPage();
+      await screen.findByText("CD Los Olivos");
+
+      const selector = screen.getByRole("group", { name: /mis boletos/i });
+      expect(within(selector).getByRole("button", { name: "Boleto 1" })).toHaveAttribute("aria-pressed", "true");
+      expect(within(selector).getByRole("button", { name: "Boleto 2" })).toHaveAttribute("aria-pressed", "false");
+      expect(within(selector).getByRole("button", { name: /nuevo boleto/i })).toBeInTheDocument();
+    });
+
+    describe("con el feature flag QuinielaMultipleTickets apagado", () => {
+      beforeEach(() => useFeatureFlag.mockReturnValue({ enabled: false, loading: false }));
+
+      it("consulta el flag por su nombre", async () => {
+        getCurrentQuiniela.mockResolvedValue(current());
+        renderPage();
+        await screen.findByText("CD Los Olivos");
+        expect(useFeatureFlag).toHaveBeenCalledWith("QuinielaMultipleTickets");
+      });
+
+      it("con un solo boleto no muestra el selector ni «Nuevo boleto»", async () => {
+        getCurrentQuiniela.mockResolvedValue(current({ myTickets: [ticketOf("tk1", 1, "X")] }));
+        renderPage();
+        await screen.findByText("CD Los Olivos");
+
+        expect(screen.queryByRole("group", { name: /mis boletos/i })).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: /nuevo boleto/i })).not.toBeInTheDocument();
+        expect(drawOfFirstMatch()).toHaveAttribute("aria-pressed", "true");
+      });
+
+      it("si ya hay varios boletos los sigue mostrando para revisarlos, pero no permite crear otro", async () => {
+        getCurrentQuiniela.mockResolvedValue(current({ myTickets: twoTickets() }));
+        renderPage();
+        await screen.findByText("CD Los Olivos");
+
+        const selector = screen.getByRole("group", { name: /mis boletos/i });
+        expect(within(selector).getByRole("button", { name: "Boleto 2" })).toBeInTheDocument();
+        expect(within(selector).queryByRole("button", { name: /nuevo boleto/i })).not.toBeInTheDocument();
+      });
+
+      it("permite guardar el primer boleto", async () => {
+        getCurrentQuiniela.mockResolvedValue(current());
+        saveQuinielaTicket.mockResolvedValue(ticketOf("tk1", 1, "1"));
+        renderPage();
+        await screen.findByText("CD Los Olivos");
+        fireEvent.click(within(cardOf("CD Los Olivos")).getByRole("button", { name: /local/i }));
+        fireEvent.click(within(cardOf("Real Valdemar")).getByRole("button", { name: /empate/i }));
+        fireEvent.click(within(cardOf("Unión Robledo")).getByRole("button", { name: /visitante/i }));
+        fireEvent.click(within(screen.getByRole("group", { name: "Goles de Unión Robledo" })).getByRole("button", { name: "0" }));
+        fireEvent.click(within(screen.getByRole("group", { name: "Goles de CD Fresnedillas" })).getByRole("button", { name: "0" }));
+
+        fireEvent.click(screen.getByRole("button", { name: /guardar boleto/i }));
+
+        await waitFor(() => expect(saveQuinielaTicket).toHaveBeenCalledTimes(1));
+      });
+    });
+
+    it("sin boletos no muestra el selector", async () => {
+      getCurrentQuiniela.mockResolvedValue(current());
+      renderPage();
+      await screen.findByText("CD Los Olivos");
+      expect(screen.queryByRole("group", { name: /mis boletos/i })).not.toBeInTheDocument();
+    });
+
+    it("al elegir otro boleto carga sus pronósticos y su estado de pago", async () => {
+      getCurrentQuiniela.mockResolvedValue(current({ myTickets: twoTickets() }));
+      renderPage();
+      await screen.findByText("CD Los Olivos");
+      expect(drawOfFirstMatch()).toHaveAttribute("aria-pressed", "true");
+      expect(screen.getByText("Pendiente de pago")).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole("button", { name: "Boleto 2" }));
+
+      expect(awayOfFirstMatch()).toHaveAttribute("aria-pressed", "true");
+      expect(drawOfFirstMatch()).toHaveAttribute("aria-pressed", "false");
+      expect(screen.getByText("Pagado")).toBeInTheDocument();
+    });
+
+    it("modifica el boleto seleccionado enviando su id", async () => {
+      getCurrentQuiniela.mockResolvedValue(current({ myTickets: twoTickets() }));
+      saveQuinielaTicket.mockResolvedValue(ticketOf("tk2", 2, "1", "Paid"));
+      renderPage();
+      await screen.findByText("CD Los Olivos");
+      fireEvent.click(screen.getByRole("button", { name: "Boleto 2" }));
+      fireEvent.click(within(cardOf("CD Los Olivos")).getByRole("button", { name: /local/i }));
+      fireEvent.click(within(cardOf("Real Valdemar")).getByRole("button", { name: /empate/i }));
+      fireEvent.click(within(cardOf("Unión Robledo")).getByRole("button", { name: /visitante/i }));
+      fireEvent.click(within(screen.getByRole("group", { name: "Goles de Unión Robledo" })).getByRole("button", { name: "1" }));
+      fireEvent.click(within(screen.getByRole("group", { name: "Goles de CD Fresnedillas" })).getByRole("button", { name: "2" }));
+
+      fireEvent.click(screen.getByRole("button", { name: /guardar boleto/i }));
+
+      await waitFor(() => expect(saveQuinielaTicket).toHaveBeenCalledTimes(1));
+      expect(saveQuinielaTicket.mock.calls[0][3]).toBe("tk2");
+    });
+
+    it("crea un boleto nuevo con «Nuevo boleto» sin enviar id y lo deja seleccionado", async () => {
+      getCurrentQuiniela.mockResolvedValue(current({ myTickets: [ticketOf("tk1", 1, "X")] }));
+      saveQuinielaTicket.mockResolvedValue(ticketOf("tk3", 2, "1"));
+      renderPage();
+      await screen.findByText("CD Los Olivos");
+
+      fireEvent.click(screen.getByRole("button", { name: /nuevo boleto/i }));
+      expect(drawOfFirstMatch()).toHaveAttribute("aria-pressed", "false");
+      expect(screen.getByRole("button", { name: /guardar boleto/i })).toBeDisabled();
+
+      fireEvent.click(within(cardOf("CD Los Olivos")).getByRole("button", { name: /local/i }));
+      fireEvent.click(within(cardOf("Real Valdemar")).getByRole("button", { name: /empate/i }));
+      fireEvent.click(within(cardOf("Unión Robledo")).getByRole("button", { name: /visitante/i }));
+      fireEvent.click(within(screen.getByRole("group", { name: "Goles de Unión Robledo" })).getByRole("button", { name: "0" }));
+      fireEvent.click(within(screen.getByRole("group", { name: "Goles de CD Fresnedillas" })).getByRole("button", { name: "0" }));
+      fireEvent.click(screen.getByRole("button", { name: /guardar boleto/i }));
+
+      await waitFor(() => expect(saveQuinielaTicket).toHaveBeenCalledTimes(1));
+      expect(saveQuinielaTicket.mock.calls[0][3]).toBeUndefined();
+      expect(await screen.findByRole("button", { name: "Boleto 2" })).toHaveAttribute("aria-pressed", "true");
+    });
+
+    it("con los pronósticos cerrados permite revisar cada boleto pero no crear otro", async () => {
+      const base = current({ myTickets: twoTickets() });
+      getCurrentQuiniela.mockResolvedValue(current({ myTickets: twoTickets(), jornada: { ...base.jornada!, picksClosed: true } }));
+      renderPage();
+      await screen.findByText("CD Los Olivos");
+
+      expect(screen.queryByRole("button", { name: /nuevo boleto/i })).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "Boleto 2" }));
+      expect(awayOfFirstMatch()).toHaveAttribute("aria-pressed", "true");
+      expect(awayOfFirstMatch()).toBeDisabled();
+    });
+
+    it("elimina solo el boleto seleccionado si está pendiente", async () => {
+      getCurrentQuiniela
+        .mockResolvedValueOnce(current({ myTickets: [ticketOf("tk1", 1, "X"), ticketOf("tk2", 2, "2")] }))
+        .mockResolvedValueOnce(current({ myTickets: [ticketOf("tk1", 1, "X")] }));
+      deleteMyQuinielaTicket.mockResolvedValue(undefined);
+      renderPage();
+      await screen.findByText("CD Los Olivos");
+      fireEvent.click(screen.getByRole("button", { name: "Boleto 2" }));
+
+      fireEvent.click(screen.getByRole("button", { name: /eliminar mi boleto/i }));
+      const dialog = await screen.findByRole("dialog");
+      fireEvent.click(within(dialog).getByRole("button", { name: /^eliminar$/i }));
+
+      await waitFor(() => expect(deleteMyQuinielaTicket).toHaveBeenCalledWith("team-1", "j1", "tk2"));
+      await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+      await waitFor(() => expect(screen.queryByRole("button", { name: "Boleto 2" })).not.toBeInTheDocument());
+    });
+
+    it("no ofrece eliminar el boleto seleccionado si está pagado", async () => {
+      getCurrentQuiniela.mockResolvedValue(current({ myTickets: twoTickets() }));
+      renderPage();
+      await screen.findByText("CD Los Olivos");
+
+      expect(screen.getByRole("button", { name: /eliminar mi boleto/i })).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "Boleto 2" }));
       expect(screen.queryByRole("button", { name: /eliminar mi boleto/i })).not.toBeInTheDocument();
     });
   });

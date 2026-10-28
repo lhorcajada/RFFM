@@ -1,0 +1,33 @@
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tab {
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: transparent;
+  color: var(--rffm-text, #f0f0f0);
+  font-family: inherit;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tab:focus-visible {
+  outline: 2px solid var(--rffm-primary);
+  outline-offset: 2px;
+}
+
+.add {
+  border-style: dashed;
+}
+
+.selected {
+  background: var(--rffm-primary);
+  border-color: var(--rffm-primary);
+  color: var(--rffm-standings-on-badge);
+}

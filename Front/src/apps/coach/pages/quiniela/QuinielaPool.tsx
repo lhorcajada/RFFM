@@ -21,7 +21,7 @@ import {
 } from "../../services/quinielaService";
 import type { QuinielaPaymentMethod, QuinielaPaymentTicket, QuinielaPayments } from "../../services/quinielaService";
 import { apiErrorMessage, formatKickoff } from "./quinielaHelpers";
-import PaymentCard from "./components/PaymentCard";
+import UserTicketsGroup from "./components/UserTicketsGroup";
 import PoolBreakdown from "./components/PoolBreakdown";
 import PoolWinners from "./components/PoolWinners";
 import PoolSettings from "./components/PoolSettings";
@@ -115,6 +115,12 @@ export default function QuinielaPool() {
       ),
     [tickets, filter],
   );
+
+  const ticketGroups = useMemo(() => {
+    const byUser = new Map<string, QuinielaPaymentTicket[]>();
+    for (const ticket of visibleTickets) byUser.set(ticket.userId, [...(byUser.get(ticket.userId) ?? []), ticket]);
+    return [...byUser.values()].map((group) => [...group].sort((a, b) => a.number - b.number));
+  }, [visibleTickets]);
 
   const changePayment = async (ticketId: string, paid: boolean, method?: QuinielaPaymentMethod) => {
     if (!teamId || !jornada) return;
@@ -210,7 +216,7 @@ export default function QuinielaPool() {
 
       <div className={styles.tickets}>
         <div className={styles.ticketsHead}>
-          <h2 className={styles.ticketsTitle}>Boletos de la jornada</h2>
+          <h2 className={styles.ticketsTitle}>Boletos por participante</h2>
           <div className={styles.filters}>
             {filters.map((f) => (
               <button
@@ -228,17 +234,17 @@ export default function QuinielaPool() {
         {visibleTickets.length === 0 ? (
           <p className={styles.emptyList}>No hay boletos en este filtro.</p>
         ) : (
-          visibleTickets.map((ticket) => (
-            <PaymentCard
-              key={ticket.id}
-              ticket={ticket}
+          ticketGroups.map((group) => (
+            <UserTicketsGroup
+              key={group[0].userId}
+              tickets={group}
               price={payments.jornada.price}
               matches={payments.matches}
               editable={editable}
-              busy={busyTicketId === ticket.id}
-              onPay={(method) => void changePayment(ticket.id, true, method)}
-              onUndo={() => void changePayment(ticket.id, false)}
-              onDelete={() => setDeleteTarget(ticket)}
+              busyTicketId={busyTicketId}
+              onPay={(ticketId, method) => void changePayment(ticketId, true, method)}
+              onUndo={(ticketId) => void changePayment(ticketId, false)}
+              onDelete={(ticket) => setDeleteTarget(ticket)}
             />
           ))
         )}
@@ -324,7 +330,7 @@ export default function QuinielaPool() {
       <ConfirmDialog
         open={deleteTarget !== null}
         title="Eliminar boleto"
-        description={`Se eliminará el boleto de ${deleteTarget?.userName ?? ""}${
+        description={`Se eliminará el boleto ${deleteTarget?.number ?? ""} de ${deleteTarget?.userName ?? ""}${
           deleteTarget?.paymentStatus === "Paid" ? " y se descontará lo cobrado de la bolsa" : ""
         }. Esta acción no se puede deshacer.`}
         confirmText="Eliminar"

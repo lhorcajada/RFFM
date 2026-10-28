@@ -21,6 +21,7 @@ import { markQuinielaSeen } from "../../utils/quinielaNovelty";
 function ticket(overrides: Partial<QuinielaTicket> = {}): QuinielaTicket {
   return {
     id: "tk1",
+    number: 1,
     picks: [],
     plenoHome: 1,
     plenoAway: 1,
@@ -50,7 +51,7 @@ function current(overrides: Partial<QuinielaCurrent> = {}): QuinielaCurrent {
       picksClosed: false,
     },
     matches: [],
-    myTicket: null,
+    myTickets: [],
     pool: { participants: 12, paidTickets: 8, collected: 8, prizePool: 11.5, possiblePrizePool: 13.5 },
     previous: null,
     canManage: false,
@@ -108,8 +109,8 @@ describe("QuinielaPromoCard", () => {
     it("muestra una tarjeta con los ganadores, su categoría y su premio", async () => {
       getCurrentQuiniela.mockResolvedValue(
         closed([
-          { userName: "Carla Ruiz", category: "Special", hits: 14, prize: 6.5 },
-          { userName: "Lucas Medina", category: "Second", hits: 12, prize: 2 },
+          { userName: "Carla Ruiz", category: "Special", hits: 14, prize: 6.5, ticketNumber: 1 },
+          { userName: "Lucas Medina", category: "Second", hits: 12, prize: 2, ticketNumber: 2 },
         ]),
       );
       renderCard();
@@ -119,7 +120,7 @@ describe("QuinielaPromoCard", () => {
       expect(card).toHaveTextContent("Carla Ruiz");
       expect(card).toHaveTextContent("Categoría Especial");
       expect(card).toHaveTextContent(/6,50\s€/);
-      expect(card).toHaveTextContent("Lucas Medina");
+      expect(card).toHaveTextContent("Lucas Medina · Boleto 2");
     });
 
     it("sin acertantes avisa de que el bote pasa a la siguiente jornada", async () => {
@@ -133,7 +134,7 @@ describe("QuinielaPromoCard", () => {
 
     it("no se muestra mientras hay una jornada abierta", async () => {
       getCurrentQuiniela.mockResolvedValue(
-        current({ previous: previous([{ userName: "Carla Ruiz", category: "Special", hits: 14, prize: 6.5 }]) }),
+        current({ previous: previous([{ userName: "Carla Ruiz", category: "Special", hits: 14, prize: 6.5, ticketNumber: 1 }]) }),
       );
       renderCard();
 
@@ -187,7 +188,7 @@ describe("QuinielaPromoCard", () => {
   });
 
   it("con el boleto pendiente de pago muestra el plazo del viernes y «Ver mi boleto»", async () => {
-    getCurrentQuiniela.mockResolvedValue(current({ myTicket: ticket() }));
+    getCurrentQuiniela.mockResolvedValue(current({ myTickets: [ticket()] }));
     renderCard();
 
     expect(await screen.findByText(/Pendiente de pago · hasta el viernes 23:59/)).toBeInTheDocument();
@@ -195,11 +196,31 @@ describe("QuinielaPromoCard", () => {
   });
 
   it("con el boleto pagado muestra «Boleto pagado»", async () => {
-    getCurrentQuiniela.mockResolvedValue(current({ myTicket: ticket({ paymentStatus: "Paid" }) }));
+    getCurrentQuiniela.mockResolvedValue(current({ myTickets: [ticket({ paymentStatus: "Paid" })] }));
     renderCard();
 
     expect(await screen.findByText(/Boleto pagado/)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Ver mi boleto/ })).toBeInTheDocument();
+  });
+
+  it("con varios boletos y alguno pendiente avisa del pago y muestra «Ver mis boletos»", async () => {
+    getCurrentQuiniela.mockResolvedValue(
+      current({ myTickets: [ticket({ paymentStatus: "Paid" }), ticket({ id: "tk2", number: 2, paymentStatus: "Pending" })] }),
+    );
+    renderCard();
+
+    expect(await screen.findByText(/Pendiente de pago · hasta el viernes 23:59/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Ver mis boletos/ })).toBeInTheDocument();
+  });
+
+  it("con varios boletos todos pagados muestra «Boleto pagado»", async () => {
+    getCurrentQuiniela.mockResolvedValue(
+      current({ myTickets: [ticket({ paymentStatus: "Paid" }), ticket({ id: "tk2", number: 2, paymentStatus: "Paid" })] }),
+    );
+    renderCard();
+
+    expect(await screen.findByText(/Boleto pagado/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Ver mis boletos/ })).toBeInTheDocument();
   });
 
   it("con los pronósticos cerrados muestra «Ver resultados»", async () => {

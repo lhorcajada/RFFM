@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@mui/material";
 import type { QuinielaMatch, QuinielaPaymentMethod, QuinielaPaymentTicket } from "../../../services/quinielaService";
-import { formatMoney, formatKickoff, initialsOf, paymentMethodLabel, paymentStatusLabel, roleLabel } from "../quinielaHelpers";
+import { formatMoney, formatKickoff, paymentMethodLabel, paymentStatusLabel } from "../quinielaHelpers";
 import TicketPicks from "./TicketPicks";
 import styles from "./PaymentCard.module.css";
 
@@ -32,10 +32,10 @@ export default function PaymentCard({ ticket, price, matches, editable, busy, on
   return (
     <article className={styles.card} data-testid="payment-card">
       <div className={styles.person}>
-        <span className={styles.avatar} aria-hidden="true">{initialsOf(ticket.userName)}</span>
+        <span className={styles.avatar} aria-hidden="true">#{ticket.number}</span>
         <span className={styles.who}>
-          <span className={styles.name}>{ticket.userName}</span>
-          <span className={styles.detail}>{roleLabel(ticket.role)} · {detail}</span>
+          <span className={styles.name}>Boleto {ticket.number}</span>
+          <span className={styles.detail}>{detail}</span>
         </span>
       </div>
       <div className={styles.actions}>
@@ -47,7 +47,7 @@ export default function PaymentCard({ ticket, price, matches, editable, busy, on
           size="small"
           className={styles.button}
           aria-expanded={expanded}
-          aria-label={`${expanded ? "Ocultar" : "Ver"} boleto de ${ticket.userName}`}
+          aria-label={`${expanded ? "Ocultar" : "Ver"} boleto ${ticket.number} de ${ticket.userName}`}
           onClick={() => setExpanded((open) => !open)}
         >
           {expanded ? "Ocultar boleto" : "Ver boleto"}
@@ -65,7 +65,7 @@ export default function PaymentCard({ ticket, price, matches, editable, busy, on
             className={styles.button}
             disabled={busy}
             onClick={onDelete}
-            aria-label={`Eliminar boleto de ${ticket.userName}`}
+            aria-label={`Eliminar boleto ${ticket.number} de ${ticket.userName}`}
           >
             Eliminar
           </Button>

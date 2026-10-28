@@ -103,3 +103,8 @@ export function initialsOf(name: string): string {
     .map((word) => word.charAt(0).toUpperCase())
     .join("");
 }
+
+/** «Nombre · Boleto 2»: el número solo se muestra a partir del segundo boleto. */
+export function ticketOwnerLabel(userName: string, ticketNumber: number): string {
+  return ticketNumber > 1 ? `${userName} · Boleto ${ticketNumber}` : userName;
+}

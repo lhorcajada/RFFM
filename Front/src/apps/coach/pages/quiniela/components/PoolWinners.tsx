@@ -1,5 +1,5 @@
 import type { QuinielaPaymentTicket } from "../../../services/quinielaService";
-import { categoryLabel, formatMoney } from "../quinielaHelpers";
+import { categoryLabel, formatMoney, ticketOwnerLabel } from "../quinielaHelpers";
 import styles from "./PoolWinners.module.css";
 
 type Props = {
@@ -29,7 +29,7 @@ export default function PoolWinners({ tickets, carryOut }: Props) {
           {winners.map((ticket) => (
             <li key={ticket.id} className={styles.row}>
               <span className={styles.who}>
-                <span className={styles.name}>{ticket.userName}</span>
+                <span className={styles.name}>{ticketOwnerLabel(ticket.userName, ticket.number)}</span>
                 <span className={styles.detail}>
                   {categoryLabel(ticket.category)} · {ticket.hits} aciertos
                 </span>

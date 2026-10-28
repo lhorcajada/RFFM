@@ -52,11 +52,11 @@ const STATE_VIEWS: Record<CardState, StateView> = {
 
 function stateOf(current: QuinielaCurrent): CardState {
   if (current.jornada?.picksClosed) return "closed";
-  const ticket = current.myTicket;
-  if (!ticket) return "open";
-  if (ticket.paymentStatus === "Paid") return "paid";
-  if (ticket.paymentStatus === "Expired") return "expired";
-  return "pending";
+  const tickets = current.myTickets;
+  if (tickets.length === 0) return "open";
+  if (tickets.some((t) => t.paymentStatus === "Pending")) return "pending";
+  if (tickets.some((t) => t.paymentStatus === "Paid")) return "paid";
+  return "expired";
 }
 
 export default function QuinielaPromoCard({ teamId }: { teamId: string | null }) {
@@ -156,7 +156,7 @@ export default function QuinielaPromoCard({ teamId }: { teamId: string | null })
       <div className={`${styles.status} ${view.tone}`}>{view.status}</div>
 
       <Link to={href} className={styles.cta}>
-        {view.cta}
+        {current.myTickets.length > 1 ? view.cta.replace("mi boleto", "mis boletos") : view.cta}
         <ArrowForwardIcon fontSize="small" aria-hidden="true" />
       </Link>
       <button type="button" className={styles.rules} onClick={() => setRulesOpen(true)}>

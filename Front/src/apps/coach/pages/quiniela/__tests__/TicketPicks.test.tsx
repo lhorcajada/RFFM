@@ -21,6 +21,7 @@ function match(overrides: Partial<QuinielaMatch>): QuinielaMatch {
 function ticket(overrides: Partial<QuinielaPaymentTicket> = {}): QuinielaPaymentTicket {
   return {
     id: "t1",
+    number: 1,
     userId: "u1",
     userName: "Carla Ruiz",
     role: "FamilyPlayer",
