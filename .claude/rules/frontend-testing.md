@@ -136,7 +136,15 @@ npm test -- <archivo o patrón>        # subconjunto
 - `it.skip` / `test.skip` / `xit` son un code smell — no dejarlos sin que el usuario lo
   apruebe explícitamente con una razón documentada.
 
-### 4.6 Cobertura objetivo
+### 4.6 Suite completa: una sola vez, al final
+- Durante el desarrollo ejecutar **solo los tests del área afectada** (archivo o directorio:
+  `npx vitest run <ruta>` / `npm test -- <patrón>`), tanto para el Red como para el Green.
+- La **suite completa** (`npx vitest run --maxWorkers=2` en `Front/`, `npm test` en `Mobile/`)
+  y `npm run build` se ejecutan **una única vez, cuando se ha terminado toda la modificación**
+  (todos los bloques de la change), no al cerrar cada bloque ni cada subagente.
+- Los subagentes no lanzan la suite completa salvo que se les pida explícitamente.
+
+### 4.7 Cobertura objetivo
 - Componentes/pantallas: ≥75% del código modificado.
 - Priorizar cobertura de ramas de error y estados vacíos sobre cobertura de líneas triviales.
 

@@ -242,6 +242,9 @@ Basadas en TDD (Test-Driven Development) y los patrones existentes del proyecto.
 - Si se modifica dominio: ejecutar Domain.Tests.
 - Si se modifica un handler/controller: ejecutar FunctionalTests del feature afectado.
 - Si se modifica infraestructura compartida: ejecutar todos los tests.
+- La suite completa (`dotnet test`) se ejecuta **una sola vez, al terminar toda la modificación**
+  (todos los bloques de la change), no al cerrar cada bloque ni cada subagente; durante el
+  desarrollo, filtrar por el área afectada (`--filter`).
 
 ### 7.3 Tests ignorados
 - Si un test se marca como `[Fact(Skip = "...")]`, el motivo debe ser claro y temporal.

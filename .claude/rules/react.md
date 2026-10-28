@@ -157,8 +157,10 @@ npm run test         # Vitest (ver frontend-testing.md)
 npx playwright test  # E2E
 ```
 
-- Tras cualquier cambio, ejecutar `npm run build` y `npm run test` antes de dar el trabajo por
-  terminado. Un cambio que rompe el build o los tipos strict no está completo.
+- Durante el desarrollo, ejecutar solo los tests del área afectada. `npm run build` y la suite
+  completa (`npm run test`) se ejecutan **una sola vez, al terminar toda la modificación**, antes
+  de dar el trabajo por terminado (ver `frontend-testing.md` §4.6). Un cambio que rompe el build
+  o los tipos strict no está completo.
 
 ---
 
