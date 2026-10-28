@@ -83,6 +83,38 @@ describe("QuinielaPromoCard", () => {
     vi.restoreAllMocks();
   });
 
+  it("muestra el bote acumulado junto a la bolsa", async () => {
+    getCurrentQuiniela.mockResolvedValue(current());
+    renderCard();
+
+    const bote = (await screen.findByText("Bote")).parentElement as HTMLElement;
+    expect(bote).toHaveTextContent(/3,50\s€/);
+  });
+
+  it("se actualiza sola al volver a la pestaña cuando entra un boleto nuevo", async () => {
+    getCurrentQuiniela
+      .mockResolvedValueOnce(current())
+      .mockResolvedValue(current({ pool: { participants: 13, paidTickets: 9, collected: 9, prizePool: 12.5 } }));
+    renderCard();
+    await screen.findByText(/11,50\s€/);
+
+    document.dispatchEvent(new Event("visibilitychange"));
+
+    expect(await screen.findByText(/12,50\s€/)).toBeInTheDocument();
+    expect(getCurrentQuiniela).toHaveBeenCalledTimes(2);
+  });
+
+  it("conserva los datos si falla una actualización automática", async () => {
+    getCurrentQuiniela.mockResolvedValueOnce(current()).mockRejectedValue(new Error("boom"));
+    renderCard();
+    await screen.findByText(/11,50\s€/);
+
+    document.dispatchEvent(new Event("visibilitychange"));
+
+    await waitFor(() => expect(getCurrentQuiniela).toHaveBeenCalledTimes(2));
+    expect(screen.getByText(/11,50\s€/)).toBeInTheDocument();
+  });
+
   it("sin boleto muestra «Rellenar mi boleto» hacia la quiniela del equipo, con la bolsa y el cierre", async () => {
     getCurrentQuiniela.mockResolvedValue(current());
     renderCard();

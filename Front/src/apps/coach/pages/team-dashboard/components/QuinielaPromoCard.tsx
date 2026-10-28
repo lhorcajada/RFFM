@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import { usePermissions } from "../../../../../shared/hooks/usePermissions";
 import { COACH_FEATURE_ROUTES } from "../../../constants/featureRoutes";
+import useAutoRefresh from "../../../hooks/useAutoRefresh";
 import { getCurrentQuiniela } from "../../../services/quinielaService";
 import type { QuinielaCurrent } from "../../../services/quinielaService";
 import { formatKickoff, formatMoney } from "../../quiniela/quinielaHelpers";
@@ -79,6 +80,15 @@ export default function QuinielaPromoCard({ teamId }: { teamId: string | null })
     };
   }, [allowed, teamId]);
 
+  // Refresco silencioso: si falla se conservan los datos que ya se están mostrando.
+  const refresh = useCallback(() => {
+    if (!teamId) return;
+    getCurrentQuiniela(teamId)
+      .then(setCurrent)
+      .catch(() => undefined);
+  }, [teamId]);
+  useAutoRefresh(refresh, undefined, allowed && !!teamId);
+
   if (!allowed || !teamId || !current) return null;
 
   const href = `${COACH_FEATURE_ROUTES.Quiniela}?teamId=${encodeURIComponent(teamId)}`;
@@ -121,6 +131,10 @@ export default function QuinielaPromoCard({ teamId }: { teamId: string | null })
         <div className={styles.fact}>
           <span className={styles.factLabel}>Bolsa</span>
           <span className={styles.pot}>{formatMoney(current.pool?.prizePool ?? 0)}</span>
+        </div>
+        <div className={styles.fact}>
+          <span className={styles.factLabel}>Bote</span>
+          <span className={styles.factValue}>{formatMoney(current.jornada.carryIn)}</span>
         </div>
         <div className={styles.fact}>
           <span className={styles.factLabel}>{closed ? "Jornada" : "Cierra"}</span>

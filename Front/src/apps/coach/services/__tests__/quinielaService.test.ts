@@ -2,14 +2,17 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../../../../core/api/client", () => ({
   __esModule: true,
-  default: { get: vi.fn(), post: vi.fn(), put: vi.fn() },
+  default: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() },
 }));
 
 import client from "../../../../core/api/client";
 import {
+  deleteMyQuinielaTicket,
+  deleteQuinielaTicket,
   getCurrentQuiniela,
   getQuinielaPayments,
   openQuiniela,
+  resetQuiniela,
   saveQuinielaTicket,
   setQuinielaTicketPayment,
   settleQuiniela,
@@ -19,6 +22,7 @@ const mocked = client as unknown as {
   get: ReturnType<typeof vi.fn>;
   post: ReturnType<typeof vi.fn>;
   put: ReturnType<typeof vi.fn>;
+  delete: ReturnType<typeof vi.fn>;
 };
 
 describe("quinielaService", () => {
@@ -70,5 +74,23 @@ describe("quinielaService", () => {
     const result = await settleQuiniela("t1", "j1");
     expect(mocked.post).toHaveBeenCalledWith("/api/teams/t1/quiniela/j1/settle");
     expect(result).toEqual({ carryOut: 1 });
+  });
+
+  it("deleteQuinielaTicket hace DELETE a /tickets/{id}", async () => {
+    mocked.delete.mockResolvedValue({});
+    await deleteQuinielaTicket("t1", "j1", "tk 1");
+    expect(mocked.delete).toHaveBeenCalledWith("/api/teams/t1/quiniela/j1/tickets/tk%201");
+  });
+
+  it("deleteMyQuinielaTicket hace DELETE a /ticket", async () => {
+    mocked.delete.mockResolvedValue({});
+    await deleteMyQuinielaTicket("t1", "j1");
+    expect(mocked.delete).toHaveBeenCalledWith("/api/teams/t1/quiniela/j1/ticket");
+  });
+
+  it("resetQuiniela hace DELETE a la jornada", async () => {
+    mocked.delete.mockResolvedValue({});
+    await resetQuiniela("t1", "j1");
+    expect(mocked.delete).toHaveBeenCalledWith("/api/teams/t1/quiniela/j1");
   });
 });

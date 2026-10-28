@@ -102,6 +102,11 @@ export type QuinielaTotals = {
   carryIn: number;
   carryOut: number | null;
   prizes: number;
+  prizePercent: number;
+};
+
+export type QuinielaSettings = {
+  fundPercent: number;
 };
 
 export type QuinielaFundMovement = {
@@ -180,5 +185,27 @@ export async function setQuinielaTicketPayment(
 
 export async function settleQuiniela(teamId: string, jornadaId: string): Promise<QuinielaSettlement> {
   const resp = await client.post<QuinielaSettlement>(`${jornadaUrl(teamId, jornadaId)}/settle`);
+  return resp.data;
+}
+
+export async function deleteQuinielaTicket(teamId: string, jornadaId: string, ticketId: string): Promise<void> {
+  await client.delete(`${jornadaUrl(teamId, jornadaId)}/tickets/${encodeURIComponent(ticketId)}`);
+}
+
+export async function deleteMyQuinielaTicket(teamId: string, jornadaId: string): Promise<void> {
+  await client.delete(`${jornadaUrl(teamId, jornadaId)}/ticket`);
+}
+
+export async function resetQuiniela(teamId: string, jornadaId: string): Promise<void> {
+  await client.delete(jornadaUrl(teamId, jornadaId));
+}
+
+export async function getQuinielaSettings(teamId: string): Promise<QuinielaSettings> {
+  const resp = await client.get<QuinielaSettings>(`${quinielaUrl(teamId)}/settings`);
+  return resp.data;
+}
+
+export async function updateQuinielaSettings(teamId: string, fundPercent: number): Promise<QuinielaSettings> {
+  const resp = await client.put<QuinielaSettings>(`${quinielaUrl(teamId)}/settings`, { fundPercent });
   return resp.data;
 }

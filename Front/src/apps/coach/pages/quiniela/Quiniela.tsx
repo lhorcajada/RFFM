@@ -10,7 +10,8 @@ import EmptyState from "../../../../shared/components/ui/EmptyState/EmptyState";
 import { useAuditPageAccess } from "../../../../shared/hooks/useAuditPageAccess";
 import useTeamDashboardBack from "../../hooks/useTeamDashboardBack";
 import useTeamAndClub from "../../hooks/useTeamAndClub.tsx";
-import { getCurrentQuiniela, openQuiniela, saveQuinielaTicket } from "../../services/quinielaService";
+import ConfirmDialog from "../../../../shared/components/ui/ConfirmDialog/ConfirmDialog";
+import { deleteMyQuinielaTicket, getCurrentQuiniela, openQuiniela, saveQuinielaTicket } from "../../services/quinielaService";
 import type { QuinielaCurrent, QuinielaSign, QuinielaTicket } from "../../services/quinielaService";
 import { apiErrorMessage, formatKickoff, goalsFromLabel, goalsToLabel } from "./quinielaHelpers";
 import MatchPickCard from "./components/MatchPickCard";
@@ -44,6 +45,8 @@ export default function Quiniela() {
   const [saving, setSaving] = useState(false);
   const [opening, setOpening] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [picks, setPicks] = useState<Picks>({});
   const [plenoHome, setPlenoHome] = useState<string | null>(null);
   const [plenoAway, setPlenoAway] = useState<string | null>(null);
@@ -122,7 +125,23 @@ export default function Quiniela() {
     }
   };
 
-  const renderNotOpen = (data: QuinielaCurrent) => (
+  const handleDeleteConfirmed = async () => {
+    if (!teamId || !jornada) return;
+    setDeleting(true);
+    try {
+      await deleteMyQuinielaTicket(teamId, jornada.id);
+      setDeleteOpen(false);
+      await load(teamId);
+      notify("Boleto eliminado", "success");
+    } catch (e: unknown) {
+      setDeleteOpen(false);
+      notify(apiErrorMessage(e, "No se pudo eliminar el boleto."), "error");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const renderNotOpen =(data: QuinielaCurrent) => (
     <Stack spacing={2} alignItems="center" className={styles.empty}>
       <EmptyState
         title="La quiniela aún no está abierta"
@@ -216,7 +235,10 @@ export default function Quiniela() {
             closed={closed}
             saving={saving}
             canSave={canSave}
+            canDelete={data.myTicket !== null && data.myTicket.paymentStatus !== "Paid" && jornada.status === "Open"}
+            deleting={deleting}
             onSave={() => void handleSave()}
+            onDelete={() => setDeleteOpen(true)}
           />
         </div>
 
@@ -272,6 +294,15 @@ export default function Quiniela() {
         <div className={styles.content}>{renderContent()}</div>
       </ContentLayout>
       <QuinielaRulesDialog open={rulesOpen} onClose={() => setRulesOpen(false)} />
+      <ConfirmDialog
+        open={deleteOpen}
+        title="Eliminar mi boleto"
+        description="Se eliminará tu boleto de esta jornada. Podrás rellenar uno nuevo mientras los pronósticos sigan abiertos."
+        confirmText="Eliminar"
+        processing={deleting}
+        onCancel={() => setDeleteOpen(false)}
+        onConfirm={() => void handleDeleteConfirmed()}
+      />
     </BaseLayout>
   );
 }

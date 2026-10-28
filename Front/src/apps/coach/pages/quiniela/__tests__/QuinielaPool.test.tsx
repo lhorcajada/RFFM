@@ -32,7 +32,15 @@ const getCurrentQuiniela = vi.fn();
 const getQuinielaPayments = vi.fn();
 const setQuinielaTicketPayment = vi.fn();
 const settleQuiniela = vi.fn();
+const deleteQuinielaTicket = vi.fn();
+const resetQuiniela = vi.fn();
+const getQuinielaSettings = vi.fn();
+const updateQuinielaSettings = vi.fn();
 vi.mock("../../../services/quinielaService", () => ({
+  getQuinielaSettings: (...args: unknown[]) => getQuinielaSettings(...args),
+  updateQuinielaSettings: (...args: unknown[]) => updateQuinielaSettings(...args),
+  deleteQuinielaTicket: (...args: unknown[]) => deleteQuinielaTicket(...args),
+  resetQuiniela: (...args: unknown[]) => resetQuiniela(...args),
   getCurrentQuiniela: (...args: unknown[]) => getCurrentQuiniela(...args),
   getQuinielaPayments: (...args: unknown[]) => getQuinielaPayments(...args),
   setQuinielaTicketPayment: (...args: unknown[]) => setQuinielaTicketPayment(...args),
@@ -77,7 +85,7 @@ function payments(overrides: Partial<QuinielaPayments> = {}): QuinielaPayments {
       ticket({ id: "t2", userId: "u2", userName: "Lucas Medina", role: "Player", paymentMethod: "Bizum" }),
       ticket({ id: "t3", userId: "u3", userName: "Pablo Vega", role: "Player", paymentStatus: "Pending", paymentMethod: null, paidAt: null }),
     ],
-    totals: { collected: 2, pending: 1, prizePool: 4.6, fundAmount: 0.9, carryIn: 3.5, carryOut: null, prizes: 0 },
+    totals: { collected: 2, pending: 1, prizePool: 4.6, fundAmount: 0.9, carryIn: 3.5, carryOut: null, prizes: 0, prizePercent: 100 },
     movements: [{ id: "mv1", amount: 1, occurredAt: "2026-10-28T17:20:00Z", description: "Cobro · Carla Ruiz" }],
     ...overrides,
   };
@@ -117,6 +125,7 @@ describe("QuinielaPool", () => {
     vi.clearAllMocks();
     getCurrentQuiniela.mockResolvedValue(currentFor(true));
     getQuinielaPayments.mockResolvedValue(payments());
+    getQuinielaSettings.mockResolvedValue({ fundPercent: 0 });
   });
 
   it("muestra los totales de cobrado, pendiente, premios y fondo", async () => {
@@ -155,7 +164,7 @@ describe("QuinielaPool", () => {
   it("marca un boleto como pagado en efectivo y refresca los totales", async () => {
     const updated = payments({
       tickets: payments().tickets.map((t) => (t.id === "t3" ? { ...t, paymentStatus: "Paid" as const, paymentMethod: "Cash" as const } : t)),
-      totals: { collected: 3, pending: 0, prizePool: 5.15, fundAmount: 1.35, carryIn: 3.5, carryOut: null, prizes: 0 },
+      totals: { collected: 3, pending: 0, prizePool: 5.15, fundAmount: 1.35, carryIn: 3.5, carryOut: null, prizes: 0, prizePercent: 100 },
     });
     setQuinielaTicketPayment.mockResolvedValue(updated.tickets[2]);
     getQuinielaPayments.mockResolvedValueOnce(payments()).mockResolvedValueOnce(updated);
@@ -237,12 +246,159 @@ describe("QuinielaPool", () => {
     await waitFor(() => expect(getQuinielaPayments).toHaveBeenCalledTimes(2));
   });
 
+  it("muestra el bote acumulado de jornadas anteriores", async () => {
+    renderPage();
+    await screen.findByText("Carla Ruiz");
+    expect(within(stat("Bote acumulado")).getByText("3,50 €")).toBeInTheDocument();
+  });
+
+  it("explica el reparto según el porcentaje de premios de la jornada", async () => {
+    getQuinielaPayments.mockResolvedValue(
+      payments({ totals: { ...payments().totals, prizePercent: 80 } }),
+    );
+    renderPage();
+    await screen.findByText("Carla Ruiz");
+    expect(within(stat("Premios de la jornada")).getByText(/80 % de lo cobrado/)).toBeInTheDocument();
+    expect(within(stat("Fondo del equipo")).getByText(/20 % restante/)).toBeInTheDocument();
+  });
+
+  it("carga el porcentaje del fondo configurado en el formulario de reparto", async () => {
+    getQuinielaSettings.mockResolvedValue({ fundPercent: 15 });
+    renderPage();
+    await screen.findByText("Carla Ruiz");
+    expect(await screen.findByLabelText(/porcentaje para el fondo/i)).toHaveValue(15);
+  });
+
+  it("guarda el porcentaje del fondo y refresca la bolsa", async () => {
+    updateQuinielaSettings.mockResolvedValue({ fundPercent: 20 });
+    renderPage();
+    await screen.findByText("Carla Ruiz");
+    const input = await screen.findByLabelText(/porcentaje para el fondo/i);
+
+    fireEvent.change(input, { target: { value: "20" } });
+    fireEvent.click(screen.getByRole("button", { name: /guardar reparto/i }));
+
+    await waitFor(() => expect(updateQuinielaSettings).toHaveBeenCalledWith("team-1", 20));
+    await waitFor(() => expect(getQuinielaPayments).toHaveBeenCalledTimes(2));
+  });
+
+  it("no permite guardar un porcentaje fuera de 0-100", async () => {
+    renderPage();
+    await screen.findByText("Carla Ruiz");
+    const input = await screen.findByLabelText(/porcentaje para el fondo/i);
+
+    fireEvent.change(input, { target: { value: "101" } });
+
+    expect(screen.getByRole("button", { name: /guardar reparto/i })).toBeDisabled();
+  });
+
+  it("avisa con un snackbar si falla el guardado del reparto", async () => {
+    const listener = vi.fn();
+    window.addEventListener("rffm.show_snackbar", listener);
+    updateQuinielaSettings.mockRejectedValue({ response: { data: { detail: "No tienes permiso" } } });
+    renderPage();
+    await screen.findByText("Carla Ruiz");
+    fireEvent.change(await screen.findByLabelText(/porcentaje para el fondo/i), { target: { value: "10" } });
+
+    fireEvent.click(screen.getByRole("button", { name: /guardar reparto/i }));
+
+    await waitFor(() => expect(listener).toHaveBeenCalled());
+    const event = listener.mock.calls[0][0] as CustomEvent<{ message: string; severity: string }>;
+    expect(event.detail).toEqual({ message: "No tienes permiso", severity: "error" });
+    window.removeEventListener("rffm.show_snackbar", listener);
+  });
+
+  it("se actualiza sola cuando vuelves a la pestaña y hay un boleto nuevo", async () => {
+    const withNewTicket = payments({
+      tickets: [...payments().tickets, ticket({ id: "t4", userId: "u4", userName: "Nuria Gil", paymentStatus: "Pending", paymentMethod: null, paidAt: null })],
+    });
+    getQuinielaPayments.mockResolvedValueOnce(payments()).mockResolvedValue(withNewTicket);
+    renderPage();
+    await screen.findByText("Carla Ruiz");
+    expect(screen.queryByText("Nuria Gil")).not.toBeInTheDocument();
+
+    document.dispatchEvent(new Event("visibilitychange"));
+
+    expect(await screen.findByText("Nuria Gil")).toBeInTheDocument();
+  });
+
+  it("elimina un boleto tras confirmar y refresca la bolsa", async () => {
+    deleteQuinielaTicket.mockResolvedValue(undefined);
+    renderPage();
+    await screen.findByText("Pablo Vega");
+
+    fireEvent.click(screen.getByRole("button", { name: /eliminar boleto de pablo vega/i }));
+    const dialog = await screen.findByRole("dialog");
+    expect(deleteQuinielaTicket).not.toHaveBeenCalled();
+    fireEvent.click(within(dialog).getByRole("button", { name: /^eliminar$/i }));
+
+    await waitFor(() => expect(deleteQuinielaTicket).toHaveBeenCalledWith("team-1", "j1", "t3"));
+    await waitFor(() => expect(getQuinielaPayments).toHaveBeenCalledTimes(2));
+  });
+
+  it("no elimina el boleto si se cancela la confirmación", async () => {
+    renderPage();
+    await screen.findByText("Pablo Vega");
+
+    fireEvent.click(screen.getByRole("button", { name: /eliminar boleto de pablo vega/i }));
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: /cancelar/i }));
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(deleteQuinielaTicket).not.toHaveBeenCalled();
+  });
+
+  it("avisa con un snackbar si falla la eliminación del boleto", async () => {
+    const listener = vi.fn();
+    window.addEventListener("rffm.show_snackbar", listener);
+    deleteQuinielaTicket.mockRejectedValue({ response: { data: { detail: "Jornada ya liquidada" } } });
+    renderPage();
+    await screen.findByText("Pablo Vega");
+
+    fireEvent.click(screen.getByRole("button", { name: /eliminar boleto de pablo vega/i }));
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: /^eliminar$/i }));
+
+    await waitFor(() => expect(listener).toHaveBeenCalled());
+    const event = listener.mock.calls[0][0] as CustomEvent<{ message: string; severity: string }>;
+    expect(event.detail).toEqual({ message: "Jornada ya liquidada", severity: "error" });
+    window.removeEventListener("rffm.show_snackbar", listener);
+  });
+
+  it("reinicia la jornada tras confirmar y vuelve a la quiniela del participante", async () => {
+    resetQuiniela.mockResolvedValue(undefined);
+    renderPage();
+    await screen.findByText("Carla Ruiz");
+
+    fireEvent.click(screen.getByRole("button", { name: /reiniciar jornada/i }));
+    const dialog = await screen.findByRole("dialog");
+    expect(resetQuiniela).not.toHaveBeenCalled();
+    fireEvent.click(within(dialog).getByRole("button", { name: /^reiniciar$/i }));
+
+    await waitFor(() => expect(resetQuiniela).toHaveBeenCalledWith("team-1", "j1"));
+    expect(await screen.findByText("Pagina de participante")).toBeInTheDocument();
+  });
+
+  it("no reinicia la jornada si se cancela la confirmación", async () => {
+    renderPage();
+    await screen.findByText("Carla Ruiz");
+
+    fireEvent.click(screen.getByRole("button", { name: /reiniciar jornada/i }));
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: /cancelar/i }));
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(resetQuiniela).not.toHaveBeenCalled();
+  });
+
   it("no permite liquidar ni cambiar pagos si la jornada ya está liquidada", async () => {
     const base = payments();
     getQuinielaPayments.mockResolvedValue(payments({ jornada: { ...base.jornada, status: "Settled" } }));
     renderPage();
     await screen.findByText("Carla Ruiz");
 
+    expect(screen.queryByRole("button", { name: /reiniciar jornada/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /eliminar boleto de/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /cerrar jornada y repartir/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /deshacer/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /pagado en efectivo/i })).not.toBeInTheDocument();

@@ -100,6 +100,23 @@
   opacity: 0.5;
 }
 
+.remove {
+  min-height: 44px;
+  border: 1px solid var(--rffm-status-declined);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--rffm-status-declined);
+  font-family: inherit;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.remove:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
 .note {
   margin: 0;
   color: var(--rffm-muted, #a59f9f);

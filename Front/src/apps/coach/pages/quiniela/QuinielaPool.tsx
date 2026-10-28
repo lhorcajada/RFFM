@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { Box, Button, CircularProgress, Stack } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
@@ -7,17 +7,23 @@ import ConfirmDialog from "../../../../shared/components/ui/ConfirmDialog/Confir
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import EmptyState from "../../../../shared/components/ui/EmptyState/EmptyState";
 import { useAuditPageAccess } from "../../../../shared/hooks/useAuditPageAccess";
+import useAutoRefresh from "../../hooks/useAutoRefresh";
 import useTeamAndClub from "../../hooks/useTeamAndClub.tsx";
 import {
+  deleteQuinielaTicket,
   getCurrentQuiniela,
   getQuinielaPayments,
+  getQuinielaSettings,
+  resetQuiniela,
   setQuinielaTicketPayment,
   settleQuiniela,
+  updateQuinielaSettings,
 } from "../../services/quinielaService";
-import type { QuinielaPaymentMethod, QuinielaPayments } from "../../services/quinielaService";
+import type { QuinielaPaymentMethod, QuinielaPaymentTicket, QuinielaPayments } from "../../services/quinielaService";
 import { apiErrorMessage, formatKickoff } from "./quinielaHelpers";
 import PaymentCard from "./components/PaymentCard";
 import PoolBreakdown from "./components/PoolBreakdown";
+import PoolSettings from "./components/PoolSettings";
 import PoolMovements from "./components/PoolMovements";
 import PoolTotals from "./components/PoolTotals";
 import styles from "./QuinielaPool.module.css";
@@ -41,6 +47,12 @@ export default function QuinielaPool() {
   const [busyTicketId, setBusyTicketId] = useState<string | null>(null);
   const [settleOpen, setSettleOpen] = useState(false);
   const [settling, setSettling] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<QuinielaPaymentTicket | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const [fundPercent, setFundPercent] = useState(0);
+  const [savingSettings, setSavingSettings] = useState(false);
 
   const load = useCallback(async (id: string) => {
     setState("loading");
@@ -54,7 +66,12 @@ export default function QuinielaPool() {
         setState("noJornada");
         return;
       }
-      setData(await getQuinielaPayments(id, current.jornada.id));
+      const [payments, settings] = await Promise.all([
+        getQuinielaPayments(id, current.jornada.id),
+        getQuinielaSettings(id),
+      ]);
+      setData(payments);
+      setFundPercent(settings.fundPercent);
       setState("ready");
     } catch (e: unknown) {
       notify(apiErrorMessage(e, "No se pudo cargar la bolsa de la quiniela."), "error");
@@ -69,6 +86,18 @@ export default function QuinielaPool() {
   const refresh = useCallback(async (id: string, jornadaId: string) => {
     setData(await getQuinielaPayments(id, jornadaId));
   }, []);
+
+  const jornadaId = data?.jornada.id ?? null;
+  const stateRef = useRef(state);
+  stateRef.current = state;
+  // Refresco silencioso (boletos nuevos): si falla se conservan los datos que ya se muestran.
+  useAutoRefresh(
+    () => {
+      if (teamId && jornadaId && stateRef.current === "ready") void refresh(teamId, jornadaId).catch(() => undefined);
+    },
+    undefined,
+    state === "ready",
+  );
 
   const jornada = data?.jornada ?? null;
   const tickets = useMemo(() => data?.tickets ?? [], [data]);
@@ -115,6 +144,53 @@ export default function QuinielaPool() {
 
   const quinielaPath = `/coach/quiniela${teamId ? `?teamId=${encodeURIComponent(teamId)}` : ""}`;
 
+  const handleDeleteConfirmed = async () => {
+    if (!teamId || !jornada || !deleteTarget) return;
+    setDeleting(true);
+    try {
+      await deleteQuinielaTicket(teamId, jornada.id, deleteTarget.id);
+      setDeleteTarget(null);
+      notify("Boleto eliminado", "success");
+      await refresh(teamId, jornada.id);
+    } catch (e: unknown) {
+      setDeleteTarget(null);
+      notify(apiErrorMessage(e, "No se pudo eliminar el boleto."), "error");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleSaveSettings = async (percent: number) => {
+    if (!teamId || !jornada) return;
+    setSavingSettings(true);
+    try {
+      const saved = await updateQuinielaSettings(teamId, percent);
+      setFundPercent(saved.fundPercent);
+      notify("Reparto guardado", "success");
+      await refresh(teamId, jornada.id);
+    } catch (e: unknown) {
+      notify(apiErrorMessage(e, "No se pudo guardar el reparto."), "error");
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
+  const handleResetConfirmed = async () => {
+    if (!teamId || !jornada) return;
+    setResetting(true);
+    try {
+      await resetQuiniela(teamId, jornada.id);
+      setResetOpen(false);
+      notify("Jornada reiniciada", "success");
+      navigate(quinielaPath);
+    } catch (e: unknown) {
+      setResetOpen(false);
+      notify(apiErrorMessage(e, "No se pudo reiniciar la jornada."), "error");
+    } finally {
+      setResetting(false);
+    }
+  };
+
   if (state === "forbidden") return <Navigate to={quinielaPath} replace />;
 
   const filters: Array<{ key: Filter; label: string }> = [
@@ -158,6 +234,7 @@ export default function QuinielaPool() {
               busy={busyTicketId === ticket.id}
               onPay={(method) => void changePayment(ticket.id, true, method)}
               onUndo={() => void changePayment(ticket.id, false)}
+              onDelete={() => setDeleteTarget(ticket)}
             />
           ))
         )}
@@ -165,6 +242,7 @@ export default function QuinielaPool() {
 
       <div className={styles.side}>
         <PoolBreakdown totals={payments.totals} />
+        <PoolSettings fundPercent={fundPercent} saving={savingSettings} onSave={(p) => void handleSaveSettings(p)} />
         {editable && pendingCount > 0 && (
           <div className={styles.notice}>
             <strong>Boletos sin pagar</strong>
@@ -215,6 +293,11 @@ export default function QuinielaPool() {
               Volver
             </Button>
             {state === "ready" && editable && (
+              <Button variant="outlined" color="error" size="small" onClick={() => setResetOpen(true)}>
+                Reiniciar jornada
+              </Button>
+            )}
+            {state === "ready" && editable && (
               <Button variant="contained" size="small" className={styles.settleButton} onClick={() => setSettleOpen(true)}>
                 Cerrar jornada y repartir
               </Button>
@@ -232,6 +315,26 @@ export default function QuinielaPool() {
         processing={settling}
         onCancel={() => setSettleOpen(false)}
         onConfirm={() => void handleSettle()}
+      />
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="Eliminar boleto"
+        description={`Se eliminará el boleto de ${deleteTarget?.userName ?? ""}${
+          deleteTarget?.paymentStatus === "Paid" ? " y se descontará lo cobrado de la bolsa" : ""
+        }. Esta acción no se puede deshacer.`}
+        confirmText="Eliminar"
+        processing={deleting}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={() => void handleDeleteConfirmed()}
+      />
+      <ConfirmDialog
+        open={resetOpen}
+        title="Reiniciar jornada"
+        description="Se eliminarán todos los boletos y la jornada abierta, y podrás abrir la quiniela de nuevo desde cero. Esta acción no se puede deshacer."
+        confirmText="Reiniciar"
+        processing={resetting}
+        onCancel={() => setResetOpen(false)}
+        onConfirm={() => void handleResetConfirmed()}
       />
     </BaseLayout>
   );

@@ -33,10 +33,21 @@ export default function PoolTotals({ totals, paidCount, pendingCount }: Props) {
       <Stat
         label="Premios de la jornada"
         value={formatMoney(totals.prizePool)}
-        hint={`55 % de lo cobrado + bote de ${formatMoney(totals.carryIn)}`}
+        hint={`${totals.prizePercent} % de lo cobrado + bote de ${formatMoney(totals.carryIn)}`}
         tone="prize"
       />
-      <Stat label="Fondo del equipo" value={formatMoney(totals.fundAmount)} hint="45 % restante de lo cobrado" tone="plain" />
+      <Stat
+        label="Bote acumulado"
+        value={formatMoney(totals.carryIn)}
+        hint="Viene de jornadas sin ganador"
+        tone="prize"
+      />
+      <Stat
+        label="Fondo del equipo"
+        value={formatMoney(totals.fundAmount)}
+        hint={`${100 - totals.prizePercent} % restante de lo cobrado`}
+        tone="plain"
+      />
     </div>
   );
 }

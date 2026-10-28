@@ -27,7 +27,9 @@ vi.mock("../../../../../shared/hooks/useAuditPageAccess", () => ({ useAuditPageA
 const getCurrentQuiniela = vi.fn();
 const saveQuinielaTicket = vi.fn();
 const openQuiniela = vi.fn();
+const deleteMyQuinielaTicket = vi.fn();
 vi.mock("../../../services/quinielaService", () => ({
+  deleteMyQuinielaTicket: (...args: unknown[]) => deleteMyQuinielaTicket(...args),
   getCurrentQuiniela: (...args: unknown[]) => getCurrentQuiniela(...args),
   saveQuinielaTicket: (...args: unknown[]) => saveQuinielaTicket(...args),
   openQuiniela: (...args: unknown[]) => openQuiniela(...args),
@@ -253,6 +255,92 @@ describe("Quiniela", () => {
     await screen.findByText("CD Los Olivos");
     expect(within(cardOf("CD Los Olivos")).getByRole("button", { name: /empate/i })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByText("Pendiente de pago")).toBeInTheDocument();
+  });
+
+  describe("eliminar mi boleto", () => {
+    const savedTicket = (paymentStatus: "Pending" | "Paid" | "Expired") => ({
+      id: "tk1",
+      picks: [{ recordCode: "m1", sign: "X" as const }],
+      plenoHome: 0,
+      plenoAway: 2,
+      paymentStatus,
+      paymentDeadlineUtc: "2026-10-30T22:59:00Z",
+      hits: null,
+      category: null,
+      prize: null,
+    });
+
+    it("elimina el boleto pendiente tras confirmar y vuelve a cargar la quiniela sin boleto", async () => {
+      getCurrentQuiniela
+        .mockResolvedValueOnce(current({ myTicket: savedTicket("Pending") }))
+        .mockResolvedValueOnce(current());
+      deleteMyQuinielaTicket.mockResolvedValue(undefined);
+      renderPage();
+      await screen.findByText("CD Los Olivos");
+
+      fireEvent.click(screen.getByRole("button", { name: /eliminar mi boleto/i }));
+      const dialog = await screen.findByRole("dialog");
+      expect(deleteMyQuinielaTicket).not.toHaveBeenCalled();
+      fireEvent.click(within(dialog).getByRole("button", { name: /^eliminar$/i }));
+
+      await waitFor(() => expect(deleteMyQuinielaTicket).toHaveBeenCalledWith("team-1", "j1"));
+      await waitFor(() => expect(getCurrentQuiniela).toHaveBeenCalledTimes(2));
+      await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+      await waitFor(() => expect(screen.queryByRole("button", { name: /eliminar mi boleto/i })).not.toBeInTheDocument());
+      expect(within(cardOf("CD Los Olivos")).getByRole("button", { name: /empate/i })).toHaveAttribute("aria-pressed", "false");
+    });
+
+    it("no elimina el boleto si se cancela la confirmación", async () => {
+      getCurrentQuiniela.mockResolvedValue(current({ myTicket: savedTicket("Pending") }));
+      renderPage();
+      await screen.findByText("CD Los Olivos");
+
+      fireEvent.click(screen.getByRole("button", { name: /eliminar mi boleto/i }));
+      const dialog = await screen.findByRole("dialog");
+      fireEvent.click(within(dialog).getByRole("button", { name: /cancelar/i }));
+
+      await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+      expect(deleteMyQuinielaTicket).not.toHaveBeenCalled();
+    });
+
+    it("avisa con un snackbar si falla la eliminación", async () => {
+      const listener = vi.fn();
+      window.addEventListener("rffm.show_snackbar", listener);
+      getCurrentQuiniela.mockResolvedValue(current({ myTicket: savedTicket("Pending") }));
+      deleteMyQuinielaTicket.mockRejectedValue({ response: { data: { detail: "Solo puedes eliminar un boleto que aún no está pagado." } } });
+      renderPage();
+      await screen.findByText("CD Los Olivos");
+
+      fireEvent.click(screen.getByRole("button", { name: /eliminar mi boleto/i }));
+      const dialog = await screen.findByRole("dialog");
+      fireEvent.click(within(dialog).getByRole("button", { name: /^eliminar$/i }));
+
+      await waitFor(() => expect(listener).toHaveBeenCalled());
+      const event = listener.mock.calls[0][0] as CustomEvent<{ message: string; severity: string }>;
+      expect(event.detail.severity).toBe("error");
+      window.removeEventListener("rffm.show_snackbar", listener);
+    });
+
+    it("también permite eliminar un boleto caducado sin pagar", async () => {
+      getCurrentQuiniela.mockResolvedValue(current({ myTicket: savedTicket("Expired") }));
+      renderPage();
+      await screen.findByText("CD Los Olivos");
+      expect(screen.getByRole("button", { name: /eliminar mi boleto/i })).toBeInTheDocument();
+    });
+
+    it("no ofrece eliminar un boleto ya pagado", async () => {
+      getCurrentQuiniela.mockResolvedValue(current({ myTicket: savedTicket("Paid") }));
+      renderPage();
+      await screen.findByText("CD Los Olivos");
+      expect(screen.queryByRole("button", { name: /eliminar mi boleto/i })).not.toBeInTheDocument();
+    });
+
+    it("no ofrece eliminar si todavía no hay boleto guardado", async () => {
+      getCurrentQuiniela.mockResolvedValue(current());
+      renderPage();
+      await screen.findByText("CD Los Olivos");
+      expect(screen.queryByRole("button", { name: /eliminar mi boleto/i })).not.toBeInTheDocument();
+    });
   });
 
   it("muestra la bolsa de la jornada", async () => {

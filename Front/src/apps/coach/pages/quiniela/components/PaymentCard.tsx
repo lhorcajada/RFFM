@@ -10,6 +10,7 @@ type Props = {
   busy: boolean;
   onPay: (method: QuinielaPaymentMethod) => void;
   onUndo: () => void;
+  onDelete: () => void;
 };
 
 const STATUS_CLASS = {
@@ -18,7 +19,7 @@ const STATUS_CLASS = {
   Expired: styles.expired,
 } as const;
 
-export default function PaymentCard({ ticket, price, editable, busy, onPay, onUndo }: Props) {
+export default function PaymentCard({ ticket, price, editable, busy, onPay, onUndo, onDelete }: Props) {
   const method = paymentMethodLabel(ticket.paymentMethod);
   const detail =
     ticket.paymentStatus === "Paid" && ticket.paidAt
@@ -39,6 +40,19 @@ export default function PaymentCard({ ticket, price, editable, busy, onPay, onUn
         {editable && ticket.paymentStatus === "Paid" && (
           <Button variant="outlined" color="inherit" size="small" className={styles.button} disabled={busy} onClick={onUndo}>
             Deshacer
+          </Button>
+        )}
+        {editable && (
+          <Button
+            variant="outlined"
+            color="error"
+            size="small"
+            className={styles.button}
+            disabled={busy}
+            onClick={onDelete}
+            aria-label={`Eliminar boleto de ${ticket.userName}`}
+          >
+            Eliminar
           </Button>
         )}
       </div>

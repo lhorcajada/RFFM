@@ -12,7 +12,10 @@ type Props = {
   closed: boolean;
   saving: boolean;
   canSave: boolean;
+  canDelete: boolean;
+  deleting: boolean;
   onSave: () => void;
+  onDelete: () => void;
 };
 
 export default function TicketSummary({
@@ -24,7 +27,10 @@ export default function TicketSummary({
   closed,
   saving,
   canSave,
+  canDelete,
+  deleting,
   onSave,
+  onDelete,
 }: Props) {
   const percent = total > 0 ? Math.round((filled / total) * 100) : 0;
   const statusClass = paymentStatus === "Paid" ? styles.paid : paymentStatus === "Expired" ? styles.expired : styles.pending;
@@ -57,6 +63,11 @@ export default function TicketSummary({
       <button type="button" className={styles.save} disabled={!canSave || saving || closed} onClick={onSave}>
         {saving ? <CircularProgress size={20} color="inherit" /> : "Guardar boleto"}
       </button>
+      {canDelete && (
+        <button type="button" className={styles.remove} disabled={deleting} onClick={onDelete}>
+          Eliminar mi boleto
+        </button>
+      )}
       {paymentDeadlineUtc && (
         <p className={styles.note}>
           Puedes guardar el boleto y pagar después: el plazo termina el {formatKickoff(paymentDeadlineUtc)}. El pago se entrega al entrenador.
