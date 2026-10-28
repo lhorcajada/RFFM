@@ -24,10 +24,13 @@ namespace RFFM.Api.Features.Coaches.Quiniela
         string Id, IReadOnlyList<QuinielaPickDto> Picks, int PlenoHome, int PlenoAway, string PaymentStatus,
         DateTime? PaymentDeadlineUtc, int? Hits, string? Category, decimal? Prize);
 
-    public record QuinielaPoolDto(int Participants, int PaidTickets, decimal Collected, decimal PrizePool);
+    public record QuinielaPoolDto(int Participants, int PaidTickets, decimal Collected, decimal PrizePool, decimal PossiblePrizePool);
+
+    public record QuinielaWinnerDto(string UserName, string Category, int Hits, decimal Prize);
 
     public record QuinielaPreviousDto(
-        string JornadaId, int RoundNumber, DateTime SettledAt, decimal CarryOut, int? MyHits, string? MyCategory, decimal? MyPrize);
+        string JornadaId, int RoundNumber, DateTime SettledAt, decimal CarryOut, int? MyHits, string? MyCategory, decimal? MyPrize,
+        IReadOnlyList<QuinielaWinnerDto> Winners);
 
     public record QuinielaCurrentDto(
         bool IsOpen, QuinielaJornadaDto? Jornada, IReadOnlyList<QuinielaMatchDto> Matches, QuinielaTicketDto? MyTicket,
@@ -35,11 +38,12 @@ namespace RFFM.Api.Features.Coaches.Quiniela
 
     public record QuinielaPaymentTicketDto(
         string Id, string UserId, string UserName, string Role, string PaymentStatus, string? PaymentMethod,
-        DateTime? PaidAt, int? Hits, string? Category, decimal? Prize);
+        DateTime? PaidAt, int? Hits, string? Category, decimal? Prize,
+        IReadOnlyList<QuinielaPickDto> Picks, int PlenoHome, int PlenoAway);
 
     public record QuinielaTotalsDto(
         decimal Collected, decimal Pending, decimal PrizePool, decimal FundAmount, decimal CarryIn, decimal? CarryOut, decimal Prizes,
-        decimal PrizePercent);
+        decimal PrizePercent, decimal PossiblePrizePool);
 
     public record QuinielaSettingsDto(decimal FundPercent);
 
@@ -47,7 +51,7 @@ namespace RFFM.Api.Features.Coaches.Quiniela
 
     public record QuinielaPaymentsDto(
         QuinielaJornadaDto Jornada, IReadOnlyList<QuinielaPaymentTicketDto> Tickets, QuinielaTotalsDto Totals,
-        IReadOnlyList<QuinielaFundMovementDto> Movements);
+        IReadOnlyList<QuinielaFundMovementDto> Movements, IReadOnlyList<QuinielaMatchDto> Matches);
 
     public record QuinielaTicketResultDto(string TicketId, int Hits, string Category, decimal Prize);
 
@@ -94,6 +98,19 @@ namespace RFFM.Api.Features.Coaches.Quiniela
                 m.IsFinal && int.TryParse(m.LocalGoals, out var home) ? home : null,
                 m.IsFinal && int.TryParse(m.VisitorGoals, out var away) ? away : null))
             .ToList();
+
+        public IReadOnlyList<QuinielaMatchDto> ToMatchDtos()
+        {
+            var plenoCode = PlenoRecordCode;
+            return Matches
+                .Select(m => new QuinielaMatchDto(
+                    m.RecordCode, m.LocalTeamName, m.VisitorTeamName, KickoffOf(m), QuinielaMatchValidity.IsValid(m),
+                    m.RecordCode == plenoCode,
+                    m.IsFinal && int.TryParse(m.LocalGoals, out var home) ? home : null,
+                    m.IsFinal && int.TryParse(m.VisitorGoals, out var away) ? away : null,
+                    m.IsFinal))
+                .ToList();
+        }
 
         public string? PlenoRecordCode
         {
@@ -214,7 +231,9 @@ namespace RFFM.Api.Features.Coaches.Quiniela
             var participant = participants.GetValueOrDefault(ticket.ApplicationUserId) ?? new Participant("Sin nombre", string.Empty);
             return new QuinielaPaymentTicketDto(
                 ticket.Id, ticket.ApplicationUserId, participant.Name, participant.Role, status.Name,
-                ticket.PaymentMethod?.Name, ticket.PaidAt, ticket.Hits, ticket.Category?.Name, ticket.Prize);
+                ticket.PaymentMethod?.Name, ticket.PaidAt, ticket.Hits, ticket.Category?.Name, ticket.Prize,
+                ticket.Picks.Select(p => new QuinielaPickDto(p.RecordCode, p.Sign.Name)).OrderBy(p => p.RecordCode).ToList(),
+                ticket.PlenoHome, ticket.PlenoAway);
         }
 
         /// <summary>Bolsa de premios estimada con lo cobrado hasta ahora: cobrado × % de premios (truncado al céntimo) + bote arrastrado.</summary>

@@ -52,22 +52,17 @@ namespace RFFM.Api.Features.Coaches.Quiniela
                     return new QuinielaCurrentDto(false, null, [], null, null, previous, canManage);
 
                 var round = await QuinielaSupport.LoadRoundAsync(federationDb, open.RffmRoundId, cancellationToken);
-                var plenoCode = round.PlenoRecordCode;
-                var matches = round.Matches
-                    .Select(m => new QuinielaMatchDto(
-                        m.RecordCode, m.LocalTeamName, m.VisitorTeamName, QuinielaRound.KickoffOf(m), QuinielaMatchValidity.IsValid(m),
-                        m.RecordCode == plenoCode,
-                        m.IsFinal && int.TryParse(m.LocalGoals, out var home) ? home : null,
-                        m.IsFinal && int.TryParse(m.VisitorGoals, out var away) ? away : null,
-                        m.IsFinal))
-                    .ToList();
+                var matches = round.ToMatchDtos();
 
                 var tickets = await db.QuinielaTickets.AsNoTracking().Where(t => t.JornadaId == open.Id).ToListAsync(cancellationToken);
                 var mine = tickets.FirstOrDefault(t => t.ApplicationUserId == userId);
                 var paid = tickets.Count(t => t.PaymentStatus == QuinielaPaymentStatus.Paid);
                 var collected = paid * open.Price;
+                var pending = tickets.Count(t => QuinielaSupport.EffectiveStatus(t, round, now) == QuinielaPaymentStatus.Pending);
                 var pool = new QuinielaPoolDto(
-                    tickets.Count, paid, collected, QuinielaSupport.SplitCollected(collected, open.PrizePercent).PrizeBase + open.CarryIn);
+                    tickets.Count, paid, collected,
+                    QuinielaSupport.SplitCollected(collected, open.PrizePercent).PrizeBase + open.CarryIn,
+                    QuinielaSupport.SplitCollected(collected + pending * open.Price, open.PrizePercent).PrizeBase + open.CarryIn);
 
                 return new QuinielaCurrentDto(
                     true, QuinielaSupport.ToDto(open, round, now), matches,
@@ -89,8 +84,22 @@ namespace RFFM.Api.Features.Coaches.Quiniela
                 var mine = await db.QuinielaTickets.AsNoTracking()
                     .SingleOrDefaultAsync(t => t.JornadaId == last.Id && t.ApplicationUserId == userId, ct);
 
+                var winningTickets = (await db.QuinielaTickets.AsNoTracking()
+                        .Where(t => t.JornadaId == last.Id && t.Category != null)
+                        .ToListAsync(ct))
+                    .Where(t => t.Category != QuinielaCategory.None)
+                    .OrderBy(t => t.Category!.Value)
+                    .ThenByDescending(t => t.Prize)
+                    .ToList();
+                var participants = await QuinielaSupport.LoadParticipantsAsync(
+                    db, teamId, winningTickets.Select(t => t.ApplicationUserId).ToList(), ct);
+                var winners = winningTickets
+                    .Select(t => new QuinielaWinnerDto(
+                        participants[t.ApplicationUserId].Name, t.Category!.Name, t.Hits ?? 0, t.Prize ?? 0m))
+                    .ToList();
+
                 return new QuinielaPreviousDto(
-                    last.Id, roundNumber, last.SettledAt!.Value, last.CarryOut ?? 0m, mine?.Hits, mine?.Category?.Name, mine?.Prize);
+                    last.Id, roundNumber, last.SettledAt!.Value, last.CarryOut ?? 0m, mine?.Hits, mine?.Category?.Name, mine?.Prize, winners);
             }
         }
     }
