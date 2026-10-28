@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { COACH_FEATURE_ROUTES } from "../../../../constants/featureRoutes";
-import type { QuinielaCurrent, QuinielaTicket } from "../../../../services/quinielaService";
+import type { QuinielaCurrent, QuinielaPrevious, QuinielaTicket } from "../../../../services/quinielaService";
 
 const mockPermissions = vi.fn();
 vi.mock("../../../../../../shared/hooks/usePermissions", () => ({
@@ -51,7 +51,7 @@ function current(overrides: Partial<QuinielaCurrent> = {}): QuinielaCurrent {
     },
     matches: [],
     myTicket: null,
-    pool: { participants: 12, paidTickets: 8, collected: 8, prizePool: 11.5 },
+    pool: { participants: 12, paidTickets: 8, collected: 8, prizePool: 11.5, possiblePrizePool: 13.5 },
     previous: null,
     canManage: false,
     ...overrides,
@@ -83,6 +83,65 @@ describe("QuinielaPromoCard", () => {
     vi.restoreAllMocks();
   });
 
+  it("muestra la bolsa posible con los pendientes de pago", async () => {
+    getCurrentQuiniela.mockResolvedValue(current());
+    renderCard();
+
+    const possible = (await screen.findByText("Bolsa posible")).parentElement as HTMLElement;
+    expect(possible).toHaveTextContent(/13,50\s€/);
+  });
+
+  describe("ganadores de la jornada cerrada", () => {
+    const previous = (winners: QuinielaPrevious["winners"]): QuinielaPrevious => ({
+      jornadaId: "j0",
+      roundNumber: 6,
+      settledAt: "2026-10-26T10:00:00Z",
+      carryOut: 2,
+      myHits: null,
+      myCategory: null,
+      myPrize: null,
+      winners,
+    });
+    const closed = (winners: QuinielaPrevious["winners"]) =>
+      current({ isOpen: false, jornada: null, matches: [], pool: null, previous: previous(winners) });
+
+    it("muestra una tarjeta con los ganadores, su categoría y su premio", async () => {
+      getCurrentQuiniela.mockResolvedValue(
+        closed([
+          { userName: "Carla Ruiz", category: "Special", hits: 14, prize: 6.5 },
+          { userName: "Lucas Medina", category: "Second", hits: 12, prize: 2 },
+        ]),
+      );
+      renderCard();
+
+      const card = await screen.findByRole("region", { name: /ganadores de la quiniela/i });
+      expect(card).toHaveTextContent("Jornada 6");
+      expect(card).toHaveTextContent("Carla Ruiz");
+      expect(card).toHaveTextContent("Categoría Especial");
+      expect(card).toHaveTextContent(/6,50\s€/);
+      expect(card).toHaveTextContent("Lucas Medina");
+    });
+
+    it("sin acertantes avisa de que el bote pasa a la siguiente jornada", async () => {
+      getCurrentQuiniela.mockResolvedValue(closed([]));
+      renderCard();
+
+      const card = await screen.findByRole("region", { name: /ganadores de la quiniela/i });
+      expect(card).toHaveTextContent(/sin acertantes/i);
+      expect(card).toHaveTextContent(/2,00\s€/);
+    });
+
+    it("no se muestra mientras hay una jornada abierta", async () => {
+      getCurrentQuiniela.mockResolvedValue(
+        current({ previous: previous([{ userName: "Carla Ruiz", category: "Special", hits: 14, prize: 6.5 }]) }),
+      );
+      renderCard();
+
+      await screen.findByText("Quiniela del equipo");
+      expect(screen.queryByRole("region", { name: /ganadores de la quiniela/i })).not.toBeInTheDocument();
+    });
+  });
+
   it("muestra el bote acumulado junto a la bolsa", async () => {
     getCurrentQuiniela.mockResolvedValue(current());
     renderCard();
@@ -94,7 +153,7 @@ describe("QuinielaPromoCard", () => {
   it("se actualiza sola al volver a la pestaña cuando entra un boleto nuevo", async () => {
     getCurrentQuiniela
       .mockResolvedValueOnce(current())
-      .mockResolvedValue(current({ pool: { participants: 13, paidTickets: 9, collected: 9, prizePool: 12.5 } }));
+      .mockResolvedValue(current({ pool: { participants: 13, paidTickets: 9, collected: 9, prizePool: 12.5, possiblePrizePool: 14.5 } }));
     renderCard();
     await screen.findByText(/11,50\s€/);
 

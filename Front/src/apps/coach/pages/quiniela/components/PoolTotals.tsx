@@ -37,6 +37,12 @@ export default function PoolTotals({ totals, paidCount, pendingCount }: Props) {
         tone="prize"
       />
       <Stat
+        label="Bolsa posible"
+        value={formatMoney(totals.possiblePrizePool)}
+        hint="Si se pagan los pendientes"
+        tone="plain"
+      />
+      <Stat
         label="Bote acumulado"
         value={formatMoney(totals.carryIn)}
         hint="Viene de jornadas sin ganador"

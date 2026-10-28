@@ -1,0 +1,92 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1 1 100%;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.teams {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  color: var(--rffm-text, #f0f0f0);
+  font-size: 0.875rem;
+}
+
+.team {
+  overflow-wrap: anywhere;
+}
+
+.outcome {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+
+.score {
+  color: var(--rffm-muted, #a59f9f);
+  font-size: 0.8125rem;
+}
+
+.sign {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--rffm-primary);
+  color: var(--rffm-standings-on-badge);
+  font-weight: 700;
+}
+
+.empty {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--rffm-muted, #a59f9f);
+}
+
+.hit {
+  color: var(--rffm-status-accepted);
+  font-weight: 700;
+}
+
+.miss {
+  color: var(--rffm-status-declined);
+  font-weight: 700;
+}
+
+.pleno {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  color: var(--rffm-muted, #a59f9f);
+  font-size: 0.875rem;
+}
+
+.pleno strong {
+  color: var(--rffm-text, #f0f0f0);
+  font-size: 1.1rem;
+}

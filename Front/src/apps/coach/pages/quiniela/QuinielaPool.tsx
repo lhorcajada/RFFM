@@ -23,6 +23,7 @@ import type { QuinielaPaymentMethod, QuinielaPaymentTicket, QuinielaPayments } f
 import { apiErrorMessage, formatKickoff } from "./quinielaHelpers";
 import PaymentCard from "./components/PaymentCard";
 import PoolBreakdown from "./components/PoolBreakdown";
+import PoolWinners from "./components/PoolWinners";
 import PoolSettings from "./components/PoolSettings";
 import PoolMovements from "./components/PoolMovements";
 import PoolTotals from "./components/PoolTotals";
@@ -62,12 +63,14 @@ export default function QuinielaPool() {
         setState("forbidden");
         return;
       }
-      if (!current.jornada) {
+      // Sin jornada abierta se revisa la última liquidada: boletos, ganadores y reparto.
+      const reviewedJornadaId = current.jornada?.id ?? current.previous?.jornadaId ?? null;
+      if (!reviewedJornadaId) {
         setState("noJornada");
         return;
       }
       const [payments, settings] = await Promise.all([
-        getQuinielaPayments(id, current.jornada.id),
+        getQuinielaPayments(id, reviewedJornadaId),
         getQuinielaSettings(id),
       ]);
       setData(payments);
@@ -230,6 +233,7 @@ export default function QuinielaPool() {
               key={ticket.id}
               ticket={ticket}
               price={payments.jornada.price}
+              matches={payments.matches}
               editable={editable}
               busy={busyTicketId === ticket.id}
               onPay={(method) => void changePayment(ticket.id, true, method)}
@@ -241,6 +245,7 @@ export default function QuinielaPool() {
       </div>
 
       <div className={styles.side}>
+        {!editable && <PoolWinners tickets={tickets} carryOut={payments.totals.carryOut} />}
         <PoolBreakdown totals={payments.totals} />
         <PoolSettings fundPercent={fundPercent} saving={savingSettings} onSave={(p) => void handleSaveSettings(p)} />
         {editable && pendingCount > 0 && (

@@ -53,6 +53,14 @@ export type QuinielaPool = {
   paidTickets: number;
   collected: number;
   prizePool: number;
+  possiblePrizePool: number;
+};
+
+export type QuinielaWinner = {
+  userName: string;
+  category: QuinielaCategory;
+  hits: number;
+  prize: number;
 };
 
 export type QuinielaPrevious = {
@@ -63,6 +71,7 @@ export type QuinielaPrevious = {
   myHits: number | null;
   myCategory: QuinielaCategory | null;
   myPrize: number | null;
+  winners: QuinielaWinner[];
 };
 
 export type QuinielaCurrent = {
@@ -92,6 +101,9 @@ export type QuinielaPaymentTicket = {
   hits: number | null;
   category: QuinielaCategory | null;
   prize: number | null;
+  picks: QuinielaPick[];
+  plenoHome: number;
+  plenoAway: number;
 };
 
 export type QuinielaTotals = {
@@ -103,6 +115,7 @@ export type QuinielaTotals = {
   carryOut: number | null;
   prizes: number;
   prizePercent: number;
+  possiblePrizePool: number;
 };
 
 export type QuinielaSettings = {
@@ -121,6 +134,7 @@ export type QuinielaPayments = {
   tickets: QuinielaPaymentTicket[];
   totals: QuinielaTotals;
   movements: QuinielaFundMovement[];
+  matches: QuinielaMatch[];
 };
 
 export type SetQuinielaPaymentRequest = {

@@ -14,6 +14,11 @@ export function goalsFromLabel(label: string): number {
   return index < 0 ? 0 : index;
 }
 
+export function signOfGoals(homeGoals: number, awayGoals: number): "1" | "X" | "2" {
+  if (homeGoals > awayGoals) return "1";
+  return homeGoals === awayGoals ? "X" : "2";
+}
+
 function parseUtc(value: string): Date {
   const hasZone = /(Z|[+-]\d{2}:?\d{2})$/.test(value);
   return new Date(hasZone ? value : `${value}Z`);

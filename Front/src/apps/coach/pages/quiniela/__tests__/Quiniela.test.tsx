@@ -82,7 +82,7 @@ function current(overrides: Partial<QuinielaCurrent> = {}): QuinielaCurrent {
       }),
     ],
     myTicket: null,
-    pool: { participants: 12, paidTickets: 8, collected: 8, prizePool: 11.5 },
+    pool: { participants: 12, paidTickets: 8, collected: 8, prizePool: 11.5, possiblePrizePool: 13.5 },
     previous: null,
     canManage: false,
     ...overrides,

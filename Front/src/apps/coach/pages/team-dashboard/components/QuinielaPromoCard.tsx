@@ -9,6 +9,7 @@ import { getCurrentQuiniela } from "../../../services/quinielaService";
 import type { QuinielaCurrent } from "../../../services/quinielaService";
 import { formatKickoff, formatMoney } from "../../quiniela/quinielaHelpers";
 import QuinielaRulesDialog from "../../quiniela/components/QuinielaRulesDialog";
+import QuinielaWinnersCard from "./QuinielaWinnersCard";
 import { currentUserId, isQuinielaNovelty } from "../utils/quinielaNovelty";
 import styles from "./QuinielaPromoCard.module.css";
 
@@ -94,11 +95,17 @@ export default function QuinielaPromoCard({ teamId }: { teamId: string | null })
   const href = `${COACH_FEATURE_ROUTES.Quiniela}?teamId=${encodeURIComponent(teamId)}`;
 
   if (!current.isOpen || !current.jornada) {
-    if (!current.canManage) return null;
+    const previous = current.previous;
+    if (!current.canManage && !previous) return null;
     return (
-      <Link to={href} className={styles.discreet}>
-        Abrir quiniela
-      </Link>
+      <>
+        {previous && <QuinielaWinnersCard previous={previous} />}
+        {current.canManage && (
+          <Link to={href} className={styles.discreet}>
+            Abrir quiniela
+          </Link>
+        )}
+      </>
     );
   }
 
@@ -131,6 +138,10 @@ export default function QuinielaPromoCard({ teamId }: { teamId: string | null })
         <div className={styles.fact}>
           <span className={styles.factLabel}>Bolsa</span>
           <span className={styles.pot}>{formatMoney(current.pool?.prizePool ?? 0)}</span>
+        </div>
+        <div className={styles.fact}>
+          <span className={styles.factLabel}>Bolsa posible</span>
+          <span className={styles.factValue}>{formatMoney(current.pool?.possiblePrizePool ?? 0)}</span>
         </div>
         <div className={styles.fact}>
           <span className={styles.factLabel}>Bote</span>

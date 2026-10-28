@@ -61,6 +61,12 @@ function ticket(overrides: Partial<QuinielaPaymentTicket>): QuinielaPaymentTicke
     hits: null,
     category: null,
     prize: null,
+    picks: [
+      { recordCode: "m1", sign: "1" },
+      { recordCode: "m2", sign: "X" },
+    ],
+    plenoHome: 1,
+    plenoAway: 0,
     ...overrides,
   };
 }
@@ -85,8 +91,12 @@ function payments(overrides: Partial<QuinielaPayments> = {}): QuinielaPayments {
       ticket({ id: "t2", userId: "u2", userName: "Lucas Medina", role: "Player", paymentMethod: "Bizum" }),
       ticket({ id: "t3", userId: "u3", userName: "Pablo Vega", role: "Player", paymentStatus: "Pending", paymentMethod: null, paidAt: null }),
     ],
-    totals: { collected: 2, pending: 1, prizePool: 4.6, fundAmount: 0.9, carryIn: 3.5, carryOut: null, prizes: 0, prizePercent: 100 },
+    totals: { collected: 2, pending: 1, prizePool: 4.6, fundAmount: 0.9, carryIn: 3.5, carryOut: null, prizes: 0, prizePercent: 100, possiblePrizePool: 6.5 },
     movements: [{ id: "mv1", amount: 1, occurredAt: "2026-10-28T17:20:00Z", description: "Cobro · Carla Ruiz" }],
+    matches: [
+      { recordCode: "m1", homeTeam: "CD Los Olivos", awayTeam: "UD Sierra Norte", kickoffUtc: "2026-10-31T09:00:00Z", isValid: true, isPleno: false, homeGoals: null, awayGoals: null, isFinal: false },
+      { recordCode: "m2", homeTeam: "Real Valdemar", awayTeam: "CD Las Encinas", kickoffUtc: "2026-10-31T11:00:00Z", isValid: true, isPleno: true, homeGoals: null, awayGoals: null, isFinal: false },
+    ],
     ...overrides,
   };
 }
@@ -164,7 +174,7 @@ describe("QuinielaPool", () => {
   it("marca un boleto como pagado en efectivo y refresca los totales", async () => {
     const updated = payments({
       tickets: payments().tickets.map((t) => (t.id === "t3" ? { ...t, paymentStatus: "Paid" as const, paymentMethod: "Cash" as const } : t)),
-      totals: { collected: 3, pending: 0, prizePool: 5.15, fundAmount: 1.35, carryIn: 3.5, carryOut: null, prizes: 0, prizePercent: 100 },
+      totals: { collected: 3, pending: 0, prizePool: 5.15, fundAmount: 1.35, carryIn: 3.5, carryOut: null, prizes: 0, prizePercent: 100, possiblePrizePool: 6.65 },
     });
     setQuinielaTicketPayment.mockResolvedValue(updated.tickets[2]);
     getQuinielaPayments.mockResolvedValueOnce(payments()).mockResolvedValueOnce(updated);
@@ -244,6 +254,84 @@ describe("QuinielaPool", () => {
 
     await waitFor(() => expect(settleQuiniela).toHaveBeenCalledWith("team-1", "j1"));
     await waitFor(() => expect(getQuinielaPayments).toHaveBeenCalledTimes(2));
+  });
+
+  it("muestra la bolsa posible con los boletos pagados y los pendientes", async () => {
+    renderPage();
+    await screen.findByText("Carla Ruiz");
+    const possible = stat("Bolsa posible");
+    expect(within(possible).getByText("6,50 €")).toBeInTheDocument();
+    expect(within(possible).getByText(/si se pagan los pendientes/i)).toBeInTheDocument();
+  });
+
+  it("despliega el boleto rellenado de un participante y lo vuelve a ocultar", async () => {
+    renderPage();
+    await screen.findByText("Pablo Vega");
+    expect(screen.queryByTestId("ticket-pick")).not.toBeInTheDocument();
+
+    const toggle = screen.getByRole("button", { name: /ver boleto de pablo vega/i });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(toggle);
+
+    expect(screen.getAllByTestId("ticket-pick")).toHaveLength(2);
+    expect(screen.getByRole("button", { name: /ocultar boleto de pablo vega/i })).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByLabelText("Pronóstico: 1")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /ocultar boleto de pablo vega/i }));
+    expect(screen.queryByTestId("ticket-pick")).not.toBeInTheDocument();
+  });
+
+  it("lista los ganadores cuando la jornada está liquidada", async () => {
+    const base = payments();
+    getQuinielaPayments.mockResolvedValue(
+      payments({
+        jornada: { ...base.jornada, status: "Settled" },
+        tickets: [
+          ticket({ id: "t1", userName: "Carla Ruiz", hits: 14, category: "Special", prize: 6.5 }),
+          ticket({ id: "t2", userId: "u2", userName: "Lucas Medina", hits: 9, category: "None", prize: 0 }),
+        ],
+      }),
+    );
+    renderPage();
+    await screen.findByText("Lucas Medina");
+
+    const winners = screen.getByRole("region", { name: /ganadores/i });
+    expect(within(winners).getByText("Carla Ruiz")).toBeInTheDocument();
+    expect(within(winners).getByText("6,50 €")).toBeInTheDocument();
+    expect(within(winners).queryByText("Lucas Medina")).not.toBeInTheDocument();
+  });
+
+  it("indica que no hay acertantes si nadie ha ganado premio", async () => {
+    const base = payments();
+    getQuinielaPayments.mockResolvedValue(
+      payments({
+        jornada: { ...base.jornada, status: "Settled" },
+        tickets: [ticket({ id: "t2", userId: "u2", userName: "Lucas Medina", hits: 9, category: "None", prize: 0 })],
+      }),
+    );
+    renderPage();
+    await screen.findByText("Lucas Medina");
+
+    expect(within(screen.getByRole("region", { name: /ganadores/i })).getByText(/sin acertantes/i)).toBeInTheDocument();
+  });
+
+  it("no muestra el bloque de ganadores mientras la jornada está abierta", async () => {
+    renderPage();
+    await screen.findByText("Carla Ruiz");
+    expect(screen.queryByRole("region", { name: /ganadores/i })).not.toBeInTheDocument();
+  });
+
+  it("revisa la última jornada liquidada cuando no hay ninguna abierta", async () => {
+    getCurrentQuiniela.mockResolvedValue({
+      ...currentFor(true),
+      isOpen: false,
+      jornada: null,
+      previous: { jornadaId: "j0", roundNumber: 6, settledAt: "2026-10-26T10:00:00Z", carryOut: 0, myHits: null, myCategory: null, myPrize: null, winners: [] },
+    });
+    renderPage();
+
+    await screen.findByText("Carla Ruiz");
+    expect(getQuinielaPayments).toHaveBeenCalledWith("team-1", "j0");
   });
 
   it("muestra el bote acumulado de jornadas anteriores", async () => {
