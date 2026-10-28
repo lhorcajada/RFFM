@@ -5764,6 +5764,92 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.ToTable("LotteryCampaigns", "app");
                 });
 
+            modelBuilder.Entity("RFFM.Api.Domain.Entities.Teams.QuinielaJornada", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("CarryIn")
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<decimal?>("CarryOut")
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<decimal>("PrizePercent")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<string>("RffmRoundId")
+                        .IsRequired()
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<DateTime?>("SettledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TeamId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TeamId", "RffmRoundId")
+                        .IsUnique();
+
+                    b.ToTable("QuinielaJornadas", "app");
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Entities.Teams.QuinielaTicket", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ApplicationUserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.Property<int?>("Category")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("Hits")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("JornadaId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("PaidAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("PaymentMethod")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PaymentStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PlenoAway")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PlenoHome")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal?>("Prize")
+                        .HasColumnType("decimal(10,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("JornadaId", "ApplicationUserId")
+                        .IsUnique();
+
+                    b.ToTable("QuinielaTickets", "app");
+                });
+
             modelBuilder.Entity("RFFM.Api.Domain.Entities.Teams.TeamFundMovement", b =>
                 {
                     b.Property<string>("Id")
@@ -7091,6 +7177,56 @@ namespace RFFM.Api.Infrastructure.Migrations
                         .HasForeignKey("TeamId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Entities.Teams.QuinielaJornada", b =>
+                {
+                    b.HasOne("RFFM.Api.Domain.Aggregates.UserClubs.Team", null)
+                        .WithMany()
+                        .HasForeignKey("TeamId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Entities.Teams.QuinielaTicket", b =>
+                {
+                    b.HasOne("RFFM.Api.Domain.Entities.Teams.QuinielaJornada", null)
+                        .WithMany()
+                        .HasForeignKey("JornadaId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.OwnsMany("RFFM.Api.Domain.Entities.Teams.QuinielaPick", "Picks", b1 =>
+                        {
+                            b1.Property<int>("Id")
+                                .ValueGeneratedOnAdd()
+                                .HasColumnType("integer");
+
+                            NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b1.Property<int>("Id"));
+
+                            b1.Property<string>("RecordCode")
+                                .IsRequired()
+                                .HasMaxLength(100)
+                                .HasColumnType("character varying(100)");
+
+                            b1.Property<int>("Sign")
+                                .HasColumnType("integer");
+
+                            b1.Property<string>("TicketId")
+                                .IsRequired()
+                                .HasColumnType("text");
+
+                            b1.HasKey("Id");
+
+                            b1.HasIndex("TicketId");
+
+                            b1.ToTable("QuinielaPicks", "app");
+
+                            b1.WithOwner()
+                                .HasForeignKey("TicketId");
+                        });
+
+                    b.Navigation("Picks");
                 });
 
             modelBuilder.Entity("RFFM.Api.Domain.Entities.Teams.TeamFundMovement", b =>
