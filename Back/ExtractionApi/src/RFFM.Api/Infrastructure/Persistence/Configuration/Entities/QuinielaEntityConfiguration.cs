@@ -68,7 +68,9 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Entities
             builder.Property(t => t.PaymentStatus).IsRequired();
             builder.Property(t => t.Prize).HasColumnType("decimal(10,2)");
 
-            builder.HasIndex(t => new { t.JornadaId, t.ApplicationUserId }).IsUnique();
+            builder.Property(t => t.Number).IsRequired().HasDefaultValue(1);
+
+            builder.HasIndex(t => new { t.JornadaId, t.ApplicationUserId });
 
             builder.HasOne<QuinielaJornada>()
                 .WithMany()

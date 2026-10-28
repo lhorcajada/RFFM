@@ -32,7 +32,7 @@ namespace RFFM.Api.Tests.UnitTests
             var (seed, jornada, ticket) = await SeedAsync("m1");
             await using var db = fixture.CreateDbContext();
 
-            await Handler(db, seed.PlayerId).Handle(new DeleteMyQuinielaTicket.Command(seed.TeamId, jornada.Id), CancellationToken.None);
+            await Handler(db, seed.PlayerId).Handle(new DeleteMyQuinielaTicket.Command(seed.TeamId, jornada.Id, ticket.Id), CancellationToken.None);
 
             await using var verify = fixture.CreateDbContext();
             Assert.False(await verify.QuinielaTickets.AnyAsync(t => t.Id == ticket.Id));
@@ -47,7 +47,7 @@ namespace RFFM.Api.Tests.UnitTests
             var ticket = await SeedTicketAsync(fixture, jornada.Id, seed.FamilyId, "m2", QuinielaSign.Home, QuinielaSign.Draw, QuinielaSign.Away);
             await using var db = fixture.CreateDbContext();
 
-            await Handler(db, seed.FamilyId).Handle(new DeleteMyQuinielaTicket.Command(seed.TeamId, jornada.Id), CancellationToken.None);
+            await Handler(db, seed.FamilyId).Handle(new DeleteMyQuinielaTicket.Command(seed.TeamId, jornada.Id, ticket.Id), CancellationToken.None);
 
             await using var verify = fixture.CreateDbContext();
             Assert.False(await verify.QuinielaTickets.AnyAsync(t => t.Id == ticket.Id));
@@ -60,7 +60,7 @@ namespace RFFM.Api.Tests.UnitTests
             await using var db = fixture.CreateDbContext();
 
             var ex = await Assert.ThrowsAsync<DomainException>(() =>
-                Handler(db, seed.PlayerId).Handle(new DeleteMyQuinielaTicket.Command(seed.TeamId, jornada.Id), CancellationToken.None).AsTask());
+                Handler(db, seed.PlayerId).Handle(new DeleteMyQuinielaTicket.Command(seed.TeamId, jornada.Id, ticket.Id), CancellationToken.None).AsTask());
 
             Assert.Equal(ErrorCodes.QuinielaTicketNotDeletable, ex.Code);
             await using var verify = fixture.CreateDbContext();
@@ -76,7 +76,7 @@ namespace RFFM.Api.Tests.UnitTests
             await using var db = fixture.CreateDbContext();
 
             var ex = await Assert.ThrowsAsync<NotFoundException>(() =>
-                Handler(db, seed.PlayerId).Handle(new DeleteMyQuinielaTicket.Command(seed.TeamId, jornada.Id), CancellationToken.None).AsTask());
+                Handler(db, seed.PlayerId).Handle(new DeleteMyQuinielaTicket.Command(seed.TeamId, jornada.Id, "missing"), CancellationToken.None).AsTask());
 
             Assert.Equal(ErrorCodes.QuinielaTicketNotFound, ex.Code);
         }
@@ -88,7 +88,7 @@ namespace RFFM.Api.Tests.UnitTests
             await using var db = fixture.CreateDbContext();
 
             await Assert.ThrowsAsync<NotFoundException>(() =>
-                Handler(db, seed.FamilyId).Handle(new DeleteMyQuinielaTicket.Command(seed.TeamId, jornada.Id), CancellationToken.None).AsTask());
+                Handler(db, seed.FamilyId).Handle(new DeleteMyQuinielaTicket.Command(seed.TeamId, jornada.Id, ticket.Id), CancellationToken.None).AsTask());
 
             await using var verify = fixture.CreateDbContext();
             Assert.True(await verify.QuinielaTickets.AnyAsync(t => t.Id == ticket.Id));
@@ -97,11 +97,25 @@ namespace RFFM.Api.Tests.UnitTests
         [Fact]
         public async Task Handle_ByAFollower_ThrowsForbidden()
         {
-            var (seed, jornada, _) = await SeedAsync("m6");
+            var (seed, jornada, ticket) = await SeedAsync("m6");
             await using var db = fixture.CreateDbContext();
 
             await Assert.ThrowsAsync<ForbiddenAccessException>(() =>
-                Handler(db, seed.FollowerId).Handle(new DeleteMyQuinielaTicket.Command(seed.TeamId, jornada.Id), CancellationToken.None).AsTask());
+                Handler(db, seed.FollowerId).Handle(new DeleteMyQuinielaTicket.Command(seed.TeamId, jornada.Id, ticket.Id), CancellationToken.None).AsTask());
+        }
+
+        [Fact]
+        public async Task Handle_WithTwoTickets_RemovesOnlyTheChosenOne()
+        {
+            var (seed, jornada, first) = await SeedAsync("m8");
+            var second = await SeedTicketAsync(fixture, jornada.Id, seed.PlayerId, "m8", QuinielaSign.Away, QuinielaSign.Away, QuinielaSign.Away);
+            await using var db = fixture.CreateDbContext();
+
+            await Handler(db, seed.PlayerId).Handle(new DeleteMyQuinielaTicket.Command(seed.TeamId, jornada.Id, second.Id), CancellationToken.None);
+
+            await using var verify = fixture.CreateDbContext();
+            Assert.True(await verify.QuinielaTickets.AnyAsync(t => t.Id == first.Id));
+            Assert.False(await verify.QuinielaTickets.AnyAsync(t => t.Id == second.Id));
         }
 
         [Fact]
@@ -116,7 +130,7 @@ namespace RFFM.Api.Tests.UnitTests
             await using var db = fixture.CreateDbContext();
 
             var ex = await Assert.ThrowsAsync<DomainException>(() =>
-                Handler(db, seed.PlayerId).Handle(new DeleteMyQuinielaTicket.Command(seed.TeamId, jornada.Id), CancellationToken.None).AsTask());
+                Handler(db, seed.PlayerId).Handle(new DeleteMyQuinielaTicket.Command(seed.TeamId, jornada.Id, ticket.Id), CancellationToken.None).AsTask());
 
             Assert.Equal(ErrorCodes.QuinielaAlreadySettled, ex.Code);
             await using var verify = fixture.CreateDbContext();

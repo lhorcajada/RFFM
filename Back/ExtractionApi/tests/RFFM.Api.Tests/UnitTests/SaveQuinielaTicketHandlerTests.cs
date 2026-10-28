@@ -13,14 +13,15 @@ namespace RFFM.Api.Tests.UnitTests
     [Collection(PostgresCollection.Name)]
     public class SaveQuinielaTicketHandlerTests(PostgresContainerFixture fixture)
     {
-        private static SaveQuinielaTicket.Handler Handler(AppDbContext db, FederationDbContext fed, string? userId, DateTime? now = null) =>
-            new(db, fed, User(userId), ClockAt(now ?? BeforeKickoff));
+        private static SaveQuinielaTicket.Handler Handler(AppDbContext db, FederationDbContext fed, string? userId, DateTime? now = null, bool multipleTickets = true) =>
+            new(db, fed, User(userId), ClockAt(now ?? BeforeKickoff), new FakeFeatureFlags(multipleTickets));
 
-        private static SaveQuinielaTicket.Command Command(string teamId, string jornadaId, string suffix, string signs = "1X2", int plenoHome = 0, int plenoAway = 1) =>
+        private static SaveQuinielaTicket.Command Command(string teamId, string jornadaId, string suffix, string signs = "1X2", int plenoHome = 0, int plenoAway = 1, string? ticketId = null) =>
             new()
             {
                 TeamId = teamId,
                 JornadaId = jornadaId,
+                TicketId = ticketId,
                 Picks =
                 [
                     new($"A{suffix}", signs[0].ToString()),
@@ -61,12 +62,13 @@ namespace RFFM.Api.Tests.UnitTests
         }
 
         [Fact]
-        public async Task Handle_SavingAgainReplacesThePicksAndKeepsThePaymentStatus()
+        public async Task Handle_EditingATicketReplacesThePicksAndKeepsThePaymentStatus()
         {
             var (seed, jornada) = await OpenAsync("s2");
+            QuinielaTicketDto created;
             await using (var db = fixture.CreateDbContext())
             await using (var fed = fixture.CreateFederationDbContext())
-                await Handler(db, fed, seed.PlayerId).Handle(Command(seed.TeamId, jornada.Id, "s2"), CancellationToken.None);
+                created = await Handler(db, fed, seed.PlayerId).Handle(Command(seed.TeamId, jornada.Id, "s2"), CancellationToken.None);
             await using (var setup = fixture.CreateDbContext())
             {
                 var ticket = await setup.QuinielaTickets.SingleAsync(t => t.JornadaId == jornada.Id);
@@ -76,14 +78,104 @@ namespace RFFM.Api.Tests.UnitTests
 
             await using var db2 = fixture.CreateDbContext();
             await using var fed2 = fixture.CreateFederationDbContext();
-            var dto = await Handler(db2, fed2, seed.PlayerId).Handle(Command(seed.TeamId, jornada.Id, "s2", "212", 2, 2), CancellationToken.None);
+            var dto = await Handler(db2, fed2, seed.PlayerId).Handle(Command(seed.TeamId, jornada.Id, "s2", "212", 2, 2, created.Id), CancellationToken.None);
 
             Assert.Equal("Paid", dto.PaymentStatus);
+            Assert.Equal(created.Id, dto.Id);
             await using var verify = fixture.CreateDbContext();
             var stored = await verify.QuinielaTickets.SingleAsync(t => t.JornadaId == jornada.Id);
             Assert.Equal(["2", "1", "2"], stored.Picks.OrderBy(p => p.RecordCode).Select(p => p.Sign.Name));
             Assert.Equal((2, 2), (stored.PlenoHome, stored.PlenoAway));
+        }
+
+        [Fact]
+        public async Task Handle_SavingWithoutATicketIdCreatesAnotherTicketNumberedInOrder()
+        {
+            var (seed, jornada) = await OpenAsync("s8");
+            QuinielaTicketDto first, second;
+            await using (var db = fixture.CreateDbContext())
+            await using (var fed = fixture.CreateFederationDbContext())
+                first = await Handler(db, fed, seed.PlayerId).Handle(Command(seed.TeamId, jornada.Id, "s8"), CancellationToken.None);
+            await using (var db = fixture.CreateDbContext())
+            await using (var fed = fixture.CreateFederationDbContext())
+                second = await Handler(db, fed, seed.PlayerId).Handle(Command(seed.TeamId, jornada.Id, "s8", "222"), CancellationToken.None);
+
+            Assert.NotEqual(first.Id, second.Id);
+            Assert.Equal((1, 2), (first.Number, second.Number));
+            await using var verify = fixture.CreateDbContext();
+            Assert.Equal(2, await verify.QuinielaTickets.CountAsync(t => t.JornadaId == jornada.Id && t.ApplicationUserId == seed.PlayerId));
+        }
+
+        [Fact]
+        public async Task Handle_WithMultipleTicketsDisabled_RejectsASecondTicket()
+        {
+            var (seed, jornada) = await OpenAsync("s12");
+            await SeedTicketAsync(fixture, jornada.Id, seed.PlayerId, "s12", QuinielaSign.Home, QuinielaSign.Draw, QuinielaSign.Away);
+            await using var db = fixture.CreateDbContext();
+            await using var fed = fixture.CreateFederationDbContext();
+
+            var ex = await Assert.ThrowsAsync<DomainException>(() =>
+                Handler(db, fed, seed.PlayerId, multipleTickets: false).Handle(Command(seed.TeamId, jornada.Id, "s12"), CancellationToken.None).AsTask());
+
+            Assert.Equal(ErrorCodes.QuinielaMultipleTicketsDisabled, ex.Code);
+            await using var verify = fixture.CreateDbContext();
             Assert.Equal(1, await verify.QuinielaTickets.CountAsync(t => t.JornadaId == jornada.Id));
+        }
+
+        [Fact]
+        public async Task Handle_WithMultipleTicketsDisabled_StillAllowsTheFirstTicketAndEditingIt()
+        {
+            var (seed, jornada) = await OpenAsync("s13");
+            QuinielaTicketDto created;
+            await using (var db = fixture.CreateDbContext())
+            await using (var fed = fixture.CreateFederationDbContext())
+                created = await Handler(db, fed, seed.PlayerId, multipleTickets: false).Handle(Command(seed.TeamId, jornada.Id, "s13"), CancellationToken.None);
+
+            await using var db2 = fixture.CreateDbContext();
+            await using var fed2 = fixture.CreateFederationDbContext();
+            var edited = await Handler(db2, fed2, seed.PlayerId, multipleTickets: false)
+                .Handle(Command(seed.TeamId, jornada.Id, "s13", "222", ticketId: created.Id), CancellationToken.None);
+
+            Assert.Equal(created.Id, edited.Id);
+            Assert.Equal(1, created.Number);
+        }
+
+        [Fact]
+        public async Task Handle_NumbersContinueAfterAnExistingTicket()
+        {
+            var (seed, jornada) = await OpenAsync("s9");
+            await SeedTicketAsync(fixture, jornada.Id, seed.PlayerId, "s9", QuinielaSign.Home, QuinielaSign.Draw, QuinielaSign.Away);
+            await using var db = fixture.CreateDbContext();
+            await using var fed = fixture.CreateFederationDbContext();
+
+            var dto = await Handler(db, fed, seed.PlayerId).Handle(Command(seed.TeamId, jornada.Id, "s9"), CancellationToken.None);
+
+            Assert.Equal(2, dto.Number);
+        }
+
+        [Fact]
+        public async Task Handle_EditingATicketOfAnotherUser_ThrowsNotFound()
+        {
+            var (seed, jornada) = await OpenAsync("s10");
+            var others = await SeedTicketAsync(fixture, jornada.Id, seed.FamilyId, "s10", QuinielaSign.Home, QuinielaSign.Draw, QuinielaSign.Away);
+            await using var db = fixture.CreateDbContext();
+            await using var fed = fixture.CreateFederationDbContext();
+
+            var ex = await Assert.ThrowsAsync<NotFoundException>(() =>
+                Handler(db, fed, seed.PlayerId).Handle(Command(seed.TeamId, jornada.Id, "s10", ticketId: others.Id), CancellationToken.None).AsTask());
+
+            Assert.Equal(ErrorCodes.QuinielaTicketNotFound, ex.Code);
+        }
+
+        [Fact]
+        public async Task Handle_EditingAnUnknownTicket_ThrowsNotFound()
+        {
+            var (seed, jornada) = await OpenAsync("s11");
+            await using var db = fixture.CreateDbContext();
+            await using var fed = fixture.CreateFederationDbContext();
+
+            await Assert.ThrowsAsync<NotFoundException>(() =>
+                Handler(db, fed, seed.PlayerId).Handle(Command(seed.TeamId, jornada.Id, "s11", ticketId: "missing"), CancellationToken.None).AsTask());
         }
 
         [Fact]

@@ -49,24 +49,24 @@ namespace RFFM.Api.Features.Coaches.Quiniela
                 var open = await db.QuinielaJornadas.AsNoTracking()
                     .SingleOrDefaultAsync(j => j.TeamId == request.TeamId && j.Status == QuinielaJornadaStatus.Open, cancellationToken);
                 if (open is null)
-                    return new QuinielaCurrentDto(false, null, [], null, null, previous, canManage);
+                    return new QuinielaCurrentDto(false, null, [], [], null, previous, canManage);
 
                 var round = await QuinielaSupport.LoadRoundAsync(federationDb, open.RffmRoundId, cancellationToken);
                 var matches = round.ToMatchDtos();
 
                 var tickets = await db.QuinielaTickets.AsNoTracking().Where(t => t.JornadaId == open.Id).ToListAsync(cancellationToken);
-                var mine = tickets.FirstOrDefault(t => t.ApplicationUserId == userId);
+                var mine = tickets.Where(t => t.ApplicationUserId == userId).OrderBy(t => t.Number).ToList();
                 var paid = tickets.Count(t => t.PaymentStatus == QuinielaPaymentStatus.Paid);
                 var collected = paid * open.Price;
                 var pending = tickets.Count(t => QuinielaSupport.EffectiveStatus(t, round, now) == QuinielaPaymentStatus.Pending);
                 var pool = new QuinielaPoolDto(
-                    tickets.Count, paid, collected,
+                    tickets.Select(t => t.ApplicationUserId).Distinct().Count(), paid, collected,
                     QuinielaSupport.SplitCollected(collected, open.PrizePercent).PrizeBase + open.CarryIn,
                     QuinielaSupport.SplitCollected(collected + pending * open.Price, open.PrizePercent).PrizeBase + open.CarryIn);
 
                 return new QuinielaCurrentDto(
                     true, QuinielaSupport.ToDto(open, round, now), matches,
-                    mine is null ? null : QuinielaSupport.ToDto(mine, round, now), pool, previous, canManage);
+                    mine.Select(t => QuinielaSupport.ToDto(t, round, now)).ToList(), pool, previous, canManage);
             }
 
             private async Task<QuinielaPreviousDto?> LoadPreviousAsync(string teamId, string userId, CancellationToken ct)
@@ -82,7 +82,12 @@ namespace RFFM.Api.Features.Coaches.Quiniela
                 var roundNumber = await federationDb.RffmRounds.AsNoTracking()
                     .Where(r => r.Id == last.RffmRoundId).Select(r => r.Number).SingleOrDefaultAsync(ct);
                 var mine = await db.QuinielaTickets.AsNoTracking()
-                    .SingleOrDefaultAsync(t => t.JornadaId == last.Id && t.ApplicationUserId == userId, ct);
+                    .Where(t => t.JornadaId == last.Id && t.ApplicationUserId == userId)
+                    .ToListAsync(ct);
+                var bestOfMine = mine
+                    .OrderBy(t => t.Category is null || t.Category == QuinielaCategory.None ? int.MaxValue : t.Category.Value)
+                    .ThenByDescending(t => t.Hits ?? 0)
+                    .FirstOrDefault();
 
                 var winningTickets = (await db.QuinielaTickets.AsNoTracking()
                         .Where(t => t.JornadaId == last.Id && t.Category != null)
@@ -90,16 +95,18 @@ namespace RFFM.Api.Features.Coaches.Quiniela
                     .Where(t => t.Category != QuinielaCategory.None)
                     .OrderBy(t => t.Category!.Value)
                     .ThenByDescending(t => t.Prize)
+                    .ThenBy(t => t.Number)
                     .ToList();
                 var participants = await QuinielaSupport.LoadParticipantsAsync(
                     db, teamId, winningTickets.Select(t => t.ApplicationUserId).ToList(), ct);
                 var winners = winningTickets
                     .Select(t => new QuinielaWinnerDto(
-                        participants[t.ApplicationUserId].Name, t.Category!.Name, t.Hits ?? 0, t.Prize ?? 0m))
+                        participants[t.ApplicationUserId].Name, t.Category!.Name, t.Hits ?? 0, t.Prize ?? 0m, t.Number))
                     .ToList();
 
                 return new QuinielaPreviousDto(
-                    last.Id, roundNumber, last.SettledAt!.Value, last.CarryOut ?? 0m, mine?.Hits, mine?.Category?.Name, mine?.Prize, winners);
+                    last.Id, roundNumber, last.SettledAt!.Value, last.CarryOut ?? 0m, bestOfMine?.Hits, bestOfMine?.Category?.Name,
+                    mine.Count == 0 ? null : mine.Sum(t => t.Prize ?? 0m), winners);
             }
         }
     }

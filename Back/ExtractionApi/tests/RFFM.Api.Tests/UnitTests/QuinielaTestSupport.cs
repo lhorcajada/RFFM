@@ -28,6 +28,14 @@ namespace RFFM.Api.Tests.UnitTests
         };
     }
 
+    internal sealed class FakeFeatureFlags(bool enabled) : RFFM.Api.Infrastructure.FeatureFlags.IFeatureFlags
+    {
+        public bool IsEnabled(string name) => enabled;
+
+        public IReadOnlyDictionary<string, bool> GetAll() =>
+            RFFM.Api.Infrastructure.FeatureFlags.FeatureFlagCatalog.All.ToDictionary(f => f.Name, _ => enabled);
+    }
+
     /// <summary>Datos de prueba compartidos por los tests de los features de quiniela.</summary>
     internal static class QuinielaTestSupport
     {
@@ -139,11 +147,11 @@ namespace RFFM.Api.Tests.UnitTests
         }
 
         public static async Task<QuinielaTicket> SeedTicketAsync(PostgresContainerFixture fixture, string jornadaId, string userId,
-            string suffix, QuinielaSign a, QuinielaSign b, QuinielaSign c, int plenoHome = 0, int plenoAway = 1, bool paid = false)
+            string suffix, QuinielaSign a, QuinielaSign b, QuinielaSign c, int plenoHome = 0, int plenoAway = 1, bool paid = false, int number = 1)
         {
             await using var db = fixture.CreateDbContext();
             var ticket = QuinielaTicket.Create(jornadaId, userId,
-                [new($"A{suffix}", a), new($"B{suffix}", b), new($"C{suffix}", c)], plenoHome, plenoAway);
+                [new($"A{suffix}", a), new($"B{suffix}", b), new($"C{suffix}", c)], plenoHome, plenoAway, number);
             if (paid)
                 ticket.MarkPaid(QuinielaPaymentMethod.Cash, BeforeKickoff);
             db.QuinielaTickets.Add(ticket);

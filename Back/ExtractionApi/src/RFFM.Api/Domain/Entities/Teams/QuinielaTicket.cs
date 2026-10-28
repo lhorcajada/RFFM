@@ -1,7 +1,7 @@
 namespace RFFM.Api.Domain.Entities.Teams
 {
     /// <summary>
-    /// Boleto de un participante en una quiniela. Único por (JornadaId, ApplicationUserId).
+    /// Boleto de un participante en una quiniela. Un usuario puede tener varios por jornada, ordenados por <see cref="Number"/>.
     /// El estado Expirado no se guarda: se deriva con <see cref="EffectiveStatus"/>.
     /// See openspec/changes/quiniela-team-pool/design.md → D1, D4.
     /// </summary>
@@ -17,6 +17,8 @@ namespace RFFM.Api.Domain.Entities.Teams
 
         public string JornadaId { get; private set; } = null!;
         public string ApplicationUserId { get; private set; } = null!;
+        /// <summary>Orden del boleto dentro de los del mismo usuario en la jornada (1, 2, ...).</summary>
+        public int Number { get; private set; } = 1;
         public int PlenoHome { get; private set; }
         public int PlenoAway { get; private set; }
         public QuinielaPaymentStatus PaymentStatus { get; private set; } = QuinielaPaymentStatus.Pending;
@@ -32,14 +34,17 @@ namespace RFFM.Api.Domain.Entities.Teams
         private QuinielaTicket() { }
 
         public static QuinielaTicket Create(string jornadaId, string applicationUserId,
-            IEnumerable<QuinielaPick> picks, int plenoHome, int plenoAway)
+            IEnumerable<QuinielaPick> picks, int plenoHome, int plenoAway, int number = 1)
         {
             if (string.IsNullOrWhiteSpace(jornadaId))
                 throw new ArgumentException("jornadaId cannot be empty.", nameof(jornadaId));
             if (string.IsNullOrWhiteSpace(applicationUserId))
                 throw new ArgumentException("applicationUserId cannot be empty.", nameof(applicationUserId));
 
-            var ticket = new QuinielaTicket { JornadaId = jornadaId, ApplicationUserId = applicationUserId };
+            if (number < 1)
+                throw new DomainException(Title, "El número de boleto debe ser 1 o mayor.", ErrorCodes.QuinielaInvalidTicket);
+
+            var ticket = new QuinielaTicket { JornadaId = jornadaId, ApplicationUserId = applicationUserId, Number = number };
             ticket.ReplacePicks(picks, plenoHome, plenoAway);
             return ticket;
         }

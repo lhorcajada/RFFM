@@ -22,24 +22,24 @@ namespace RFFM.Api.Features.Coaches.Quiniela
 
     public record QuinielaTicketDto(
         string Id, IReadOnlyList<QuinielaPickDto> Picks, int PlenoHome, int PlenoAway, string PaymentStatus,
-        DateTime? PaymentDeadlineUtc, int? Hits, string? Category, decimal? Prize);
+        DateTime? PaymentDeadlineUtc, int? Hits, string? Category, decimal? Prize, int Number);
 
     public record QuinielaPoolDto(int Participants, int PaidTickets, decimal Collected, decimal PrizePool, decimal PossiblePrizePool);
 
-    public record QuinielaWinnerDto(string UserName, string Category, int Hits, decimal Prize);
+    public record QuinielaWinnerDto(string UserName, string Category, int Hits, decimal Prize, int TicketNumber);
 
     public record QuinielaPreviousDto(
         string JornadaId, int RoundNumber, DateTime SettledAt, decimal CarryOut, int? MyHits, string? MyCategory, decimal? MyPrize,
         IReadOnlyList<QuinielaWinnerDto> Winners);
 
     public record QuinielaCurrentDto(
-        bool IsOpen, QuinielaJornadaDto? Jornada, IReadOnlyList<QuinielaMatchDto> Matches, QuinielaTicketDto? MyTicket,
+        bool IsOpen, QuinielaJornadaDto? Jornada, IReadOnlyList<QuinielaMatchDto> Matches, IReadOnlyList<QuinielaTicketDto> MyTickets,
         QuinielaPoolDto? Pool, QuinielaPreviousDto? Previous, bool CanManage);
 
     public record QuinielaPaymentTicketDto(
         string Id, string UserId, string UserName, string Role, string PaymentStatus, string? PaymentMethod,
         DateTime? PaidAt, int? Hits, string? Category, decimal? Prize,
-        IReadOnlyList<QuinielaPickDto> Picks, int PlenoHome, int PlenoAway);
+        IReadOnlyList<QuinielaPickDto> Picks, int PlenoHome, int PlenoAway, int Number);
 
     public record QuinielaTotalsDto(
         decimal Collected, decimal Pending, decimal PrizePool, decimal FundAmount, decimal CarryIn, decimal? CarryOut, decimal Prizes,
@@ -184,7 +184,7 @@ namespace RFFM.Api.Features.Coaches.Quiniela
             ticket.Id,
             ticket.Picks.Select(p => new QuinielaPickDto(p.RecordCode, p.Sign.Name)).OrderBy(p => p.RecordCode).ToList(),
             ticket.PlenoHome, ticket.PlenoAway, EffectiveStatus(ticket, round, nowUtc).Name, round.PaymentDeadlineUtc,
-            ticket.Hits, ticket.Category?.Name, ticket.Prize);
+            ticket.Hits, ticket.Category?.Name, ticket.Prize, ticket.Number);
 
         public static QuinielaPaymentStatus EffectiveStatus(QuinielaTicket ticket, QuinielaRound round, DateTime nowUtc) =>
             round.PaymentDeadlineUtc is { } deadline ? ticket.EffectiveStatus(deadline, nowUtc) : ticket.PaymentStatus;
@@ -195,6 +195,7 @@ namespace RFFM.Api.Features.Coaches.Quiniela
         public static async Task<Dictionary<string, Participant>> LoadParticipantsAsync(
             AppDbContext db, string teamId, IReadOnlyCollection<string> userIds, CancellationToken ct)
         {
+            userIds = userIds.Distinct().ToList();
             var roles = await db.UserTeams.AsNoTracking()
                 .Where(ut => ut.TeamId == teamId && userIds.Contains(ut.ApplicationUserId))
                 .Select(ut => new { ut.ApplicationUserId, ut.RoleId })
@@ -233,7 +234,7 @@ namespace RFFM.Api.Features.Coaches.Quiniela
                 ticket.Id, ticket.ApplicationUserId, participant.Name, participant.Role, status.Name,
                 ticket.PaymentMethod?.Name, ticket.PaidAt, ticket.Hits, ticket.Category?.Name, ticket.Prize,
                 ticket.Picks.Select(p => new QuinielaPickDto(p.RecordCode, p.Sign.Name)).OrderBy(p => p.RecordCode).ToList(),
-                ticket.PlenoHome, ticket.PlenoAway);
+                ticket.PlenoHome, ticket.PlenoAway, ticket.Number);
         }
 
         /// <summary>Bolsa de premios estimada con lo cobrado hasta ahora: cobrado × % de premios (truncado al céntimo) + bote arrastrado.</summary>

@@ -35,7 +35,7 @@ namespace RFFM.Api.Tests.UnitTests
             Assert.False(dto.IsOpen);
             Assert.Null(dto.Jornada);
             Assert.Empty(dto.Matches);
-            Assert.Null(dto.MyTicket);
+            Assert.Empty(dto.MyTickets);
             Assert.Null(dto.Previous);
         }
 
@@ -67,9 +67,9 @@ namespace RFFM.Api.Tests.UnitTests
 
             var dto = (await CurrentAsync(seed.TeamId, seed.PlayerId)).Value;
 
-            Assert.Equal("Pending", dto.MyTicket!.PaymentStatus);
-            Assert.Equal(new DateTime(2026, 11, 6, 23, 0, 0, DateTimeKind.Utc), dto.MyTicket.PaymentDeadlineUtc);
-            Assert.Equal(3, dto.MyTicket.Picks.Count);
+            Assert.Equal("Pending", dto.MyTickets.Single().PaymentStatus);
+            Assert.Equal(new DateTime(2026, 11, 6, 23, 0, 0, DateTimeKind.Utc), dto.MyTickets.Single().PaymentDeadlineUtc);
+            Assert.Equal(3, dto.MyTickets.Single().Picks.Count);
             Assert.Equal(2, dto.Pool!.Participants);
             Assert.Equal(1, dto.Pool.PaidTickets);
             Assert.Equal(1m, dto.Pool.Collected);
@@ -87,7 +87,7 @@ namespace RFFM.Api.Tests.UnitTests
 
             var dto = (await CurrentAsync(seed.TeamId, seed.PlayerId, AfterMatches)).Value;
 
-            Assert.Equal("Expired", dto.MyTicket!.PaymentStatus);
+            Assert.Equal("Expired", dto.MyTickets.Single().PaymentStatus);
             Assert.True(dto.Jornada!.PicksClosed);
         }
 

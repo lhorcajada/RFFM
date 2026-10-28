@@ -204,5 +204,6 @@ namespace RFFM.Api.Domain
         public const string QuinielaTeamWithoutLeague = "QuinielaTeamWithoutLeague";
         public const string QuinielaNoNextRound = "QuinielaNoNextRound";
         public const string QuinielaTicketNotDeletable = "QuinielaTicketNotDeletable";
+        public const string QuinielaMultipleTicketsDisabled = "QuinielaMultipleTicketsDisabled";
     }
 }

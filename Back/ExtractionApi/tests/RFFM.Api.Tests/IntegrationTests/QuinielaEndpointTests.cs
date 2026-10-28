@@ -21,6 +21,8 @@ using RFFM.Api.Domain;
 using RFFM.Api.Domain.Services;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Features.Coaches.Quiniela;
+using RFFM.Api.Features.Infrastructure;
+using RFFM.Api.Infrastructure.FeatureFlags;
 using RFFM.Api.Infrastructure.Persistence;
 using RFFM.Api.Infrastructure.Services;
 using RFFM.Api.Tests.Fixtures;
@@ -57,7 +59,7 @@ namespace RFFM.Api.Tests.IntegrationTests
         private static readonly IFeatureModule[] Modules =
         [
             new OpenQuiniela(), new GetCurrentQuiniela(), new SaveQuinielaTicket(),
-            new GetQuinielaPayments(), new SetQuinielaTicketPayment(), new SettleQuiniela()
+            new GetQuinielaPayments(), new SetQuinielaTicketPayment(), new SettleQuiniela(), new GetFeatureFlags()
         ];
 
         private async Task<(IHost Host, HttpClient Client)> StartHostAsync()
@@ -86,6 +88,7 @@ namespace RFFM.Api.Tests.IntegrationTests
                                 .AddMediator(o => { o.ServiceLifetime = ServiceLifetime.Scoped; });
                             services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
                             services.AddQuinielaValidators();
+                            services.AddFeatureFlags();
                         })
                         .Configure(app =>
                         {
@@ -154,13 +157,28 @@ namespace RFFM.Api.Tests.IntegrationTests
             {
                 Request(HttpMethod.Post, baseUrl, null),
                 Request(HttpMethod.Get, $"{baseUrl}/current", null),
-                Request(HttpMethod.Put, $"{baseUrl}/j/ticket", null, Ticket("e1")),
+                Request(HttpMethod.Post, $"{baseUrl}/j/my-tickets", null, Ticket("e1")),
                 Request(HttpMethod.Get, $"{baseUrl}/j/payments", null),
                 Request(HttpMethod.Put, $"{baseUrl}/j/tickets/k/payment", null, new { paid = true, method = "Cash" }),
                 Request(HttpMethod.Post, $"{baseUrl}/j/settle", null)
             };
             foreach (var request in requests)
                 Assert.Equal(HttpStatusCode.Unauthorized, (await client.SendAsync(request)).StatusCode);
+        }
+
+        [Fact]
+        public async Task FeatureFlags_RequireAuthentication_AndListTheCatalogWithItsDefaults()
+        {
+            var (host, client) = await StartHostAsync();
+            using var _ = host;
+
+            var anonymous = await client.SendAsync(Request(HttpMethod.Get, "/api/feature-flags", null));
+            Assert.Equal(HttpStatusCode.Unauthorized, anonymous.StatusCode);
+
+            var response = await client.SendAsync(Request(HttpMethod.Get, "/api/feature-flags", "any-user"));
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var flags = await response.Content.ReadFromJsonAsync<Dictionary<string, bool>>();
+            Assert.False(flags![FeatureFlagCatalog.QuinielaMultipleTickets]);
         }
 
         [Fact]
@@ -216,18 +234,22 @@ namespace RFFM.Api.Tests.IntegrationTests
             var (host, client) = await StartHostAsync();
             using var _ = host;
             var jornada = await (await client.SendAsync(Request(HttpMethod.Post, baseUrl, seed.CoachId))).Content.ReadFromJsonAsync<QuinielaJornadaDto>();
-            var url = $"{baseUrl}/{jornada!.Id}/ticket";
+            var url = $"{baseUrl}/{jornada!.Id}/my-tickets";
 
-            var invalid = await client.SendAsync(Request(HttpMethod.Put, url, seed.PlayerId, Ticket("e5", a: "9")));
+            var invalid = await client.SendAsync(Request(HttpMethod.Post, url, seed.PlayerId, Ticket("e5", a: "9")));
             Assert.Equal(HttpStatusCode.BadRequest, invalid.StatusCode);
 
-            var follower = await client.SendAsync(Request(HttpMethod.Put, url, seed.FollowerId, Ticket("e5")));
+            var follower = await client.SendAsync(Request(HttpMethod.Post, url, seed.FollowerId, Ticket("e5")));
             Assert.Equal(HttpStatusCode.Forbidden, follower.StatusCode);
 
-            var saved = await client.SendAsync(Request(HttpMethod.Put, url, seed.PlayerId, Ticket("e5")));
-            Assert.Equal(HttpStatusCode.OK, saved.StatusCode);
+            var saved = await client.SendAsync(Request(HttpMethod.Post, url, seed.PlayerId, Ticket("e5")));
+            Assert.Equal(HttpStatusCode.Created, saved.StatusCode);
             var ticket = await saved.Content.ReadFromJsonAsync<QuinielaTicketDto>();
             Assert.Equal("Pending", ticket!.PaymentStatus);
+
+            var edited = await client.SendAsync(Request(HttpMethod.Put, $"{url}/{ticket.Id}", seed.PlayerId, Ticket("e5", a: "2")));
+            Assert.Equal(HttpStatusCode.OK, edited.StatusCode);
+            Assert.Equal(ticket.Id, (await edited.Content.ReadFromJsonAsync<QuinielaTicketDto>())!.Id);
         }
 
         [Fact]
@@ -252,7 +274,7 @@ namespace RFFM.Api.Tests.IntegrationTests
             var jornada = await (await client.SendAsync(Request(HttpMethod.Post, baseUrl, seed.CoachId))).Content.ReadFromJsonAsync<QuinielaJornadaDto>();
             var jornadaUrl = $"{baseUrl}/{jornada!.Id}";
 
-            var ticket = await (await client.SendAsync(Request(HttpMethod.Put, $"{jornadaUrl}/ticket", seed.PlayerId, Ticket("e7"))))
+            var ticket = await (await client.SendAsync(Request(HttpMethod.Post, $"{jornadaUrl}/my-tickets", seed.PlayerId, Ticket("e7"))))
                 .Content.ReadFromJsonAsync<QuinielaTicketDto>();
 
             var invalidPayment = await client.SendAsync(Request(HttpMethod.Put, $"{jornadaUrl}/tickets/{ticket!.Id}/payment", seed.CoachId, new { paid = true }));

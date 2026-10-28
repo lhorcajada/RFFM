@@ -9,26 +9,40 @@ using RFFM.Api.Domain;
 using RFFM.Api.Domain.Entities.Teams;
 using RFFM.Api.Domain.Services;
 using RFFM.Api.FeatureModules;
+using RFFM.Api.Infrastructure.FeatureFlags;
 using RFFM.Api.Infrastructure.Persistence;
 
 namespace RFFM.Api.Features.Coaches.Quiniela
 {
     /// <summary>
-    /// Guarda (o reemplaza) el boleto del usuario: un signo por partido válido y los goles del Pleno.
-    /// PUT /api/teams/{teamId}/quiniela/{jornadaId}/ticket
+    /// Crea un boleto nuevo del usuario (POST) o reemplaza uno suyo (PUT): un signo por partido válido y los goles del Pleno.
+    /// Un usuario puede tener varios boletos por jornada.
+    /// POST /api/teams/{teamId}/quiniela/{jornadaId}/my-tickets
+    /// PUT  /api/teams/{teamId}/quiniela/{jornadaId}/my-tickets/{ticketId}
     /// See openspec/changes/quiniela-team-pool/design.md → D3, D7.
     /// </summary>
     public class SaveQuinielaTicket : IFeatureModule
     {
         public void AddRoutes(IEndpointRouteBuilder app)
         {
-            app.MapPut($"{QuinielaConstants.BaseRoute}/{{jornadaId}}/ticket",
+            app.MapPost($"{QuinielaConstants.BaseRoute}/{{jornadaId}}/my-tickets",
                     async (string teamId, string jornadaId, Body body, IMediator mediator, CancellationToken ct) =>
                     {
-                        var command = new Command { TeamId = teamId, JornadaId = jornadaId, Picks = body.Picks ?? [], PlenoHome = body.PlenoHome, PlenoAway = body.PlenoAway };
-                        return Results.Ok(await mediator.Send(command, ct));
+                        var ticket = await mediator.Send(ToCommand(teamId, jornadaId, null, body), ct);
+                        return Results.Created($"/api/teams/{teamId}/quiniela/{jornadaId}/my-tickets/{ticket.Id}", ticket);
                     })
-                .WithName(nameof(SaveQuinielaTicket))
+                .WithName("CreateQuinielaTicket")
+                .WithTags(QuinielaConstants.Tag)
+                .RequireAuthorization()
+                .Produces<QuinielaTicketDto>(StatusCodes.Status201Created)
+                .ProducesValidationProblem()
+                .ProducesProblem(StatusCodes.Status403Forbidden)
+                .ProducesProblem(StatusCodes.Status404NotFound);
+
+            app.MapPut($"{QuinielaConstants.BaseRoute}/{{jornadaId}}/my-tickets/{{ticketId}}",
+                    async (string teamId, string jornadaId, string ticketId, Body body, IMediator mediator, CancellationToken ct) =>
+                        Results.Ok(await mediator.Send(ToCommand(teamId, jornadaId, ticketId, body), ct)))
+                .WithName("UpdateQuinielaTicket")
                 .WithTags(QuinielaConstants.Tag)
                 .RequireAuthorization()
                 .Produces<QuinielaTicketDto>()
@@ -36,6 +50,16 @@ namespace RFFM.Api.Features.Coaches.Quiniela
                 .ProducesProblem(StatusCodes.Status403Forbidden)
                 .ProducesProblem(StatusCodes.Status404NotFound);
         }
+
+        private static Command ToCommand(string teamId, string jornadaId, string? ticketId, Body body) => new()
+        {
+            TeamId = teamId,
+            JornadaId = jornadaId,
+            TicketId = ticketId,
+            Picks = body.Picks ?? [],
+            PlenoHome = body.PlenoHome,
+            PlenoAway = body.PlenoAway
+        };
 
         public record PickRequest(string RecordCode, string Sign);
 
@@ -45,6 +69,8 @@ namespace RFFM.Api.Features.Coaches.Quiniela
         {
             public string TeamId { get; init; } = null!;
             public string JornadaId { get; init; } = null!;
+            /// <summary>Boleto a reemplazar; null crea uno nuevo.</summary>
+            public string? TicketId { get; init; }
             public List<PickRequest> Picks { get; init; } = [];
             public int PlenoHome { get; init; }
             public int PlenoAway { get; init; }
@@ -71,7 +97,7 @@ namespace RFFM.Api.Features.Coaches.Quiniela
             }
         }
 
-        public class Handler(AppDbContext db, FederationDbContext federationDb, ICurrentUserService currentUser, TimeProvider timeProvider)
+        public class Handler(AppDbContext db, FederationDbContext federationDb, ICurrentUserService currentUser, TimeProvider timeProvider, IFeatureFlags featureFlags)
             : IRequestHandler<Command, QuinielaTicketDto>
         {
             public async ValueTask<QuinielaTicketDto> Handle(Command request, CancellationToken cancellationToken)
@@ -94,15 +120,26 @@ namespace RFFM.Api.Features.Coaches.Quiniela
 
                 var domainPicks = picks.Select(p => new QuinielaPick(p.RecordCode, QuinielaSign.FromName(p.Sign))).ToList();
                 var userId = currentUser.UserId!;
-                var ticket = await db.QuinielaTickets.SingleOrDefaultAsync(
-                    t => t.JornadaId == jornada.Id && t.ApplicationUserId == userId, cancellationToken);
-                if (ticket is null)
+                QuinielaTicket ticket;
+                if (request.TicketId is null)
                 {
-                    ticket = QuinielaTicket.Create(jornada.Id, userId, domainPicks, request.PlenoHome, request.PlenoAway);
+                    var hasTicketAlready = await db.QuinielaTickets.AnyAsync(
+                        t => t.JornadaId == jornada.Id && t.ApplicationUserId == userId, cancellationToken);
+                    if (hasTicketAlready && !featureFlags.IsEnabled(FeatureFlagCatalog.QuinielaMultipleTickets))
+                        throw new DomainException("Quiniela", "Solo puedes tener un boleto por jornada.", ErrorCodes.QuinielaMultipleTicketsDisabled);
+
+                    var lastNumber = await db.QuinielaTickets
+                        .Where(t => t.JornadaId == jornada.Id && t.ApplicationUserId == userId)
+                        .Select(t => (int?)t.Number)
+                        .MaxAsync(cancellationToken) ?? 0;
+                    ticket = QuinielaTicket.Create(jornada.Id, userId, domainPicks, request.PlenoHome, request.PlenoAway, lastNumber + 1);
                     db.QuinielaTickets.Add(ticket);
                 }
                 else
                 {
+                    ticket = await db.QuinielaTickets.SingleOrDefaultAsync(
+                            t => t.Id == request.TicketId && t.JornadaId == jornada.Id && t.ApplicationUserId == userId, cancellationToken)
+                        ?? throw new NotFoundException($"QuinielaTicket '{request.TicketId}' Not Found", ErrorCodes.QuinielaTicketNotFound);
                     ticket.ReplacePicks(domainPicks, request.PlenoHome, request.PlenoAway);
                 }
 

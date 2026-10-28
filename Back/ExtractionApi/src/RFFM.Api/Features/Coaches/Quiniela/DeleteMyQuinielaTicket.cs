@@ -14,17 +14,17 @@ using RFFM.Api.Infrastructure.Persistence;
 namespace RFFM.Api.Features.Coaches.Quiniela
 {
     /// <summary>
-    /// El participante elimina su propio boleto mientras siga pendiente de pago y la jornada no esté liquidada.
-    /// DELETE /api/teams/{teamId}/quiniela/{jornadaId}/ticket
+    /// El participante elimina uno de sus boletos mientras siga pendiente de pago y la jornada no esté liquidada.
+    /// DELETE /api/teams/{teamId}/quiniela/{jornadaId}/my-tickets/{ticketId}
     /// </summary>
     public class DeleteMyQuinielaTicket : IFeatureModule
     {
         public void AddRoutes(IEndpointRouteBuilder app)
         {
-            app.MapDelete($"{QuinielaConstants.BaseRoute}/{{jornadaId}}/ticket",
-                    async (string teamId, string jornadaId, IMediator mediator, CancellationToken ct) =>
+            app.MapDelete($"{QuinielaConstants.BaseRoute}/{{jornadaId}}/my-tickets/{{ticketId}}",
+                    async (string teamId, string jornadaId, string ticketId, IMediator mediator, CancellationToken ct) =>
                     {
-                        await mediator.Send(new Command(teamId, jornadaId), ct);
+                        await mediator.Send(new Command(teamId, jornadaId, ticketId), ct);
                         return Results.NoContent();
                     })
                 .WithName(nameof(DeleteMyQuinielaTicket))
@@ -36,7 +36,7 @@ namespace RFFM.Api.Features.Coaches.Quiniela
                 .ProducesProblem(StatusCodes.Status404NotFound);
         }
 
-        public record Command(string TeamId, string JornadaId) : RFFM.Api.Common.ICommand;
+        public record Command(string TeamId, string JornadaId, string TicketId) : RFFM.Api.Common.ICommand;
 
         public class Validator : AbstractValidator<Command>
         {
@@ -44,6 +44,7 @@ namespace RFFM.Api.Features.Coaches.Quiniela
             {
                 RuleFor(c => c.TeamId).NotEmpty();
                 RuleFor(c => c.JornadaId).NotEmpty();
+                RuleFor(c => c.TicketId).NotEmpty();
             }
         }
 
@@ -59,8 +60,8 @@ namespace RFFM.Api.Features.Coaches.Quiniela
 
                 var userId = currentUser.UserId!;
                 var ticket = await db.QuinielaTickets.SingleOrDefaultAsync(
-                        t => t.JornadaId == request.JornadaId && t.ApplicationUserId == userId, cancellationToken)
-                    ?? throw new NotFoundException("No tienes boleto en esta jornada.", ErrorCodes.QuinielaTicketNotFound);
+                        t => t.Id == request.TicketId && t.JornadaId == request.JornadaId && t.ApplicationUserId == userId, cancellationToken)
+                    ?? throw new NotFoundException("No tienes ese boleto en esta jornada.", ErrorCodes.QuinielaTicketNotFound);
 
                 var alreadyPaid = ticket.PaymentStatus != QuinielaPaymentStatus.Pending;
                 if (alreadyPaid)
