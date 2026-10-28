@@ -5804,6 +5804,26 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.ToTable("QuinielaJornadas", "app");
                 });
 
+            modelBuilder.Entity("RFFM.Api.Domain.Entities.Teams.QuinielaTeamSettings", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("FundPercent")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<string>("TeamId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TeamId")
+                        .IsUnique();
+
+                    b.ToTable("QuinielaTeamSettings", "app");
+                });
+
             modelBuilder.Entity("RFFM.Api.Domain.Entities.Teams.QuinielaTicket", b =>
                 {
                     b.Property<string>("Id")
@@ -7180,6 +7200,15 @@ namespace RFFM.Api.Infrastructure.Migrations
                 });
 
             modelBuilder.Entity("RFFM.Api.Domain.Entities.Teams.QuinielaJornada", b =>
+                {
+                    b.HasOne("RFFM.Api.Domain.Aggregates.UserClubs.Team", null)
+                        .WithMany()
+                        .HasForeignKey("TeamId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Entities.Teams.QuinielaTeamSettings", b =>
                 {
                     b.HasOne("RFFM.Api.Domain.Aggregates.UserClubs.Team", null)
                         .WithMany()
