@@ -68,7 +68,7 @@ namespace RFFM.Api.Features.Coaches.Quiniela
                     .Select(m => new QuinielaFundMovementDto(m.Id, m.Amount, m.OccurredAt, m.Description))
                     .ToListAsync(cancellationToken);
 
-                var totals = new QuinielaTotalsDto(collected, pending, prizeBase + jornada.CarryIn, fundAmount, jornada.CarryIn, jornada.CarryOut, prizes);
+                var totals = new QuinielaTotalsDto(collected, pending, prizeBase + jornada.CarryIn, fundAmount, jornada.CarryIn, jornada.CarryOut, prizes, jornada.PrizePercent);
                 return new QuinielaPaymentsDto(QuinielaSupport.ToDto(jornada, round, now), rows, totals, movements);
             }
         }

@@ -21,7 +21,6 @@ namespace RFFM.Api.Features.Coaches.Quiniela
     public class OpenQuiniela : IFeatureModule
     {
         private const decimal TicketPrice = 1m;
-        private const decimal PrizePercent = 55m;
 
         public void AddRoutes(IEndpointRouteBuilder app)
         {
@@ -92,7 +91,12 @@ namespace RFFM.Api.Features.Coaches.Quiniela
                     .Select(j => j.CarryOut)
                     .FirstOrDefault() ?? 0m;
 
-                var jornada = QuinielaJornada.Create(request.TeamId, next.Id, carryIn, TicketPrice, PrizePercent);
+                var fundPercent = await db.QuinielaTeamSettings.AsNoTracking()
+                    .Where(s => s.TeamId == request.TeamId)
+                    .Select(s => (decimal?)s.FundPercent)
+                    .SingleOrDefaultAsync(cancellationToken) ?? QuinielaTeamSettings.DefaultFundPercent;
+
+                var jornada = QuinielaJornada.Create(request.TeamId, next.Id, carryIn, TicketPrice, 100m - fundPercent);
                 db.QuinielaJornadas.Add(jornada);
                 await db.SaveChangesAsync(cancellationToken);
 

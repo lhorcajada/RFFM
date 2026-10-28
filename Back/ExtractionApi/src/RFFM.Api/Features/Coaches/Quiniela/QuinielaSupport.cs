@@ -38,7 +38,10 @@ namespace RFFM.Api.Features.Coaches.Quiniela
         DateTime? PaidAt, int? Hits, string? Category, decimal? Prize);
 
     public record QuinielaTotalsDto(
-        decimal Collected, decimal Pending, decimal PrizePool, decimal FundAmount, decimal CarryIn, decimal? CarryOut, decimal Prizes);
+        decimal Collected, decimal Pending, decimal PrizePool, decimal FundAmount, decimal CarryIn, decimal? CarryOut, decimal Prizes,
+        decimal PrizePercent);
+
+    public record QuinielaSettingsDto(decimal FundPercent);
 
     public record QuinielaFundMovementDto(string Id, decimal Amount, DateTime OccurredAt, string? Description);
 
@@ -221,6 +224,10 @@ namespace RFFM.Api.Features.Coaches.Quiniela
             services.AddScoped<IValidator<SaveQuinielaTicket.Command>, SaveQuinielaTicket.Validator>();
             services.AddScoped<IValidator<SetQuinielaTicketPayment.Command>, SetQuinielaTicketPayment.Validator>();
             services.AddScoped<IValidator<SettleQuiniela.Command>, SettleQuiniela.Validator>();
+            services.AddScoped<IValidator<DeleteQuinielaTicket.Command>, DeleteQuinielaTicket.Validator>();
+            services.AddScoped<IValidator<DeleteMyQuinielaTicket.Command>, DeleteMyQuinielaTicket.Validator>();
+            services.AddScoped<IValidator<ResetQuiniela.Command>, ResetQuiniela.Validator>();
+            services.AddScoped<IValidator<UpdateQuinielaSettings.Command>, UpdateQuinielaSettings.Validator>();
             return services;
         }
     }

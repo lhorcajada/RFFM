@@ -31,7 +31,28 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Entities
         }
     }
 
-    internal class QuinielaTicketEntityConfiguration : IEntityTypeConfiguration<QuinielaTicket>
+    internal class QuinielaTeamSettingsEntityConfiguration : IEntityTypeConfiguration<QuinielaTeamSettings>
+    {
+        public void Configure(EntityTypeBuilder<QuinielaTeamSettings> builder)
+        {
+            builder.ToTable("QuinielaTeamSettings");
+
+            builder.HasKey(s => s.Id);
+
+            builder.Property(s => s.TeamId).IsRequired();
+            builder.Property(s => s.FundPercent).HasColumnType("decimal(5,2)").IsRequired();
+            builder.Ignore(s => s.PrizePercent);
+
+            builder.HasIndex(s => s.TeamId).IsUnique();
+
+            builder.HasOne<Team>()
+                .WithMany()
+                .HasForeignKey(s => s.TeamId)
+                .OnDelete(DeleteBehavior.Cascade);
+        }
+    }
+
+    internal class QuinielaTicketEntityConfiguration: IEntityTypeConfiguration<QuinielaTicket>
     {
         public void Configure(EntityTypeBuilder<QuinielaTicket> builder)
         {

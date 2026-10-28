@@ -272,7 +272,7 @@ namespace RFFM.Api.Tests.IntegrationTests
             Assert.Equal(HttpStatusCode.OK, settled.StatusCode);
             var settlement = await settled.Content.ReadFromJsonAsync<QuinielaSettlementDto>();
             Assert.Equal(1m, settlement!.Collected);
-            Assert.Equal(0.45m, settlement.FundAmount);
+            Assert.Equal(0m, settlement.FundAmount);
             Assert.Equal("Special", settlement.Tickets.Single().Category);
 
             var again = await client.SendAsync(Request(HttpMethod.Post, $"{jornadaUrl}/settle", seed.CoachId));

@@ -54,6 +54,16 @@ namespace RFFM.Api.Domain.Entities.Teams
                 throw new DomainException(Title, "Los pronósticos están cerrados: ya ha empezado el primer partido.", ErrorCodes.QuinielaPicksClosed);
         }
 
+        public void ApplyPrizePercent(decimal prizePercent)
+        {
+            if (Status == QuinielaJornadaStatus.Settled)
+                throw new DomainException(Title, "La quiniela de esta jornada ya está liquidada.", ErrorCodes.QuinielaAlreadySettled);
+            if (prizePercent is < 0 or > 100)
+                throw new DomainException(Title, "El porcentaje de premios debe estar entre 0 y 100.", ErrorCodes.QuinielaInvalidJornada);
+
+            PrizePercent = prizePercent;
+        }
+
         public void Settle(decimal carryOut, DateTime settledAtUtc)
         {
             if (Status == QuinielaJornadaStatus.Settled)
