@@ -187,13 +187,23 @@ namespace RFFM.Api.Features.Coaches.Quiniela
                 .Select(d => new { d.ApplicationUserId, d.FirstName, d.LastName })
                 .ToListAsync(ct);
 
+            var familyNames = await db.TeamPlayerFamilyMembers.AsNoTracking()
+                .Where(f => f.LinkedUserId != null && userIds.Contains(f.LinkedUserId) && f.TeamPlayer.TeamId == teamId)
+                .Select(f => new { UserId = f.LinkedUserId!, f.Name, f.LastName })
+                .ToListAsync(ct);
+
             return userIds.ToDictionary(
                 id => id,
                 id =>
                 {
                     var name = names.FirstOrDefault(n => n.ApplicationUserId == id);
+                    var familyName = familyNames.FirstOrDefault(f => f.UserId == id);
                     var role = roles.FirstOrDefault(r => r.ApplicationUserId == id);
-                    var fullName = name is null ? "Sin nombre" : $"{name.FirstName} {name.LastName}".Trim();
+                    var fullName = name is not null
+                        ? $"{name.FirstName} {name.LastName}".Trim()
+                        : familyName is not null && $"{familyName.Name} {familyName.LastName}".Trim() is { Length: > 0 } familyFullName
+                            ? familyFullName
+                            : "Sin nombre";
                     return new Participant(fullName, role is null ? string.Empty : Membership.GetById(role.RoleId)?.Key ?? string.Empty);
                 });
         }
