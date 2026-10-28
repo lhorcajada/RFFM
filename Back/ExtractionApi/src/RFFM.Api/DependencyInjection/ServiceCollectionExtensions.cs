@@ -1,4 +1,5 @@
-﻿using RFFM.Api.Infrastructure.Storage;
+﻿using RFFM.Api.Infrastructure.FeatureFlags;
+using RFFM.Api.Infrastructure.Storage;
 using FluentValidation;
 using Hellang.Middleware.ProblemDetails;
 using Jose;
@@ -49,6 +50,7 @@ namespace RFFM.Api.DependencyInjection
             //services.AddIntegrationEvents();
             services.AddHttpClient();
             services.Configure<RffmOptions>(configuration.GetSection("Rffm"));
+            services.AddFeatureFlags();
             // Allow handlers to access HttpContext when needed
             services.AddHttpContextAccessor();
 
