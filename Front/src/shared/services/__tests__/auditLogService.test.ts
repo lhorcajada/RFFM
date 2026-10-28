@@ -128,4 +128,19 @@ describe('auditLogService', () => {
       expect(result.totalCount).toBe(0);
     });
   });
+
+  describe('deleteAuditLogEntries', () => {
+    it('sends the ids in the body of DELETE /api/audit-log and returns the deleted count', async () => {
+      const mockDelete = vi.fn().mockResolvedValue({ status: 200, data: { deleted: 2 } });
+      (client.delete as any) = mockDelete;
+
+      const deleted = await auditLogService.deleteAuditLogEntries(['log-1', 'log-2']);
+
+      expect(mockDelete).toHaveBeenCalledOnce();
+      const [url, config] = mockDelete.mock.calls[0];
+      expect(url).toBe('/api/audit-log');
+      expect(config).toEqual({ data: { ids: ['log-1', 'log-2'] } });
+      expect(deleted).toBe(2);
+    });
+  });
 });

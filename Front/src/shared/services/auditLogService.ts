@@ -69,6 +69,17 @@ export async function recordPageAccess(request: RecordPageAccessRequest): Promis
 }
 
 /**
+ * Permanently deletes the given audit events (1-100 ids). Returns how many were removed.
+ * Only Federation/Administrator may call it; the backend answers 403 otherwise.
+ */
+export async function deleteAuditLogEntries(ids: string[]): Promise<number> {
+  const response = await client.delete<{ deleted: number }>('/api/audit-log', {
+    data: { ids },
+  });
+  return response.data.deleted;
+}
+
+/**
  * Searches the audit log with optional filters.
  * Parses the X-Total-Count header to determine total count.
  */

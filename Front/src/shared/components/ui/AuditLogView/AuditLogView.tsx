@@ -5,6 +5,8 @@ import {
   Card,
   CardContent,
   CircularProgress,
+  Checkbox,
+  FormControlLabel,
   TextField,
   Typography,
   Chip,
@@ -15,8 +17,14 @@ import {
   FormControl,
   InputLabel,
 } from '@mui/material';
-import { searchAuditLog, AuditLogSearchParams, AuditEventType, UserActivityLogResponse } from '../../../services/auditLogService';
+import { searchAuditLog, deleteAuditLogEntries, AuditLogSearchParams, AuditEventType, UserActivityLogResponse } from '../../../services/auditLogService';
+import { coachAuthService } from '../../../../apps/coach/services/authService';
+import ConfirmDialog from '../ConfirmDialog/ConfirmDialog';
 import styles from './AuditLogView.module.css';
+
+function notifySnackbar(message: string, severity: 'success' | 'error'): void {
+  window.dispatchEvent(new CustomEvent('rffm.show_snackbar', { detail: { message, severity } }));
+}
 
 const EVENT_TYPE_LABELS: Record<AuditEventType, string> = {
   PageAccess: 'Acceso a página',
@@ -36,6 +44,13 @@ export function AuditLogView({ fixedFilters = {} }: AuditLogViewProps): React.Re
   const [totalCount, setTotalCount] = useState(0);
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize, setPageSize] = useState(25);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
+
+  // Only Federation/Administrator may delete audit events (Administrator passes hasRole).
+  const canDelete = coachAuthService.hasRole('Federation') || coachAuthService.hasRole('Administrator');
 
   // Filter form state
   const [filters, setFilters] = useState({
@@ -91,15 +106,61 @@ export function AuditLogView({ fixedFilters = {} }: AuditLogViewProps): React.Re
     };
 
     fetchData();
-  }, [pageNumber, pageSize, filters.eventType, filters.search, filters.clubId, filters.teamId, filters.from, filters.to]);
+  }, [pageNumber, pageSize, reloadKey, filters.eventType, filters.search, filters.clubId, filters.teamId, filters.from, filters.to]);
 
   const handleFilterChange = (field: string, value: string) => {
     setFilters(prev => ({ ...prev, [field]: value }));
     setPageNumber(1); // Reset to first page when filters change
+    setSelectedIds(new Set());
   };
 
   const handlePageChange = (_: React.ChangeEvent<unknown>, page: number) => {
     setPageNumber(page);
+    setSelectedIds(new Set());
+  };
+
+  const allOnPageSelected = items.length > 0 && items.every(item => selectedIds.has(item.id));
+  const someOnPageSelected = items.some(item => selectedIds.has(item.id));
+  const selectedCount = selectedIds.size;
+
+  const toggleItem = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const togglePage = () => {
+    setSelectedIds(allOnPageSelected ? new Set() : new Set(items.map(item => item.id)));
+  };
+
+  const handleDeleteConfirmed = async () => {
+    const ids = Array.from(selectedIds);
+    setDeleting(true);
+    try {
+      const deleted = await deleteAuditLogEntries(ids);
+      notifySnackbar(
+        `${deleted} ${deleted === 1 ? 'evento eliminado' : 'eventos eliminados'}`,
+        'success',
+      );
+      setSelectedIds(new Set());
+      const pageEmptied = ids.length >= items.length;
+      if (pageEmptied && pageNumber > 1) {
+        setPageNumber(pageNumber - 1);
+      } else {
+        setReloadKey(key => key + 1);
+      }
+    } catch {
+      notifySnackbar('No se pudieron eliminar los eventos', 'error');
+    } finally {
+      setDeleting(false);
+      setConfirmOpen(false);
+    }
   };
 
   const filtersSection = (
@@ -180,11 +241,58 @@ export function AuditLogView({ fixedFilters = {} }: AuditLogViewProps): React.Re
     <Box className={styles.container}>
       {filtersSection}
 
+      {/* Selection bar (Federation/Administrator only) */}
+      {canDelete && (
+        <Box className={styles.selectionBar}>
+          <FormControlLabel
+            label="Seleccionar página"
+            control={
+              <Checkbox
+                checked={allOnPageSelected}
+                indeterminate={someOnPageSelected && !allOnPageSelected}
+                onChange={togglePage}
+              />
+            }
+          />
+          <Typography variant="body2">
+            {selectedCount} {selectedCount === 1 ? 'seleccionado' : 'seleccionados'}
+          </Typography>
+          <Stack direction="row" spacing={1}>
+            <Button
+              variant="text"
+              color="inherit"
+              onClick={() => setSelectedIds(new Set())}
+              disabled={selectedCount === 0 || deleting}
+            >
+              Cancelar selección
+            </Button>
+            <Button
+              variant="contained"
+              color="error"
+              onClick={() => setConfirmOpen(true)}
+              disabled={selectedCount === 0 || deleting}
+            >
+              Eliminar ({selectedCount})
+            </Button>
+          </Stack>
+        </Box>
+      )}
+
       {/* Cards List */}
       <Box className={styles.cardsList}>
-        {items.map(item => (
-          <Card key={item.id} className={styles.eventCard}>
+        {items.map(item => {
+          const isSelected = selectedIds.has(item.id);
+          return (
+          <Card key={item.id} className={isSelected ? `${styles.eventCard} ${styles.eventCardSelected}` : styles.eventCard}>
             <CardContent>
+              {canDelete && (
+                <Checkbox
+                  checked={isSelected}
+                  onChange={() => toggleItem(item.id)}
+                  inputProps={{ 'aria-label': 'Seleccionar evento' }}
+                  sx={{ p: '10px' }}
+                />
+              )}
               <Stack direction="column" spacing={1}>
                 <Box>
                   <Typography variant="subtitle2" className={styles.timestamp}>
@@ -246,8 +354,21 @@ export function AuditLogView({ fixedFilters = {} }: AuditLogViewProps): React.Re
               )}
             </CardContent>
           </Card>
-        ))}
+          );
+        })}
       </Box>
+
+      {canDelete && (
+        <ConfirmDialog
+          open={confirmOpen}
+          title="Eliminar eventos"
+          description={`Vas a eliminar ${selectedCount} ${selectedCount === 1 ? 'evento' : 'eventos'} del registro de auditoría. Esta acción no se puede deshacer.`}
+          confirmText="Eliminar"
+          processing={deleting}
+          onCancel={() => setConfirmOpen(false)}
+          onConfirm={handleDeleteConfirmed}
+        />
+      )}
 
       {/* Pagination */}
       <Box className={styles.paginationContainer}>
