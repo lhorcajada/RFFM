@@ -4,7 +4,7 @@ import { usePermissions } from "../../../../../shared/hooks/usePermissions";
 import { buildTeamSections } from "../../../navigation/teamSections";
 import styles from "./QuickActions.module.css";
 
-const QUICK_ACTION_KEYS = ["squad", "injured", "attendance-summary"];
+const QUICK_ACTION_KEYS = ["squad", "injured", "attendance-summary", "quiniela"];
 
 export default function QuickActions({ teamId }: { teamId: string | null }) {
   const { loading, hasFeatureAccess } = usePermissions();

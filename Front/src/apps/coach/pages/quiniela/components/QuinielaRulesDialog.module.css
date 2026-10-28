@@ -1,0 +1,134 @@
+.title {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.heading {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.subtitle {
+  color: var(--rffm-muted, #a59f9f);
+  font-size: 0.875rem;
+  font-weight: 400;
+}
+
+.close {
+  flex-shrink: 0;
+}
+
+.rules {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rule {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.ruleNumber {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--rffm-primary);
+  color: var(--rffm-standings-on-badge);
+  font-weight: 700;
+}
+
+.ruleText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ruleTitle {
+  font-weight: 600;
+}
+
+.ruleBody {
+  color: var(--rffm-muted, #a59f9f);
+  font-size: 0.875rem;
+}
+
+.prizes {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.prizesTitle {
+  margin: 0 0 10px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--rffm-muted, #a59f9f);
+}
+
+.prizeList {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.prize {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.prizeName {
+  font-weight: 600;
+  color: var(--rffm-primary);
+}
+
+.prizeDescription {
+  color: var(--rffm-muted, #a59f9f);
+  font-size: 0.8125rem;
+}
+
+.prizesNote {
+  margin: 10px 0 0;
+  color: var(--rffm-muted, #a59f9f);
+  font-size: 0.8125rem;
+}
+
+.footer {
+  display: flex;
+  padding: 12px 24px 20px;
+}
+
+.confirm {
+  flex: 1;
+  min-height: 48px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--rffm-primary);
+  color: var(--rffm-standings-on-badge);
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}

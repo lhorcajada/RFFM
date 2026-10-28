@@ -1,0 +1,129 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--rffm-card-bg, #1c1c30);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--rffm-text, #f0f0f0);
+}
+
+.status {
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.pending {
+  color: var(--rffm-status-pending);
+  background: color-mix(in srgb, var(--rffm-status-pending) 16%, transparent);
+}
+
+.paid {
+  color: var(--rffm-status-accepted);
+  background: color-mix(in srgb, var(--rffm-status-accepted) 16%, transparent);
+}
+
+.expired {
+  color: var(--rffm-status-declined);
+  background: color-mix(in srgb, var(--rffm-status-declined) 16%, transparent);
+}
+
+.progress {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.progressLabel {
+  display: flex;
+  justify-content: space-between;
+  color: var(--rffm-muted, #a59f9f);
+  font-size: 0.875rem;
+}
+
+.progressLabel strong {
+  color: var(--rffm-text, #f0f0f0);
+}
+
+.track {
+  height: 8px;
+  border-radius: 99px;
+}
+
+.price {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--rffm-muted, #a59f9f);
+}
+
+.priceValue {
+  font-size: 2rem;
+  line-height: 1;
+  color: var(--rffm-text, #f0f0f0);
+}
+
+.save {
+  min-height: 48px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--rffm-primary);
+  color: var(--rffm-standings-on-badge);
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.save:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.note {
+  margin: 0;
+  color: var(--rffm-muted, #a59f9f);
+  font-size: 0.8125rem;
+}
+
+@media (max-width: 899px) {
+  .card {
+    gap: 10px;
+    padding: 12px 16px;
+    border-radius: 16px 16px 0 0;
+  }
+
+  .progress,
+  .note {
+    display: none;
+  }
+
+  .price {
+    padding-top: 0;
+    border-top: 0;
+  }
+
+  .priceValue {
+    font-size: 1.5rem;
+  }
+}

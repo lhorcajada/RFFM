@@ -1,0 +1,17 @@
+.help {
+  margin: 0;
+  color: var(--rffm-muted, #a59f9f);
+  font-size: 0.875rem;
+}
+
+.block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.label {
+  color: var(--rffm-muted, #a59f9f);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}

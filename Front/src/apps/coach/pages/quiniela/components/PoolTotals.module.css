@@ -1,0 +1,48 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--rffm-card-bg, #1c1c30);
+}
+
+.label {
+  color: var(--rffm-muted, #a59f9f);
+  font-size: 0.8125rem;
+}
+
+.value {
+  font-size: 1.9rem;
+  font-weight: 700;
+  line-height: 1.05;
+  color: var(--rffm-text, #f0f0f0);
+}
+
+.paid {
+  color: var(--rffm-status-accepted);
+}
+
+.pending {
+  color: var(--rffm-status-pending);
+}
+
+.prize {
+  color: var(--rffm-primary);
+}
+
+.plain {
+  color: var(--rffm-text, #f0f0f0);
+}
+
+.hint {
+  color: var(--rffm-muted, #a59f9f);
+  font-size: 0.8125rem;
+}

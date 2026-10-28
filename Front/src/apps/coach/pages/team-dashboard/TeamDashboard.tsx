@@ -10,6 +10,7 @@ import { usePlayerAutoLoad } from "../Dashboard/hooks/usePlayerAutoLoad";
 import UpcomingEventsWidget from "./components/UpcomingEventsWidget";
 import NewsWidget from "./components/NewsWidget";
 import LeagueSnapshot from "./components/LeagueSnapshot";
+import QuinielaPromoCard from "./components/QuinielaPromoCard";
 import QuickActions from "./components/QuickActions";
 import PushActivationBanner from "../../components/PushActivationBanner/PushActivationBanner";
 import teamDashboardStyles from "./TeamDashboard.module.css";
@@ -58,6 +59,11 @@ export default function TeamDashboard() {
           <PushActivationBanner />
           <div className={teamDashboardStyles.widgetsGrid}>
             <div className={teamDashboardStyles.mainColumn}>
+              {team?.id && (
+                <ErrorBoundary>
+                  <QuinielaPromoCard teamId={team.id} />
+                </ErrorBoundary>
+              )}
               <ErrorBoundary>
                 <UpcomingEventsWidget team={team} isPlayer={isPlayer} />
               </ErrorBoundary>

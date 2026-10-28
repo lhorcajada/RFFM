@@ -16,6 +16,7 @@ export const COACH_FEATURE_ROUTES = {
   Injured: "/coach/injured",
   Sanctions: "/coach/sanctions",
   Lottery: "/coach/lottery",
+  Quiniela: "/coach/quiniela",
   News: "/coach/news",
   MyDocuments: "/coach/my-documents",
 

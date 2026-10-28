@@ -10,6 +10,7 @@ const PLAYER_ALLOWED_ROUTES: string[] = [
   COACH_FEATURE_ROUTES.Injured,
   COACH_FEATURE_ROUTES.Sanctions,
   COACH_FEATURE_ROUTES.Lottery,
+  COACH_FEATURE_ROUTES.Quiniela,
   COACH_FEATURE_ROUTES.News,
   COACH_FEATURE_ROUTES.MyDocuments,
 ];
@@ -61,6 +62,7 @@ describe("buildTeamSections — grupos", () => {
       hasFeatureAccess: (route) =>
         route !== COACH_FEATURE_ROUTES.Rivals &&
         route !== COACH_FEATURE_ROUTES.GameModel &&
+        route !== COACH_FEATURE_ROUTES.Quiniela &&
         route !== COACH_FEATURE_ROUTES.Convocations,
     }).map((group) => group.title);
 
@@ -182,5 +184,41 @@ describe("buildTeamSections — permisos", () => {
     expect(visible).not.toContain("Resultados");
     expect(visible).not.toContain("Clasificación");
     expect(visible).not.toContain("Estadísticas de rivales");
+  });
+});
+
+describe("buildTeamSections — Quiniela", () => {
+  it("coloca Quiniela en Competición con el equipo en la ruta", () => {
+    expect(groupOf("Quiniela")).toBe("Competición");
+    expect(findItem("Quiniela", { teamId: "team-1" })?.to).toBe("/coach/quiniela?teamId=team-1");
+    expect(findItem("Quiniela")?.to).toBe("/coach/quiniela");
+  });
+
+  it("muestra Quiniela al jugador y al entrenador con acceso", () => {
+    expect(labels({ isPlayer: true, hasFeatureAccess: (r) => r === COACH_FEATURE_ROUTES.Quiniela })).toContain("Quiniela");
+    expect(labels({ isPlayer: false, hasFeatureAccess: (r) => r === COACH_FEATURE_ROUTES.Quiniela })).toContain("Quiniela");
+  });
+
+  it("oculta Quiniela sin permiso de la funcionalidad", () => {
+    expect(labels({ hasFeatureAccess: (r) => r !== COACH_FEATURE_ROUTES.Quiniela })).not.toContain("Quiniela");
+  });
+});
+
+describe("buildTeamSections — Bolsa de la quiniela", () => {
+  it("coloca la Bolsa en Competición con el equipo en la ruta", () => {
+    expect(groupOf("Bolsa de la quiniela")).toBe("Competición");
+    expect(findItem("Bolsa de la quiniela", { teamId: "team-1" })?.to).toBe("/coach/quiniela/bolsa?teamId=team-1");
+  });
+
+  it("muestra la Bolsa al entrenador con acceso", () => {
+    expect(labels({ isPlayer: false })).toContain("Bolsa de la quiniela");
+  });
+
+  it("oculta la Bolsa al jugador aunque tenga acceso", () => {
+    expect(labels({ isPlayer: true })).not.toContain("Bolsa de la quiniela");
+  });
+
+  it("oculta la Bolsa sin permiso de la funcionalidad", () => {
+    expect(labels({ hasFeatureAccess: (r) => r !== COACH_FEATURE_ROUTES.Quiniela })).not.toContain("Bolsa de la quiniela");
   });
 });

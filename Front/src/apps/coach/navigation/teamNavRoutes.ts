@@ -20,6 +20,7 @@ const TEAM_NAV_ROUTES = [
   "/coach/player-documents",
   "/coach/news",
   "/coach/lottery",
+  "/coach/quiniela",
   "/coach/season-access",
   "/coach/notifications",
 ];

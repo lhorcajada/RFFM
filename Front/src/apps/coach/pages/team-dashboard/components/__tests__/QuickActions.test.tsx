@@ -34,6 +34,24 @@ describe("QuickActions", () => {
     expect(screen.queryByRole("link", { name: "Resumen de asistencias" })).not.toBeInTheDocument();
   });
 
+  it("muestra la acción rápida Quiniela con permiso y la oculta sin él", () => {
+    mockPermissions.mockReturnValue({
+      loading: false,
+      hasFeatureAccess: (route: string) => route === COACH_FEATURE_ROUTES.Quiniela,
+    });
+    renderActions();
+    expect(screen.getByRole("link", { name: "Quiniela" })).toHaveAttribute("href", "/coach/quiniela?teamId=team-1");
+  });
+
+  it("no muestra la acción rápida Quiniela sin permiso", () => {
+    mockPermissions.mockReturnValue({
+      loading: false,
+      hasFeatureAccess: (route: string) => route === COACH_FEATURE_ROUTES.Squad,
+    });
+    renderActions();
+    expect(screen.queryByRole("link", { name: "Quiniela" })).not.toBeInTheDocument();
+  });
+
   it("no se muestra sin ninguna acción permitida", () => {
     mockPermissions.mockReturnValue({ loading: false, hasFeatureAccess: () => false });
     renderActions();

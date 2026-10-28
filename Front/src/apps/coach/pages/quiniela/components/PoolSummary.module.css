@@ -1,0 +1,39 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--rffm-card-bg, #1c1c30);
+}
+
+.label {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--rffm-muted, #a59f9f);
+}
+
+.amount {
+  font-size: 2.6rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--rffm-primary);
+}
+
+.detail {
+  margin: 0;
+  color: var(--rffm-muted, #a59f9f);
+  font-size: 0.875rem;
+}
+
+.participants {
+  margin: 0;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 0.875rem;
+  color: var(--rffm-text, #f0f0f0);
+}

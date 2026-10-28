@@ -1,0 +1,66 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--rffm-card-bg, #1c1c30);
+}
+
+.label {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--rffm-muted, #a59f9f);
+}
+
+.empty {
+  margin: 0;
+  color: var(--rffm-muted, #a59f9f);
+  font-size: 0.875rem;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.title {
+  color: var(--rffm-text, #f0f0f0);
+  font-weight: 600;
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+
+.when {
+  color: var(--rffm-muted, #a59f9f);
+  font-size: 0.8125rem;
+}
+
+.amount {
+  color: var(--rffm-text, #f0f0f0);
+  font-weight: 600;
+  white-space: nowrap;
+}

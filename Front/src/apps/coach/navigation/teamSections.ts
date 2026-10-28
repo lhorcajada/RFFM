@@ -16,6 +16,8 @@ import StyleOutlinedIcon from "@mui/icons-material/StyleOutlined";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import NewspaperOutlinedIcon from "@mui/icons-material/NewspaperOutlined";
 import ConfirmationNumberOutlinedIcon from "@mui/icons-material/ConfirmationNumberOutlined";
+import PaymentsOutlinedIcon from "@mui/icons-material/PaymentsOutlined";
+import SportsSoccerOutlinedIcon from "@mui/icons-material/SportsSoccerOutlined";
 import AssignmentTurnedInOutlinedIcon from "@mui/icons-material/AssignmentTurnedInOutlined";
 import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNoneOutlined";
 import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
@@ -84,6 +86,8 @@ export function buildTeamSections({
         { key: "results", label: "Resultados", to: team("/coach/results"), icon: ScoreboardOutlinedIcon, visible: canSeeCompetition },
         { key: "classification", label: "Clasificación", to: team("/coach/classification"), icon: EmojiEventsOutlinedIcon, visible: canSeeCompetition },
         { key: "rival-stats", label: "Estadísticas de rivales", to: team("/coach/rival-stats"), icon: QueryStatsOutlinedIcon, visible: canSeeCompetition },
+        { key: "quiniela", label: "Quiniela", to: team("/coach/quiniela"), icon: SportsSoccerOutlinedIcon, visible: hasFeatureAccess(COACH_FEATURE_ROUTES.Quiniela) },
+        { key: "quiniela-pool", label: "Bolsa de la quiniela", to: team("/coach/quiniela/bolsa"), icon: PaymentsOutlinedIcon, visible: !isPlayer && hasFeatureAccess(COACH_FEATURE_ROUTES.Quiniela) },
         { key: "rivals", label: "Rivales", to: "/coach/rivals", icon: ShieldOutlinedIcon, visible: hasFeatureAccess(COACH_FEATURE_ROUTES.Rivals) },
         { key: "game-model", label: "Modelo de Juego", to: team("/coach/game-model"), icon: SchemaOutlinedIcon, visible: hasFeatureAccess(COACH_FEATURE_ROUTES.GameModel) },
       ],

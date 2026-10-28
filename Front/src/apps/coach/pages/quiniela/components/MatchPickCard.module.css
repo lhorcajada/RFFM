@@ -1,0 +1,99 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--rffm-card-bg, #1c1c30);
+  min-width: 0;
+}
+
+.pleno {
+  border: 2px solid var(--rffm-primary);
+}
+
+.postponed {
+  opacity: 0.9;
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+
+.when {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--rffm-muted, #a59f9f);
+  font-size: 0.875rem;
+}
+
+.number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--rffm-text, #f0f0f0);
+  font-weight: 600;
+}
+
+.numberPleno {
+  background: var(--rffm-primary);
+  color: var(--rffm-standings-on-badge);
+  font-weight: 700;
+}
+
+.badgePleno,
+.badgePostponed {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.badgePleno {
+  border: 1px solid var(--rffm-primary);
+  color: var(--rffm-primary);
+}
+
+.badgePostponed {
+  border: 1px solid var(--rffm-muted, #a59f9f);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--rffm-text, #f0f0f0);
+}
+
+.teams {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+}
+
+.team {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--rffm-text, #f0f0f0);
+  overflow-wrap: anywhere;
+}
+
+.versus {
+  color: var(--rffm-muted, #a59f9f);
+  font-size: 0.875rem;
+}
+
+.postponedNote {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--rffm-muted, #a59f9f);
+  font-size: 0.875rem;
+}

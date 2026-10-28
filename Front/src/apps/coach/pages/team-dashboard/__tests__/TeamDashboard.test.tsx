@@ -69,6 +69,10 @@ vi.mock("../components/QuickActions", () => ({
   default: ({ teamId }: { teamId: string | null }) => <div>{`quick-actions-${teamId}`}</div>,
 }));
 
+vi.mock("../components/QuinielaPromoCard", () => ({
+  default: ({ teamId }: { teamId: string | null }) => <div>{`quiniela-promo-${teamId}`}</div>,
+}));
+
 vi.mock("../../../components/PushActivationBanner/PushActivationBanner", () => ({
   default: () => <div>push-activation-banner</div>,
 }));
@@ -260,5 +264,40 @@ describe("TeamDashboard — A la vista section", () => {
     const side = screen.getByText("news-widget").closest('[class*="sideColumn"]');
     expect(main!.contains(screen.getByText("league-snapshot-coach"))).toBe(true);
     expect(side!.contains(screen.getByText("quick-actions-team-1"))).toBe(true);
+  });
+
+  it("coloca la tarjeta de quiniela como primer elemento de la columna principal para el entrenador", () => {
+    mockUseTeamAndClub.mockReturnValue(teamAndClubWithClub);
+    render(
+      <MemoryRouter>
+        <TeamDashboard />
+      </MemoryRouter>
+    );
+
+    const main = screen.getByText("upcoming-events-widget").closest('[class*="mainColumn"]') as HTMLElement;
+    expect(main.firstElementChild).toContainElement(screen.getByText("quiniela-promo-team-1"));
+  });
+
+  it("coloca la tarjeta de quiniela como primer elemento de la columna principal para el jugador", () => {
+    mockUsePlayerAutoLoad.mockReturnValue({ isPlayer: true });
+    mockUseTeamAndClub.mockReturnValue(teamAndClubWithClub);
+    render(
+      <MemoryRouter>
+        <TeamDashboard />
+      </MemoryRouter>
+    );
+
+    const main = screen.getByText("upcoming-events-widget").closest('[class*="mainColumn"]') as HTMLElement;
+    expect(main.firstElementChild).toContainElement(screen.getByText("quiniela-promo-team-1"));
+  });
+
+  it("no monta la tarjeta de quiniela mientras no hay equipo", () => {
+    render(
+      <MemoryRouter>
+        <TeamDashboard />
+      </MemoryRouter>
+    );
+
+    expect(screen.queryByText(/quiniela-promo/)).not.toBeInTheDocument();
   });
 });
