@@ -132,6 +132,49 @@ namespace RFFM.Api.Tests.UnitTests
                 fp.RoleName == "FamilyMember" && fp.FeatureRoute == CoachFeatureRoutes.PlayerDocuments));
         }
 
+        [Theory]
+        [InlineData("Player", 1)]
+        [InlineData("FamilyMember", 1)]
+        [InlineData("Coach", 3)]
+        [InlineData("ClubDirector", 3)]
+        public async Task SeedPermissionsAsync_SeedsQuinielaRouteWithExpectedPermissionPerRole(string roleName, int permissionTypeId)
+        {
+            var builder = WebApplication.CreateBuilder();
+            builder.Services.AddDbContext<AppDbContext>(options =>
+                options.UseNpgsql(_fixture.ConnectionString, npgsql =>
+                    npgsql.MigrationsHistoryTable("__EFMigrationsHistory", "app")));
+            await using var app = builder.Build();
+
+            await app.SeedPermissionsAsync();
+
+            await using var db = _fixture.CreateDbContext();
+            var rows = await db.FeaturePermissions
+                .Where(fp => fp.RoleName == roleName && fp.FeatureRoute == CoachFeatureRoutes.Quiniela)
+                .ToListAsync();
+
+            Assert.Equal("/coach/quiniela", CoachFeatureRoutes.Quiniela);
+            var row = Assert.Single(rows);
+            Assert.Equal(permissionTypeId, row.PermissionTypeId);
+        }
+
+        [Fact]
+        public async Task SeedPermissionsAsync_IsIdempotentForQuinielaRoute()
+        {
+            var builder = WebApplication.CreateBuilder();
+            builder.Services.AddDbContext<AppDbContext>(options =>
+                options.UseNpgsql(_fixture.ConnectionString, npgsql =>
+                    npgsql.MigrationsHistoryTable("__EFMigrationsHistory", "app")));
+            await using var app = builder.Build();
+
+            await app.SeedPermissionsAsync();
+            await app.SeedPermissionsAsync();
+
+            await using var db = _fixture.CreateDbContext();
+            var count = await db.FeaturePermissions
+                .CountAsync(fp => fp.FeatureRoute == CoachFeatureRoutes.Quiniela);
+            Assert.Equal(4, count);
+        }
+
         /// <summary>
         /// Regression test: openspec change coach-web-push-notifications ships a
         /// "Notificaciones" section inside Settings that Player/FamilyMember need in order to

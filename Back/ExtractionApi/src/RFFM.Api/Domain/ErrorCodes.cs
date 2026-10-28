@@ -190,5 +190,18 @@ namespace RFFM.Api.Domain
         public const string LotteryReturnBeforeDelivery = "LotteryReturnBeforeDelivery";
         public const string LotteryBookAlreadyReturned = "LotteryBookAlreadyReturned";
         public const string LotteryInvalidClubDeliveryAmount = "LotteryInvalidClubDeliveryAmount";
+
+        // Team quiniela (Features/Coaches/Quiniela/*) - openspec change quiniela-team-pool.
+        public const string QuinielaInvalidJornada = "QuinielaInvalidJornada";
+        public const string QuinielaInvalidTicket = "QuinielaInvalidTicket";
+        public const string QuinielaPicksClosed = "QuinielaPicksClosed";
+        public const string QuinielaAlreadySettled = "QuinielaAlreadySettled";
+        public const string QuinielaMatchesNotFinished = "QuinielaMatchesNotFinished";
+        public const string QuinielaNoValidMatches = "QuinielaNoValidMatches";
+        public const string QuinielaNotFound = "QuinielaNotFound";
+        public const string QuinielaTicketNotFound = "QuinielaTicketNotFound";
+        public const string QuinielaAlreadyOpen = "QuinielaAlreadyOpen";
+        public const string QuinielaTeamWithoutLeague = "QuinielaTeamWithoutLeague";
+        public const string QuinielaNoNextRound = "QuinielaNoNextRound";
     }
 }

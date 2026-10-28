@@ -21,6 +21,7 @@ using RFFM.Api.Domain.Entities.SeasonAccess;
 using RFFM.Api.Domain.Entities.News;
 using RFFM.Api.Domain.Entities.PushNotifications;
 using RFFM.Api.Domain.Entities.WebPushNotifications;
+using RFFM.Api.Infrastructure.Persistence.Configuration.Entities;
 using SmartEnum.EFCore;
 
 namespace RFFM.Api.Infrastructure.Persistence
@@ -58,6 +59,8 @@ namespace RFFM.Api.Infrastructure.Persistence
         public DbSet<TeamFundMovement> TeamFundMovements { get; set; }
         public DbSet<LotteryCampaign> LotteryCampaigns { get; set; }
         public DbSet<LotteryBook> LotteryBooks { get; set; }
+        public DbSet<QuinielaJornada> QuinielaJornadas { get; set; }
+        public DbSet<QuinielaTicket> QuinielaTickets { get; set; }
         public DbSet<TeamInjuryProtocol> TeamInjuryProtocols { get; set; }
         public DbSet<TeamInjuryProtocolAttachment> TeamInjuryProtocolAttachments { get; set; }
         public DbSet<RFFM.Api.Domain.Entities.PlayerDocuments.DocumentType> DocumentTypes { get; set; }
@@ -177,6 +180,7 @@ namespace RFFM.Api.Infrastructure.Persistence
             modelBuilder.HasDefaultSchema("app");
             base.OnModelCreating(modelBuilder);
 
+            QuinielaTicketEntityConfiguration.ConfigurePicks(modelBuilder);
             modelBuilder.ConfigureSmartEnum();
 
             ApplyAllEntityConfigurations(modelBuilder);

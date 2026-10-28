@@ -531,6 +531,13 @@ namespace RFFM.Host.DependencyInjection
                         ("PlayerDocuments", CoachFeatureRoutes.PlayerDocuments, "Coach", 3, false),
                         ("PlayerDocuments", CoachFeatureRoutes.PlayerDocuments, "ClubDirector", 3, false),
 
+                        // Quiniela (openspec change quiniela-team-pool): Read-only for Player/FamilyMember,
+                        // ReadWrite for Coach/ClubDirector. "/coach/quiniela/bolsa" hangs off this same feature.
+                        ("Quiniela", CoachFeatureRoutes.Quiniela, "Player", 1, false),
+                        ("Quiniela", CoachFeatureRoutes.Quiniela, "FamilyMember", 1, false),
+                        ("Quiniela", CoachFeatureRoutes.Quiniela, "Coach", 3, false),
+                        ("Quiniela", CoachFeatureRoutes.Quiniela, "ClubDirector", 3, false),
+
                         // AuditLog: ReadWrite for Coach/ClubDirector/Administrator (see openspec change user-activity-audit-log-frontend)
                         ("AuditLog", CoachFeatureRoutes.AuditLog, "Coach", 3, false),
                         ("AuditLog", CoachFeatureRoutes.AuditLog, "ClubDirector", 3, false),

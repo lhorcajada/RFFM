@@ -1,0 +1,76 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using RFFM.Api.Domain.Aggregates.UserClubs;
+using RFFM.Api.Domain.Entities.Teams;
+
+namespace RFFM.Api.Infrastructure.Persistence.Configuration.Entities
+{
+    internal class QuinielaJornadaEntityConfiguration : IEntityTypeConfiguration<QuinielaJornada>
+    {
+        public void Configure(EntityTypeBuilder<QuinielaJornada> builder)
+        {
+            builder.ToTable("QuinielaJornadas");
+
+            builder.HasKey(j => j.Id);
+
+            builder.Property(j => j.TeamId).IsRequired();
+            // La jornada RFFM vive en el esquema federation (otro DbContext): sin clave foránea.
+            builder.Property(j => j.RffmRoundId).HasMaxLength(36).IsRequired();
+            builder.Property(j => j.Price).HasColumnType("decimal(10,2)").IsRequired();
+            builder.Property(j => j.PrizePercent).HasColumnType("decimal(5,2)").IsRequired();
+            builder.Property(j => j.CarryIn).HasColumnType("decimal(10,2)").IsRequired();
+            builder.Property(j => j.CarryOut).HasColumnType("decimal(10,2)");
+            builder.Property(j => j.Status).IsRequired();
+
+            builder.HasIndex(j => new { j.TeamId, j.RffmRoundId }).IsUnique();
+
+            builder.HasOne<Team>()
+                .WithMany()
+                .HasForeignKey(j => j.TeamId)
+                .OnDelete(DeleteBehavior.Cascade);
+        }
+    }
+
+    internal class QuinielaTicketEntityConfiguration : IEntityTypeConfiguration<QuinielaTicket>
+    {
+        public void Configure(EntityTypeBuilder<QuinielaTicket> builder)
+        {
+            builder.ToTable("QuinielaTickets");
+
+            builder.HasKey(t => t.Id);
+
+            builder.Property(t => t.JornadaId).IsRequired();
+            // El usuario vive en el esquema identity (otro DbContext): sin clave foránea.
+            builder.Property(t => t.ApplicationUserId).HasMaxLength(450).IsRequired();
+            builder.Property(t => t.PlenoHome).IsRequired();
+            builder.Property(t => t.PlenoAway).IsRequired();
+            builder.Property(t => t.PaymentStatus).IsRequired();
+            builder.Property(t => t.Prize).HasColumnType("decimal(10,2)");
+
+            builder.HasIndex(t => new { t.JornadaId, t.ApplicationUserId }).IsUnique();
+
+            builder.HasOne<QuinielaJornada>()
+                .WithMany()
+                .HasForeignKey(t => t.JornadaId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Navigation(t => t.Picks).UsePropertyAccessMode(PropertyAccessMode.Field);
+        }
+
+        /// <summary>
+        /// Los pronósticos son una colección owned. Se declara desde <see cref="AppDbContext"/> antes de
+        /// <c>ConfigureSmartEnum()</c>: ese método configura de forma explícita todas las entidades del modelo y,
+        /// si encuentra <see cref="QuinielaPick"/> como entidad normal, ya no se puede convertir en owned.
+        /// </summary>
+        internal static void ConfigurePicks(ModelBuilder modelBuilder) =>
+            modelBuilder.Entity<QuinielaTicket>().OwnsMany(t => t.Picks, picks =>
+            {
+                picks.ToTable("QuinielaPicks");
+                picks.WithOwner().HasForeignKey("TicketId");
+                picks.Property<int>("Id").ValueGeneratedOnAdd();
+                picks.HasKey("Id");
+                picks.Property(p => p.RecordCode).HasMaxLength(100).IsRequired();
+                picks.Property(p => p.Sign).IsRequired();
+            });
+    }
+}

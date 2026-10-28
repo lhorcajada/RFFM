@@ -10,6 +10,9 @@ namespace RFFM.Api.Domain.Entities.Teams
         /// produces this value yet (see design.md Non-Goals).</summary>
         public static readonly TeamFundMovementSource ManualAdjustment = new(nameof(ManualAdjustment), 2);
 
+        /// <summary>Parte del cobrado de una jornada de quiniela que no se reparte en premios (QuinielaScoring).</summary>
+        public static readonly TeamFundMovementSource QuinielaFund = new(nameof(QuinielaFund), 3);
+
         private TeamFundMovementSource(string name, int value) : base(name, value)
         {
         }
