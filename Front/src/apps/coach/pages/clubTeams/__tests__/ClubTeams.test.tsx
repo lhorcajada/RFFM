@@ -56,6 +56,20 @@ vi.mock("../../../services/seasonService", () => ({
   default: { getSeasons: (...args: unknown[]) => mockGetSeasons(...args) },
 }));
 
+const mockGetCurrent = vi.fn();
+const mockCreateConfig = vi.fn();
+const mockUpdateConfig = vi.fn();
+vi.mock("../../../services/configurationCoachService", () => ({
+  default: {
+    getCurrent: (...args: unknown[]) => mockGetCurrent(...args),
+    create: (...args: unknown[]) => mockCreateConfig(...args),
+    update: (...args: unknown[]) => mockUpdateConfig(...args),
+  },
+}));
+vi.mock("../../../services/authService", () => ({
+  coachAuthService: { getUserId: () => "coach-1" },
+}));
+
 import ClubTeams from "../ClubTeams";
 
 function makeTeam(id: string, name: string, category: string, league: string, joinCode?: string) {
@@ -94,6 +108,77 @@ describe("ClubTeams", () => {
     mockGetSeasons.mockResolvedValue([{ id: "s1", name: "2026/27" }]);
     mockFetchTeamPhoto.mockResolvedValue(null);
     mockDeleteTeam.mockResolvedValue(undefined);
+    mockGetCurrent.mockResolvedValue(null);
+    mockCreateConfig.mockImplementation(async (req) => ({ id: 7, ...req }));
+    mockUpdateConfig.mockImplementation(async (id, req) => ({ id, ...req }));
+  });
+
+  it("marca como preferido el equipo que indica la configuración del entrenador", async () => {
+    mockGetCurrent.mockResolvedValue({ id: 3, coachId: "coach-1", preferredTeamId: "t2" });
+    renderPage();
+    expect(await screen.findByRole("button", { name: "Quitar equipo preferido" })).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Marcar como equipo preferido" })).toHaveLength(2);
+  });
+
+  it("crea la configuración con el equipo y el club cuando el entrenador no tenía ninguna", async () => {
+    renderPage();
+    await screen.findByText("Cadete A");
+    await userEvent.click(screen.getAllByRole("button", { name: "Marcar como equipo preferido" })[0]);
+    await waitFor(() =>
+      expect(mockCreateConfig).toHaveBeenCalledWith({
+        coachId: "coach-1",
+        preferredClubId: "club-1",
+        preferredTeamId: "t2",
+      })
+    );
+    expect(await screen.findByRole("button", { name: "Quitar equipo preferido" })).toBeInTheDocument();
+  });
+
+  it("actualiza la configuración existente al elegir otro equipo preferido", async () => {
+    mockGetCurrent.mockResolvedValue({ id: 3, coachId: "coach-1", preferredTeamId: "t1" });
+    renderPage();
+    await screen.findByText("Cadete A");
+    await userEvent.click(screen.getAllByRole("button", { name: "Marcar como equipo preferido" })[0]);
+    await waitFor(() =>
+      expect(mockUpdateConfig).toHaveBeenCalledWith(3, {
+        coachId: "coach-1",
+        preferredClubId: "club-1",
+        preferredTeamId: "t2",
+      })
+    );
+    expect(mockCreateConfig).not.toHaveBeenCalled();
+  });
+
+  it("quita el equipo preferido conservando el club", async () => {
+    mockGetCurrent.mockResolvedValue({ id: 3, coachId: "coach-1", preferredTeamId: "t2" });
+    renderPage();
+    await userEvent.click(await screen.findByRole("button", { name: "Quitar equipo preferido" }));
+    await waitFor(() =>
+      expect(mockUpdateConfig).toHaveBeenCalledWith(3, {
+        coachId: "coach-1",
+        preferredClubId: "club-1",
+        preferredTeamId: null,
+      })
+    );
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: "Quitar equipo preferido" })).not.toBeInTheDocument()
+    );
+  });
+
+  it("avisa del error y no cambia el preferido si falla el guardado", async () => {
+    mockCreateConfig.mockRejectedValue({ response: { data: { detail: "Sin permiso" } } });
+    const listener = vi.fn();
+    window.addEventListener("rffm.show_snackbar", listener);
+    renderPage();
+    await screen.findByText("Cadete A");
+    await userEvent.click(screen.getAllByRole("button", { name: "Marcar como equipo preferido" })[0]);
+    await waitFor(() => expect(listener).toHaveBeenCalled());
+    expect((listener.mock.calls[0][0] as CustomEvent).detail).toEqual({
+      message: "Sin permiso",
+      severity: "error",
+    });
+    expect(screen.queryByRole("button", { name: "Quitar equipo preferido" })).not.toBeInTheDocument();
+    window.removeEventListener("rffm.show_snackbar", listener);
   });
 
   it("agrupa los equipos por categoría en orden alfabético", async () => {

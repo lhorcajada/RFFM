@@ -20,8 +20,13 @@ const baseTeam = {
 const onCopyCode = vi.fn();
 const onEdit = vi.fn();
 const onDelete = vi.fn();
+const onTogglePreferred = vi.fn();
 
-function renderCard(team: TeamResponse = baseTeam, deleteDisabled = false) {
+function renderCard(
+  team: TeamResponse = baseTeam,
+  deleteDisabled = false,
+  isPreferred = false
+) {
   return render(
     <MemoryRouter>
       <ClubTeamCard
@@ -32,6 +37,8 @@ function renderCard(team: TeamResponse = baseTeam, deleteDisabled = false) {
         onEdit={onEdit}
         onDelete={onDelete}
         deleteDisabled={deleteDisabled}
+        isPreferred={isPreferred}
+        onTogglePreferred={onTogglePreferred}
       />
     </MemoryRouter>
   );
@@ -88,6 +95,22 @@ describe("ClubTeamCard", () => {
   it("deshabilita eliminar cuando deleteDisabled es verdadero", () => {
     renderCard(baseTeam, true);
     expect(screen.getByRole("button", { name: "Eliminar equipo" })).toBeDisabled();
+  });
+
+  it("ofrece marcar el equipo como preferido cuando no lo es", async () => {
+    renderCard();
+    const button = screen.getByRole("button", { name: "Marcar como equipo preferido" });
+    expect(button).toHaveAttribute("aria-pressed", "false");
+    await userEvent.click(button);
+    expect(onTogglePreferred).toHaveBeenCalledTimes(1);
+  });
+
+  it("indica que es el equipo preferido y permite quitarlo", async () => {
+    renderCard(baseTeam, false, true);
+    const button = screen.getByRole("button", { name: "Quitar equipo preferido" });
+    expect(button).toHaveAttribute("aria-pressed", "true");
+    await userEvent.click(button);
+    expect(onTogglePreferred).toHaveBeenCalledTimes(1);
   });
 
   it("muestra el escudo genérico cuando el equipo no tiene foto", () => {

@@ -4,6 +4,8 @@ import { IconButton, Tooltip } from "@mui/material";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import StarIcon from "@mui/icons-material/Star";
+import StarBorderIcon from "@mui/icons-material/StarBorder";
 import TeamCrest from "../../../components/TeamCrest/TeamCrest";
 import type { TeamResponse } from "../../../services/teamService";
 import styles from "./ClubTeamCard.module.css";
@@ -16,6 +18,8 @@ type ClubTeamCardProps = {
   onEdit: () => void;
   onDelete: () => void;
   deleteDisabled?: boolean;
+  isPreferred?: boolean;
+  onTogglePreferred: () => void;
 };
 
 export default function ClubTeamCard({
@@ -26,6 +30,8 @@ export default function ClubTeamCard({
   onEdit,
   onDelete,
   deleteDisabled = false,
+  isPreferred = false,
+  onTogglePreferred,
 }: ClubTeamCardProps) {
   const leagueName = team.league?.name?.trim() || "Sin liga";
   const categoryName = team.category?.name?.trim() || "Sin categoría";
@@ -63,6 +69,16 @@ export default function ClubTeamCard({
           </div>
         )}
         <div className={styles.actions}>
+          <Tooltip title={isPreferred ? "Quitar equipo preferido" : "Marcar como equipo preferido"}>
+            <IconButton
+              className={styles.iconBtn}
+              onClick={onTogglePreferred}
+              aria-pressed={isPreferred}
+              aria-label={isPreferred ? "Quitar equipo preferido" : "Marcar como equipo preferido"}
+            >
+              {isPreferred ? <StarIcon fontSize="small" /> : <StarBorderIcon fontSize="small" />}
+            </IconButton>
+          </Tooltip>
           <Tooltip title="Editar equipo">
             <IconButton className={styles.iconBtn} onClick={onEdit} aria-label="Editar equipo">
               <EditOutlinedIcon fontSize="small" />

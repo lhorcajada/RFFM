@@ -24,6 +24,8 @@ import { useNavigate } from "react-router-dom";
 import { Box } from "@mui/material";
 import teamService, { TeamResponse } from "../../services/teamService";
 import seasonService, { Season } from "../../services/seasonService";
+import configurationCoachService from "../../services/configurationCoachService";
+import { coachAuthService } from "../../services/authService";
 import { useAuditPageAccess } from "../../../../shared/hooks/useAuditPageAccess";
 
 export default function ClubTeams() {
@@ -44,6 +46,58 @@ export default function ClubTeams() {
   const [seasonName, setSeasonName] = useState<string | null>(null);
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>("all");
   const [selectedLeagueFilter, setSelectedLeagueFilter] = useState<string>("all");
+
+  const [configurationId, setConfigurationId] = useState<number | null>(null);
+  const [preferredTeamId, setPreferredTeamId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const current = await configurationCoachService.getCurrent();
+        if (cancelled) return;
+        setConfigurationId(current?.id ?? null);
+        setPreferredTeamId(current?.preferredTeamId ?? null);
+      } catch {
+        // Sin configuración legible no se marca ningún equipo como preferido.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleTogglePreferred = async (teamId: string) => {
+    const coachId = coachAuthService.getUserId();
+    const nextTeamId = preferredTeamId === teamId ? null : teamId;
+    try {
+      if (!coachId) throw new Error("No se pudo identificar el coach actual.");
+      const payload = { coachId, preferredClubId: id ?? null, preferredTeamId: nextTeamId };
+      const saved = configurationId
+        ? await configurationCoachService.update(configurationId, payload)
+        : await configurationCoachService.create(payload);
+      setConfigurationId(saved.id);
+      setPreferredTeamId(nextTeamId);
+      window.dispatchEvent(
+        new CustomEvent("rffm.show_snackbar", {
+          detail: {
+            message: nextTeamId ? "Equipo preferido actualizado" : "Equipo preferido eliminado",
+            severity: "success",
+          },
+        })
+      );
+    } catch (e: any) {
+      window.dispatchEvent(
+        new CustomEvent("rffm.show_snackbar", {
+          detail: {
+            message:
+              e?.response?.data?.detail ?? e?.message ?? "No se pudo actualizar el equipo preferido",
+            severity: "error",
+          },
+        })
+      );
+    }
+  };
 
   function handleCopyCode(code: string) {
     navigator.clipboard.writeText(code).then(() => {
@@ -322,6 +376,8 @@ export default function ClubTeams() {
                         photoUrl={teamPhotos[t.id] ?? null}
                         to={`/coach/dashboard?teamId=${t.id}${seasonId ? `&seasonId=${seasonId}` : ""}`}
                         onCopyCode={handleCopyCode}
+                        isPreferred={preferredTeamId === t.id}
+                        onTogglePreferred={() => void handleTogglePreferred(t.id)}
                         onEdit={() =>
                           navigate(
                             `/coach/clubs/${id}/teams/${t.id}/edit${
