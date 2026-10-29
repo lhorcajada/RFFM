@@ -1,14 +1,41 @@
-.content {
-  padding: 16px;
+.pageContent {
+  padding-bottom: 24px;
 }
 
-.icon {
-  font-size: 40px !important;
+.actionBar {
+  display: flex;
+  width: 100%;
+  justify-content: flex-end;
+  gap: 4px;
 }
 
-.emblem {
-  height: 36px;
-  width: auto;
-  vertical-align: middle;
-  margin-right: 8px;
+.headerButton {
+  width: 44px;
+  height: 44px;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-radius: 12px !important;
+}
+
+/* Teams (main) and quick actions + pending (side): stacked on mobile, side
+   by side from 769px — same breakpoint as the team dashboard. */
+.widgetsGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 20px;
+}
+
+@media (min-width: 769px) {
+  .widgetsGrid {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    gap: 24px;
+  }
+}
+
+.mainColumn,
+.sideColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
 }
