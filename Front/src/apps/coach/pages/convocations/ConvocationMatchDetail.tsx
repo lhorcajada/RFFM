@@ -24,6 +24,8 @@ import { useConvocationMatchContext } from "./hooks/useConvocationMatchContext";
 import { useConvocationPlayerViews } from "./hooks/useConvocationPlayerViews";
 import { useConvocationProposal } from "./hooks/useConvocationProposal";
 import { buildMatchUnavailability } from "./utils/matchUnavailability";
+import { toIsoDay } from "./utils/deconvokeProposal";
+import { isInInjuryRecovery } from "./utils/injuryRecovery";
 import { useTeamReadinessMap } from "./hooks/useTeamReadinessMap";
 import type { ClubKit } from "../../services/kitService";
 import { getTeamKits, updateEventKit } from "../../services/kitService";
@@ -169,6 +171,7 @@ export default function ConvocationMatchDetail() {
     seasonStats,
     gridStartsCountMap,
     lastInjuryEndMap,
+    lastInjuryStartMap,
     lastInjuryMissedEventsMap,
     weekTrainingStatsMap,
     weekTrainingCount,
@@ -225,6 +228,15 @@ export default function ConvocationMatchDetail() {
     [convocation.mgmtNotCalled, convocation.mgmtExcuseMap, convocation.excuseTypes],
   );
 
+  const recoveringIds = useMemo(() => {
+    const currentIso = toIsoDay(match?.date);
+    const ids = new Set<string>();
+    lastInjuryEndMap.forEach((endIso, playerId) => {
+      if (isInInjuryRecovery(lastInjuryStartMap.get(playerId), endIso, currentIso)) ids.add(playerId);
+    });
+    return ids;
+  }, [lastInjuryEndMap, lastInjuryStartMap, match?.date]);
+
   const proposal = useConvocationProposal({
     players: convocation.players,
     squadIds,
@@ -236,6 +248,7 @@ export default function ConvocationMatchDetail() {
     enrichedGrid: grid.enrichedGrid,
     seasonStats,
     lastInjuryEndMap,
+    lastInjuryStartMap,
     lastInjuryMissedEventsMap,
     currentDate: match?.date,
     currentEventId: convocation.mgmtEventId,
@@ -373,6 +386,7 @@ export default function ConvocationMatchDetail() {
             onApplyProposal={handleApplyProposal}
             onPrintProposal={handlePrintProposal}
             readinessMap={readinessMap}
+            recoveringIds={recoveringIds}
           />
         )}
 

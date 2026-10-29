@@ -152,6 +152,11 @@
   text-transform: uppercase;
 }
 
+.recoveringBadge {
+  background: rgba(245, 158, 11, 0.85);
+  color: #1f1300;
+}
+
 .injuredBadgeClickable {
   cursor: pointer;
   transition: background 0.15s;

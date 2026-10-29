@@ -32,6 +32,7 @@ export type ConvocationMatchContext = {
   seasonStats: SeasonPlayerStats[];
   gridStartsCountMap: Map<string, number>;
   lastInjuryEndMap: Map<string, string | null>;
+  lastInjuryStartMap: Map<string, string | null>;
   lastInjuryMissedEventsMap: Map<string, number>;
   weekTrainingStatsMap: Map<string, WeeklyTrainingStats>;
   weekTrainingCount: number;
@@ -443,6 +444,12 @@ export function useConvocationMatchContext(
     };
   }, [teamId, convocationPlayers, enabled]);
 
+  const lastInjuryStartMap = useMemo(() => {
+    const map = new Map<string, string | null>();
+    lastInjuryWindowMap.forEach((injury, playerId) => map.set(playerId, injury.startDate ?? null));
+    return map;
+  }, [lastInjuryWindowMap]);
+
   const lastInjuryMissedEventsMap = useMemo(() => {
     const map = new Map<string, number>();
     if (!trainingAbsenceDaysMap) return map;
@@ -460,6 +467,7 @@ export function useConvocationMatchContext(
     seasonStats,
     gridStartsCountMap,
     lastInjuryEndMap,
+    lastInjuryStartMap,
     lastInjuryMissedEventsMap,
     weekTrainingStatsMap,
     weekTrainingCount,

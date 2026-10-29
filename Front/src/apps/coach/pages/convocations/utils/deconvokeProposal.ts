@@ -15,6 +15,7 @@ import {
   type PositionShortfall,
   type RequirementKey,
 } from "./positionRequirements";
+import { isInjuryAbsence } from "./injuryRecovery";
 import { INJURY_EXCUSE_ID, SANCTION_EXCUSE_ID, type MatchUnavailability } from "./matchUnavailability";
 
 type RivalResult = "win" | "draw" | "loss";
@@ -73,6 +74,7 @@ export type BuildProposalInput = {
   enrichedGrid: Map<string, Map<string, GridCell>>;
   seasonStats: SeasonPlayerStats[];
   lastInjuryEndMap: Map<string, string | null>;
+  lastInjuryStartMap?: Map<string, string | null>;
   lastInjuryMissedEventsMap?: Map<string, number>;
   currentDate: string | undefined;
   currentEventId: string | null;
@@ -207,7 +209,7 @@ function parseNum(v: string | number | null | undefined): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-function toIsoDay(value: string | null | undefined): string | null {
+export function toIsoDay(value: string | null | undefined): string | null {
   if (!value) return null;
   if (/^\d{4}-\d{2}-\d{2}/.test(value)) return value.slice(0, 10);
   const d = new Date(value);
@@ -230,13 +232,6 @@ function isTechnicalDecision(cell: GridCell | undefined): boolean {
   if (cell.statusName === "No disponible") return false;
   if (!cell.excuseTypeId) return true;
   return !!cell.excuseName?.toLowerCase().includes("decisi");
-}
-
-function isInjuryAbsence(cell: GridCell | undefined): boolean {
-  if (!cell) return false;
-  if (!NOT_CALLED_NAMES.has(cell.statusName)) return false;
-  if (cell.statusName === "No disponible") return true;
-  return cell.excuseTypeId === 1 || !!cell.excuseName?.toLowerCase().includes("lesi");
 }
 
 export function isProtectedStreakAbsence(cell: GridCell | undefined): boolean {
@@ -319,6 +314,7 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
     enrichedGrid,
     seasonStats,
     lastInjuryEndMap,
+    lastInjuryStartMap,
     lastInjuryMissedEventsMap,
     currentDate,
     currentEventId,
@@ -489,6 +485,7 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
         seasonColumns,
         enrichedGrid,
         lastInjuryEndMap,
+        lastInjuryStartMap,
         lastInjuryMissedEventsMap,
         currentIso,
         weekTrainingCount,
@@ -622,6 +619,7 @@ export function formatProposalFactorValue(factor: ProposalFactor): string {
     case "weeklyTrainingAccum":
       return `${nf0(n)}%`;
     case "recentRecovery":
+    case "recoveryProtection":
       return `${nf0(n)} días`;
     default:
       return Number.isInteger(n) ? new Intl.NumberFormat("es-ES").format(n) : nf2(n);

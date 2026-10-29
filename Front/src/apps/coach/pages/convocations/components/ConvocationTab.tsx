@@ -102,6 +102,8 @@ type Props = {
   onPrintProposal: () => Promise<void>;
   /** Rodaje/condición física por teamPlayerId (best-effort, puede estar vacío mientras carga). */
   readinessMap?: Record<string, Pick<PlayerStatistics, "readiness" | "fatigue"> & Partial<Pick<PlayerStatistics, "formStatus">>>;
+  /** Jugadores en la semana de recuperación tras una baja de dos semanas o más. */
+  recoveringIds?: ReadonlySet<string>;
 };
 
 const GROUPS = [
@@ -163,6 +165,7 @@ export default function ConvocationTab({
   onApplyProposal,
   onPrintProposal,
   readinessMap,
+  recoveringIds,
 }: Props) {
   const [showProposal, setShowProposal] = useState(false);
   const [applyingProposal, setApplyingProposal] = useState(false);
@@ -557,6 +560,7 @@ export default function ConvocationTab({
                               dorsal={p.dorsal ?? null}
                               position={p.position ?? null}
                               injured={p.isInjured === true}
+                              recovering={recoveringIds?.has(playerId) === true}
                               rating={
                                 r
                                   ? {
@@ -642,6 +646,7 @@ export default function ConvocationTab({
                               dorsal={p.dorsal ?? null}
                               position={p.position ?? null}
                               injured={p.isInjured === true}
+                              recovering={recoveringIds?.has(playerId) === true}
                               rating={
                                 r
                                   ? {

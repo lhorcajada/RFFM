@@ -68,6 +68,7 @@ vi.mock("../hooks/useConvocationMatchContext", () => ({
     seasonStats: [],
     gridStartsCountMap: new Map(),
     lastInjuryEndMap: new Map(),
+    lastInjuryStartMap: new Map(),
     weekTrainingStatsMap: new Map(),
     weekTrainingCount: 0,
     loadingProposalContext: false,

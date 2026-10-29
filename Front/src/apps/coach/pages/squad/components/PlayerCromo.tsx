@@ -26,6 +26,8 @@ type Props = {
   rating?: RatingData | null;
   rank?: number | null;
   injured?: boolean;
+  /** Discharged from an injury of two weeks or more, within the recovery week. Ignored while injured. */
+  recovering?: boolean;
   onClearInjury?: () => void;
   to?: string;
   onEdit?: () => void;
@@ -97,6 +99,7 @@ export default function PlayerCromo({
   rating,
   rank,
   injured,
+  recovering,
   onClearInjury,
   to,
   onEdit,
@@ -167,6 +170,10 @@ export default function PlayerCromo({
             >
               🩹 Lesionado{onClearInjury && <span className={styles.injuredAltaHint}>· Alta</span>}
             </div>
+          )}
+
+          {recovering && !injured && (
+            <div className={`${styles.injuredBadge} ${styles.recoveringBadge}`}>🩹 En recuperación</div>
           )}
 
           {rank != null && (

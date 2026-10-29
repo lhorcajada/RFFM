@@ -5,6 +5,27 @@ import { MemoryRouter } from "react-router-dom";
 import PlayerCromo from "../PlayerCromo";
 
 describe("PlayerCromo", () => {
+  it("muestra el chip En recuperación cuando el jugador está recuperándose de una lesión", () => {
+    render(
+      <MemoryRouter>
+        <PlayerCromo displayName="Juan Pérez" recovering />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText(/En recuperación/)).toBeInTheDocument();
+  });
+
+  it("no muestra el chip En recuperación si el jugador sigue lesionado", () => {
+    render(
+      <MemoryRouter>
+        <PlayerCromo displayName="Juan Pérez" injured recovering />
+      </MemoryRouter>
+    );
+
+    expect(screen.queryByText(/En recuperación/)).not.toBeInTheDocument();
+    expect(screen.getByText(/Lesionado/)).toBeInTheDocument();
+  });
+
   it("muestra el alias del jugador cuando existe, en lugar del nombre completo", () => {
     render(
       <MemoryRouter>
