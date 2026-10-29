@@ -89,55 +89,7 @@ describe("CreateTeam", () => {
     expect(mockCreateTeam).not.toHaveBeenCalled();
   });
 
-  it("navega a /coach/clubs/:id/teams al guardar cuando no viene de ajustes", async () => {
-    mockUseLocation.mockReturnValue({ pathname: "/coach/clubs/club-1/teams/new", search: "", state: null });
-
-    render(
-      <MemoryRouter>
-        <UserProvider>
-          <CreateTeam />
-        </UserProvider>
-      </MemoryRouter>
-    );
-
-    await userEvent.type(screen.getByLabelText("Nombre"), "Equipo A");
-    await userEvent.click(screen.getByLabelText("Categoría"));
-    await userEvent.click(await screen.findByRole("option", { name: "Categoría 1" }));
-
-    await userEvent.click(screen.getByRole("button", { name: "Guardar" }));
-
-    await waitFor(() => expect(mockCreateTeam).toHaveBeenCalled());
-    expect(mockNavigate).toHaveBeenCalledWith("/coach/clubs/club-1/teams");
-  });
-
-  it("vuelve a Ajustes > Mis equipos al guardar cuando viene del flujo de ajustes", async () => {
-    mockUseLocation.mockReturnValue({
-      pathname: "/coach/clubs/club-1/teams/new",
-      search: "",
-      state: { from: "settings" },
-    });
-
-    render(
-      <MemoryRouter>
-        <UserProvider>
-          <CreateTeam />
-        </UserProvider>
-      </MemoryRouter>
-    );
-
-    await userEvent.type(screen.getByLabelText("Nombre"), "Equipo B");
-    await userEvent.click(screen.getByLabelText("Categoría"));
-    await userEvent.click(await screen.findByRole("option", { name: "Categoría 1" }));
-
-    await userEvent.click(screen.getByRole("button", { name: "Guardar" }));
-
-    await waitFor(() => expect(mockCreateTeam).toHaveBeenCalled());
-    expect(mockNavigate).toHaveBeenCalledWith("/coach/settings", {
-      state: { section: "teams" },
-    });
-  });
-
-  describe("modo «Varios equipos»", () => {
+  describe("creación de equipos", () => {
     function renderBatch(state: unknown = null) {
       mockUseLocation.mockReturnValue({ pathname: "/coach/clubs/club-1/teams/new", search: "", state });
       render(
@@ -150,28 +102,25 @@ describe("CreateTeam", () => {
     }
 
     async function pickCategory() {
-      await userEvent.click(screen.getByLabelText("Categoría"));
+      await userEvent.click(await screen.findByLabelText("Categoría"));
       await userEvent.click(await screen.findByRole("option", { name: "Categoría 1" }));
     }
 
-    it("arranca en «Un equipo» con el campo Nombre visible", () => {
+    it("no muestra selector de modo ni campo Nombre", () => {
       renderBatch();
-      expect(screen.getByRole("button", { name: "Un equipo" })).toHaveAttribute("aria-pressed", "true");
-      expect(screen.getByLabelText("Nombre")).toBeInTheDocument();
-      expect(screen.queryByText("Letras de los equipos")).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Un equipo" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Varios equipos" })).not.toBeInTheDocument();
+      expect(screen.queryByLabelText("Nombre")).not.toBeInTheDocument();
     });
 
-    it("al elegir «Varios equipos» muestra las letras y oculta el nombre", async () => {
+    it("al elegir categoría muestra las letras de los equipos", async () => {
       renderBatch();
-      await userEvent.click(screen.getByRole("button", { name: "Varios equipos" }));
       await pickCategory();
       expect(await screen.findByText("Letras de los equipos")).toBeInTheDocument();
-      expect(screen.queryByLabelText("Nombre")).not.toBeInTheDocument();
     });
 
     it("bloquea las letras de equipos existentes de la categoría", async () => {
       renderBatch();
-      await userEvent.click(screen.getByRole("button", { name: "Varios equipos" }));
       await pickCategory();
       expect(await screen.findByRole("button", { name: "Categoría 1 A, ya existe" })).toBeDisabled();
       expect(mockGetTeams).toHaveBeenCalledWith("club-1");
@@ -181,7 +130,6 @@ describe("CreateTeam", () => {
       const snackbar = vi.fn();
       window.addEventListener("rffm.show_snackbar", snackbar as EventListener);
       renderBatch();
-      await userEvent.click(screen.getByRole("button", { name: "Varios equipos" }));
       await pickCategory();
       await userEvent.click(await screen.findByRole("button", { name: "Categoría 1 B" }));
       await userEvent.click(screen.getByRole("button", { name: "Crear 1 equipo" }));
@@ -211,7 +159,6 @@ describe("CreateTeam", () => {
       const snackbar = vi.fn();
       window.addEventListener("rffm.show_snackbar", snackbar as EventListener);
       renderBatch();
-      await userEvent.click(screen.getByRole("button", { name: "Varios equipos" }));
       await pickCategory();
       await userEvent.click(await screen.findByRole("button", { name: "Categoría 1 B" }));
       await userEvent.click(screen.getByRole("button", { name: "Crear 1 equipo" }));
@@ -225,7 +172,6 @@ describe("CreateTeam", () => {
 
     it("vuelve a Ajustes cuando viene del flujo de ajustes", async () => {
       renderBatch({ from: "settings" });
-      await userEvent.click(screen.getByRole("button", { name: "Varios equipos" }));
       await pickCategory();
       await userEvent.click(await screen.findByRole("button", { name: "Categoría 1 B" }));
       await userEvent.click(screen.getByRole("button", { name: "Crear 1 equipo" }));
@@ -240,7 +186,6 @@ describe("CreateTeam", () => {
       const snackbar = vi.fn();
       window.addEventListener("rffm.show_snackbar", snackbar as EventListener);
       renderBatch();
-      await userEvent.click(screen.getByRole("button", { name: "Varios equipos" }));
       await pickCategory();
       await userEvent.click(await screen.findByRole("button", { name: "Categoría 1 B" }));
       await userEvent.click(screen.getByRole("button", { name: "Crear 1 equipo" }));
@@ -257,7 +202,6 @@ describe("CreateTeam", () => {
 
     it("mantiene deshabilitado el botón de crear sin letras seleccionadas", async () => {
       renderBatch();
-      await userEvent.click(screen.getByRole("button", { name: "Varios equipos" }));
       expect(screen.getByRole("button", { name: "Crear equipos" })).toBeDisabled();
     });
   });
