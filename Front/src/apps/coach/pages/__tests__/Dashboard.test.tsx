@@ -80,7 +80,7 @@ describe("CoachDashboard", () => {
     });
   });
 
-  it("shows configuration card but never the Club card when user has no assigned club or team", async () => {
+  it("shows configuration card but the Club card when user has no assigned club or team", async () => {
     render(
       <MemoryRouter>
         <CoachDashboard />
@@ -88,12 +88,12 @@ describe("CoachDashboard", () => {
     );
 
     await waitFor(() => expect(screen.getByRole("link", { name: /^Configuración$/i })).toBeInTheDocument());
-    expect(screen.queryByRole("link", { name: /^Club$/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /^Club/i })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /^Plantilla$/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /^Partidos$/i })).not.toBeInTheDocument();
   });
 
-  it("shows configuration but never the Club card when user has an assigned club and team", async () => {
+  it("shows configuration but the Club card when user has an assigned club and team", async () => {
     (useTeamAndClub as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
       team: {
         id: "team-1",
@@ -112,6 +112,6 @@ describe("CoachDashboard", () => {
     );
 
     await waitFor(() => expect(screen.getByRole("link", { name: /^Configuración$/i })).toBeInTheDocument());
-    expect(screen.queryByRole("link", { name: /^Club$/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /^Club/i })).toBeInTheDocument();
   });
 });

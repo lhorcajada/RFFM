@@ -7,8 +7,9 @@ vi.mock("../../hooks/useUserTeams", () => ({ useUserTeams: () => ({ teams: [], l
 vi.mock("../../../../../shared/services/imageService", () => ({ fetchImage: vi.fn() }));
 vi.mock("../../../services/teamService", () => ({ default: {} }));
 vi.mock("../../../services/clubService", () => ({ default: {} }));
+const mockHasFeatureAccess = vi.fn();
 vi.mock("../../../../../../shared/hooks/usePermissions", () => ({
-  usePermissions: () => ({ loading: false, hasFeatureAccess: () => true }),
+  usePermissions: () => ({ loading: false, hasFeatureAccess: mockHasFeatureAccess }),
 }));
 
 import DashboardCards from "../DashboardCards";
@@ -16,12 +17,18 @@ import DashboardCards from "../DashboardCards";
 describe("DashboardCards — tarjeta Club (entrenador)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockHasFeatureAccess.mockReturnValue(true);
   });
 
-  it("nunca renderiza la tarjeta Club para un entrenador", () => {
+  it("renderiza la tarjeta Club cuando el usuario tiene acceso a la gestión de club", () => {
     render(<MemoryRouter><DashboardCards selectedSeason="" /></MemoryRouter>);
-    expect(screen.queryByText("Club")).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: /^Club$/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Club/i })).toHaveAttribute("href", "/coach/clubs");
+  });
+
+  it("no renderiza la tarjeta Club cuando el usuario no tiene acceso a la gestión de club", () => {
+    mockHasFeatureAccess.mockImplementation((route: string) => route !== "/coach/clubs");
+    render(<MemoryRouter><DashboardCards selectedSeason="" /></MemoryRouter>);
+    expect(screen.queryByRole("link", { name: /Club/i })).not.toBeInTheDocument();
   });
 
   it("sigue renderizando la tarjeta Configuración y no deja huecos en el grid", () => {

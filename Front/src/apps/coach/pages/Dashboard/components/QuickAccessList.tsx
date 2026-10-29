@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
+import ShieldOutlinedIcon from "@mui/icons-material/ShieldOutlined";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import type { TeamResponse } from "../../../services/teamService";
 import type { TeamPhotos } from "../hooks/useTeamPhotos";
@@ -11,6 +12,7 @@ interface QuickAccessListProps {
   teams: TeamResponse[];
   teamPhotos: TeamPhotos;
   showSettings: boolean;
+  showClub: boolean;
   buildTeamRoute: (teamId: string) => string;
 }
 
@@ -18,6 +20,7 @@ export default function QuickAccessList({
   teams,
   teamPhotos,
   showSettings,
+  showClub,
   buildTeamRoute,
 }: QuickAccessListProps) {
   return (
@@ -39,6 +42,12 @@ export default function QuickAccessList({
         ))}
       </ul>
       <div className={styles.actions}>
+        {showClub && (
+          <Link className={`${styles.actionLink} ${styles.settingsLink}`} to="/coach/clubs">
+            <ShieldOutlinedIcon className={styles.actionIcon} aria-hidden="true" />
+            Club
+          </Link>
+        )}
         {showSettings && (
           <Link className={`${styles.actionLink} ${styles.settingsLink}`} to="/coach/settings">
             <SettingsOutlinedIcon className={styles.actionIcon} aria-hidden="true" />

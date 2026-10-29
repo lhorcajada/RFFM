@@ -1,4 +1,5 @@
 import SettingsIcon from "@mui/icons-material/Settings";
+import ShieldOutlinedIcon from "@mui/icons-material/ShieldOutlined";
 import DashboardCard from "../../../../../shared/components/ui/DashboardCard/DashboardCard";
 import type { TeamResponse } from "../../../services/teamService";
 import type { TeamPhotos } from "../hooks/useTeamPhotos";
@@ -9,6 +10,7 @@ interface QuickAccessGridProps {
   teams: TeamResponse[];
   teamPhotos: TeamPhotos;
   showSettings: boolean;
+  showClub: boolean;
   columns: 3 | 5;
   buildTeamRoute: (teamId: string) => string;
 }
@@ -17,6 +19,7 @@ export default function QuickAccessGrid({
   teams,
   teamPhotos,
   showSettings,
+  showClub,
   columns,
   buildTeamRoute,
 }: QuickAccessGridProps) {
@@ -38,6 +41,20 @@ export default function QuickAccessGrid({
           />
         </li>
       ))}
+      {showClub && (
+        <li className={styles.item}>
+          <DashboardCard
+            title="Club"
+            description="Gestiona tu club."
+            icon={<ShieldOutlinedIcon className={styles.settingsIcon} />}
+            to="/coach/clubs"
+            className={`${styles.card} ${styles.settingsCard}`}
+            iconClassName={styles.icon}
+            titleClassName={styles.title}
+            descriptionClassName={styles.description}
+          />
+        </li>
+      )}
       {showSettings && (
         <li className={styles.item}>
           <DashboardCard

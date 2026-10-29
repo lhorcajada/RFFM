@@ -71,7 +71,7 @@ describe("CoachDashboard auto-load", () => {
     });
   });
 
-  it("shows the full dashboard but never the Club card when the user has an assigned club and team", () => {
+  it("shows the full dashboard but the Club card when the user has an assigned club and team", () => {
     render(
       <MemoryRouter initialEntries={["/coach/dashboard"]}>
         <CoachDashboard />
@@ -79,6 +79,6 @@ describe("CoachDashboard auto-load", () => {
     );
 
     expect(screen.getByRole("link", { name: /^Configuración$/i })).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: /^Club$/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /^Club/i })).toBeInTheDocument();
   });
 });

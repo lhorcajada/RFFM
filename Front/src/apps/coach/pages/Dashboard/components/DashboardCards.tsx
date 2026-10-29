@@ -34,6 +34,7 @@ export default function DashboardCards({
     `/coach/team-dashboard?teamId=${teamId}${seasonSuffix}`;
 
   const showSettings = hasFeatureAccess(COACH_FEATURE_ROUTES.Settings);
+  const showClub = hasFeatureAccess(COACH_FEATURE_ROUTES.ClubManagement);
   const isMobile = layout === "mobile";
   const visibleTeams = loadingUserTeams ? [] : userTeams;
   const sectionTitle = isMobile ? "Mis equipos" : "Acceso rápido";
@@ -61,6 +62,7 @@ export default function DashboardCards({
           teams={visibleTeams}
           teamPhotos={teamPhotos}
           showSettings={showSettings}
+          showClub={showClub}
           buildTeamRoute={buildTeamRoute}
         />
       ) : (
@@ -68,6 +70,7 @@ export default function DashboardCards({
           teams={visibleTeams}
           teamPhotos={teamPhotos}
           showSettings={showSettings}
+          showClub={showClub}
           columns={layout === "desktop" ? 5 : 3}
           buildTeamRoute={buildTeamRoute}
         />
