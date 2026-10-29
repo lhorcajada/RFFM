@@ -79,6 +79,7 @@ namespace RFFM.Api.Domain
         public const string TeamListAccessDenied = "TeamListAccessDenied";
         // Value preserved from the pre-existing RFFM.Api.Features.Coaches.Teams.TeamConstants.TeamHasPlayersCode
         public const string TeamHasPlayers = "team_has_players";
+        public const string CategoryNotFound = "CategoryNotFound";
 
         // Seasons (Features/Coaches/Seasons)
         // Value preserved from the pre-existing literal used in GetActiveSeason.cs
