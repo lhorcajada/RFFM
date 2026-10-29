@@ -89,4 +89,9 @@ describe("ClubTeamCard", () => {
     renderCard(baseTeam, true);
     expect(screen.getByRole("button", { name: "Eliminar equipo" })).toBeDisabled();
   });
+
+  it("muestra el escudo genérico cuando el equipo no tiene foto", () => {
+    renderCard();
+    expect(screen.getByRole("img", { name: "Escudo genérico de equipo" })).toBeInTheDocument();
+  });
 });

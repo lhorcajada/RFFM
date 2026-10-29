@@ -1,10 +1,10 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { IconButton, Tooltip } from "@mui/material";
-import GroupsIcon from "@mui/icons-material/Groups";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import TeamCrest from "../../../components/TeamCrest/TeamCrest";
 import type { TeamResponse } from "../../../services/teamService";
 import styles from "./ClubTeamCard.module.css";
 
@@ -37,7 +37,7 @@ export default function ClubTeamCard({
           {photoUrl ? (
             <img src={photoUrl} alt={team.name} className={styles.photoImg} />
           ) : (
-            <GroupsIcon fontSize="large" />
+            <TeamCrest className={styles.crest} />
           )}
         </div>
         <div className={styles.texts}>

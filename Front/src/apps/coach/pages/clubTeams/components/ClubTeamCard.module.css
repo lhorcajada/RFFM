@@ -110,3 +110,8 @@
   min-height: 44px;
   color: var(--rffm-error, #ef5350);
 }
+
+.crest {
+  width: 70%;
+  height: 70%;
+}

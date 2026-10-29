@@ -76,6 +76,32 @@ export async function createTeam(
   return resp.data;
 }
 
+export type CreateTeamsBatchResponse = {
+  created: { id: string; name: string }[];
+  skipped: string[];
+};
+
+export async function createTeamsBatch(
+  clubId: string,
+  payload: {
+    categoryId: number;
+    leagueId?: number | null;
+    letters: string[];
+    seasonId?: string | null;
+  }
+): Promise<CreateTeamsBatchResponse> {
+  if (!clubId) throw new Error("clubId is required");
+  const seasonId = payload.seasonId ?? (await seasonService.getActiveSeason())?.id ?? "";
+  const resp = await client.post<CreateTeamsBatchResponse>(`/api/catalog/teams/batch`, {
+    clubId,
+    seasonId,
+    categoryId: payload.categoryId,
+    leagueId: payload.leagueId ?? null,
+    letters: payload.letters,
+  });
+  return resp.data;
+}
+
 export async function updateTeam(
   teamId: string,
   payload: {
@@ -221,6 +247,7 @@ export async function getTeamPlayersForSelection(
 export default {
   getTeams,
   createTeam,
+  createTeamsBatch,
   uploadTeamPhoto,
   fetchTeamPhoto,
   getTeamById,

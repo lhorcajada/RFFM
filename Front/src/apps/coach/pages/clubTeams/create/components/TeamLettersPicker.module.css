@@ -1,0 +1,99 @@
+.picker {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.texts {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--rffm-dash-card-text);
+}
+
+.hint {
+  font-size: 0.8125rem;
+  color: var(--rffm-dash-desc-text);
+}
+
+.shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.shortcut {
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--rffm-dash-card-border);
+  background: transparent;
+  color: var(--rffm-dash-card-text);
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.clear {
+  border-color: transparent;
+  color: var(--rffm-dash-accent);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+  gap: 10px;
+}
+
+.letter {
+  position: relative;
+  min-height: 56px;
+  border-radius: 12px;
+  border: 1px solid var(--rffm-dash-card-border);
+  background: transparent;
+  color: var(--rffm-dash-card-text);
+  font: inherit;
+  font-size: 1.5rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.letter:focus-visible,
+.shortcut:focus-visible {
+  outline: 2px solid var(--rffm-dash-accent);
+  outline-offset: 2px;
+}
+
+.selected {
+  background: var(--rffm-dash-accent);
+  border-color: var(--rffm-dash-accent);
+  color: var(--rffm-card-bg);
+}
+
+.letter:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.existsTag {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 3px;
+  font-size: 0.625rem;
+  font-weight: 500;
+  color: var(--rffm-dash-desc-text);
+}

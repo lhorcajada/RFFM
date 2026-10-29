@@ -1,0 +1,19 @@
+.crest {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.shield {
+  fill: var(--rffm-card-bg);
+  stroke: var(--rffm-primary);
+  stroke-width: 3;
+}
+
+.primary {
+  fill: var(--rffm-primary);
+}
+
+.secondary {
+  fill: var(--rffm-secondary);
+}
