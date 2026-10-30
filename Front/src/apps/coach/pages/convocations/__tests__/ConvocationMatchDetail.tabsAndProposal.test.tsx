@@ -1,6 +1,6 @@
 import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { UserProvider } from "../../../../../shared/context/UserContext";
@@ -58,8 +58,15 @@ vi.mock("../hooks/useConvocationManagement", () => ({
   }),
 }));
 
+const emptyGrid = { matchColumns: [], enrichedGrid: new Map(), isLoading: false };
+let gridData: {
+  matchColumns: { eventId: string; label: string; date: string; rival: string | null }[];
+  enrichedGrid: Map<string, Map<string, { statusId: number | null; excuseTypeId: number | null; statusName: string; excuseName: string | null }>>;
+  isLoading: boolean;
+} = emptyGrid;
+
 vi.mock("../hooks/useDesconvocatoriasGrid", () => ({
-  useDesconvocatoriasGrid: () => ({ matchColumns: [], enrichedGrid: new Map(), isLoading: false }),
+  useDesconvocatoriasGrid: () => gridData,
 }));
 
 vi.mock("../hooks/useConvocationMatchContext", () => ({
@@ -129,13 +136,46 @@ describe("ConvocationMatchDetail - orden de pestañas y propuesta de convocatori
   beforeEach(() => {
     vi.clearAllMocks();
     applyProposal = null;
+    gridData = emptyGrid;
   });
 
   it("muestra la pestaña Convocatoria en segunda posición", () => {
     renderPage();
 
-    const tabNames = screen.getAllByRole("tab").map((t) => t.textContent);
-    expect(tabNames).toEqual(["Desconvocatorias", "Convocatoria", "Alineación", "Simular Partido"]);
+    const tabs = screen.getAllByRole("tab");
+    expect(tabs).toHaveLength(4);
+    expect(tabs[0]).toHaveAccessibleName("Desconvocatorias");
+    expect(tabs[1]).toHaveAccessibleName("Convocatoria");
+    expect(tabs[2]).toHaveAccessibleName("Alineación");
+    expect(tabs[3]).toHaveAccessibleName("Simular Partido");
+  });
+
+  it("muestra en Convocatoria el número de convocados, sin cambiar el nombre de la pestaña", () => {
+    renderPage();
+
+    const counter = within(screen.getByRole("tab", { name: "Convocatoria" })).getByText("1");
+    expect(counter).toHaveAttribute("aria-hidden", "true");
+  });
+
+  it("muestra en Desconvocatorias el número de jugadores desconvocados alguna vez", () => {
+    gridData = {
+      matchColumns: [{ eventId: "e1", label: "J1", date: "2026-01-01", rival: null }],
+      enrichedGrid: new Map([
+        ["e1", new Map([["p2", { statusId: 5, excuseTypeId: 7, statusName: "Deconvoke", excuseName: "Decisión técnica" }]])],
+      ]),
+      isLoading: false,
+    };
+    renderPage();
+
+    const counter = within(screen.getByRole("tab", { name: "Desconvocatorias" })).getByText("1");
+    expect(counter).toHaveAttribute("aria-hidden", "true");
+  });
+
+  it("no muestra contador en Alineación ni en Simular Partido", () => {
+    renderPage();
+
+    expect(within(screen.getByRole("tab", { name: "Alineación" })).queryByText(/^\d+$/)).not.toBeInTheDocument();
+    expect(within(screen.getByRole("tab", { name: "Simular Partido" })).queryByText(/^\d+$/)).not.toBeInTheDocument();
   });
 
   it("abre el contenido de la convocatoria al pulsar la segunda pestaña", async () => {

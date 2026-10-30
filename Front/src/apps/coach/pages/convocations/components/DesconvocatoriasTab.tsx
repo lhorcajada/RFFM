@@ -1,19 +1,13 @@
 import { useMemo } from "react";
 import { Button, CircularProgress } from "@mui/material";
-import { Tooltip } from "@mui/material";
 import PrintIcon from "@mui/icons-material/Print";
-import GavelIcon from "@mui/icons-material/Gavel";
 import EmptyState from "../../../../../shared/components/ui/EmptyState/EmptyState";
 import type { PlayerResponse } from "../../../services/teamplayerService";
 import type { GridCell, MatchColumn } from "./convocationMatchDetail.types";
+import { isCellNotCalled } from "../utils/deconvocationStats";
+import DeconvocationHistory from "./DeconvocationHistory";
+import type { HistoryEntry, SeasonCell } from "./DeconvocationHistory";
 import styles from "./DesconvocatoriasTab.module.css";
-
-// Status names that mean the player was NOT called up / deconvoked
-const NOT_CALLED_NAMES = new Set(["Deconvoke", "No disponible"]);
-
-function isCellNotCalled(cell: GridCell): boolean {
-  return NOT_CALLED_NAMES.has(cell.statusName);
-}
 
 // ─── Cause colors ─────────────────────────────────────────────────────────────
 
@@ -154,6 +148,17 @@ export default function DesconvocatoriasTab({
     return stats;
   }, [deconvocatedPlayers, deconvocatingColumns, matchColumns, enrichedGrid]);
 
+  // ── Players ordered by total deconvocations, then by name ────────────────
+  const sortedPlayers = useMemo(
+    () =>
+      [...deconvocatedPlayers].sort(
+        (a, b) =>
+          (playerStats.get(b.id)?.total ?? 0) - (playerStats.get(a.id)?.total ?? 0) ||
+          (a.alias || a.name).localeCompare(b.alias || b.name, "es"),
+      ),
+    [deconvocatedPlayers, playerStats],
+  );
+
   // ── Cause counters ────────────────────────────────────────────────────────
   const causeCounts = useMemo(() => {
     const counts = new Map<string, { label: string; count: number; color: CauseColor }>();
@@ -290,10 +295,16 @@ export default function DesconvocatoriasTab({
     );
   }
 
+  const totalDeconvocations = causeCounts.reduce((sum, c) => sum + c.count, 0);
+  const matchesCount = deconvocatingColumns.length;
+
   return (
     <div className={styles.tabContent}>
-      {/* ── Print bar ───────────────────────────────────────────────────── */}
-      <div className={styles.printBar}>
+      <div className={styles.summaryBar}>
+        <span className={styles.summaryText}>
+          {totalDeconvocations} {totalDeconvocations === 1 ? "desconvocatoria" : "desconvocatorias"} en {matchesCount}{" "}
+          {matchesCount === 1 ? "partido" : "partidos"}
+        </span>
         <Button
           size="small"
           variant="outlined"
@@ -305,135 +316,95 @@ export default function DesconvocatoriasTab({
         </Button>
       </div>
 
-      {/* ── Cause counters ──────────────────────────────────────────────── */}
       {causeCounts.length > 0 && (
         <div className={styles.counters}>
           {causeCounts.map(({ label, count, color }) => (
             <span
               key={label}
               className={styles.counterBadge}
+              aria-label={`${label}: ${count}`}
               style={{ background: color.bg, color: color.text, borderColor: color.text }}
             >
-              {label}: <strong>{count}</strong>
+              {label}
+              <strong>{count}</strong>
             </span>
           ))}
         </div>
       )}
 
-      {/* ── Legend ──────────────────────────────────────────────────────── */}
-      <div className={styles.legend}>
-        <span className={styles.legendItem}>
-          <span className={styles.legendDotTotal} /> Total desconvocatorias
-        </span>
-        <span className={styles.legendItem}>
-          <span className={styles.legendDotTechnical} /> Por decisión técnica
-        </span>
-        <span className={styles.legendItem}>
-          <span className={styles.legendDotStreak} /> Jornadas desde la última decisión técnica
-        </span>
-      </div>
+      <ul className={styles.cards}>
+        {sortedPlayers.map((player) => {
+          const stats = playerStats.get(player.id);
+          const name = player.alias || player.name;
+          const entries: HistoryEntry[] = deconvocatingColumns.flatMap((col) => {
+            const cell = enrichedGrid.get(col.eventId)?.get(player.id);
+            if (!cell || !isCellNotCalled(cell)) return [];
+            const color = getCauseColor(cell);
+            return [
+              {
+                eventId: col.eventId,
+                label: col.label,
+                date: col.date,
+                title: col.rival ?? col.date,
+                cause: { label: getCauseLabel(cell), bg: color.bg, text: color.text },
+                sanction: isSportiveSanctionCell(cell),
+              },
+            ];
+          });
+          const entryByEvent = new Map(entries.map((entry) => [entry.eventId, entry]));
+          const seasonCells: SeasonCell[] = [...matchColumns].reverse().map((col) => ({
+            eventId: col.eventId,
+            label: col.label,
+            cause: entryByEvent.get(col.eventId)?.cause ?? null,
+          }));
 
-      {/* ── Grid ────────────────────────────────────────────────────────── */}
-      <div className={styles.gridWrapper}>
-        <table className={styles.grid}>
-          <thead>
-            <tr>
-              <th className={`${styles.th} ${styles.playerCol}`}>Jugador</th>
-              {deconvocatingColumns.map((col) => (
-                <th key={col.eventId} className={styles.th}>
-                  <Tooltip title={col.rival ?? col.date} placement="top">
-                    <span className={styles.colLabel}>{col.label}</span>
-                  </Tooltip>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {deconvocatedPlayers.map((player) => (
-              <tr key={player.id} className={styles.row}>
-                <td className={`${styles.td} ${styles.playerCell}`}>
-                  <span className={styles.playerName}>{player.alias || player.name}</span>
-                  <span className={styles.playerStats}>
-                    <span className={styles.statBadgeTotal}>
-                      <span className={styles.statIcon}>✕</span>
-                      {playerStats.get(player.id)?.total ?? 0}
-                    </span>
-                    <span className={styles.statBadgeTechnical}>
-                      <span className={styles.statIcon}>⚑</span>
-                      {playerStats.get(player.id)?.technical ?? 0}
-                    </span>
-                    <span className={styles.statBadgeStreak}>
-                      <span className={styles.statIcon}>↑</span>
-                      {playerStats.get(player.id)?.streak ?? 0}
-                    </span>
-                  </span>
-                  {onDeconvokePlayer && (
-                    player.isInjured
-                      ? (
-                        <span className={styles.injuredDeconvokedTag}>
-                          🩹 Desconvocado
-                        </span>
-                      )
-                      : currentNotCalled.includes(player.id)
-                        ? (
-                          <span className={styles.alreadyDeconvokedTag}>
-                            ✓ Desconvocado
-                          </span>
-                        )
-                        : (
-                          <button
-                            className={styles.deconvokeBtn}
-                            onClick={() => onDeconvokePlayer(player.id)}
-                          >
-                            Desconvocar
-                          </button>
-                        )
-                  )}
-                </td>
-                {deconvocatingColumns.map((col) => {
-                  const cell = enrichedGrid.get(col.eventId)?.get(player.id);
-                  const isAbsent = cell && isCellNotCalled(cell);
+          let deconvokeControl = null;
+          if (onDeconvokePlayer) {
+            if (player.isInjured) {
+              deconvokeControl = <span className={styles.injuredDeconvokedTag}>Desconvocado</span>;
+            } else if (currentNotCalled.includes(player.id)) {
+              deconvokeControl = <span className={styles.alreadyDeconvokedTag}>Desconvocado</span>;
+            } else {
+              deconvokeControl = (
+                <button
+                  type="button"
+                  className={styles.deconvokeBtn}
+                  aria-label={`Desconvocar a ${name}`}
+                  onClick={() => onDeconvokePlayer(player.id)}
+                >
+                  Desconvocar
+                </button>
+              );
+            }
+          }
 
-                  if (!isAbsent) {
-                    return (
-                      <td key={col.eventId} className={`${styles.td} ${styles.dataCell}`} />
-                    );
-                  }
+          return (
+            <li key={player.id} className={styles.card} aria-label={name}>
+              <div className={styles.cardHeader}>
+                <span className={styles.playerName}>{name}</span>
+                {deconvokeControl}
+              </div>
 
-                  const causeColor = getCauseColor(cell);
-                  const shortLabel = (cell.excuseName ?? getCauseLabel(cell)).slice(0, 8);
+              <dl className={styles.stats}>
+                <div className={styles.stat}>
+                  <dt className={styles.statLabel}>Desconvocatorias</dt>
+                  <dd className={styles.statValue}>{stats?.total ?? 0}</dd>
+                </div>
+                <div className={styles.stat}>
+                  <dt className={styles.statLabel}>Decisión técnica</dt>
+                  <dd className={`${styles.statValue} ${styles.statTechnical}`}>{stats?.technical ?? 0}</dd>
+                </div>
+                <div className={styles.stat}>
+                  <dt className={styles.statLabel}>Jornadas sin técnica</dt>
+                  <dd className={`${styles.statValue} ${styles.statStreak}`}>{stats?.streak ?? 0}</dd>
+                </div>
+              </dl>
 
-                  return (
-                    <td
-                      key={col.eventId}
-                      className={`${styles.td} ${styles.dataCell}`}
-                      style={{ background: causeColor.bg }}
-                    >
-                      <Tooltip
-                        title={getCauseLabel(cell)}
-                        placement="top"
-                      >
-                        <span className={styles.cellContent} style={{ color: causeColor.text }}>
-                          {isSportiveSanctionCell(cell) && (
-                            <span
-                              className={styles.sanctionBadge}
-                              title="Desconvocado por sanción deportiva"
-                              aria-label="Desconvocado por sanción deportiva"
-                            >
-                              <GavelIcon sx={{ fontSize: 11 }} />
-                            </span>
-                          )}
-                          {shortLabel}
-                        </span>
-                      </Tooltip>
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+              <DeconvocationHistory playerName={name} seasonCells={seasonCells} entries={entries} />
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }

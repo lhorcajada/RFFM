@@ -4,12 +4,14 @@ import {
   Checkbox,
   CircularProgress,
   FormControl,
+  IconButton,
   InputLabel,
   MenuItem,
   Select,
 } from "@mui/material";
-import { useState } from "react";
+import { useEffect, useState, type DragEvent, type MouseEvent } from "react";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import CloseIcon from "@mui/icons-material/Close";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
@@ -19,7 +21,7 @@ import type { ExcuseType } from "../../../services/excuseTypeService";
 import type { PlayerResponse } from "../../../services/teamplayerService";
 import type { PlayerRating } from "../../../types/playerRating";
 import type { PlayerStatistics } from "../../../services/teamPlayerStatisticsService";
-import PlayerCromo from "../../squad/components/PlayerCromo";
+import ConvocationPlayerRow from "./ConvocationPlayerRow";
 import PlayerFormLegend from "../../../components/PlayerFormLegend/PlayerFormLegend";
 import type { DropZone } from "./convocationMatchDetail.types";
 import type { DeconvokeProposal } from "../utils/deconvokeProposal";
@@ -93,6 +95,8 @@ type Props = {
   onDrop: (zone: DropZone) => void;
   onExcuseChange: (playerId: string, excuseId: number) => void;
   onCallPlayers?: (playerIds: string[]) => Promise<void>;
+  /** Moves a called player to «Desconvocados» without dragging. */
+  onDeconvokePlayer?: (playerId: string) => Promise<void>;
   /** League: answers a pending availability request as available on the player's behalf. */
   onMarkAvailable?: (playerId: string) => Promise<void>;
   playerStreaks?: Map<string, number>;
@@ -158,6 +162,7 @@ export default function ConvocationTab({
   onDrop,
   onExcuseChange,
   onCallPlayers,
+  onDeconvokePlayer,
   onMarkAvailable,
   playerStreaks,
   proposal,
@@ -172,6 +177,25 @@ export default function ConvocationTab({
   const [collapsedZones, setCollapsedZones] = useState<Partial<Record<DropZone, boolean>>>({});
   const zones = isLeagueMatch ? [...LEAGUE_ONLY_ZONES, ...COMMON_ZONES] : COMMON_ZONES;
   const toggleZone = (zone: DropZone) => setCollapsedZones((prev) => ({ ...prev, [zone]: !prev[zone] }));
+  // Zones without players are folded into a pill; the coach can still unfold one to see its drop area.
+  const [openedEmptyZones, setOpenedEmptyZones] = useState<Partial<Record<DropZone, boolean>>>({});
+  const toggleEmptyZone = (zone: DropZone) => setOpenedEmptyZones((prev) => ({ ...prev, [zone]: !prev[zone] }));
+  const zoneCounts: Record<DropZone, number> = {
+    waiting: mgmtWaiting.length,
+    availabilityPending: mgmtAvailabilityPending.length,
+    available: mgmtAvailable.length,
+    called: mgmtCalled.length,
+    notCalled: mgmtNotCalled.length,
+  };
+  useEffect(() => {
+    setOpenedEmptyZones((prev) => {
+      const stale = (Object.keys(prev) as DropZone[]).filter((zone) => prev[zone] && zoneCounts[zone] > 0);
+      if (stale.length === 0) return prev;
+      const next = { ...prev };
+      for (const zone of stale) delete next[zone];
+      return next;
+    });
+  }, [zoneCounts.waiting, zoneCounts.availabilityPending, zoneCounts.available, zoneCounts.called, zoneCounts.notCalled]);
   const [selectedToCall, setSelectedToCall] = useState<string[]>([]);
   const [callingPlayers, setCallingPlayers] = useState(false);
   const [markingAvailable, setMarkingAvailable] = useState<string[]>([]);
@@ -339,6 +363,129 @@ export default function ConvocationTab({
     );
   }
 
+  const stopDrag = {
+    onMouseDown: (e: MouseEvent) => e.stopPropagation(),
+    onDragStart: (e: DragEvent) => e.stopPropagation(),
+  };
+
+  function renderPlayerActions(playerId: string, zone: DropZone, displayName: string) {
+    if (zone === "available" && onCallPlayers) {
+      return (
+        <label
+          className={`${styles.bulkCallCheckRow} ${selectedToCall.includes(playerId) ? styles.bulkCallCheckRowSelected : ""}`}
+        >
+          <Checkbox
+            size="small"
+            checked={selectedToCall.includes(playerId)}
+            onChange={() => toggleSelectedToCall(playerId)}
+            disabled={callingPlayers}
+            inputProps={{ "aria-label": `Seleccionar ${displayName}` }}
+            className={styles.bulkCallCheckbox}
+          />
+        </label>
+      );
+    }
+    if (zone === "availabilityPending" && onMarkAvailable) {
+      return (
+        <Button
+          size="small"
+          variant="outlined"
+          color="success"
+          onClick={() => handleMarkAvailable(playerId)}
+          disabled={markingAvailable.includes(playerId)}
+          aria-label={`Marcar disponible a ${displayName}`}
+          className={styles.rowActionBtn}
+        >
+          Disponible
+        </Button>
+      );
+    }
+    if (zone === "called" && onDeconvokePlayer) {
+      return (
+        <IconButton
+          onClick={() => onDeconvokePlayer(playerId)}
+          aria-label={`Desconvocar a ${displayName}`}
+          className={styles.deconvokeBtn}
+        >
+          <CloseIcon fontSize="small" />
+        </IconButton>
+      );
+    }
+    if (zone === "notCalled" && onCallPlayers) {
+      return (
+        <Button
+          size="small"
+          variant="outlined"
+          onClick={() => onCallPlayers([playerId])}
+          aria-label={`Convocar a ${displayName}`}
+          className={`${styles.rowActionBtn} ${styles.callBtn}`}
+        >
+          Convocar
+        </Button>
+      );
+    }
+    return null;
+  }
+
+  function renderPlayerRow(playerId: string, zone: DropZone) {
+    const p = players.find((pl) => pl.id === playerId);
+    if (!p) return null;
+    const displayName = p.alias || ((p.name ?? "") + " " + (p.lastName ?? "")).trim() || "Jugador";
+    const r = mgmtRatings[playerId];
+    const actions = renderPlayerActions(playerId, zone, displayName);
+    return (
+      <div
+        key={playerId}
+        draggable
+        className={`${styles.draggableCard} ${mgmtDragPlayer === playerId ? styles.draggableCardDragging : ""}`}
+        onDragStart={() => onDragStart(playerId)}
+        onDragEnd={onDragEnd}
+      >
+        <ConvocationPlayerRow
+          displayName={displayName}
+          photoSrc={mgmtPhotos[playerId] ?? null}
+          dorsal={p.dorsal ?? null}
+          position={p.position ?? null}
+          injured={p.isInjured === true}
+          recovering={recoveringIds?.has(playerId) === true}
+          rating={
+            r
+              ? {
+                  technical: r.technical,
+                  tactical: r.tactical,
+                  physical: r.physical,
+                  competitiveness: r.competitiveness,
+                }
+              : null
+          }
+          streakCount={playerStreaks?.get(playerId) ?? null}
+          readiness={readinessMap?.[playerId]?.readiness ?? null}
+          fatigue={readinessMap?.[playerId]?.fatigue ?? null}
+          formStatus={readinessMap?.[playerId]?.formStatus}
+          selected={zone === "available" && selectedToCall.includes(playerId)}
+          actions={actions ? <div {...stopDrag}>{actions}</div> : undefined}
+        />
+        {zone === "notCalled" && excuseTypes.length > 0 && (
+          <FormControl size="small" fullWidth sx={{ mt: 0.5, flexShrink: 0 }} onClick={(e) => e.stopPropagation()} {...stopDrag}>
+            <InputLabel sx={{ fontSize: "0.7rem" }}>Motivo</InputLabel>
+            <Select
+              label="Motivo"
+              value={mgmtExcuseMap[playerId] ?? ""}
+              onChange={(e) => onExcuseChange(playerId, e.target.value as number)}
+              sx={{ fontSize: "0.72rem" }}
+            >
+              {excuseTypes.map((et) => (
+                <MenuItem key={et.id} value={et.id} sx={{ fontSize: "0.72rem" }}>
+                  {et.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        )}
+      </div>
+    );
+  }
+
   async function handleApplyProposalClick() {
     if (selectedProposalPlayers.length === 0 || applyingProposal) return;
     setApplyingProposal(true);
@@ -352,6 +499,20 @@ export default function ConvocationTab({
 
   return (
     <div className={styles.convocatoriaTab}>
+      {!showProposal && (
+        <ul className={styles.summary} aria-label="Resumen de la convocatoria">
+          {zones.map(({ zone, label }) => {
+            const count = getZoneIds(zone).length;
+            return (
+              <li key={zone} className={styles.summaryItem} aria-label={`${label}: ${count}`}>
+                <span className={styles.summaryValue} aria-hidden="true">{count}</span>
+                <span className={styles.summaryLabel} aria-hidden="true">{label}</span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
       <div className={styles.proposalBar}>
         <Button
           variant="outlined"
@@ -461,10 +622,39 @@ export default function ConvocationTab({
       )}
 
       {!showProposal && (
+      <>
+      <div className={styles.emptyZones}>
+        {zones
+          .filter(({ zone }) => getZoneIds(zone).length === 0 && !openedEmptyZones[zone])
+          .map(({ zone, label, headerClass }) => (
+            <button
+              key={zone}
+              type="button"
+              aria-expanded={false}
+              className={`${styles.emptyZone} ${styles[headerClass]} ${mgmtDragOver === zone ? styles.dropColumnOver : ""}`}
+              onClick={() => toggleEmptyZone(zone)}
+              onDragOver={(e) => {
+                e.preventDefault();
+                onDragOver(zone);
+              }}
+              onDragLeave={onDragLeave}
+              onDrop={(e) => {
+                e.preventDefault();
+                onDrop(zone);
+              }}
+            >
+              <ExpandMoreIcon fontSize="small" className={styles.dropColumnChevron} />
+              {label}{" "}
+              <span className={styles.dropColumnCount}>0</span>
+            </button>
+          ))}
+      </div>
       <div className={styles.dropColumns}>
-        {zones.map(({ zone, label, headerClass }) => {
+        {zones
+          .filter(({ zone }) => getZoneIds(zone).length > 0 || openedEmptyZones[zone])
+          .map(({ zone, label, headerClass }) => {
           const ids = getZoneIds(zone);
-          const expanded = ids.length > 0 && !collapsedZones[zone];
+          const expanded = (ids.length > 0 || !!openedEmptyZones[zone]) && !collapsedZones[zone];
           return (
             <section
               key={zone}
@@ -483,7 +673,7 @@ export default function ConvocationTab({
               <button
                 type="button"
                 aria-expanded={expanded}
-                onClick={() => toggleZone(zone)}
+                onClick={() => (ids.length === 0 ? toggleEmptyZone(zone) : toggleZone(zone))}
                 className={`${styles.dropColumnHeader} ${styles.dropColumnToggle} ${styles[headerClass]}`}
               >
                 <span className={styles.dropColumnTitle}>
@@ -539,175 +729,32 @@ export default function ConvocationTab({
                     </div>
                   )}
                   {zone === "notCalled"
-                    ? ids.map((playerId) => {
-                        const p = players.find((pl) => pl.id === playerId);
-                        if (!p) return null;
-                        const displayName = p.alias || ((p.name ?? "") + " " + (p.lastName ?? "")).trim() || "Jugador";
-                        const r = mgmtRatings[playerId];
-                        return (
-                          <div
-                            key={playerId}
-                            draggable
-                            className={`${styles.draggableCard} ${
-                              mgmtDragPlayer === playerId ? styles.draggableCardDragging : ""
-                            }`}
-                            onDragStart={() => onDragStart(playerId)}
-                            onDragEnd={onDragEnd}
-                          >
-                            <PlayerCromo
-                              displayName={displayName}
-                              photoSrc={mgmtPhotos[playerId] ?? null}
-                              dorsal={p.dorsal ?? null}
-                              position={p.position ?? null}
-                              injured={p.isInjured === true}
-                              recovering={recoveringIds?.has(playerId) === true}
-                              rating={
-                                r
-                                  ? {
-                                      technical: r.technical,
-                                      tactical: r.tactical,
-                                      physical: r.physical,
-                                      competitiveness: r.competitiveness,
-                                    }
-                                  : null
-                              }
-                              streakCount={playerStreaks?.get(playerId) ?? null}
-                              readiness={readinessMap?.[playerId]?.readiness ?? null}
-                              fatigue={readinessMap?.[playerId]?.fatigue ?? null}
-                              formStatus={readinessMap?.[playerId]?.formStatus}
-                              formVariant="full"
-                            />
-                            {excuseTypes.length > 0 && (
-                              <FormControl
-                                size="small"
-                                fullWidth
-                                sx={{ mt: 0.5, flexShrink: 0 }}
-                                onClick={(e) => e.stopPropagation()}
-                                onMouseDown={(e) => e.stopPropagation()}
-                                onDragStart={(e) => e.stopPropagation()}
-                              >
-                                <InputLabel sx={{ fontSize: "0.7rem" }}>Motivo</InputLabel>
-                                <Select
-                                  label="Motivo"
-                                  value={mgmtExcuseMap[playerId] ?? ""}
-                                  onChange={(e) => {
-                                    onExcuseChange(playerId, e.target.value as number);
-                                  }}
-                                  sx={{ fontSize: "0.72rem" }}
-                                >
-                                  {excuseTypes.map((et) => (
-                                    <MenuItem
-                                      key={et.id}
-                                      value={et.id}
-                                      sx={{ fontSize: "0.72rem" }}
-                                    >
-                                      {et.name}
-                                    </MenuItem>
-                                  ))}
-                                </Select>
-                              </FormControl>
-                            )}
-                          </div>
-                        );
-                      })
+                    ? ids.map((playerId) => renderPlayerRow(playerId, zone))
                     : GROUPS.flatMap(({ order, label: groupLabel }) => {
-                    const sorted = [...ids].sort((a, b) => {
-                      const pa = players.find((pl) => pl.id === a)?.position ?? "";
-                      const pb = players.find((pl) => pl.id === b)?.position ?? "";
-                      return positionOrder(pa) - positionOrder(pb);
-                    });
-                    const group = sorted.filter((pid) => {
-                      const pos = players.find((pl) => pl.id === pid)?.position ?? "";
-                      return positionOrder(pos) === order;
-                    });
-                    if (group.length === 0) return [];
-                    return [
-                      <div key={`group-${order}`} className={styles.positionGroupLabel}>
-                        {groupLabel}
-                      </div>,
-                      ...group.map((playerId) => {
-                        const p = players.find((pl) => pl.id === playerId);
-                        if (!p) return null;
-                        const displayName = p.alias || ((p.name ?? "") + " " + (p.lastName ?? "")).trim() || "Jugador";
-                        const r = mgmtRatings[playerId];
-                        return (
-                          <div
-                            key={playerId}
-                            draggable
-                            className={`${styles.draggableCard} ${
-                              mgmtDragPlayer === playerId ? styles.draggableCardDragging : ""
-                            }`}
-                            onDragStart={() => onDragStart(playerId)}
-                            onDragEnd={onDragEnd}
-                          >
-                            <PlayerCromo
-                              displayName={displayName}
-                              photoSrc={mgmtPhotos[playerId] ?? null}
-                              dorsal={p.dorsal ?? null}
-                              position={p.position ?? null}
-                              injured={p.isInjured === true}
-                              recovering={recoveringIds?.has(playerId) === true}
-                              rating={
-                                r
-                                  ? {
-                                      technical: r.technical,
-                                      tactical: r.tactical,
-                                      physical: r.physical,
-                                      competitiveness: r.competitiveness,
-                                    }
-                                  : null
-                              }
-                              streakCount={playerStreaks?.get(playerId) ?? null}
-                              readiness={readinessMap?.[playerId]?.readiness ?? null}
-                              fatigue={readinessMap?.[playerId]?.fatigue ?? null}
-                              formStatus={readinessMap?.[playerId]?.formStatus}
-                              formVariant="full"
-                            />
-                            {zone === "available" && onCallPlayers && (
-                              <label
-                                className={`${styles.bulkCallCheckRow} ${
-                                  selectedToCall.includes(playerId) ? styles.bulkCallCheckRowSelected : ""
-                                }`}
-                                onMouseDown={(e) => e.stopPropagation()}
-                                onDragStart={(e) => e.stopPropagation()}
-                              >
-                                <Checkbox
-                                  size="small"
-                                  checked={selectedToCall.includes(playerId)}
-                                  onChange={() => toggleSelectedToCall(playerId)}
-                                  disabled={callingPlayers}
-                                  inputProps={{ "aria-label": `Seleccionar ${displayName}` }}
-                                  className={styles.bulkCallCheckbox}
-                                />
-                                Convocar
-                              </label>
-                            )}
-                            {zone === "availabilityPending" && onMarkAvailable && (
-                              <Button
-                                size="small"
-                                variant="outlined"
-                                color="success"
-                                onClick={() => handleMarkAvailable(playerId)}
-                                onMouseDown={(e) => e.stopPropagation()}
-                                onDragStart={(e) => e.stopPropagation()}
-                                disabled={markingAvailable.includes(playerId)}
-                                aria-label={`Marcar disponible a ${displayName}`}
-                                className={styles.markAvailableBtn}
-                              >
-                                Disponible
-                              </Button>
-                            )}
-                          </div>
-                        );
-                      }),
-                    ];
-                  })}
+                        const sorted = [...ids].sort((a, b) => {
+                          const pa = players.find((pl) => pl.id === a)?.position ?? "";
+                          const pb = players.find((pl) => pl.id === b)?.position ?? "";
+                          return positionOrder(pa) - positionOrder(pb);
+                        });
+                        const group = sorted.filter((pid) => {
+                          const pos = players.find((pl) => pl.id === pid)?.position ?? "";
+                          return positionOrder(pos) === order;
+                        });
+                        if (group.length === 0) return [];
+                        return [
+                          <div key={`group-${order}`} className={styles.positionGroupLabel}>
+                            {groupLabel}
+                          </div>,
+                          ...group.map((playerId) => renderPlayerRow(playerId, zone)),
+                        ];
+                      })}
                 </div>
               )}
             </section>
           );
         })}
       </div>
+      </>
       )}
     </div>
   );

@@ -24,7 +24,7 @@ const emptyProposal: DeconvokeProposal = {
 };
 
 describe("ConvocationTab - indicador Ef/Rodaje/Cansancio", () => {
-  it("muestra las barras Ef/R/C del jugador convocado, con etiqueta de texto completa", () => {
+  it("muestra las barras compactas Ef/R/C del jugador convocado", () => {
     render(
       <ConvocationTab
         mgmtEventId="event-1"
@@ -58,12 +58,9 @@ describe("ConvocationTab - indicador Ef/Rodaje/Cansancio", () => {
     );
 
     // Ef = readiness * (1 - fatigue / 200) = 65 * (1 - 22 / 200) = 57.75 → 58
-    expect(screen.getByText("Ef")).toBeInTheDocument();
-    expect(screen.getByText("Rodaje")).toBeInTheDocument();
-    expect(screen.getAllByText("Cansancio").length).toBeGreaterThan(0);
-    expect(screen.getByText("58%")).toBeInTheDocument();
-    expect(screen.getByText("65%")).toBeInTheDocument();
-    expect(screen.getByText("22%")).toBeInTheDocument();
+    expect(screen.getByTestId("player-form-bar-ef")).toHaveTextContent("Ef58%");
+    expect(screen.getByTestId("player-form-bar-r")).toHaveTextContent("R65%");
+    expect(screen.getByTestId("player-form-bar-c")).toHaveTextContent("C22%");
   });
 
   it("muestra una única leyenda consolidada de Ef, Rodaje y Cansancio", () => {

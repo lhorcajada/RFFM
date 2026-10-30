@@ -52,14 +52,14 @@ function renderTab(isLeagueMatch: boolean) {
 }
 
 describe("ConvocationTab - listas plegables", () => {
-  it("en liga muestra espera, pendientes de respuesta, disponibles, convocados y desconvocados en ese orden", () => {
+  it("en liga muestra las listas vacías plegadas delante y las demás en el orden espera, pendientes de respuesta, disponibles, convocados", () => {
     renderTab(true);
 
     const titles = screen
       .getAllByRole("button")
       .filter((b) => b.hasAttribute("aria-expanded"))
       .map((b) => b.textContent?.replace(/\d+$/, "").trim());
-    expect(titles).toEqual(["Lista de espera", "Pendientes de respuesta", "Disponibles", "Convocados", "Desconvocados"]);
+    expect(titles).toEqual(["Desconvocados", "Lista de espera", "Pendientes de respuesta", "Disponibles", "Convocados"]);
   });
 
   it("en liga cada jugador aparece en su lista", () => {
@@ -87,13 +87,13 @@ describe("ConvocationTab - listas plegables", () => {
     expect(screen.getByRole("button", { name: /^Convocados/ })).toHaveAttribute("aria-expanded", "true");
   });
 
-  it("una lista vacía sigue plegada aunque se pulse", async () => {
+  it("una lista vacía se despliega como columna al pulsarla", async () => {
     renderTab(true);
-    const toggle = screen.getByRole("button", { name: /^Desconvocados/ });
 
-    await userEvent.click(toggle);
+    await userEvent.click(screen.getByRole("button", { name: /^Desconvocados/ }));
 
-    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    const region = screen.getByRole("region", { name: "Desconvocados" });
+    expect(within(region).getByRole("button")).toHaveAttribute("aria-expanded", "true");
   });
 
   it("se puede plegar y desplegar una lista", async () => {

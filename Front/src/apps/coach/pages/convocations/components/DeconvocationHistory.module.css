@@ -1,0 +1,171 @@
+/* Deconvocation history of one player: season strip, cause filters and a bounded list of matches */
+
+.history {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.season {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.seasonHeader {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.strip {
+  display: flex;
+  gap: 3px;
+}
+
+.cell {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 22px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.stripEnds {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.68rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* ─── Cause filters ─── */
+
+.causes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.causeBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  box-sizing: border-box;
+  padding: 0 14px;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.causeBtnActive {
+  border-color: var(--rffm-dash-accent, #ff9800);
+  background: rgba(255, 152, 0, 0.16);
+}
+
+.causeDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+/* ─── Match list ─── */
+
+.listHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 28px;
+}
+
+.listTitle {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.linkBtn {
+  min-height: 44px;
+  padding: 0 8px;
+  border: 0;
+  background: transparent;
+  color: #ffb74d;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rowsScroll {
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  min-height: 40px;
+  box-sizing: border-box;
+  padding: 6px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  font-size: 0.85rem;
+}
+
+.rowDot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.rowMatch {
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.rowCause {
+  flex-grow: 1;
+  text-align: right;
+}
+
+.note {
+  margin: 0;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.foldBtn {
+  min-height: 44px;
+  border-radius: 12px;
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  background: transparent;
+  color: #ffb74d;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sanctionBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  border-radius: 8px;
+  border: 1px solid #ff4060;
+  color: #ff4060;
+}

@@ -25,6 +25,7 @@ import { useConvocationPlayerViews } from "./hooks/useConvocationPlayerViews";
 import { useConvocationProposal } from "./hooks/useConvocationProposal";
 import { buildMatchUnavailability } from "./utils/matchUnavailability";
 import { toIsoDay } from "./utils/deconvokeProposal";
+import { countDeconvokedPlayers } from "./utils/deconvocationStats";
 import { isInInjuryRecovery } from "./utils/injuryRecovery";
 import { useTeamReadinessMap } from "./hooks/useTeamReadinessMap";
 import type { ClubKit } from "../../services/kitService";
@@ -33,6 +34,20 @@ import { toMatchState } from "./helpers/convocationUtils";
 import styles from "./ConvocationMatchDetail.module.css";
 import ConvocationMatchHeader from "./components/ConvocationMatchHeader";
 import ConvocationMatchActionBar from "./components/ConvocationMatchActionBar";
+
+/** Tab label with a counter badge; the badge is hidden from assistive tech so the tab name stays the same. */
+function TabLabel({ text, count }: { text: string; count: number | null }) {
+  return (
+    <span className={styles.tabLabel}>
+      {text}
+      {count != null && (
+        <span className={styles.tabCount} aria-hidden="true">
+          {count}
+        </span>
+      )}
+    </span>
+  );
+}
 
 export default function ConvocationMatchDetail() {
   const navigate = useNavigate();
@@ -289,6 +304,11 @@ export default function ConvocationMatchDetail() {
     else setTab(value);
   };
 
+  const deconvokedPlayersCount =
+    gridEnabled && !grid.isLoading
+      ? countDeconvokedPlayers(convocation.players, grid.matchColumns, grid.enrichedGrid)
+      : null;
+
   const matchTitle = (
     <ConvocationMatchHeader
       match={match}
@@ -338,15 +358,22 @@ export default function ConvocationMatchDetail() {
           value={tab}
           onChange={(_, v) => handleTabChange(v)}
           textColor="inherit"
-          indicatorColor="secondary"
           variant="scrollable"
           scrollButtons="auto"
-          sx={{ borderBottom: "1px solid rgba(255,255,255,0.08)", px: 1 }}
+          className={styles.tabs}
         >
-          <Tab label="Desconvocatorias" value={CONVOCATION_TAB.Desconvocatorias} />
-          <Tab label="Convocatoria" value={CONVOCATION_TAB.Convocatoria} />
-          <Tab label="Alineación" value={CONVOCATION_TAB.Alineacion} />
-          <Tab label="Simular Partido" value={CONVOCATION_TAB.Simulacion} />
+          <Tab
+            className={styles.tab}
+            label={<TabLabel text="Desconvocatorias" count={deconvokedPlayersCount} />}
+            value={CONVOCATION_TAB.Desconvocatorias}
+          />
+          <Tab
+            className={styles.tab}
+            label={<TabLabel text="Convocatoria" count={convocation.mgmtCalled.length} />}
+            value={CONVOCATION_TAB.Convocatoria}
+          />
+          <Tab className={styles.tab} label="Alineación" value={CONVOCATION_TAB.Alineacion} />
+          <Tab className={styles.tab} label="Simular Partido" value={CONVOCATION_TAB.Simulacion} />
         </Tabs>
 
         {tab === CONVOCATION_TAB.Convocatoria && (
@@ -376,6 +403,7 @@ export default function ConvocationMatchDetail() {
             onDragLeave={() => convocation.setMgmtDragOver(null)}
             onDrop={convocation.handleDrop}
             onCallPlayers={convocation.handleCallPlayers}
+            onDeconvokePlayer={(playerId) => convocation.moveToNotCalled(playerId)}
             onMarkAvailable={convocation.markAvailable}
             onExcuseChange={(pid, excuseId) =>
               convocation.setMgmtExcuseMap((prev) => ({ ...prev, [pid]: excuseId }))
