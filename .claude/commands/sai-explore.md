@@ -1,0 +1,17 @@
+---
+description: Think through an idea, problem, or requirement with a read-only partner until it settles into a Ready to Propose block, then plan it, build it unattended, or hand it off manually. Pass a change name to explore an existing change.
+argument-hint: "[optional: change-name or topic] [--overview-lang <language>] [--fast-track]"
+model: opus
+effort: medium
+allowed-tools: Read, Glob, Grep, WebFetch, WebSearch, AskUserQuestion, mcp__codegraph__codegraph_explore, ToolSearch, Skill, Agent, SendMessage, TaskCreate, TaskUpdate, TaskGet, TaskList, Bash(openspec:*), PowerShell(openspec:*), Bash(git:*), PowerShell(git:*), Bash(node .claude/sai/*), PowerShell(node .claude/sai/*), Bash(node ~/.claude/sai/*), PowerShell(node ~/.claude/sai/*), Bash(node .claude/sai/tools/to-backlog.js:*), PowerShell(node .claude/sai/tools/to-backlog.js:*), Bash(node ~/.claude/sai/tools/to-backlog.js:*), PowerShell(node ~/.claude/sai/tools/to-backlog.js:*), Bash(node .claude/skills/to-backlog/scripts/prepare-temp.js claude), PowerShell(node .claude/skills/to-backlog/scripts/prepare-temp.js claude), Bash(node ~/.claude/skills/to-backlog/scripts/prepare-temp.js claude), PowerShell(node ~/.claude/skills/to-backlog/scripts/prepare-temp.js claude)
+---
+Receipt: check the load receipt at the start of every explore turn and finish the load first when it is missing; the rule lives in @sai/commands/explore/body.md § Load receipt.
+Fetch @skills/fetch/SKILL.md
+Fetch @sai/adapters/claude/boot.md and follow it.
+Required capability profile: explore-command.
+Fetch @sai/adapters/claude/idea-list-render.md and use it.
+Fetch @sai/commands/explore/command-bootstrap.md and follow those instructions exactly, forwarding the InvocationEnvelope block below.
+
+InvocationEnvelope:
+  command_name: explore
+  arguments_value: $ARGUMENTS

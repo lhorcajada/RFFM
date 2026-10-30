@@ -1,0 +1,41 @@
+{
+  "harness": "claude",
+  "profileName": "to-backlog-command",
+  "profile": {
+    "read": true,
+    "skills": [
+      "to-backlog",
+      "safe-operations"
+    ],
+    "search": true,
+    "question": true,
+    "shell": [
+      "node {sai}/tools/to-backlog.js *",
+      "node {skills}/to-backlog/scripts/prepare-temp.js {harness}"
+    ]
+  },
+  "toolRequirements": [
+    {
+      "capability": "shell",
+      "anyOf": [
+        [
+          "Bash"
+        ],
+        [
+          "PowerShell"
+        ]
+      ]
+    }
+  ],
+  "nativeTools": [
+    "Read",
+    "Glob",
+    "Grep",
+    "AskUserQuestion",
+    "Skill",
+    "Bash",
+    "PowerShell"
+  ],
+  "tools": "Read, Glob, Grep, AskUserQuestion, Skill, Bash, PowerShell",
+  "allowedTools": "Read, Glob, Grep, AskUserQuestion, Skill, Bash(node .claude/sai/tools/to-backlog.js:*), PowerShell(node .claude/sai/tools/to-backlog.js:*), Bash(node ~/.claude/sai/tools/to-backlog.js:*), PowerShell(node ~/.claude/sai/tools/to-backlog.js:*), Bash(node .claude/skills/to-backlog/scripts/prepare-temp.js claude), PowerShell(node .claude/skills/to-backlog/scripts/prepare-temp.js claude), Bash(node ~/.claude/skills/to-backlog/scripts/prepare-temp.js claude), PowerShell(node ~/.claude/skills/to-backlog/scripts/prepare-temp.js claude)"
+}

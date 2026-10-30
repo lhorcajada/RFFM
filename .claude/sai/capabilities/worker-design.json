@@ -1,0 +1,57 @@
+{
+  "harness": "claude",
+  "profileName": "worker-design",
+  "profile": {
+    "read": true,
+    "skills": [
+      "*"
+    ],
+    "search": true,
+    "write": true,
+    "codegraph": false,
+    "message": true,
+    "shell": [
+      "*"
+    ],
+    "delegate": [
+      "explorer",
+      "budget"
+    ]
+  },
+  "toolRequirements": [
+    {
+      "capability": "write",
+      "anyOf": [
+        [
+          "Edit",
+          "Write"
+        ]
+      ]
+    },
+    {
+      "capability": "shell",
+      "anyOf": [
+        [
+          "Bash"
+        ],
+        [
+          "PowerShell"
+        ]
+      ]
+    }
+  ],
+  "nativeTools": [
+    "Read",
+    "Glob",
+    "Grep",
+    "Edit",
+    "Write",
+    "Skill",
+    "Bash",
+    "PowerShell",
+    "Agent",
+    "SendMessage"
+  ],
+  "tools": "Read, Glob, Grep, Edit, Write, Skill, Bash, PowerShell, Agent, SendMessage",
+  "allowedTools": "Read, Glob, Grep, Edit, Write, Skill, Agent, SendMessage, Bash, PowerShell"
+}

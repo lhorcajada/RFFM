@@ -1,0 +1,34 @@
+{
+  "harness": "claude",
+  "profileName": "executor",
+  "profile": {
+    "read": true,
+    "skills": [
+      "fetch"
+    ],
+    "shell": [
+      "*"
+    ]
+  },
+  "toolRequirements": [
+    {
+      "capability": "shell",
+      "anyOf": [
+        [
+          "Bash"
+        ],
+        [
+          "PowerShell"
+        ]
+      ]
+    }
+  ],
+  "nativeTools": [
+    "Read",
+    "Skill",
+    "Bash",
+    "PowerShell"
+  ],
+  "tools": "Read, Skill, Bash, PowerShell",
+  "allowedTools": "Read, Skill, Bash, PowerShell"
+}

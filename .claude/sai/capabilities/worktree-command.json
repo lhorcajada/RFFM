@@ -1,0 +1,40 @@
+{
+  "harness": "claude",
+  "profileName": "worktree-command",
+  "profile": {
+    "read": true,
+    "skills": [
+      "*"
+    ],
+    "search": true,
+    "question": true,
+    "shell": [
+      "git *",
+      "node {sai}/tools/worktree.js *"
+    ]
+  },
+  "toolRequirements": [
+    {
+      "capability": "shell",
+      "anyOf": [
+        [
+          "Bash"
+        ],
+        [
+          "PowerShell"
+        ]
+      ]
+    }
+  ],
+  "nativeTools": [
+    "Read",
+    "Glob",
+    "Grep",
+    "AskUserQuestion",
+    "Skill",
+    "Bash",
+    "PowerShell"
+  ],
+  "tools": "Read, Glob, Grep, AskUserQuestion, Skill, Bash, PowerShell",
+  "allowedTools": "Read, Glob, Grep, AskUserQuestion, Skill, Bash(git:*), PowerShell(git:*), Bash(node .claude/sai/tools/worktree.js:*), PowerShell(node .claude/sai/tools/worktree.js:*), Bash(node ~/.claude/sai/tools/worktree.js:*), PowerShell(node ~/.claude/sai/tools/worktree.js:*)"
+}

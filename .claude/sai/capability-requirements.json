@@ -1,0 +1,1587 @@
+{
+  "harness": "claude",
+  "registry": {
+    "profiles": {
+      "boot": {
+        "read": true,
+        "skills": [
+          "*"
+        ]
+      },
+      "research": {
+        "extends": "boot",
+        "search": true,
+        "codegraph": true,
+        "webfetch": true,
+        "websearch": true,
+        "skills": [
+          "fetch"
+        ],
+        "shell": [
+          "git grep *",
+          "codegraph explore *"
+        ]
+      },
+      "executor": {
+        "extends": "boot",
+        "skills": [
+          "fetch"
+        ],
+        "shell": [
+          "*"
+        ]
+      },
+      "task": {
+        "extends": "boot",
+        "search": true,
+        "write": true,
+        "codegraph": true,
+        "webfetch": true,
+        "websearch": true,
+        "shell": [
+          "*"
+        ]
+      },
+      "worker-write": {
+        "extends": "boot",
+        "search": true,
+        "write": true,
+        "codegraph": true,
+        "shell": [
+          "*"
+        ],
+        "message": true
+      },
+      "worker-execution": {
+        "extends": "worker-write",
+        "skills": [
+          "fetch"
+        ]
+      },
+      "worker-read": {
+        "extends": "boot",
+        "search": true,
+        "shell": [
+          "*"
+        ],
+        "message": true
+      },
+      "worker-research": {
+        "extends": "worker-write",
+        "delegate": [
+          "explorer"
+        ]
+      },
+      "worker-design": {
+        "extends": "worker-write",
+        "codegraph": false,
+        "delegate": [
+          "explorer",
+          "budget"
+        ]
+      },
+      "worker-backfill": {
+        "extends": "worker-write",
+        "delegate": [
+          "explorer"
+        ]
+      },
+      "coordinator": {
+        "extends": "boot",
+        "search": true,
+        "question": true,
+        "panel": true,
+        "message": true,
+        "shell": [
+          "node {sai}/tools/worker-report-validator.js *",
+          "node {sai}/tools/no-commit-guard.js *",
+          "node {sai}/bin/sai-state.js *",
+          "git reset *"
+        ]
+      },
+      "spec-command": {
+        "extends": "coordinator",
+        "delegate": [
+          "sai-1-spec-proposal-worker"
+        ]
+      },
+      "design-command": {
+        "extends": "coordinator",
+        "delegate": [
+          "sai-2-design-worker"
+        ]
+      },
+      "security-command": {
+        "extends": "coordinator",
+        "delegate": [
+          "sai-5-security-worker"
+        ]
+      },
+      "performance-command": {
+        "extends": "coordinator",
+        "delegate": [
+          "sai-6-performance-worker"
+        ]
+      },
+      "accessibility-command": {
+        "extends": "coordinator",
+        "delegate": [
+          "sai-7-accessibility-worker"
+        ]
+      },
+      "implement-command": {
+        "extends": "coordinator",
+        "write": true,
+        "shell": [
+          "*"
+        ],
+        "skills": [
+          "safe-operations"
+        ],
+        "delegate": [
+          "executor",
+          "explorer",
+          "sai-3-red-worker",
+          "sai-3-green-worker"
+        ]
+      },
+      "review-command": {
+        "extends": "implement-command",
+        "delegate": [
+          "sai-4-review-worker"
+        ]
+      },
+      "build-command": {
+        "extends": "implement-command",
+        "delegate": [
+          "executor",
+          "explorer",
+          "sai-3-red-worker",
+          "sai-3-green-worker",
+          "sai-4-review-worker"
+        ]
+      },
+      "deep-review-command": {
+        "extends": "implement-command",
+        "delegate": [
+          "executor",
+          "explorer",
+          "sai-3-red-worker",
+          "sai-3-green-worker",
+          "sai-4-review-worker",
+          "sai-5-security-worker",
+          "sai-6-performance-worker",
+          "sai-7-accessibility-worker"
+        ]
+      },
+      "mutation-coordinator": {
+        "extends": "coordinator",
+        "write": true,
+        "shell": [
+          "*"
+        ]
+      },
+      "commit-command": {
+        "extends": "mutation-coordinator",
+        "write": false,
+        "delegate": [
+          "sai-commit-worker"
+        ]
+      },
+      "archive-command": {
+        "extends": "mutation-coordinator",
+        "shell": [
+          "*",
+          "node {sai}/tools/transfer.js *"
+        ],
+        "delegate": [
+          "sai-archive-worker",
+          "sai-backfill-worker"
+        ]
+      },
+      "backfill-command": {
+        "extends": "mutation-coordinator",
+        "shell": [
+          "*",
+          "node {sai}/tools/transfer.js *"
+        ],
+        "delegate": [
+          "sai-backfill-worker"
+        ]
+      },
+      "merge-command": {
+        "extends": "mutation-coordinator",
+        "shell": [
+          "*",
+          "node {sai}/tools/transfer.js *"
+        ],
+        "delegate": [
+          "sai-merge-worker"
+        ]
+      },
+      "explore-command": {
+        "extends": "coordinator",
+        "codegraph": true,
+        "webfetch": true,
+        "websearch": true,
+        "shell": [
+          "openspec *",
+          "git *",
+          "node {sai}/*",
+          "node {sai}/tools/to-backlog.js *",
+          "node {skills}/to-backlog/scripts/prepare-temp.js {harness}"
+        ],
+        "delegate": [
+          "explorer",
+          "executor",
+          "budget",
+          "sai-1-spec-proposal-worker",
+          "sai-2-design-worker",
+          "sai-direct-build-worker",
+          "sai-backfill-worker",
+          "sai-archive-worker"
+        ]
+      },
+      "utility-write": {
+        "extends": "boot",
+        "search": true,
+        "write": true,
+        "codegraph": true,
+        "shell": [
+          "*"
+        ],
+        "question": true
+      },
+      "status-command": {
+        "extends": "boot",
+        "search": true,
+        "question": true,
+        "shell": [
+          "openspec *",
+          "node {sai}/tools/status.js *",
+          "node {sai}/tools/change-picker.js *"
+        ]
+      },
+      "worktree-command": {
+        "extends": "boot",
+        "search": true,
+        "question": true,
+        "shell": [
+          "git *",
+          "node {sai}/tools/worktree.js *"
+        ]
+      },
+      "to-backlog-command": {
+        "extends": "boot",
+        "search": true,
+        "question": true,
+        "skills": [
+          "to-backlog",
+          "safe-operations"
+        ],
+        "shell": [
+          "node {sai}/tools/to-backlog.js *",
+          "node {skills}/to-backlog/scripts/prepare-temp.js {harness}"
+        ]
+      },
+      "from-backlog-command": {
+        "extends": "boot",
+        "search": true,
+        "question": true,
+        "skills": [
+          "from-backlog"
+        ],
+        "shell": [
+          "node {sai}/tools/from-backlog.js *"
+        ]
+      },
+      "from-next-backlog-item-command": {
+        "extends": "from-backlog-command",
+        "skills": [
+          "from-next-backlog-item",
+          "from-backlog"
+        ],
+        "shell": [
+          "node {sai}/tools/from-next-backlog-item.js select",
+          "node {sai}/tools/from-backlog.js *"
+        ]
+      },
+      "to-pr-command": {
+        "extends": "boot",
+        "search": true,
+        "question": true,
+        "skills": [
+          "to-pr",
+          "safe-operations"
+        ],
+        "shell": [
+          "node {sai}/tools/to-pr.js *"
+        ]
+      },
+      "new-change-branch-command": {
+        "extends": "boot",
+        "search": true,
+        "question": true,
+        "skills": [
+          "new-change-branch",
+          "safe-operations"
+        ],
+        "shell": [
+          "node {sai}/tools/new-change-branch.js *"
+        ]
+      },
+      "context-cache-benchmark-command": {
+        "extends": "boot",
+        "question": true,
+        "message": true,
+        "skills": [
+          "sai-context-cache-ttl-benchmark"
+        ],
+        "delegate": [
+          "general"
+        ],
+        "shell": [
+          "node {skills}/sai-context-cache-ttl-benchmark/cache_ttl.js *"
+        ]
+      }
+    },
+    "assignments": {
+      "agents": {
+        "budget-explorer": "research",
+        "budget-executor": "executor",
+        "budget-subagent": "task",
+        "sai-1-spec-proposal-worker": "worker-research",
+        "sai-2-design-worker": "worker-design",
+        "sai-5-security-worker": "worker-research",
+        "sai-6-performance-worker": "worker-research",
+        "sai-7-accessibility-worker": "worker-research",
+        "sai-commit-worker": "worker-read",
+        "sai-archive-worker": "worker-read",
+        "sai-backfill-worker": "worker-backfill",
+        "sai-merge-worker": "worker-write",
+        "sai-direct-build-worker": "worker-write",
+        "sai-3-red-worker": "worker-execution",
+        "sai-3-green-worker": "worker-execution",
+        "sai-4-review-worker": "worker-research"
+      },
+      "commands": {
+        "sai-1-spec": "spec-command",
+        "sai-2-design": "design-command",
+        "sai-3-implement": "implement-command",
+        "sai-4-review": "review-command",
+        "sai-build": "build-command",
+        "sai-deep-review": "deep-review-command",
+        "sai-5-security": "security-command",
+        "sai-6-performance": "performance-command",
+        "sai-7-accessibility": "accessibility-command",
+        "sai-commit": "commit-command",
+        "sai-archive": "archive-command",
+        "sai-backfill": "backfill-command",
+        "sai-merge": "merge-command",
+        "sai-explore": "explore-command",
+        "sai-retire-docs": "utility-write",
+        "sai-context-cache-ttl-benchmark": "context-cache-benchmark-command",
+        "sai-status": "status-command",
+        "sai-worktree": "worktree-command",
+        "to-backlog": "to-backlog-command",
+        "from-backlog": "from-backlog-command",
+        "from-next-backlog-item": "from-next-backlog-item-command",
+        "to-pr": "to-pr-command",
+        "new-change-branch": "new-change-branch-command"
+      }
+    }
+  },
+  "commands": {
+    "sai-1-spec": {
+      "profileName": "spec-command",
+      "profile": {
+        "read": true,
+        "skills": [
+          "*"
+        ],
+        "search": true,
+        "question": true,
+        "panel": true,
+        "message": true,
+        "shell": [
+          "node {sai}/tools/worker-report-validator.js *",
+          "node {sai}/tools/no-commit-guard.js *",
+          "node {sai}/bin/sai-state.js *",
+          "git reset *"
+        ],
+        "delegate": [
+          "sai-1-spec-proposal-worker"
+        ]
+      },
+      "toolRequirements": [
+        {
+          "capability": "shell",
+          "anyOf": [
+            [
+              "Bash"
+            ],
+            [
+              "PowerShell"
+            ]
+          ]
+        }
+      ],
+      "nativeTools": [
+        "Read",
+        "Glob",
+        "Grep",
+        "AskUserQuestion",
+        "Skill",
+        "Bash",
+        "PowerShell",
+        "Agent",
+        "SendMessage",
+        "TaskCreate",
+        "TaskUpdate",
+        "TaskGet",
+        "TaskList"
+      ],
+      "tools": "Read, Glob, Grep, AskUserQuestion, Skill, Bash, PowerShell, Agent, SendMessage, TaskCreate, TaskUpdate, TaskGet, TaskList",
+      "allowedTools": "Read, Glob, Grep, AskUserQuestion, Skill, Agent, SendMessage, TaskCreate, TaskUpdate, TaskGet, TaskList, Bash(node .claude/sai/tools/worker-report-validator.js:*), PowerShell(node .claude/sai/tools/worker-report-validator.js:*), Bash(node ~/.claude/sai/tools/worker-report-validator.js:*), PowerShell(node ~/.claude/sai/tools/worker-report-validator.js:*), Bash(node .claude/sai/tools/no-commit-guard.js:*), PowerShell(node .claude/sai/tools/no-commit-guard.js:*), Bash(node ~/.claude/sai/tools/no-commit-guard.js:*), PowerShell(node ~/.claude/sai/tools/no-commit-guard.js:*), Bash(node .claude/sai/bin/sai-state.js:*), PowerShell(node .claude/sai/bin/sai-state.js:*), Bash(node ~/.claude/sai/bin/sai-state.js:*), PowerShell(node ~/.claude/sai/bin/sai-state.js:*), Bash(git reset:*), PowerShell(git reset:*)"
+    },
+    "sai-2-design": {
+      "profileName": "design-command",
+      "profile": {
+        "read": true,
+        "skills": [
+          "*"
+        ],
+        "search": true,
+        "question": true,
+        "panel": true,
+        "message": true,
+        "shell": [
+          "node {sai}/tools/worker-report-validator.js *",
+          "node {sai}/tools/no-commit-guard.js *",
+          "node {sai}/bin/sai-state.js *",
+          "git reset *"
+        ],
+        "delegate": [
+          "sai-2-design-worker"
+        ]
+      },
+      "toolRequirements": [
+        {
+          "capability": "shell",
+          "anyOf": [
+            [
+              "Bash"
+            ],
+            [
+              "PowerShell"
+            ]
+          ]
+        }
+      ],
+      "nativeTools": [
+        "Read",
+        "Glob",
+        "Grep",
+        "AskUserQuestion",
+        "Skill",
+        "Bash",
+        "PowerShell",
+        "Agent",
+        "SendMessage",
+        "TaskCreate",
+        "TaskUpdate",
+        "TaskGet",
+        "TaskList"
+      ],
+      "tools": "Read, Glob, Grep, AskUserQuestion, Skill, Bash, PowerShell, Agent, SendMessage, TaskCreate, TaskUpdate, TaskGet, TaskList",
+      "allowedTools": "Read, Glob, Grep, AskUserQuestion, Skill, Agent, SendMessage, TaskCreate, TaskUpdate, TaskGet, TaskList, Bash(node .claude/sai/tools/worker-report-validator.js:*), PowerShell(node .claude/sai/tools/worker-report-validator.js:*), Bash(node ~/.claude/sai/tools/worker-report-validator.js:*), PowerShell(node ~/.claude/sai/tools/worker-report-validator.js:*), Bash(node .claude/sai/tools/no-commit-guard.js:*), PowerShell(node .claude/sai/tools/no-commit-guard.js:*), Bash(node ~/.claude/sai/tools/no-commit-guard.js:*), PowerShell(node ~/.claude/sai/tools/no-commit-guard.js:*), Bash(node .claude/sai/bin/sai-state.js:*), PowerShell(node .claude/sai/bin/sai-state.js:*), Bash(node ~/.claude/sai/bin/sai-state.js:*), PowerShell(node ~/.claude/sai/bin/sai-state.js:*), Bash(git reset:*), PowerShell(git reset:*)"
+    },
+    "sai-3-implement": {
+      "profileName": "implement-command",
+      "profile": {
+        "read": true,
+        "skills": [
+          "safe-operations"
+        ],
+        "search": true,
+        "question": true,
+        "panel": true,
+        "message": true,
+        "shell": [
+          "*"
+        ],
+        "write": true,
+        "delegate": [
+          "executor",
+          "explorer",
+          "sai-3-red-worker",
+          "sai-3-green-worker"
+        ]
+      },
+      "toolRequirements": [
+        {
+          "capability": "write",
+          "anyOf": [
+            [
+              "Edit",
+              "Write"
+            ]
+          ]
+        },
+        {
+          "capability": "shell",
+          "anyOf": [
+            [
+              "Bash"
+            ],
+            [
+              "PowerShell"
+            ]
+          ]
+        }
+      ],
+      "nativeTools": [
+        "Read",
+        "Glob",
+        "Grep",
+        "Edit",
+        "Write",
+        "AskUserQuestion",
+        "Skill",
+        "Bash",
+        "PowerShell",
+        "Agent",
+        "SendMessage",
+        "TaskCreate",
+        "TaskUpdate",
+        "TaskGet",
+        "TaskList"
+      ],
+      "tools": "Read, Glob, Grep, Edit, Write, AskUserQuestion, Skill, Bash, PowerShell, Agent, SendMessage, TaskCreate, TaskUpdate, TaskGet, TaskList",
+      "allowedTools": "Read, Glob, Grep, Edit, Write, AskUserQuestion, Skill, Agent, SendMessage, TaskCreate, TaskUpdate, TaskGet, TaskList, Bash, PowerShell"
+    },
+    "sai-4-review": {
+      "profileName": "review-command",
+      "profile": {
+        "read": true,
+        "skills": [
+          "safe-operations"
+        ],
+        "search": true,
+        "question": true,
+        "panel": true,
+        "message": true,
+        "shell": [
+          "*"
+        ],
+        "write": true,
+        "delegate": [
+          "sai-4-review-worker"
+        ]
+      },
+      "toolRequirements": [
+        {
+          "capability": "write",
+          "anyOf": [
+            [
+              "Edit",
+              "Write"
+            ]
+          ]
+        },
+        {
+          "capability": "shell",
+          "anyOf": [
+            [
+              "Bash"
+            ],
+            [
+              "PowerShell"
+            ]
+          ]
+        }
+      ],
+      "nativeTools": [
+        "Read",
+        "Glob",
+        "Grep",
+        "Edit",
+        "Write",
+        "AskUserQuestion",
+        "Skill",
+        "Bash",
+        "PowerShell",
+        "Agent",
+        "SendMessage",
+        "TaskCreate",
+        "TaskUpdate",
+        "TaskGet",
+        "TaskList"
+      ],
+      "tools": "Read, Glob, Grep, Edit, Write, AskUserQuestion, Skill, Bash, PowerShell, Agent, SendMessage, TaskCreate, TaskUpdate, TaskGet, TaskList",
+      "allowedTools": "Read, Glob, Grep, Edit, Write, AskUserQuestion, Skill, Agent, SendMessage, TaskCreate, TaskUpdate, TaskGet, TaskList, Bash, PowerShell"
+    },
+    "sai-build": {
+      "profileName": "build-command",
+      "profile": {
+        "read": true,
+        "skills": [
+          "safe-operations"
+        ],
+        "search": true,
+        "question": true,
+        "panel": true,
+        "message": true,
+        "shell": [
+          "*"
+        ],
+        "write": true,
+        "delegate": [
+          "executor",
+          "explorer",
+          "sai-3-red-worker",
+          "sai-3-green-worker",
+          "sai-4-review-worker"
+        ]
+      },
+      "toolRequirements": [
+        {
+          "capability": "write",
+          "anyOf": [
+            [
+              "Edit",
+              "Write"
+            ]
+          ]
+        },
+        {
+          "capability": "shell",
+          "anyOf": [
+            [
+              "Bash"
+            ],
+            [
+              "PowerShell"
+            ]
+          ]
+        }
+      ],
+      "nativeTools": [
+        "Read",
+        "Glob",
+        "Grep",
+        "Edit",
+        "Write",
+        "AskUserQuestion",
+        "Skill",
+        "Bash",
+        "PowerShell",
+        "Agent",
+        "SendMessage",
+        "TaskCreate",
+        "TaskUpdate",
+        "TaskGet",
+        "TaskList"
+      ],
+      "tools": "Read, Glob, Grep, Edit, Write, AskUserQuestion, Skill, Bash, PowerShell, Agent, SendMessage, TaskCreate, TaskUpdate, TaskGet, TaskList",
+      "allowedTools": "Read, Glob, Grep, Edit, Write, AskUserQuestion, Skill, Agent, SendMessage, TaskCreate, TaskUpdate, TaskGet, TaskList, Bash, PowerShell"
+    },
+    "sai-deep-review": {
+      "profileName": "deep-review-command",
+      "profile": {
+        "read": true,
+        "skills": [
+          "safe-operations"
+        ],
+        "search": true,
+        "question": true,
+        "panel": true,
+        "message": true,
+        "shell": [
+          "*"
+        ],
+        "write": true,
+        "delegate": [
+          "executor",
+          "explorer",
+          "sai-3-red-worker",
+          "sai-3-green-worker",
+          "sai-4-review-worker",
+          "sai-5-security-worker",
+          "sai-6-performance-worker",
+          "sai-7-accessibility-worker"
+        ]
+      },
+      "toolRequirements": [
+        {
+          "capability": "write",
+          "anyOf": [
+            [
+              "Edit",
+              "Write"
+            ]
+          ]
+        },
+        {
+          "capability": "shell",
+          "anyOf": [
+            [
+              "Bash"
+            ],
+            [
+              "PowerShell"
+            ]
+          ]
+        }
+      ],
+      "nativeTools": [
+        "Read",
+        "Glob",
+        "Grep",
+        "Edit",
+        "Write",
+        "AskUserQuestion",
+        "Skill",
+        "Bash",
+        "PowerShell",
+        "Agent",
+        "SendMessage",
+        "TaskCreate",
+        "TaskUpdate",
+        "TaskGet",
+        "TaskList"
+      ],
+      "tools": "Read, Glob, Grep, Edit, Write, AskUserQuestion, Skill, Bash, PowerShell, Agent, SendMessage, TaskCreate, TaskUpdate, TaskGet, TaskList",
+      "allowedTools": "Read, Glob, Grep, Edit, Write, AskUserQuestion, Skill, Agent, SendMessage, TaskCreate, TaskUpdate, TaskGet, TaskList, Bash, PowerShell"
+    },
+    "sai-5-security": {
+      "profileName": "security-command",
+      "profile": {
+        "read": true,
+        "skills": [
+          "*"
+        ],
+        "search": true,
+        "question": true,
+        "panel": true,
+        "message": true,
+        "shell": [
+          "node {sai}/tools/worker-report-validator.js *",
+          "node {sai}/tools/no-commit-guard.js *",
+          "node {sai}/bin/sai-state.js *",
+          "git reset *"
+        ],
+        "delegate": [
+          "sai-5-security-worker"
+        ]
+      },
+      "toolRequirements": [
+        {
+          "capability": "shell",
+          "anyOf": [
+            [
+              "Bash"
+            ],
+            [
+              "PowerShell"
+            ]
+          ]
+        }
+      ],
+      "nativeTools": [
+        "Read",
+        "Glob",
+        "Grep",
+        "AskUserQuestion",
+        "Skill",
+        "Bash",
+        "PowerShell",
+        "Agent",
+        "SendMessage",
+        "TaskCreate",
+        "TaskUpdate",
+        "TaskGet",
+        "TaskList"
+      ],
+      "tools": "Read, Glob, Grep, AskUserQuestion, Skill, Bash, PowerShell, Agent, SendMessage, TaskCreate, TaskUpdate, TaskGet, TaskList",
+      "allowedTools": "Read, Glob, Grep, AskUserQuestion, Skill, Agent, SendMessage, TaskCreate, TaskUpdate, TaskGet, TaskList, Bash(node .claude/sai/tools/worker-report-validator.js:*), PowerShell(node .claude/sai/tools/worker-report-validator.js:*), Bash(node ~/.claude/sai/tools/worker-report-validator.js:*), PowerShell(node ~/.claude/sai/tools/worker-report-validator.js:*), Bash(node .claude/sai/tools/no-commit-guard.js:*), PowerShell(node .claude/sai/tools/no-commit-guard.js:*), Bash(node ~/.claude/sai/tools/no-commit-guard.js:*), PowerShell(node ~/.claude/sai/tools/no-commit-guard.js:*), Bash(node .claude/sai/bin/sai-state.js:*), PowerShell(node .claude/sai/bin/sai-state.js:*), Bash(node ~/.claude/sai/bin/sai-state.js:*), PowerShell(node ~/.claude/sai/bin/sai-state.js:*), Bash(git reset:*), PowerShell(git reset:*)"
+    },
+    "sai-6-performance": {
+      "profileName": "performance-command",
+      "profile": {
+        "read": true,
+        "skills": [
+          "*"
+        ],
+        "search": true,
+        "question": true,
+        "panel": true,
+        "message": true,
+        "shell": [
+          "node {sai}/tools/worker-report-validator.js *",
+          "node {sai}/tools/no-commit-guard.js *",
+          "node {sai}/bin/sai-state.js *",
+          "git reset *"
+        ],
+        "delegate": [
+          "sai-6-performance-worker"
+        ]
+      },
+      "toolRequirements": [
+        {
+          "capability": "shell",
+          "anyOf": [
+            [
+              "Bash"
+            ],
+            [
+              "PowerShell"
+            ]
+          ]
+        }
+      ],
+      "nativeTools": [
+        "Read",
+        "Glob",
+        "Grep",
+        "AskUserQuestion",
+        "Skill",
+        "Bash",
+        "PowerShell",
+        "Agent",
+        "SendMessage",
+        "TaskCreate",
+        "TaskUpdate",
+        "TaskGet",
+        "TaskList"
+      ],
+      "tools": "Read, Glob, Grep, AskUserQuestion, Skill, Bash, PowerShell, Agent, SendMessage, TaskCreate, TaskUpdate, TaskGet, TaskList",
+      "allowedTools": "Read, Glob, Grep, AskUserQuestion, Skill, Agent, SendMessage, TaskCreate, TaskUpdate, TaskGet, TaskList, Bash(node .claude/sai/tools/worker-report-validator.js:*), PowerShell(node .claude/sai/tools/worker-report-validator.js:*), Bash(node ~/.claude/sai/tools/worker-report-validator.js:*), PowerShell(node ~/.claude/sai/tools/worker-report-validator.js:*), Bash(node .claude/sai/tools/no-commit-guard.js:*), PowerShell(node .claude/sai/tools/no-commit-guard.js:*), Bash(node ~/.claude/sai/tools/no-commit-guard.js:*), PowerShell(node ~/.claude/sai/tools/no-commit-guard.js:*), Bash(node .claude/sai/bin/sai-state.js:*), PowerShell(node .claude/sai/bin/sai-state.js:*), Bash(node ~/.claude/sai/bin/sai-state.js:*), PowerShell(node ~/.claude/sai/bin/sai-state.js:*), Bash(git reset:*), PowerShell(git reset:*)"
+    },
+    "sai-7-accessibility": {
+      "profileName": "accessibility-command",
+      "profile": {
+        "read": true,
+        "skills": [
+          "*"
+        ],
+        "search": true,
+        "question": true,
+        "panel": true,
+        "message": true,
+        "shell": [
+          "node {sai}/tools/worker-report-validator.js *",
+          "node {sai}/tools/no-commit-guard.js *",
+          "node {sai}/bin/sai-state.js *",
+          "git reset *"
+        ],
+        "delegate": [
+          "sai-7-accessibility-worker"
+        ]
+      },
+      "toolRequirements": [
+        {
+          "capability": "shell",
+          "anyOf": [
+            [
+              "Bash"
+            ],
+            [
+              "PowerShell"
+            ]
+          ]
+        }
+      ],
+      "nativeTools": [
+        "Read",
+        "Glob",
+        "Grep",
+        "AskUserQuestion",
+        "Skill",
+        "Bash",
+        "PowerShell",
+        "Agent",
+        "SendMessage",
+        "TaskCreate",
+        "TaskUpdate",
+        "TaskGet",
+        "TaskList"
+      ],
+      "tools": "Read, Glob, Grep, AskUserQuestion, Skill, Bash, PowerShell, Agent, SendMessage, TaskCreate, TaskUpdate, TaskGet, TaskList",
+      "allowedTools": "Read, Glob, Grep, AskUserQuestion, Skill, Agent, SendMessage, TaskCreate, TaskUpdate, TaskGet, TaskList, Bash(node .claude/sai/tools/worker-report-validator.js:*), PowerShell(node .claude/sai/tools/worker-report-validator.js:*), Bash(node ~/.claude/sai/tools/worker-report-validator.js:*), PowerShell(node ~/.claude/sai/tools/worker-report-validator.js:*), Bash(node .claude/sai/tools/no-commit-guard.js:*), PowerShell(node .claude/sai/tools/no-commit-guard.js:*), Bash(node ~/.claude/sai/tools/no-commit-guard.js:*), PowerShell(node ~/.claude/sai/tools/no-commit-guard.js:*), Bash(node .claude/sai/bin/sai-state.js:*), PowerShell(node .claude/sai/bin/sai-state.js:*), Bash(node ~/.claude/sai/bin/sai-state.js:*), PowerShell(node ~/.claude/sai/bin/sai-state.js:*), Bash(git reset:*), PowerShell(git reset:*)"
+    },
+    "sai-commit": {
+      "profileName": "commit-command",
+      "profile": {
+        "read": true,
+        "skills": [
+          "*"
+        ],
+        "search": true,
+        "question": true,
+        "panel": true,
+        "message": true,
+        "shell": [
+          "*"
+        ],
+        "write": false,
+        "delegate": [
+          "sai-commit-worker"
+        ]
+      },
+      "toolRequirements": [
+        {
+          "capability": "shell",
+          "anyOf": [
+            [
+              "Bash"
+            ],
+            [
+              "PowerShell"
+            ]
+          ]
+        }
+      ],
+      "nativeTools": [
+        "Read",
+        "Glob",
+        "Grep",
+        "AskUserQuestion",
+        "Skill",
+        "Bash",
+        "PowerShell",
+        "Agent",
+        "SendMessage",
+        "TaskCreate",
+        "TaskUpdate",
+        "TaskGet",
+        "TaskList"
+      ],
+      "tools": "Read, Glob, Grep, AskUserQuestion, Skill, Bash, PowerShell, Agent, SendMessage, TaskCreate, TaskUpdate, TaskGet, TaskList",
+      "allowedTools": "Read, Glob, Grep, AskUserQuestion, Skill, Agent, SendMessage, TaskCreate, TaskUpdate, TaskGet, TaskList, Bash, PowerShell"
+    },
+    "sai-archive": {
+      "profileName": "archive-command",
+      "profile": {
+        "read": true,
+        "skills": [
+          "*"
+        ],
+        "search": true,
+        "question": true,
+        "panel": true,
+        "message": true,
+        "shell": [
+          "*",
+          "node {sai}/tools/transfer.js *"
+        ],
+        "write": true,
+        "delegate": [
+          "sai-archive-worker",
+          "sai-backfill-worker"
+        ]
+      },
+      "toolRequirements": [
+        {
+          "capability": "write",
+          "anyOf": [
+            [
+              "Edit",
+              "Write"
+            ]
+          ]
+        },
+        {
+          "capability": "shell",
+          "anyOf": [
+            [
+              "Bash"
+            ],
+            [
+              "PowerShell"
+            ]
+          ]
+        }
+      ],
+      "nativeTools": [
+        "Read",
+        "Glob",
+        "Grep",
+        "Edit",
+        "Write",
+        "AskUserQuestion",
+        "Skill",
+        "Bash",
+        "PowerShell",
+        "Agent",
+        "SendMessage",
+        "TaskCreate",
+        "TaskUpdate",
+        "TaskGet",
+        "TaskList"
+      ],
+      "tools": "Read, Glob, Grep, Edit, Write, AskUserQuestion, Skill, Bash, PowerShell, Agent, SendMessage, TaskCreate, TaskUpdate, TaskGet, TaskList",
+      "allowedTools": "Read, Glob, Grep, Edit, Write, AskUserQuestion, Skill, Agent, SendMessage, TaskCreate, TaskUpdate, TaskGet, TaskList, Bash, PowerShell, Bash(node .claude/sai/tools/transfer.js:*), PowerShell(node .claude/sai/tools/transfer.js:*), Bash(node ~/.claude/sai/tools/transfer.js:*), PowerShell(node ~/.claude/sai/tools/transfer.js:*)"
+    },
+    "sai-backfill": {
+      "profileName": "backfill-command",
+      "profile": {
+        "read": true,
+        "skills": [
+          "*"
+        ],
+        "search": true,
+        "question": true,
+        "panel": true,
+        "message": true,
+        "shell": [
+          "*",
+          "node {sai}/tools/transfer.js *"
+        ],
+        "write": true,
+        "delegate": [
+          "sai-backfill-worker"
+        ]
+      },
+      "toolRequirements": [
+        {
+          "capability": "write",
+          "anyOf": [
+            [
+              "Edit",
+              "Write"
+            ]
+          ]
+        },
+        {
+          "capability": "shell",
+          "anyOf": [
+            [
+              "Bash"
+            ],
+            [
+              "PowerShell"
+            ]
+          ]
+        }
+      ],
+      "nativeTools": [
+        "Read",
+        "Glob",
+        "Grep",
+        "Edit",
+        "Write",
+        "AskUserQuestion",
+        "Skill",
+        "Bash",
+        "PowerShell",
+        "Agent",
+        "SendMessage",
+        "TaskCreate",
+        "TaskUpdate",
+        "TaskGet",
+        "TaskList"
+      ],
+      "tools": "Read, Glob, Grep, Edit, Write, AskUserQuestion, Skill, Bash, PowerShell, Agent, SendMessage, TaskCreate, TaskUpdate, TaskGet, TaskList",
+      "allowedTools": "Read, Glob, Grep, Edit, Write, AskUserQuestion, Skill, Agent, SendMessage, TaskCreate, TaskUpdate, TaskGet, TaskList, Bash, PowerShell, Bash(node .claude/sai/tools/transfer.js:*), PowerShell(node .claude/sai/tools/transfer.js:*), Bash(node ~/.claude/sai/tools/transfer.js:*), PowerShell(node ~/.claude/sai/tools/transfer.js:*)"
+    },
+    "sai-merge": {
+      "profileName": "merge-command",
+      "profile": {
+        "read": true,
+        "skills": [
+          "*"
+        ],
+        "search": true,
+        "question": true,
+        "panel": true,
+        "message": true,
+        "shell": [
+          "*",
+          "node {sai}/tools/transfer.js *"
+        ],
+        "write": true,
+        "delegate": [
+          "sai-merge-worker"
+        ]
+      },
+      "toolRequirements": [
+        {
+          "capability": "write",
+          "anyOf": [
+            [
+              "Edit",
+              "Write"
+            ]
+          ]
+        },
+        {
+          "capability": "shell",
+          "anyOf": [
+            [
+              "Bash"
+            ],
+            [
+              "PowerShell"
+            ]
+          ]
+        }
+      ],
+      "nativeTools": [
+        "Read",
+        "Glob",
+        "Grep",
+        "Edit",
+        "Write",
+        "AskUserQuestion",
+        "Skill",
+        "Bash",
+        "PowerShell",
+        "Agent",
+        "SendMessage",
+        "TaskCreate",
+        "TaskUpdate",
+        "TaskGet",
+        "TaskList"
+      ],
+      "tools": "Read, Glob, Grep, Edit, Write, AskUserQuestion, Skill, Bash, PowerShell, Agent, SendMessage, TaskCreate, TaskUpdate, TaskGet, TaskList",
+      "allowedTools": "Read, Glob, Grep, Edit, Write, AskUserQuestion, Skill, Agent, SendMessage, TaskCreate, TaskUpdate, TaskGet, TaskList, Bash, PowerShell, Bash(node .claude/sai/tools/transfer.js:*), PowerShell(node .claude/sai/tools/transfer.js:*), Bash(node ~/.claude/sai/tools/transfer.js:*), PowerShell(node ~/.claude/sai/tools/transfer.js:*)"
+    },
+    "sai-explore": {
+      "profileName": "explore-command",
+      "profile": {
+        "read": true,
+        "skills": [
+          "*"
+        ],
+        "search": true,
+        "question": true,
+        "panel": true,
+        "message": true,
+        "shell": [
+          "openspec *",
+          "git *",
+          "node {sai}/*",
+          "node {sai}/tools/to-backlog.js *",
+          "node {skills}/to-backlog/scripts/prepare-temp.js {harness}"
+        ],
+        "webfetch": true,
+        "websearch": true,
+        "codegraph": true,
+        "delegate": [
+          "explorer",
+          "executor",
+          "budget",
+          "sai-1-spec-proposal-worker",
+          "sai-2-design-worker",
+          "sai-direct-build-worker",
+          "sai-backfill-worker",
+          "sai-archive-worker"
+        ]
+      },
+      "toolRequirements": [
+        {
+          "capability": "shell",
+          "anyOf": [
+            [
+              "Bash"
+            ],
+            [
+              "PowerShell"
+            ]
+          ]
+        }
+      ],
+      "nativeTools": [
+        "Read",
+        "Glob",
+        "Grep",
+        "WebFetch",
+        "WebSearch",
+        "AskUserQuestion",
+        "mcp__codegraph__codegraph_explore",
+        "ToolSearch",
+        "Skill",
+        "Bash",
+        "PowerShell",
+        "Agent",
+        "SendMessage",
+        "TaskCreate",
+        "TaskUpdate",
+        "TaskGet",
+        "TaskList"
+      ],
+      "tools": "Read, Glob, Grep, WebFetch, WebSearch, AskUserQuestion, mcp__codegraph__codegraph_explore, ToolSearch, Skill, Bash, PowerShell, Agent, SendMessage, TaskCreate, TaskUpdate, TaskGet, TaskList",
+      "allowedTools": "Read, Glob, Grep, WebFetch, WebSearch, AskUserQuestion, mcp__codegraph__codegraph_explore, ToolSearch, Skill, Agent, SendMessage, TaskCreate, TaskUpdate, TaskGet, TaskList, Bash(openspec:*), PowerShell(openspec:*), Bash(git:*), PowerShell(git:*), Bash(node .claude/sai/*), PowerShell(node .claude/sai/*), Bash(node ~/.claude/sai/*), PowerShell(node ~/.claude/sai/*), Bash(node .claude/sai/tools/to-backlog.js:*), PowerShell(node .claude/sai/tools/to-backlog.js:*), Bash(node ~/.claude/sai/tools/to-backlog.js:*), PowerShell(node ~/.claude/sai/tools/to-backlog.js:*), Bash(node .claude/skills/to-backlog/scripts/prepare-temp.js claude), PowerShell(node .claude/skills/to-backlog/scripts/prepare-temp.js claude), Bash(node ~/.claude/skills/to-backlog/scripts/prepare-temp.js claude), PowerShell(node ~/.claude/skills/to-backlog/scripts/prepare-temp.js claude)"
+    },
+    "sai-retire-docs": {
+      "profileName": "utility-write",
+      "profile": {
+        "read": true,
+        "skills": [
+          "*"
+        ],
+        "search": true,
+        "write": true,
+        "codegraph": true,
+        "question": true,
+        "shell": [
+          "*"
+        ]
+      },
+      "toolRequirements": [
+        {
+          "capability": "write",
+          "anyOf": [
+            [
+              "Edit",
+              "Write"
+            ]
+          ]
+        },
+        {
+          "capability": "shell",
+          "anyOf": [
+            [
+              "Bash"
+            ],
+            [
+              "PowerShell"
+            ]
+          ]
+        }
+      ],
+      "nativeTools": [
+        "Read",
+        "Glob",
+        "Grep",
+        "Edit",
+        "Write",
+        "AskUserQuestion",
+        "mcp__codegraph__codegraph_explore",
+        "ToolSearch",
+        "Skill",
+        "Bash",
+        "PowerShell"
+      ],
+      "tools": "Read, Glob, Grep, Edit, Write, AskUserQuestion, mcp__codegraph__codegraph_explore, ToolSearch, Skill, Bash, PowerShell",
+      "allowedTools": "Read, Glob, Grep, Edit, Write, AskUserQuestion, mcp__codegraph__codegraph_explore, ToolSearch, Skill, Bash, PowerShell"
+    },
+    "sai-context-cache-ttl-benchmark": {
+      "profileName": "context-cache-benchmark-command",
+      "profile": {
+        "read": true,
+        "skills": [
+          "sai-context-cache-ttl-benchmark"
+        ],
+        "question": true,
+        "message": true,
+        "shell": [
+          "node {skills}/sai-context-cache-ttl-benchmark/cache_ttl.js *"
+        ],
+        "delegate": [
+          "general"
+        ]
+      },
+      "toolRequirements": [
+        {
+          "capability": "shell",
+          "anyOf": [
+            [
+              "Bash"
+            ],
+            [
+              "PowerShell"
+            ]
+          ]
+        }
+      ],
+      "nativeTools": [
+        "Read",
+        "AskUserQuestion",
+        "Skill",
+        "Bash",
+        "PowerShell",
+        "Agent",
+        "SendMessage"
+      ],
+      "tools": "Read, AskUserQuestion, Skill, Bash, PowerShell, Agent, SendMessage",
+      "allowedTools": "Read, AskUserQuestion, Skill, Agent, SendMessage, Bash(node .claude/skills/sai-context-cache-ttl-benchmark/cache_ttl.js:*), PowerShell(node .claude/skills/sai-context-cache-ttl-benchmark/cache_ttl.js:*), Bash(node ~/.claude/skills/sai-context-cache-ttl-benchmark/cache_ttl.js:*), PowerShell(node ~/.claude/skills/sai-context-cache-ttl-benchmark/cache_ttl.js:*)"
+    },
+    "sai-status": {
+      "profileName": "status-command",
+      "profile": {
+        "read": true,
+        "skills": [
+          "*"
+        ],
+        "search": true,
+        "question": true,
+        "shell": [
+          "openspec *",
+          "node {sai}/tools/status.js *",
+          "node {sai}/tools/change-picker.js *"
+        ]
+      },
+      "toolRequirements": [
+        {
+          "capability": "shell",
+          "anyOf": [
+            [
+              "Bash"
+            ],
+            [
+              "PowerShell"
+            ]
+          ]
+        }
+      ],
+      "nativeTools": [
+        "Read",
+        "Glob",
+        "Grep",
+        "AskUserQuestion",
+        "Skill",
+        "Bash",
+        "PowerShell"
+      ],
+      "tools": "Read, Glob, Grep, AskUserQuestion, Skill, Bash, PowerShell",
+      "allowedTools": "Read, Glob, Grep, AskUserQuestion, Skill, Bash(openspec:*), PowerShell(openspec:*), Bash(node .claude/sai/tools/status.js:*), PowerShell(node .claude/sai/tools/status.js:*), Bash(node ~/.claude/sai/tools/status.js:*), PowerShell(node ~/.claude/sai/tools/status.js:*), Bash(node .claude/sai/tools/change-picker.js:*), PowerShell(node .claude/sai/tools/change-picker.js:*), Bash(node ~/.claude/sai/tools/change-picker.js:*), PowerShell(node ~/.claude/sai/tools/change-picker.js:*)"
+    },
+    "sai-worktree": {
+      "profileName": "worktree-command",
+      "profile": {
+        "read": true,
+        "skills": [
+          "*"
+        ],
+        "search": true,
+        "question": true,
+        "shell": [
+          "git *",
+          "node {sai}/tools/worktree.js *"
+        ]
+      },
+      "toolRequirements": [
+        {
+          "capability": "shell",
+          "anyOf": [
+            [
+              "Bash"
+            ],
+            [
+              "PowerShell"
+            ]
+          ]
+        }
+      ],
+      "nativeTools": [
+        "Read",
+        "Glob",
+        "Grep",
+        "AskUserQuestion",
+        "Skill",
+        "Bash",
+        "PowerShell"
+      ],
+      "tools": "Read, Glob, Grep, AskUserQuestion, Skill, Bash, PowerShell",
+      "allowedTools": "Read, Glob, Grep, AskUserQuestion, Skill, Bash(git:*), PowerShell(git:*), Bash(node .claude/sai/tools/worktree.js:*), PowerShell(node .claude/sai/tools/worktree.js:*), Bash(node ~/.claude/sai/tools/worktree.js:*), PowerShell(node ~/.claude/sai/tools/worktree.js:*)"
+    },
+    "to-backlog": {
+      "profileName": "to-backlog-command",
+      "profile": {
+        "read": true,
+        "skills": [
+          "to-backlog",
+          "safe-operations"
+        ],
+        "search": true,
+        "question": true,
+        "shell": [
+          "node {sai}/tools/to-backlog.js *",
+          "node {skills}/to-backlog/scripts/prepare-temp.js {harness}"
+        ]
+      },
+      "toolRequirements": [
+        {
+          "capability": "shell",
+          "anyOf": [
+            [
+              "Bash"
+            ],
+            [
+              "PowerShell"
+            ]
+          ]
+        }
+      ],
+      "nativeTools": [
+        "Read",
+        "Glob",
+        "Grep",
+        "AskUserQuestion",
+        "Skill",
+        "Bash",
+        "PowerShell"
+      ],
+      "tools": "Read, Glob, Grep, AskUserQuestion, Skill, Bash, PowerShell",
+      "allowedTools": "Read, Glob, Grep, AskUserQuestion, Skill, Bash(node .claude/sai/tools/to-backlog.js:*), PowerShell(node .claude/sai/tools/to-backlog.js:*), Bash(node ~/.claude/sai/tools/to-backlog.js:*), PowerShell(node ~/.claude/sai/tools/to-backlog.js:*), Bash(node .claude/skills/to-backlog/scripts/prepare-temp.js claude), PowerShell(node .claude/skills/to-backlog/scripts/prepare-temp.js claude), Bash(node ~/.claude/skills/to-backlog/scripts/prepare-temp.js claude), PowerShell(node ~/.claude/skills/to-backlog/scripts/prepare-temp.js claude)"
+    },
+    "from-backlog": {
+      "profileName": "from-backlog-command",
+      "profile": {
+        "read": true,
+        "skills": [
+          "from-backlog"
+        ],
+        "search": true,
+        "question": true,
+        "shell": [
+          "node {sai}/tools/from-backlog.js *"
+        ]
+      },
+      "toolRequirements": [
+        {
+          "capability": "shell",
+          "anyOf": [
+            [
+              "Bash"
+            ],
+            [
+              "PowerShell"
+            ]
+          ]
+        }
+      ],
+      "nativeTools": [
+        "Read",
+        "Glob",
+        "Grep",
+        "AskUserQuestion",
+        "Skill",
+        "Bash",
+        "PowerShell"
+      ],
+      "tools": "Read, Glob, Grep, AskUserQuestion, Skill, Bash, PowerShell",
+      "allowedTools": "Read, Glob, Grep, AskUserQuestion, Skill, Bash(node .claude/sai/tools/from-backlog.js:*), PowerShell(node .claude/sai/tools/from-backlog.js:*), Bash(node ~/.claude/sai/tools/from-backlog.js:*), PowerShell(node ~/.claude/sai/tools/from-backlog.js:*)"
+    },
+    "from-next-backlog-item": {
+      "profileName": "from-next-backlog-item-command",
+      "profile": {
+        "read": true,
+        "skills": [
+          "from-next-backlog-item",
+          "from-backlog"
+        ],
+        "search": true,
+        "question": true,
+        "shell": [
+          "node {sai}/tools/from-next-backlog-item.js select",
+          "node {sai}/tools/from-backlog.js *"
+        ]
+      },
+      "toolRequirements": [
+        {
+          "capability": "shell",
+          "anyOf": [
+            [
+              "Bash"
+            ],
+            [
+              "PowerShell"
+            ]
+          ]
+        }
+      ],
+      "nativeTools": [
+        "Read",
+        "Glob",
+        "Grep",
+        "AskUserQuestion",
+        "Skill",
+        "Bash",
+        "PowerShell"
+      ],
+      "tools": "Read, Glob, Grep, AskUserQuestion, Skill, Bash, PowerShell",
+      "allowedTools": "Read, Glob, Grep, AskUserQuestion, Skill, Bash(node .claude/sai/tools/from-next-backlog-item.js select), PowerShell(node .claude/sai/tools/from-next-backlog-item.js select), Bash(node ~/.claude/sai/tools/from-next-backlog-item.js select), PowerShell(node ~/.claude/sai/tools/from-next-backlog-item.js select), Bash(node .claude/sai/tools/from-backlog.js:*), PowerShell(node .claude/sai/tools/from-backlog.js:*), Bash(node ~/.claude/sai/tools/from-backlog.js:*), PowerShell(node ~/.claude/sai/tools/from-backlog.js:*)"
+    },
+    "to-pr": {
+      "profileName": "to-pr-command",
+      "profile": {
+        "read": true,
+        "skills": [
+          "to-pr",
+          "safe-operations"
+        ],
+        "search": true,
+        "question": true,
+        "shell": [
+          "node {sai}/tools/to-pr.js *"
+        ]
+      },
+      "toolRequirements": [
+        {
+          "capability": "shell",
+          "anyOf": [
+            [
+              "Bash"
+            ],
+            [
+              "PowerShell"
+            ]
+          ]
+        }
+      ],
+      "nativeTools": [
+        "Read",
+        "Glob",
+        "Grep",
+        "AskUserQuestion",
+        "Skill",
+        "Bash",
+        "PowerShell"
+      ],
+      "tools": "Read, Glob, Grep, AskUserQuestion, Skill, Bash, PowerShell",
+      "allowedTools": "Read, Glob, Grep, AskUserQuestion, Skill, Bash(node .claude/sai/tools/to-pr.js:*), PowerShell(node .claude/sai/tools/to-pr.js:*), Bash(node ~/.claude/sai/tools/to-pr.js:*), PowerShell(node ~/.claude/sai/tools/to-pr.js:*)"
+    },
+    "new-change-branch": {
+      "profileName": "new-change-branch-command",
+      "profile": {
+        "read": true,
+        "skills": [
+          "new-change-branch",
+          "safe-operations"
+        ],
+        "search": true,
+        "question": true,
+        "shell": [
+          "node {sai}/tools/new-change-branch.js *"
+        ]
+      },
+      "toolRequirements": [
+        {
+          "capability": "shell",
+          "anyOf": [
+            [
+              "Bash"
+            ],
+            [
+              "PowerShell"
+            ]
+          ]
+        }
+      ],
+      "nativeTools": [
+        "Read",
+        "Glob",
+        "Grep",
+        "AskUserQuestion",
+        "Skill",
+        "Bash",
+        "PowerShell"
+      ],
+      "tools": "Read, Glob, Grep, AskUserQuestion, Skill, Bash, PowerShell",
+      "allowedTools": "Read, Glob, Grep, AskUserQuestion, Skill, Bash(node .claude/sai/tools/new-change-branch.js:*), PowerShell(node .claude/sai/tools/new-change-branch.js:*), Bash(node ~/.claude/sai/tools/new-change-branch.js:*), PowerShell(node ~/.claude/sai/tools/new-change-branch.js:*)"
+    }
+  }
+}

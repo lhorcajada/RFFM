@@ -1,0 +1,51 @@
+{
+  "harness": "claude",
+  "profileName": "commit-command",
+  "profile": {
+    "read": true,
+    "skills": [
+      "*"
+    ],
+    "search": true,
+    "question": true,
+    "panel": true,
+    "message": true,
+    "shell": [
+      "*"
+    ],
+    "write": false,
+    "delegate": [
+      "sai-commit-worker"
+    ]
+  },
+  "toolRequirements": [
+    {
+      "capability": "shell",
+      "anyOf": [
+        [
+          "Bash"
+        ],
+        [
+          "PowerShell"
+        ]
+      ]
+    }
+  ],
+  "nativeTools": [
+    "Read",
+    "Glob",
+    "Grep",
+    "AskUserQuestion",
+    "Skill",
+    "Bash",
+    "PowerShell",
+    "Agent",
+    "SendMessage",
+    "TaskCreate",
+    "TaskUpdate",
+    "TaskGet",
+    "TaskList"
+  ],
+  "tools": "Read, Glob, Grep, AskUserQuestion, Skill, Bash, PowerShell, Agent, SendMessage, TaskCreate, TaskUpdate, TaskGet, TaskList",
+  "allowedTools": "Read, Glob, Grep, AskUserQuestion, Skill, Agent, SendMessage, TaskCreate, TaskUpdate, TaskGet, TaskList, Bash, PowerShell"
+}

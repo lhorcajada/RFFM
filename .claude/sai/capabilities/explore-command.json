@@ -1,0 +1,68 @@
+{
+  "harness": "claude",
+  "profileName": "explore-command",
+  "profile": {
+    "read": true,
+    "skills": [
+      "*"
+    ],
+    "search": true,
+    "question": true,
+    "panel": true,
+    "message": true,
+    "shell": [
+      "openspec *",
+      "git *",
+      "node {sai}/*",
+      "node {sai}/tools/to-backlog.js *",
+      "node {skills}/to-backlog/scripts/prepare-temp.js {harness}"
+    ],
+    "webfetch": true,
+    "websearch": true,
+    "codegraph": true,
+    "delegate": [
+      "explorer",
+      "executor",
+      "budget",
+      "sai-1-spec-proposal-worker",
+      "sai-2-design-worker",
+      "sai-direct-build-worker",
+      "sai-backfill-worker",
+      "sai-archive-worker"
+    ]
+  },
+  "toolRequirements": [
+    {
+      "capability": "shell",
+      "anyOf": [
+        [
+          "Bash"
+        ],
+        [
+          "PowerShell"
+        ]
+      ]
+    }
+  ],
+  "nativeTools": [
+    "Read",
+    "Glob",
+    "Grep",
+    "WebFetch",
+    "WebSearch",
+    "AskUserQuestion",
+    "mcp__codegraph__codegraph_explore",
+    "ToolSearch",
+    "Skill",
+    "Bash",
+    "PowerShell",
+    "Agent",
+    "SendMessage",
+    "TaskCreate",
+    "TaskUpdate",
+    "TaskGet",
+    "TaskList"
+  ],
+  "tools": "Read, Glob, Grep, WebFetch, WebSearch, AskUserQuestion, mcp__codegraph__codegraph_explore, ToolSearch, Skill, Bash, PowerShell, Agent, SendMessage, TaskCreate, TaskUpdate, TaskGet, TaskList",
+  "allowedTools": "Read, Glob, Grep, WebFetch, WebSearch, AskUserQuestion, mcp__codegraph__codegraph_explore, ToolSearch, Skill, Agent, SendMessage, TaskCreate, TaskUpdate, TaskGet, TaskList, Bash(openspec:*), PowerShell(openspec:*), Bash(git:*), PowerShell(git:*), Bash(node .claude/sai/*), PowerShell(node .claude/sai/*), Bash(node ~/.claude/sai/*), PowerShell(node ~/.claude/sai/*), Bash(node .claude/sai/tools/to-backlog.js:*), PowerShell(node .claude/sai/tools/to-backlog.js:*), Bash(node ~/.claude/sai/tools/to-backlog.js:*), PowerShell(node ~/.claude/sai/tools/to-backlog.js:*), Bash(node .claude/skills/to-backlog/scripts/prepare-temp.js claude), PowerShell(node .claude/skills/to-backlog/scripts/prepare-temp.js claude), Bash(node ~/.claude/skills/to-backlog/scripts/prepare-temp.js claude), PowerShell(node ~/.claude/skills/to-backlog/scripts/prepare-temp.js claude)"
+}

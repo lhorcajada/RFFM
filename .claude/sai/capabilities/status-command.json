@@ -1,0 +1,41 @@
+{
+  "harness": "claude",
+  "profileName": "status-command",
+  "profile": {
+    "read": true,
+    "skills": [
+      "*"
+    ],
+    "search": true,
+    "question": true,
+    "shell": [
+      "openspec *",
+      "node {sai}/tools/status.js *",
+      "node {sai}/tools/change-picker.js *"
+    ]
+  },
+  "toolRequirements": [
+    {
+      "capability": "shell",
+      "anyOf": [
+        [
+          "Bash"
+        ],
+        [
+          "PowerShell"
+        ]
+      ]
+    }
+  ],
+  "nativeTools": [
+    "Read",
+    "Glob",
+    "Grep",
+    "AskUserQuestion",
+    "Skill",
+    "Bash",
+    "PowerShell"
+  ],
+  "tools": "Read, Glob, Grep, AskUserQuestion, Skill, Bash, PowerShell",
+  "allowedTools": "Read, Glob, Grep, AskUserQuestion, Skill, Bash(openspec:*), PowerShell(openspec:*), Bash(node .claude/sai/tools/status.js:*), PowerShell(node .claude/sai/tools/status.js:*), Bash(node ~/.claude/sai/tools/status.js:*), PowerShell(node ~/.claude/sai/tools/status.js:*), Bash(node .claude/sai/tools/change-picker.js:*), PowerShell(node .claude/sai/tools/change-picker.js:*), Bash(node ~/.claude/sai/tools/change-picker.js:*), PowerShell(node ~/.claude/sai/tools/change-picker.js:*)"
+}

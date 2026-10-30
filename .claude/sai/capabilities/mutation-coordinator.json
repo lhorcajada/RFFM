@@ -1,0 +1,58 @@
+{
+  "harness": "claude",
+  "profileName": "mutation-coordinator",
+  "profile": {
+    "read": true,
+    "skills": [
+      "*"
+    ],
+    "search": true,
+    "question": true,
+    "panel": true,
+    "message": true,
+    "shell": [
+      "*"
+    ],
+    "write": true
+  },
+  "toolRequirements": [
+    {
+      "capability": "write",
+      "anyOf": [
+        [
+          "Edit",
+          "Write"
+        ]
+      ]
+    },
+    {
+      "capability": "shell",
+      "anyOf": [
+        [
+          "Bash"
+        ],
+        [
+          "PowerShell"
+        ]
+      ]
+    }
+  ],
+  "nativeTools": [
+    "Read",
+    "Glob",
+    "Grep",
+    "Edit",
+    "Write",
+    "AskUserQuestion",
+    "Skill",
+    "Bash",
+    "PowerShell",
+    "SendMessage",
+    "TaskCreate",
+    "TaskUpdate",
+    "TaskGet",
+    "TaskList"
+  ],
+  "tools": "Read, Glob, Grep, Edit, Write, AskUserQuestion, Skill, Bash, PowerShell, SendMessage, TaskCreate, TaskUpdate, TaskGet, TaskList",
+  "allowedTools": "Read, Glob, Grep, Edit, Write, AskUserQuestion, Skill, SendMessage, TaskCreate, TaskUpdate, TaskGet, TaskList, Bash, PowerShell"
+}

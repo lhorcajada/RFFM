@@ -1,0 +1,69 @@
+{
+  "harness": "claude",
+  "profileName": "deep-review-command",
+  "profile": {
+    "read": true,
+    "skills": [
+      "safe-operations"
+    ],
+    "search": true,
+    "question": true,
+    "panel": true,
+    "message": true,
+    "shell": [
+      "*"
+    ],
+    "write": true,
+    "delegate": [
+      "executor",
+      "explorer",
+      "sai-3-red-worker",
+      "sai-3-green-worker",
+      "sai-4-review-worker",
+      "sai-5-security-worker",
+      "sai-6-performance-worker",
+      "sai-7-accessibility-worker"
+    ]
+  },
+  "toolRequirements": [
+    {
+      "capability": "write",
+      "anyOf": [
+        [
+          "Edit",
+          "Write"
+        ]
+      ]
+    },
+    {
+      "capability": "shell",
+      "anyOf": [
+        [
+          "Bash"
+        ],
+        [
+          "PowerShell"
+        ]
+      ]
+    }
+  ],
+  "nativeTools": [
+    "Read",
+    "Glob",
+    "Grep",
+    "Edit",
+    "Write",
+    "AskUserQuestion",
+    "Skill",
+    "Bash",
+    "PowerShell",
+    "Agent",
+    "SendMessage",
+    "TaskCreate",
+    "TaskUpdate",
+    "TaskGet",
+    "TaskList"
+  ],
+  "tools": "Read, Glob, Grep, Edit, Write, AskUserQuestion, Skill, Bash, PowerShell, Agent, SendMessage, TaskCreate, TaskUpdate, TaskGet, TaskList",
+  "allowedTools": "Read, Glob, Grep, Edit, Write, AskUserQuestion, Skill, Agent, SendMessage, TaskCreate, TaskUpdate, TaskGet, TaskList, Bash, PowerShell"
+}

@@ -1,0 +1,63 @@
+{
+  "harness": "claude",
+  "profileName": "merge-command",
+  "profile": {
+    "read": true,
+    "skills": [
+      "*"
+    ],
+    "search": true,
+    "question": true,
+    "panel": true,
+    "message": true,
+    "shell": [
+      "*",
+      "node {sai}/tools/transfer.js *"
+    ],
+    "write": true,
+    "delegate": [
+      "sai-merge-worker"
+    ]
+  },
+  "toolRequirements": [
+    {
+      "capability": "write",
+      "anyOf": [
+        [
+          "Edit",
+          "Write"
+        ]
+      ]
+    },
+    {
+      "capability": "shell",
+      "anyOf": [
+        [
+          "Bash"
+        ],
+        [
+          "PowerShell"
+        ]
+      ]
+    }
+  ],
+  "nativeTools": [
+    "Read",
+    "Glob",
+    "Grep",
+    "Edit",
+    "Write",
+    "AskUserQuestion",
+    "Skill",
+    "Bash",
+    "PowerShell",
+    "Agent",
+    "SendMessage",
+    "TaskCreate",
+    "TaskUpdate",
+    "TaskGet",
+    "TaskList"
+  ],
+  "tools": "Read, Glob, Grep, Edit, Write, AskUserQuestion, Skill, Bash, PowerShell, Agent, SendMessage, TaskCreate, TaskUpdate, TaskGet, TaskList",
+  "allowedTools": "Read, Glob, Grep, Edit, Write, AskUserQuestion, Skill, Agent, SendMessage, TaskCreate, TaskUpdate, TaskGet, TaskList, Bash, PowerShell, Bash(node .claude/sai/tools/transfer.js:*), PowerShell(node .claude/sai/tools/transfer.js:*), Bash(node ~/.claude/sai/tools/transfer.js:*), PowerShell(node ~/.claude/sai/tools/transfer.js:*)"
+}

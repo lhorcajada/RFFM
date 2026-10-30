@@ -1,0 +1,70 @@
+# Fast-Track Flag (`--fast-track`)
+
+Canonical model for the `--fast-track` opt-in. This file is the single source
+for parse ownership, banner ownership, and the state-channel name. Consuming
+cards reference it; they SHALL NOT restate or redefine the model inline.
+
+## Canonical model
+
+1. **Owner** — the coordinator (or the main session on surfaces without a
+   routed coordinator) owns BOTH the parse and the banner for `sai-explore`,
+   `sai-archive`, and `sai-merge`. Workers
+   never parse `--fast-track` for activation and never emit the activation
+   banner; `sai-2-design` and `sai-backfill` are the phase-owned exceptions
+   below.
+2. **Parse** — inspect the opaque request string for the positional token
+   `--fast-track`. On presence: activate fast-track, remove the token, trim
+   surrounding whitespace, and use the cleaned remainder downstream.
+   Presence-plus-strip only: while parsing fast-track the owner inspects no
+   other token's semantics and never interprets another flag's value.
+3. **Banner** — when the token was present, print the exact line
+   `> FAST-TRACK MODE ACTIVE` exactly once per invocation as ordinary
+   conversation text (never written to any file). Every fast-track invocation
+   produces exactly one visible activation confirmation; no composition emits
+   the banner twice.
+4. **State channel** — the activation signal travels everywhere as
+   invocation-scoped session state named exactly `fast_track_active`
+   (boolean). It is never written to `.openspec.yaml`, configuration, or any
+   file.
+5. **Canonical parse order** — on every surface that also parses other
+   options, the fast-track presence-plus-strip parse runs FIRST, and every
+   other flag validation (for example `--overview-lang`) runs afterwards on
+   the cleaned remainder. The banner, when due, prints at its owning parse.
+   This order keeps banner timing identical across surfaces that share the
+   same halt literals.
+
+## Deliberate documented exceptions
+
+These divergences are intentional and stay byte-stable; do not "unify" them:
+
+- `sai-2-design` parses `--fast-track` in its own worker card
+  (phase-owned parse): the worker owns parse-plus-strip on every route,
+  routed and supervised, and the coordinator never parses. On the routed
+  route the worker returns a nonterminal notice carrying
+  `> FAST-TRACK MODE ACTIVE` with dedup (`fast_track_banner_emitted`
+  initialized and updated by the coordinator, carried in the worker
+  reconstruction fields); the coordinator prints it. On the supervised
+  route the worker parses and strips with no notice and Explore owns the
+  chained-segment banner. The worker never prints the banner line directly.
+- `sai-backfill` parses `--fast-track` and the diff-source tokens
+  (`--staged | --unstaged | --diff <sha>`) in its own worker card
+  (phase-owned parse, no banner).
+- `/sai-deep-review`, `/sai-build`, `/sai-3-implement`, and `/sai-4-review`
+  accept and ignore an explicit `--fast-track` token: they commit locally by
+  invocation and ask for no approval, so the token activates nothing and
+  prints no banner. Runs with and without the token behave identically.
+- `sai-explore`'s POC lane does NOT auto-approve or skip any of its three stops
+  under `--fast-track`: the go/no-go at the close of stage 1, the `C1..Cn`
+  candidate-list agreement, and the verdict menu. All three are always
+  presented, and fast-track cannot alter the lane's pinned Direct Build
+  `--no-specs` profile. The late explicit entry into the lane from stages 2
+  through 4 is a user request, not a stop: fast-track neither triggers it nor
+  suppresses it. Fast-track bypasses only the crystallization language
+  gate and the overview-language ask, never the POC lane machinery. It fixes
+  only the language questions that no project setting answers: a configured
+  `explore.readyToProposeLanguage` or `explore.overviewLanguage` answers its
+  gate first (`docs/project-settings.md`).
+- `sai-explore`'s open-decision reconfirmation at `Crystallize` entry
+  (`sai/commands/explore/steps/open-decisions.md`) runs unchanged under
+  `--fast-track`: the notice is shown and every open decision is asked, and
+  each outcome — answered or left open — is the user's own choice.

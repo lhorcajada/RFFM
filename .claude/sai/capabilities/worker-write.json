@@ -1,0 +1,54 @@
+{
+  "harness": "claude",
+  "profileName": "worker-write",
+  "profile": {
+    "read": true,
+    "skills": [
+      "*"
+    ],
+    "search": true,
+    "write": true,
+    "codegraph": true,
+    "message": true,
+    "shell": [
+      "*"
+    ]
+  },
+  "toolRequirements": [
+    {
+      "capability": "write",
+      "anyOf": [
+        [
+          "Edit",
+          "Write"
+        ]
+      ]
+    },
+    {
+      "capability": "shell",
+      "anyOf": [
+        [
+          "Bash"
+        ],
+        [
+          "PowerShell"
+        ]
+      ]
+    }
+  ],
+  "nativeTools": [
+    "Read",
+    "Glob",
+    "Grep",
+    "Edit",
+    "Write",
+    "mcp__codegraph__codegraph_explore",
+    "ToolSearch",
+    "Skill",
+    "Bash",
+    "PowerShell",
+    "SendMessage"
+  ],
+  "tools": "Read, Glob, Grep, Edit, Write, mcp__codegraph__codegraph_explore, ToolSearch, Skill, Bash, PowerShell, SendMessage",
+  "allowedTools": "Read, Glob, Grep, Edit, Write, mcp__codegraph__codegraph_explore, ToolSearch, Skill, SendMessage, Bash, PowerShell"
+}

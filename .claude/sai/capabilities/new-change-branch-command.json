@@ -1,0 +1,40 @@
+{
+  "harness": "claude",
+  "profileName": "new-change-branch-command",
+  "profile": {
+    "read": true,
+    "skills": [
+      "new-change-branch",
+      "safe-operations"
+    ],
+    "search": true,
+    "question": true,
+    "shell": [
+      "node {sai}/tools/new-change-branch.js *"
+    ]
+  },
+  "toolRequirements": [
+    {
+      "capability": "shell",
+      "anyOf": [
+        [
+          "Bash"
+        ],
+        [
+          "PowerShell"
+        ]
+      ]
+    }
+  ],
+  "nativeTools": [
+    "Read",
+    "Glob",
+    "Grep",
+    "AskUserQuestion",
+    "Skill",
+    "Bash",
+    "PowerShell"
+  ],
+  "tools": "Read, Glob, Grep, AskUserQuestion, Skill, Bash, PowerShell",
+  "allowedTools": "Read, Glob, Grep, AskUserQuestion, Skill, Bash(node .claude/sai/tools/new-change-branch.js:*), PowerShell(node .claude/sai/tools/new-change-branch.js:*), Bash(node ~/.claude/sai/tools/new-change-branch.js:*), PowerShell(node ~/.claude/sai/tools/new-change-branch.js:*)"
+}

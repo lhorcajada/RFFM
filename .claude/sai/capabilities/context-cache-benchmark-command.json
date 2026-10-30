@@ -1,0 +1,42 @@
+{
+  "harness": "claude",
+  "profileName": "context-cache-benchmark-command",
+  "profile": {
+    "read": true,
+    "skills": [
+      "sai-context-cache-ttl-benchmark"
+    ],
+    "question": true,
+    "message": true,
+    "shell": [
+      "node {skills}/sai-context-cache-ttl-benchmark/cache_ttl.js *"
+    ],
+    "delegate": [
+      "general"
+    ]
+  },
+  "toolRequirements": [
+    {
+      "capability": "shell",
+      "anyOf": [
+        [
+          "Bash"
+        ],
+        [
+          "PowerShell"
+        ]
+      ]
+    }
+  ],
+  "nativeTools": [
+    "Read",
+    "AskUserQuestion",
+    "Skill",
+    "Bash",
+    "PowerShell",
+    "Agent",
+    "SendMessage"
+  ],
+  "tools": "Read, AskUserQuestion, Skill, Bash, PowerShell, Agent, SendMessage",
+  "allowedTools": "Read, AskUserQuestion, Skill, Agent, SendMessage, Bash(node .claude/skills/sai-context-cache-ttl-benchmark/cache_ttl.js:*), PowerShell(node .claude/skills/sai-context-cache-ttl-benchmark/cache_ttl.js:*), Bash(node ~/.claude/skills/sai-context-cache-ttl-benchmark/cache_ttl.js:*), PowerShell(node ~/.claude/skills/sai-context-cache-ttl-benchmark/cache_ttl.js:*)"
+}

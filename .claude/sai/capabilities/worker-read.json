@@ -1,0 +1,39 @@
+{
+  "harness": "claude",
+  "profileName": "worker-read",
+  "profile": {
+    "read": true,
+    "skills": [
+      "*"
+    ],
+    "search": true,
+    "message": true,
+    "shell": [
+      "*"
+    ]
+  },
+  "toolRequirements": [
+    {
+      "capability": "shell",
+      "anyOf": [
+        [
+          "Bash"
+        ],
+        [
+          "PowerShell"
+        ]
+      ]
+    }
+  ],
+  "nativeTools": [
+    "Read",
+    "Glob",
+    "Grep",
+    "Skill",
+    "Bash",
+    "PowerShell",
+    "SendMessage"
+  ],
+  "tools": "Read, Glob, Grep, Skill, Bash, PowerShell, SendMessage",
+  "allowedTools": "Read, Glob, Grep, Skill, SendMessage, Bash, PowerShell"
+}

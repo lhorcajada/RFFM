@@ -1,0 +1,39 @@
+{
+  "harness": "claude",
+  "profileName": "from-backlog-command",
+  "profile": {
+    "read": true,
+    "skills": [
+      "from-backlog"
+    ],
+    "search": true,
+    "question": true,
+    "shell": [
+      "node {sai}/tools/from-backlog.js *"
+    ]
+  },
+  "toolRequirements": [
+    {
+      "capability": "shell",
+      "anyOf": [
+        [
+          "Bash"
+        ],
+        [
+          "PowerShell"
+        ]
+      ]
+    }
+  ],
+  "nativeTools": [
+    "Read",
+    "Glob",
+    "Grep",
+    "AskUserQuestion",
+    "Skill",
+    "Bash",
+    "PowerShell"
+  ],
+  "tools": "Read, Glob, Grep, AskUserQuestion, Skill, Bash, PowerShell",
+  "allowedTools": "Read, Glob, Grep, AskUserQuestion, Skill, Bash(node .claude/sai/tools/from-backlog.js:*), PowerShell(node .claude/sai/tools/from-backlog.js:*), Bash(node ~/.claude/sai/tools/from-backlog.js:*), PowerShell(node ~/.claude/sai/tools/from-backlog.js:*)"
+}

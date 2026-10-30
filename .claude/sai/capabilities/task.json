@@ -1,0 +1,56 @@
+{
+  "harness": "claude",
+  "profileName": "task",
+  "profile": {
+    "read": true,
+    "skills": [
+      "*"
+    ],
+    "search": true,
+    "write": true,
+    "webfetch": true,
+    "websearch": true,
+    "codegraph": true,
+    "shell": [
+      "*"
+    ]
+  },
+  "toolRequirements": [
+    {
+      "capability": "write",
+      "anyOf": [
+        [
+          "Edit",
+          "Write"
+        ]
+      ]
+    },
+    {
+      "capability": "shell",
+      "anyOf": [
+        [
+          "Bash"
+        ],
+        [
+          "PowerShell"
+        ]
+      ]
+    }
+  ],
+  "nativeTools": [
+    "Read",
+    "Glob",
+    "Grep",
+    "Edit",
+    "Write",
+    "WebFetch",
+    "WebSearch",
+    "mcp__codegraph__codegraph_explore",
+    "ToolSearch",
+    "Skill",
+    "Bash",
+    "PowerShell"
+  ],
+  "tools": "Read, Glob, Grep, Edit, Write, WebFetch, WebSearch, mcp__codegraph__codegraph_explore, ToolSearch, Skill, Bash, PowerShell",
+  "allowedTools": "Read, Glob, Grep, Edit, Write, WebFetch, WebSearch, mcp__codegraph__codegraph_explore, ToolSearch, Skill, Bash, PowerShell"
+}

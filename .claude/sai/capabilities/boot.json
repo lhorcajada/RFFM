@@ -1,0 +1,17 @@
+{
+  "harness": "claude",
+  "profileName": "boot",
+  "profile": {
+    "read": true,
+    "skills": [
+      "*"
+    ]
+  },
+  "toolRequirements": [],
+  "nativeTools": [
+    "Read",
+    "Skill"
+  ],
+  "tools": "Read, Skill",
+  "allowedTools": "Read, Skill"
+}

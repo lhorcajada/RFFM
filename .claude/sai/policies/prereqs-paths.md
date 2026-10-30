@@ -1,0 +1,19 @@
+# OpenSpec artifact paths
+
+OpenSpec artifacts live under `openspec/` at the project root. Read them at these direct paths instead of searching the tree for them:
+
+- `openspec/config.yaml`
+- `openspec/specs/{name}/spec.md`
+- `openspec/schemas/sai-workflow/schema.yaml`
+- `openspec/changes/{change-name}/proposal.md`
+- `openspec/changes/{change-name}/specs/**/*.md`
+- `openspec/changes/{change-name}/design.md`
+- `openspec/changes/{change-name}/tasks.md`
+- `openspec/changes/{change-name}/interfaces.md`
+- `openspec/changes/{change-name}/review.md`
+- `openspec/changes/{change-name}/security.md`
+- `openspec/changes/{change-name}/performance.md`
+- `openspec/changes/{change-name}/accessibility.md`
+- `openspec/changes/{change-name}/change-overview.md`
+- `openspec/changes/{change-name}/.openspec.yaml`
+- `openspec/changes/archive/YYYY-MM-DD-{change-name}/`
