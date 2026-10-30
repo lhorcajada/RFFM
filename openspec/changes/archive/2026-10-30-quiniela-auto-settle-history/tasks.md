@@ -50,5 +50,5 @@
 ## 7. Verificación final (~1h)
 
 - [x] `npm run build` (OK) y `npx vitest run --maxWorkers=2` en `Front/` (una sola vez).
-- [ ] Comprobación visual a 360 px de la home (cerrada y con resultados) y del histórico.
+- [x] Comprobación visual a 360 px de la home (cerrada y con resultados) y del histórico.
 - [x] `openspec validate quiniela-auto-settle-history --strict`.
