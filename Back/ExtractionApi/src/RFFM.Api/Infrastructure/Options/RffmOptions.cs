@@ -13,6 +13,9 @@ namespace RFFM.Api.Infrastructure.Options
             new(20, "2024-2025"),
         ];
 
+        /// <summary>false apaga todos los workers y peticiones que consultan la RFFM en segundo plano.</summary>
+        public bool BackgroundEnabled { get; set; } = false;
+
         public int BackgroundMinDelayMs { get; set; } = 800;
 
         public int BackgroundRetryBaseDelayMs { get; set; } = 2000;
