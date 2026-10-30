@@ -58,25 +58,7 @@ namespace RFFM.Api.Features.Coaches.Quiniela
                     throw new DomainException("Quiniela", "La quiniela de esta jornada ya está liquidada.", ErrorCodes.QuinielaAlreadySettled);
 
                 var round = await QuinielaSupport.LoadRoundAsync(federationDb, jornada.RffmRoundId, cancellationToken);
-                var tickets = await db.QuinielaTickets.Where(t => t.JornadaId == jornada.Id).ToListAsync(cancellationToken);
-
-                var result = QuinielaScoring.Score(round.ToMatchInfos(), tickets, jornada.Price, jornada.PrizePercent, jornada.CarryIn);
-
-                var now = timeProvider.GetUtcNow().UtcDateTime;
-                foreach (var score in result.Tickets)
-                    tickets.Single(t => t.Id == score.TicketId).ApplyResult(score.Hits, score.Category, score.Prize);
-                jornada.Settle(result.CarryOut, now);
-
-                if (result.FundAmount > 0m)
-                    db.TeamFundMovements.Add(TeamFundMovement.Create(
-                        request.TeamId, result.FundAmount, TeamFundMovementSource.QuinielaFund, null, now,
-                        $"Quiniela jornada {round.Number}"));
-
-                await db.SaveChangesAsync(cancellationToken);
-
-                return new QuinielaSettlementDto(
-                    result.Collected, result.PrizePool, result.FundAmount, result.CarryOut,
-                    result.Tickets.Select(t => new QuinielaTicketResultDto(t.TicketId, t.Hits, t.Category.Name, t.Prize)).ToList());
+                return await QuinielaLifecycle.SettleAsync(db, jornada, round, timeProvider.GetUtcNow().UtcDateTime, cancellationToken);
             }
         }
     }

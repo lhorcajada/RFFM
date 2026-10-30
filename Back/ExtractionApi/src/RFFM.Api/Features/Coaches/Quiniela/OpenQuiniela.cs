@@ -20,8 +20,6 @@ namespace RFFM.Api.Features.Coaches.Quiniela
     /// </summary>
     public class OpenQuiniela : IFeatureModule
     {
-        private const decimal TicketPrice = 1m;
-
         public void AddRoutes(IEndpointRouteBuilder app)
         {
             app.MapPost(QuinielaConstants.BaseRoute,
@@ -53,55 +51,8 @@ namespace RFFM.Api.Features.Coaches.Quiniela
             {
                 await QuinielaSupport.RequireRoleAsync(db, currentUser, request.TeamId, QuinielaSupport.CoachOnly, cancellationToken);
 
-                var groupId = await db.Teams.AsNoTracking()
-                    .Where(t => t.Id == request.TeamId && t.RffmCompetitionId != null)
-                    .Select(t => t.RffmGroupId)
-                    .SingleOrDefaultAsync(cancellationToken);
-                if (groupId is null)
-                    throw new ConflictException("El equipo no tiene una competición RFFM configurada.", ErrorCodes.QuinielaTeamWithoutLeague);
-
-                var existing = await db.QuinielaJornadas.AsNoTracking()
-                    .Where(j => j.TeamId == request.TeamId)
-                    .Select(j => new { j.RffmRoundId, j.Status, j.CarryOut, j.SettledAt })
-                    .ToListAsync(cancellationToken);
-                if (existing.Any(j => j.Status == QuinielaJornadaStatus.Open))
-                    throw new ConflictException("Ya hay una quiniela abierta: liquídala antes de abrir la siguiente.", ErrorCodes.QuinielaAlreadyOpen);
-
-                var openedRoundIds = existing.Select(j => j.RffmRoundId).ToHashSet();
-                var groupCode = groupId.Value.ToString();
-                var rounds = await federationDb.RffmRounds.AsNoTracking()
-                    .Where(r => r.GroupCode == groupCode)
-                    .OrderBy(r => r.Number)
-                    .ToListAsync(cancellationToken);
-
-                var highestOpenedNumber = rounds.Where(r => openedRoundIds.Contains(r.Id)).Select(r => r.Number).DefaultIfEmpty(0).Max();
-                var candidateIds = rounds.Where(r => r.Number > highestOpenedNumber).Select(r => r.Id).ToList();
-                var matches = (await federationDb.RffmMatches.AsNoTracking()
-                        .Where(m => candidateIds.Contains(m.RffmRoundId))
-                        .ToListAsync(cancellationToken))
-                    .ToLookup(m => m.RffmRoundId);
-
-                var next = rounds
-                    .Where(r => r.Number > highestOpenedNumber)
-                    .FirstOrDefault(r => matches[r.Id].Any(m => QuinielaMatchValidity.IsValid(m) && !m.IsFinal))
+                return await QuinielaLifecycle.OpenNextAsync(db, federationDb, request.TeamId, timeProvider.GetUtcNow().UtcDateTime, cancellationToken)
                     ?? throw new NotFoundException("No hay una próxima jornada con partidos pendientes.", ErrorCodes.QuinielaNoNextRound);
-
-                var carryIn = existing.Where(j => j.Status == QuinielaJornadaStatus.Settled)
-                    .OrderByDescending(j => j.SettledAt)
-                    .Select(j => j.CarryOut)
-                    .FirstOrDefault() ?? 0m;
-
-                var fundPercent = await db.QuinielaTeamSettings.AsNoTracking()
-                    .Where(s => s.TeamId == request.TeamId)
-                    .Select(s => (decimal?)s.FundPercent)
-                    .SingleOrDefaultAsync(cancellationToken) ?? QuinielaTeamSettings.DefaultFundPercent;
-
-                var jornada = QuinielaJornada.Create(request.TeamId, next.Id, carryIn, TicketPrice, 100m - fundPercent);
-                db.QuinielaJornadas.Add(jornada);
-                await db.SaveChangesAsync(cancellationToken);
-
-                var round = new QuinielaRound(next, matches[next.Id].ToList());
-                return QuinielaSupport.ToDto(jornada, round, timeProvider.GetUtcNow().UtcDateTime);
             }
         }
     }

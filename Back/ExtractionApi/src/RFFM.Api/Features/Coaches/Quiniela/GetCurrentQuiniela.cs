@@ -81,32 +81,11 @@ namespace RFFM.Api.Features.Coaches.Quiniela
 
                 var roundNumber = await federationDb.RffmRounds.AsNoTracking()
                     .Where(r => r.Id == last.RffmRoundId).Select(r => r.Number).SingleOrDefaultAsync(ct);
-                var mine = await db.QuinielaTickets.AsNoTracking()
-                    .Where(t => t.JornadaId == last.Id && t.ApplicationUserId == userId)
-                    .ToListAsync(ct);
-                var bestOfMine = mine
-                    .OrderBy(t => t.Category is null || t.Category == QuinielaCategory.None ? int.MaxValue : t.Category.Value)
-                    .ThenByDescending(t => t.Hits ?? 0)
-                    .FirstOrDefault();
-
-                var winningTickets = (await db.QuinielaTickets.AsNoTracking()
-                        .Where(t => t.JornadaId == last.Id && t.Category != null)
-                        .ToListAsync(ct))
-                    .Where(t => t.Category != QuinielaCategory.None)
-                    .OrderBy(t => t.Category!.Value)
-                    .ThenByDescending(t => t.Prize)
-                    .ThenBy(t => t.Number)
-                    .ToList();
-                var participants = await QuinielaSupport.LoadParticipantsAsync(
-                    db, teamId, winningTickets.Select(t => t.ApplicationUserId).ToList(), ct);
-                var winners = winningTickets
-                    .Select(t => new QuinielaWinnerDto(
-                        participants[t.ApplicationUserId].Name, t.Category!.Name, t.Hits ?? 0, t.Prize ?? 0m, t.Number))
-                    .ToList();
+                var result = (await QuinielaSupport.LoadResultsAsync(db, teamId, [last.Id], userId, ct))[last.Id];
 
                 return new QuinielaPreviousDto(
-                    last.Id, roundNumber, last.SettledAt!.Value, last.CarryOut ?? 0m, bestOfMine?.Hits, bestOfMine?.Category?.Name,
-                    mine.Count == 0 ? null : mine.Sum(t => t.Prize ?? 0m), winners);
+                    last.Id, roundNumber, last.SettledAt!.Value, last.CarryOut ?? 0m, result.MyHits, result.MyCategory, result.MyPrize,
+                    result.Winners);
             }
         }
     }

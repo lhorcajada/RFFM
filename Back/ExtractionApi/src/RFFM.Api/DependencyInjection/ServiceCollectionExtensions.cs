@@ -196,6 +196,8 @@ namespace RFFM.Api.DependencyInjection
             services.AddScoped<RFFM.Api.Features.Coaches.Notifications.Services.IWebPushNotificationDispatcher, RFFM.Api.Features.Coaches.Notifications.Services.WebPushNotificationDispatcher>();
             services.AddScoped<RFFM.Api.Features.Federation.MatchResultNotifications.Services.IMatchResultNotificationService, RFFM.Api.Features.Federation.MatchResultNotifications.Services.MatchResultNotificationService>();
             services.AddHostedService<RFFM.Api.Features.Federation.MatchResultNotifications.Services.MatchResultNotificationWorker>();
+            services.AddScoped<RFFM.Api.Features.Coaches.Quiniela.QuinielaAutoCloseService>();
+            services.AddHostedService<RFFM.Api.Features.Coaches.Quiniela.QuinielaAutoCloseWorker>();
             services.AddScoped<IMatchDayService, MatchDayService>();
             services.AddScoped<IGoalMinuteParser, GoalMinuteParser>();
             services.AddScoped<ISectorFactory, SectorFactory>();

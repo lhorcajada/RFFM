@@ -39,11 +39,17 @@ namespace RFFM.Api.Features.Coaches.Quiniela
 
     public record QuinielaPoolDto(int Participants, int PaidTickets, decimal Collected, decimal PrizePool, decimal PossiblePrizePool);
 
-    public record QuinielaWinnerDto(string UserName, string Category, int Hits, decimal Prize, int TicketNumber);
+    public record QuinielaWinnerDto(string UserName, string Category, int Hits, decimal Prize, int TicketNumber, bool IsMine = false);
 
     public record QuinielaPreviousDto(
         string JornadaId, int RoundNumber, DateTime SettledAt, decimal CarryOut, int? MyHits, string? MyCategory, decimal? MyPrize,
         IReadOnlyList<QuinielaWinnerDto> Winners);
+
+    public record QuinielaHistoryItemDto(
+        string JornadaId, int RoundNumber, DateTime SettledAt, decimal Collected, decimal PrizePool, decimal CarryOut,
+        int? MyHits, string? MyCategory, decimal? MyPrize, IReadOnlyList<QuinielaWinnerDto> Winners);
+
+    public record QuinielaHistoryDto(int Total, IReadOnlyList<QuinielaHistoryItemDto> Items);
 
     public record QuinielaCurrentDto(
         bool IsOpen, QuinielaJornadaDto? Jornada, IReadOnlyList<QuinielaMatchDto> Matches, IReadOnlyList<QuinielaTicketDto> MyTickets,
@@ -89,6 +95,9 @@ namespace RFFM.Api.Features.Coaches.Quiniela
             .ToList();
 
         public IReadOnlyList<RffmMatch> ValidMatches => Matches.Where(QuinielaMatchValidity.IsValid).ToList();
+
+        /// <summary>Hay al menos un partido válido y todos los válidos están finalizados (la jornada se puede liquidar).</summary>
+        public bool IsComplete => ValidMatches is { Count: > 0 } valid && valid.All(m => m.IsFinal);
 
         public static DateTime? KickoffOf(RffmMatch match) =>
             match.HasSchedule ? QuinielaSchedule.KickoffUtc(match.MatchDate!.Value, match.KickoffTime!.Value) : null;
@@ -325,6 +334,40 @@ namespace RFFM.Api.Features.Coaches.Quiniela
                             : "Sin nombre";
                     return new Participant(fullName, role is null ? string.Empty : Membership.GetById(role.RoleId)?.Key ?? string.Empty);
                 });
+        }
+
+        public sealed record JornadaResult(
+            IReadOnlyList<QuinielaWinnerDto> Winners, int? MyHits, string? MyCategory, decimal? MyPrize, int PaidTickets);
+
+        /// <summary>Premiados y resultado propio de varias jornadas liquidadas con una sola consulta de boletos.</summary>
+        public static async Task<Dictionary<string, JornadaResult>> LoadResultsAsync(
+            AppDbContext db, string teamId, IReadOnlyCollection<string> jornadaIds, string userId, CancellationToken ct)
+        {
+            var tickets = await db.QuinielaTickets.AsNoTracking().Where(t => jornadaIds.Contains(t.JornadaId)).ToListAsync(ct);
+            var winning = tickets.Where(t => t.Category is not null && t.Category != QuinielaCategory.None).ToList();
+            var participants = await LoadParticipantsAsync(db, teamId, winning.Select(t => t.ApplicationUserId).ToList(), ct);
+
+            return jornadaIds.ToDictionary(id => id, id =>
+            {
+                var ofJornada = tickets.Where(t => t.JornadaId == id).ToList();
+                var mine = ofJornada.Where(t => t.ApplicationUserId == userId).ToList();
+                var best = mine
+                    .OrderBy(t => t.Category is null || t.Category == QuinielaCategory.None ? int.MaxValue : t.Category.Value)
+                    .ThenByDescending(t => t.Hits ?? 0)
+                    .FirstOrDefault();
+                var winners = winning
+                    .Where(t => t.JornadaId == id)
+                    .OrderBy(t => t.Category!.Value)
+                    .ThenByDescending(t => t.Prize)
+                    .ThenBy(t => t.Number)
+                    .Select(t => new QuinielaWinnerDto(
+                        participants[t.ApplicationUserId].Name, t.Category!.Name, t.Hits ?? 0, t.Prize ?? 0m, t.Number,
+                        t.ApplicationUserId == userId))
+                    .ToList();
+                return new JornadaResult(
+                    winners, best?.Hits, best?.Category?.Name, mine.Count == 0 ? null : mine.Sum(t => t.Prize ?? 0m),
+                    ofJornada.Count(t => t.PaymentStatus == QuinielaPaymentStatus.Paid));
+            });
         }
 
         public static QuinielaPaymentTicketDto ToPaymentDto(

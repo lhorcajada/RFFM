@@ -17,6 +17,9 @@ namespace RFFM.Api.Domain.Entities.Teams
         public DateTime? SettledAt { get; private set; }
         public decimal? CarryOut { get; private set; }
 
+        /// <summary>xmin de PostgreSQL como token de concurrencia: evita liquidar dos veces la misma jornada.</summary>
+        public uint Version { get; private set; }
+
         private QuinielaJornada() { }
 
         public static QuinielaJornada Create(string teamId, string rffmRoundId, decimal carryIn, decimal price,

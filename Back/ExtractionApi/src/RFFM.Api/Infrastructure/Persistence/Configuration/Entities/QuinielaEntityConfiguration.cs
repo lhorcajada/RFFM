@@ -16,6 +16,7 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Entities
             builder.Property(j => j.TeamId).IsRequired();
             // La jornada RFFM vive en el esquema federation (otro DbContext): sin clave foránea.
             builder.Property(j => j.RffmRoundId).HasMaxLength(36).IsRequired();
+            builder.Property(j => j.Version).IsRowVersion();
             builder.Property(j => j.Price).HasColumnType("decimal(10,2)").IsRequired();
             builder.Property(j => j.PrizePercent).HasColumnType("decimal(5,2)").IsRequired();
             builder.Property(j => j.CarryIn).HasColumnType("decimal(10,2)").IsRequired();
