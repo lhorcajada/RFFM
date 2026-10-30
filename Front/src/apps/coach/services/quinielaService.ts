@@ -71,6 +71,7 @@ export type QuinielaWinner = {
   hits: number;
   prize: number;
   ticketNumber: number;
+  isMine?: boolean;
 };
 
 export type QuinielaPrevious = {
@@ -82,6 +83,21 @@ export type QuinielaPrevious = {
   myCategory: QuinielaCategory | null;
   myPrize: number | null;
   winners: QuinielaWinner[];
+};
+
+export type QuinielaHistoryItem = QuinielaPrevious & {
+  collected: number;
+  prizePool: number;
+};
+
+export type QuinielaHistory = {
+  total: number;
+  items: QuinielaHistoryItem[];
+};
+
+export type QuinielaHistoryPage = {
+  limit?: number;
+  offset?: number;
 };
 
 export type QuinielaCurrent = {
@@ -221,6 +237,11 @@ const jornadaUrl = (teamId: string, jornadaId: string) => `${quinielaUrl(teamId)
 
 export async function getCurrentQuiniela(teamId: string): Promise<QuinielaCurrent> {
   const resp = await client.get<QuinielaCurrent>(`${quinielaUrl(teamId)}/current`);
+  return resp.data;
+}
+
+export async function getQuinielaHistory(teamId: string, page: QuinielaHistoryPage = {}): Promise<QuinielaHistory> {
+  const resp = await client.get<QuinielaHistory>(`${quinielaUrl(teamId)}/history`, { params: page });
   return resp.data;
 }
 

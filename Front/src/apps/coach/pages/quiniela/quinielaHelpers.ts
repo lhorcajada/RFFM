@@ -5,7 +5,13 @@ import type {
   QuinielaWalletMovementType,
 } from "../../services/quinielaService";
 
+import { COACH_FEATURE_ROUTES } from "../../constants/featureRoutes";
+
 const MADRID_TZ = "Europe/Madrid";
+
+export function quinielaHistoryHref(teamId: string): string {
+  return `${COACH_FEATURE_ROUTES.Quiniela}/historico?teamId=${encodeURIComponent(teamId)}`;
+}
 
 const GOAL_LABELS = ["0", "1", "2", "M"] as const;
 export const PLENO_GOAL_OPTIONS = GOAL_LABELS;

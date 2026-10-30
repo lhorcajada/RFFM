@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -132,14 +132,84 @@ describe("QuinielaPromoCard", () => {
       expect(card).toHaveTextContent(/2,00\s€/);
     });
 
-    it("no se muestra mientras hay una jornada abierta", async () => {
-      getCurrentQuiniela.mockResolvedValue(
-        current({ previous: previous([{ userName: "Carla Ruiz", category: "Special", hits: 14, prize: 6.5, ticketNumber: 1 }]) }),
-      );
+    const winner = { userName: "Carla Ruiz", category: "Special" as const, hits: 14, prize: 6.5, ticketNumber: 1 };
+
+    it("se muestra junto a la quiniela nueva mientras no cierra su plazo", async () => {
+      getCurrentQuiniela.mockResolvedValue(current({ previous: previous([winner]) }));
+      renderCard();
+
+      expect(await screen.findByRole("region", { name: /ganadores de la quiniela/i })).toHaveTextContent("Carla Ruiz");
+      expect(screen.getByText("Quiniela del equipo")).toBeInTheDocument();
+    });
+
+    it("se oculta cuando el plazo de la jornada nueva ya ha cerrado", async () => {
+      const data = current({ previous: previous([winner]) });
+      data.jornada = { ...data.jornada!, picksClosed: true };
+      getCurrentQuiniela.mockResolvedValue(data);
       renderCard();
 
       await screen.findByText("Quiniela del equipo");
       expect(screen.queryByRole("region", { name: /ganadores de la quiniela/i })).not.toBeInTheDocument();
+    });
+
+    it("destaca el premio propio del usuario", async () => {
+      const mine = { ...winner, isMine: true };
+      getCurrentQuiniela.mockResolvedValue(
+        current({
+          isOpen: false,
+          jornada: null,
+          previous: { ...previous([mine]), myHits: 14, myCategory: "Special", myPrize: 6.5 },
+        }),
+      );
+      renderCard();
+
+      const card = await screen.findByRole("region", { name: /ganadores de la quiniela/i });
+      expect(card).toHaveTextContent(/tu premio/i);
+      expect(card).toHaveTextContent(/6,50\s€/);
+    });
+
+    it("enlaza al histórico de quinielas", async () => {
+      getCurrentQuiniela.mockResolvedValue(closed([winner]));
+      renderCard();
+
+      const card = await screen.findByRole("region", { name: /ganadores de la quiniela/i });
+      expect(within(card).getByRole("link", { name: /ver histórico/i })).toHaveAttribute(
+        "href",
+        "/coach/quiniela/historico?teamId=team-1",
+      );
+    });
+  });
+
+  describe("enlace permanente al histórico", () => {
+    const settled: QuinielaPrevious = {
+      jornadaId: "j0",
+      roundNumber: 6,
+      settledAt: "2026-10-26T10:00:00Z",
+      carryOut: 0,
+      myHits: null,
+      myCategory: null,
+      myPrize: null,
+      winners: [],
+    };
+
+    it("con la quiniela abierta y jornadas liquidadas ofrece «Ver resultados anteriores» aunque la tarjeta de resultados ya no se muestre", async () => {
+      const data = current({ previous: settled });
+      data.jornada = { ...data.jornada!, picksClosed: true };
+      getCurrentQuiniela.mockResolvedValue(data);
+      renderCard();
+
+      expect(await screen.findByRole("link", { name: /ver resultados anteriores/i })).toHaveAttribute(
+        "href",
+        "/coach/quiniela/historico?teamId=team-1",
+      );
+    });
+
+    it("sin jornadas liquidadas no ofrece el enlace", async () => {
+      getCurrentQuiniela.mockResolvedValue(current({ previous: null }));
+      renderCard();
+
+      await screen.findByText("Quiniela del equipo");
+      expect(screen.queryByRole("link", { name: /ver resultados anteriores/i })).not.toBeInTheDocument();
     });
   });
 
@@ -223,14 +293,30 @@ describe("QuinielaPromoCard", () => {
     expect(screen.getByRole("link", { name: /Ver mis boletos/ })).toBeInTheDocument();
   });
 
-  it("con los pronósticos cerrados muestra «Ver resultados»", async () => {
-    const data = current();
-    data.jornada = { ...data.jornada!, picksClosed: true };
-    getCurrentQuiniela.mockResolvedValue(data);
-    renderCard();
+  describe("con los pronósticos cerrados", () => {
+    const closedCurrent = (overrides: Partial<QuinielaCurrent> = {}) => {
+      const data = current(overrides);
+      data.jornada = { ...data.jornada!, picksClosed: true };
+      return data;
+    };
 
-    expect(await screen.findByRole("link", { name: /Ver resultados/ })).toBeInTheDocument();
-    expect(screen.getByText("Pronósticos cerrados")).toBeInTheDocument();
+    it("con boleto muestra «Pronósticos cerrados», la hora a la que cerró y «Ver mi boleto»", async () => {
+      getCurrentQuiniela.mockResolvedValue(closedCurrent({ myTickets: [ticket({ paymentStatus: "Paid" })] }));
+      renderCard();
+
+      expect(await screen.findByText("Pronósticos cerrados")).toBeInTheDocument();
+      expect(screen.getByText("Cerró")).toBeInTheDocument();
+      expect(screen.getByText(/Sáb 31 oct/)).toBeInTheDocument();
+      expect(screen.getByRole("link", { name: /Ver mi boleto/ })).toBeInTheDocument();
+    });
+
+    it("sin boleto avisa de que no participa en la jornada", async () => {
+      getCurrentQuiniela.mockResolvedValue(closedCurrent());
+      renderCard();
+
+      expect(await screen.findByText(/no participas en esta jornada/i)).toBeInTheDocument();
+      expect(screen.getByRole("link", { name: /Ver quiniela/ })).toBeInTheDocument();
+    });
   });
 
   it("muestra la etiqueta «Novedad» dentro de los 14 días y sin haberla abierto", async () => {

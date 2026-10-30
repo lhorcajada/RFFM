@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Box, Button, CircularProgress, Stack } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import PaymentsOutlinedIcon from "@mui/icons-material/PaymentsOutlined";
 import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
+import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
 import AccountBalanceWalletOutlinedIcon from "@mui/icons-material/AccountBalanceWalletOutlined";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
@@ -23,7 +24,15 @@ import {
   saveQuinielaTicket,
 } from "../../services/quinielaService";
 import type { QuinielaCurrent, QuinielaSign, QuinielaTicket, QuinielaWallet } from "../../services/quinielaService";
-import { apiErrorMessage, formatKickoff, formatMoney, goalsFromLabel, goalsToLabel, walletChargeMessage } from "./quinielaHelpers";
+import {
+  apiErrorMessage,
+  formatKickoff,
+  formatMoney,
+  goalsFromLabel,
+  goalsToLabel,
+  quinielaHistoryHref,
+  walletChargeMessage,
+} from "./quinielaHelpers";
 import MatchPickCard from "./components/MatchPickCard";
 import PlenoCard from "./components/PlenoCard";
 import PoolSummary from "./components/PoolSummary";
@@ -390,6 +399,15 @@ export default function Quiniela() {
             </Button>
             <Button startIcon={<MenuBookOutlinedIcon />} onClick={() => setRulesOpen(true)} variant="outlined" size="small">
               Ver reglas
+            </Button>
+            <Button
+              component={Link}
+              to={quinielaHistoryHref(teamId ?? "")}
+              startIcon={<HistoryOutlinedIcon />}
+              variant="outlined"
+              size="small"
+            >
+              Histórico
             </Button>
             {current?.canManage && (
               <Button

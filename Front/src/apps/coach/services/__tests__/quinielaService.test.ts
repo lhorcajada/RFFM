@@ -12,6 +12,7 @@ import {
   deleteQuinielaTicket,
   getCurrentQuiniela,
   getMyQuinielaWallet,
+  getQuinielaHistory,
   getQuinielaPayments,
   getQuinielaWalletOf,
   getQuinielaWallets,
@@ -41,6 +42,13 @@ describe("quinielaService", () => {
     const result = await getCurrentQuiniela("team 1");
     expect(mocked.get).toHaveBeenCalledWith("/api/teams/team%201/quiniela/current");
     expect(result).toEqual({ isOpen: false });
+  });
+
+  it("getQuinielaHistory hace GET a /quiniela/history con la paginación", async () => {
+    mocked.get.mockResolvedValue({ data: { total: 0, items: [] } });
+    const result = await getQuinielaHistory("team 1", { limit: 10, offset: 20 });
+    expect(mocked.get).toHaveBeenCalledWith("/api/teams/team%201/quiniela/history", { params: { limit: 10, offset: 20 } });
+    expect(result).toEqual({ total: 0, items: [] });
   });
 
   it("openQuiniela hace POST a /quiniela y devuelve la jornada", async () => {

@@ -204,6 +204,22 @@ describe("buildTeamSections — Quiniela", () => {
   });
 });
 
+describe("buildTeamSections — Histórico de quinielas", () => {
+  it("coloca el Histórico en Competición con el equipo en la ruta", () => {
+    expect(groupOf("Histórico de quinielas")).toBe("Competición");
+    expect(findItem("Histórico de quinielas", { teamId: "team-1" })?.to).toBe("/coach/quiniela/historico?teamId=team-1");
+  });
+
+  it("lo muestra al jugador y al entrenador con acceso", () => {
+    expect(labels({ isPlayer: true, hasFeatureAccess: (r) => r === COACH_FEATURE_ROUTES.Quiniela })).toContain("Histórico de quinielas");
+    expect(labels({ isPlayer: false, hasFeatureAccess: (r) => r === COACH_FEATURE_ROUTES.Quiniela })).toContain("Histórico de quinielas");
+  });
+
+  it("lo oculta sin permiso de la funcionalidad", () => {
+    expect(labels({ hasFeatureAccess: (r) => r !== COACH_FEATURE_ROUTES.Quiniela })).not.toContain("Histórico de quinielas");
+  });
+});
+
 describe("buildTeamSections — Monederos de la quiniela", () => {
   it("coloca los Monederos en Competición con el equipo en la ruta", () => {
     expect(groupOf("Monederos de la quiniela")).toBe("Competición");

@@ -89,3 +89,33 @@
   font-size: 1.25rem;
   font-weight: 700;
 }
+
+.mine {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--rffm-primary) 40%, transparent);
+  background: color-mix(in srgb, var(--rffm-primary) 12%, transparent);
+  color: var(--rffm-text, #f0f0f0);
+  font-size: 0.9375rem;
+}
+
+.rowMine {
+  composes: row;
+  padding: 6px 8px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--rffm-primary) 12%, transparent);
+}
+
+.history,
+.history:visited {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 4px;
+  color: var(--rffm-primary);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: underline;
+}

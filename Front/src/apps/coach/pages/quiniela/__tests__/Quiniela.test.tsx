@@ -198,6 +198,16 @@ describe("Quiniela", () => {
     expect(await screen.findByText("CD Los Olivos")).toBeInTheDocument();
   });
 
+  it("ofrece un enlace al histórico de quinielas del equipo", async () => {
+    getCurrentQuiniela.mockResolvedValue(current());
+    renderPage();
+
+    expect(await screen.findByRole("link", { name: /histórico/i })).toHaveAttribute(
+      "href",
+      "/coach/quiniela/historico?teamId=team-1",
+    );
+  });
+
   it("con pronósticos cerrados deshabilita la selección y el guardado", async () => {
     const base = current();
     getCurrentQuiniela.mockResolvedValue(current({ jornada: { ...base.jornada!, picksClosed: true } }));
