@@ -5874,6 +5874,79 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.ToTable("QuinielaTickets", "app");
                 });
 
+            modelBuilder.Entity("RFFM.Api.Domain.Entities.Teams.QuinielaWallet", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ApplicationUserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.Property<decimal>("Balance")
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<string>("TeamId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TeamId", "ApplicationUserId")
+                        .IsUnique();
+
+                    b.ToTable("QuinielaWallets", "app");
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Entities.Teams.QuinielaWalletMovement", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<string>("CreatedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime>("OccurredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("TicketId")
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("WalletId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("WalletId", "OccurredAt");
+
+                    b.HasIndex(new[] { "TicketId" }, "IX_QuinielaWalletMovements_TicketId");
+
+                    b.ToTable("QuinielaWalletMovements", "app");
+                });
+
             modelBuilder.Entity("RFFM.Api.Domain.Entities.Teams.TeamFundMovement", b =>
                 {
                     b.Property<string>("Id")
@@ -7260,6 +7333,24 @@ namespace RFFM.Api.Infrastructure.Migrations
                         });
 
                     b.Navigation("Picks");
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Entities.Teams.QuinielaWallet", b =>
+                {
+                    b.HasOne("RFFM.Api.Domain.Aggregates.UserClubs.Team", null)
+                        .WithMany()
+                        .HasForeignKey("TeamId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Entities.Teams.QuinielaWalletMovement", b =>
+                {
+                    b.HasOne("RFFM.Api.Domain.Entities.Teams.QuinielaWallet", null)
+                        .WithMany()
+                        .HasForeignKey("WalletId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("RFFM.Api.Domain.Entities.Teams.TeamFundMovement", b =>
