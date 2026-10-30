@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using RFFM.Api.Domain;
 using RFFM.Api.Domain.Entities.Federation.SquadHistory;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Features.Federation.Seasons.Services;
@@ -73,6 +74,7 @@ namespace RFFM.Api.Features.Federation.SquadHistory
 
                 if (existing == null)
                 {
+                    EnsureBackgroundEnabled();
                     var created = SquadHistoryReport.Create(teamCode, request.TeamName ?? string.Empty, request.SeasonId,
                         PreviousSeasonId(request.SeasonId), request.UserId);
                     db.SquadHistoryReports.Add(created);
@@ -103,12 +105,19 @@ namespace RFFM.Api.Features.Federation.SquadHistory
                 if (isReadyToView)
                     return new SquadHistoryRequestResponse(report.Id, report.Status.Name);
 
+                EnsureBackgroundEnabled();
                 var mustEnqueue = report.RequestRefresh(request.UserId);
                 await db.SaveChangesAsync(cancellationToken);
                 if (mustEnqueue)
                     await queue.EnqueueAsync(report.Id, cancellationToken);
 
                 return new SquadHistoryRequestResponse(report.Id, report.Status.Name);
+            }
+
+            private void EnsureBackgroundEnabled()
+            {
+                if (!rffmOptions.Value.BackgroundEnabled)
+                    throw new ConflictException("La consulta a la federación está desactivada.", ErrorCodes.FederationSyncDisabled);
             }
 
             private Task<SquadHistoryReport?> FindAsync(string teamCode, int seasonId, CancellationToken cancellationToken) =>

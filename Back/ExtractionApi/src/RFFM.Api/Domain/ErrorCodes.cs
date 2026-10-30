@@ -94,6 +94,7 @@ namespace RFFM.Api.Domain
         // Match reports (Features/Coaches/MatchReports)
         public const string EventNotFound = "EventNotFound";
         public const string FederationActaNotAvailable = "FederationActaNotAvailable";
+        public const string FederationSyncDisabled = "FederationSyncDisabled";
 
         // Players / Clubs (Features/Coaches/Players/Services/PlayerService.cs)
         // Value preserved from the pre-existing literal used in PlayerService.cs

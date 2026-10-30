@@ -113,11 +113,11 @@ namespace RFFM.Api.Tests.IntegrationTests
             await db.SaveChangesAsync();
         }
 
-        private async Task<RivalStatsStatusResponse> RequestAsync(string teamId, bool refresh, DateTime now, string userId = "user-1")
+        private async Task<RivalStatsStatusResponse> RequestAsync(string teamId, bool refresh, DateTime now, string userId = "user-1", bool backgroundEnabled = true)
         {
             await using var appDb = _fixture.CreateDbContext();
             await using var db = _fixture.CreateFederationDbContext();
-            var handler = new RequestRivalStats.Handler(appDb, db, _queue, Options.Create(new RffmOptions()), new FixedTimeProvider(now));
+            var handler = new RequestRivalStats.Handler(appDb, db, _queue, Options.Create(new RffmOptions { BackgroundEnabled = backgroundEnabled }), new FixedTimeProvider(now));
             return await handler.Handle(new RequestRivalStats.RequestRivalStatsCommand(teamId, refresh, userId), CancellationToken.None);
         }
 
@@ -143,6 +143,18 @@ namespace RFFM.Api.Tests.IntegrationTests
             await using var db = _fixture.CreateFederationDbContext();
             var handler = new GetRivalTeamStats.Handler(appDb, db, Options.Create(new RffmOptions()));
             return await handler.Handle(new GetRivalTeamStats.RivalTeamStatsQuery(teamId, teamCode), CancellationToken.None);
+        }
+
+        [Fact]
+        public async Task Solicitar_con_la_consulta_a_la_federacion_desactivada_lanza_conflicto_y_no_encola()
+        {
+            var teamId = await SeedTeamAsync();
+
+            var exception = await Assert.ThrowsAsync<ConflictException>(
+                () => RequestAsync(teamId, refresh: false, Now, backgroundEnabled: false));
+
+            Assert.Equal(ErrorCodes.FederationSyncDisabled, exception.Code);
+            Assert.Empty(_queue.Enqueued);
         }
 
         [Fact]
