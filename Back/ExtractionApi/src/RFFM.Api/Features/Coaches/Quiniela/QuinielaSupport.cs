@@ -1,6 +1,7 @@
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Npgsql;
 using RFFM.Api.Domain;
 using RFFM.Api.Domain.Aggregates.UserClubs;
 using RFFM.Api.Domain.Entities.Federation.Results;
@@ -22,7 +23,19 @@ namespace RFFM.Api.Features.Coaches.Quiniela
 
     public record QuinielaTicketDto(
         string Id, IReadOnlyList<QuinielaPickDto> Picks, int PlenoHome, int PlenoAway, string PaymentStatus,
-        DateTime? PaymentDeadlineUtc, int? Hits, string? Category, decimal? Prize, int Number);
+        DateTime? PaymentDeadlineUtc, int? Hits, string? Category, decimal? Prize, int Number,
+        string? PaymentMethod = null, QuinielaWalletChargeDto? WalletCharge = null);
+
+    public record QuinielaWalletChargeDto(decimal Amount, decimal BalanceAfter);
+
+    public record QuinielaWalletMovementDto(string Id, string Type, decimal Amount, DateTime OccurredAt, string? Description, string? TicketId);
+
+    public record QuinielaWalletDto(
+        string UserId, string UserName, string Role, decimal Balance, int TotalMovements, IReadOnlyList<QuinielaWalletMovementDto> Movements);
+
+    public record QuinielaWalletSummaryDto(string UserId, string UserName, string Role, decimal Balance);
+
+    public record QuinielaWalletOperationDto(string UserId, decimal Balance, QuinielaWalletMovementDto Movement);
 
     public record QuinielaPoolDto(int Participants, int PaidTickets, decimal Collected, decimal PrizePool, decimal PossiblePrizePool);
 
@@ -180,11 +193,99 @@ namespace RFFM.Api.Features.Coaches.Quiniela
             jornada.Status == QuinielaJornadaStatus.Settled
             || (round.FirstValidKickoffUtc is { } kickoff && nowUtc >= kickoff));
 
-        public static QuinielaTicketDto ToDto(QuinielaTicket ticket, QuinielaRound round, DateTime nowUtc) => new(
+        public static QuinielaTicketDto ToDto(QuinielaTicket ticket, QuinielaRound round, DateTime nowUtc, QuinielaWalletChargeDto? walletCharge = null) => new(
             ticket.Id,
             ticket.Picks.Select(p => new QuinielaPickDto(p.RecordCode, p.Sign.Name)).OrderBy(p => p.RecordCode).ToList(),
             ticket.PlenoHome, ticket.PlenoAway, EffectiveStatus(ticket, round, nowUtc).Name, round.PaymentDeadlineUtc,
-            ticket.Hits, ticket.Category?.Name, ticket.Prize, ticket.Number);
+            ticket.Hits, ticket.Category?.Name, ticket.Prize, ticket.Number, ticket.PaymentMethod?.Name, walletCharge);
+
+        // ---- Monedero (openspec/changes/quiniela-wallet) ----
+
+        private const int WalletMaxAttempts = 3;
+
+        /// <summary>
+        /// Ejecuta una unidad de trabajo que cambia el saldo de un monedero. Si otra transacción modifica el monedero a la vez
+        /// (token xmin o índice único de monedero), se descartan los cambios, se recarga todo y se repite hasta
+        /// <see cref="WalletMaxAttempts"/> veces; después responde 409. See design.md → D3.
+        /// </summary>
+        public static async Task<T> RunWithWalletRetryAsync<T>(AppDbContext db, Func<Task<T>> unitOfWork)
+        {
+            for (var attempt = 1; ; attempt++)
+            {
+                try
+                {
+                    return await unitOfWork();
+                }
+                catch (Exception ex) when (IsWalletConflict(ex))
+                {
+                    db.ChangeTracker.Clear();
+                    if (attempt >= WalletMaxAttempts)
+                        throw new ConflictException(
+                            "El monedero está siendo modificado por otra operación. Inténtalo de nuevo.", ErrorCodes.QuinielaWalletConcurrency);
+                }
+            }
+        }
+
+        private static bool IsWalletConflict(Exception ex) =>
+            ex is DbUpdateConcurrencyException
+            || ex is DbUpdateException { InnerException: PostgresException { SqlState: PostgresErrorCodes.UniqueViolation } };
+
+        /// <summary>El usuario pertenece al equipo con un rol que participa en la quiniela (Entrenador, Jugador o Familiar).</summary>
+        public static async Task EnsureWalletOwnerInTeamAsync(AppDbContext db, string teamId, string userId, CancellationToken ct)
+        {
+            var allowedIds = ParticipantRoles.Select(m => m.Id).ToArray();
+            var inTeam = await db.UserTeams.AsNoTracking()
+                .AnyAsync(ut => ut.TeamId == teamId && ut.ApplicationUserId == userId && allowedIds.Contains(ut.RoleId), ct);
+            if (!inTeam)
+                throw new NotFoundException("El usuario no participa en la quiniela de este equipo.", ErrorCodes.QuinielaWalletUserNotInTeam);
+        }
+
+        public static QuinielaWalletMovementDto ToDto(QuinielaWalletMovement m) =>
+            new(m.Id, m.Type.Name, m.Amount, m.OccurredAt, m.Description, m.TicketId);
+
+        /// <summary>
+        /// Cobra el boleto del monedero todo o nada. Solo si el boleto está pendiente (no pagado ni expirado) y el monedero
+        /// existe y cubre el precio; en otro caso no cambia nada y devuelve null. El llamante persiste con su SaveChangesAsync.
+        /// </summary>
+        public static async Task<QuinielaWalletChargeDto?> TryChargeFromWalletAsync(
+            AppDbContext db, QuinielaTicket ticket, QuinielaJornada jornada, QuinielaRound round, DateTime nowUtc, CancellationToken ct)
+        {
+            var payable = EffectiveStatus(ticket, round, nowUtc) == QuinielaPaymentStatus.Pending;
+            if (!payable)
+                return null;
+
+            var wallet = await db.QuinielaWallets.SingleOrDefaultAsync(
+                w => w.TeamId == jornada.TeamId && w.ApplicationUserId == ticket.ApplicationUserId, ct);
+            var movement = wallet?.TryChargeTicket(ticket.Id, jornada.Price, nowUtc);
+            if (wallet is null || movement is null)
+                return null;
+
+            ticket.MarkPaid(QuinielaPaymentMethod.Wallet, nowUtc);
+            db.QuinielaWalletMovements.Add(movement);
+            return new QuinielaWalletChargeDto(jornada.Price, wallet.Balance);
+        }
+
+        /// <summary>
+        /// Devuelve al monedero lo cobrado por los boletos pagados con él (neto de cobros y reembolsos previos del boleto).
+        /// No hace nada con boletos pendientes o pagados en mano/Bizum. El llamante persiste.
+        /// </summary>
+        public static async Task RefundWalletTicketsAsync(
+            AppDbContext db, IReadOnlyCollection<QuinielaTicket> tickets, DateTime nowUtc, CancellationToken ct)
+        {
+            foreach (var ticket in tickets.Where(t => t.PaidFromWallet))
+            {
+                var movements = await db.QuinielaWalletMovements
+                    .Where(m => m.TicketId == ticket.Id)
+                    .ToListAsync(ct);
+                var charged = -movements.Sum(m => m.Amount);
+                var walletId = movements.FirstOrDefault()?.WalletId;
+                if (charged <= 0m || walletId is null)
+                    continue;
+
+                var wallet = await db.QuinielaWallets.SingleAsync(w => w.Id == walletId, ct);
+                db.QuinielaWalletMovements.Add(wallet.RefundTicket(ticket.Id, charged, nowUtc));
+            }
+        }
 
         public static QuinielaPaymentStatus EffectiveStatus(QuinielaTicket ticket, QuinielaRound round, DateTime nowUtc) =>
             round.PaymentDeadlineUtc is { } deadline ? ticket.EffectiveStatus(deadline, nowUtc) : ticket.PaymentStatus;
@@ -258,6 +359,9 @@ namespace RFFM.Api.Features.Coaches.Quiniela
             services.AddScoped<IValidator<DeleteMyQuinielaTicket.Command>, DeleteMyQuinielaTicket.Validator>();
             services.AddScoped<IValidator<ResetQuiniela.Command>, ResetQuiniela.Validator>();
             services.AddScoped<IValidator<UpdateQuinielaSettings.Command>, UpdateQuinielaSettings.Validator>();
+            services.AddScoped<IValidator<TopUpQuinielaWallet.Command>, TopUpQuinielaWallet.Validator>();
+            services.AddScoped<IValidator<AdjustQuinielaWallet.Command>, AdjustQuinielaWallet.Validator>();
+            services.AddScoped<IValidator<PayQuinielaTicketWithWallet.Command>, PayQuinielaTicketWithWallet.Validator>();
             return services;
         }
     }

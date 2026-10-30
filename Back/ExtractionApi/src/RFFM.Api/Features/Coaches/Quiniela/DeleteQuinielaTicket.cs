@@ -48,7 +48,7 @@ namespace RFFM.Api.Features.Coaches.Quiniela
             }
         }
 
-        public class Handler(AppDbContext db, ICurrentUserService currentUser) : IRequestHandler<Command>
+        public class Handler(AppDbContext db, ICurrentUserService currentUser, TimeProvider? timeProvider = null) : IRequestHandler<Command>
         {
             public async ValueTask<Unit> Handle(Command request, CancellationToken cancellationToken)
             {
@@ -58,12 +58,17 @@ namespace RFFM.Api.Features.Coaches.Quiniela
                 if (jornada.Status == QuinielaJornadaStatus.Settled)
                     throw new DomainException("Quiniela", "La quiniela de esta jornada ya está liquidada.", ErrorCodes.QuinielaAlreadySettled);
 
-                var ticket = await db.QuinielaTickets.SingleOrDefaultAsync(
-                        t => t.Id == request.TicketId && t.JornadaId == request.JornadaId, cancellationToken)
-                    ?? throw new NotFoundException($"QuinielaTicket '{request.TicketId}' Not Found", ErrorCodes.QuinielaTicketNotFound);
-
-                db.QuinielaTickets.Remove(ticket);
-                await db.SaveChangesAsync(cancellationToken);
+                await QuinielaSupport.RunWithWalletRetryAsync(db, async () =>
+                {
+                    var tracked = await db.QuinielaTickets.SingleOrDefaultAsync(
+                            t => t.Id == request.TicketId && t.JornadaId == request.JornadaId, cancellationToken)
+                        ?? throw new NotFoundException($"QuinielaTicket '{request.TicketId}' Not Found", ErrorCodes.QuinielaTicketNotFound);
+                    var now = (timeProvider ?? TimeProvider.System).GetUtcNow().UtcDateTime;
+                    await QuinielaSupport.RefundWalletTicketsAsync(db, [tracked], now, cancellationToken);
+                    db.QuinielaTickets.Remove(tracked);
+                    await db.SaveChangesAsync(cancellationToken);
+                    return Unit.Value;
+                });
                 return Unit.Value;
             }
         }

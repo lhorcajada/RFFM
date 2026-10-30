@@ -54,7 +54,7 @@ namespace RFFM.Api.Features.Coaches.Quiniela
                 RuleFor(c => c.JornadaId).NotEmpty();
                 RuleFor(c => c.TicketId).NotEmpty();
                 RuleFor(c => c.Method)
-                    .Must(method => method is not null && QuinielaPaymentMethod.TryFromName(method, out _))
+                    .Must(method => method is not null && QuinielaPaymentMethod.TryFromName(method, out var parsed) && parsed != QuinielaPaymentMethod.Wallet)
                     .When(c => c.Paid)
                     .WithMessage("Indica cómo se ha pagado: Cash o Bizum.");
             }
@@ -76,12 +76,23 @@ namespace RFFM.Api.Features.Coaches.Quiniela
                     ?? throw new NotFoundException($"QuinielaTicket '{request.TicketId}' Not Found", ErrorCodes.QuinielaTicketNotFound);
 
                 var now = timeProvider.GetUtcNow().UtcDateTime;
-                if (request.Paid)
-                    ticket.MarkPaid(QuinielaPaymentMethod.FromName(request.Method!), now);
-                else
-                    ticket.MarkPending();
+                await QuinielaSupport.RunWithWalletRetryAsync(db, async () =>
+                {
+                    var tracked = await db.QuinielaTickets.SingleOrDefaultAsync(
+                            t => t.Id == request.TicketId && t.JornadaId == request.JornadaId, cancellationToken)
+                        ?? throw new NotFoundException($"QuinielaTicket '{request.TicketId}' Not Found", ErrorCodes.QuinielaTicketNotFound);
 
-                await db.SaveChangesAsync(cancellationToken);
+                    // Un boleto cobrado del monedero que deja de estarlo devuelve el dinero al monedero.
+                    await QuinielaSupport.RefundWalletTicketsAsync(db, [tracked], now, cancellationToken);
+                    if (request.Paid)
+                        tracked.MarkPaid(QuinielaPaymentMethod.FromName(request.Method!), now);
+                    else
+                        tracked.MarkPending();
+
+                    await db.SaveChangesAsync(cancellationToken);
+                    ticket = tracked;
+                    return Unit.Value;
+                });
                 // Sin consultar la jornada RFFM no se conoce el plazo: se devuelve el estado guardado (Paid/Pending).
                 var participants = await QuinielaSupport.LoadParticipantsAsync(db, request.TeamId, [ticket.ApplicationUserId], cancellationToken);
                 return QuinielaSupport.ToPaymentDto(ticket, participants, ticket.PaymentStatus);

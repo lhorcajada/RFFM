@@ -104,47 +104,51 @@ namespace RFFM.Api.Features.Coaches.Quiniela
             {
                 await QuinielaSupport.RequireRoleAsync(db, currentUser, request.TeamId, QuinielaSupport.ParticipantRoles, cancellationToken);
 
-                var jornada = await QuinielaSupport.LoadJornadaAsync(db, request.TeamId, request.JornadaId, cancellationToken);
-                var round = await QuinielaSupport.LoadRoundAsync(federationDb, jornada.RffmRoundId, cancellationToken);
-                var now = timeProvider.GetUtcNow().UtcDateTime;
-                jornada.EnsurePicksOpen(round.FirstValidKickoffUtc, now);
-
-                var allCodes = round.Matches.Select(m => m.RecordCode).ToHashSet();
-                var validCodes = round.ValidMatches.Select(m => m.RecordCode).ToHashSet();
-                var unknownMatch = request.Picks.Any(p => !allCodes.Contains(p.RecordCode));
-                var picks = request.Picks.Where(p => validCodes.Contains(p.RecordCode)).ToList();
-                var missingPick = validCodes.Any(code => picks.All(p => p.RecordCode != code));
-                if (unknownMatch || missingPick)
-                    throw new DomainException("Quiniela",
-                        "El boleto debe tener un pronóstico para cada partido válido de la jornada.", ErrorCodes.QuinielaInvalidTicket);
-
-                var domainPicks = picks.Select(p => new QuinielaPick(p.RecordCode, QuinielaSign.FromName(p.Sign))).ToList();
-                var userId = currentUser.UserId!;
-                QuinielaTicket ticket;
-                if (request.TicketId is null)
+                return await QuinielaSupport.RunWithWalletRetryAsync(db, async () =>
                 {
-                    var hasTicketAlready = await db.QuinielaTickets.AnyAsync(
-                        t => t.JornadaId == jornada.Id && t.ApplicationUserId == userId, cancellationToken);
-                    if (hasTicketAlready && !featureFlags.IsEnabled(FeatureFlagCatalog.QuinielaMultipleTickets))
-                        throw new DomainException("Quiniela", "Solo puedes tener un boleto por jornada.", ErrorCodes.QuinielaMultipleTicketsDisabled);
+                    var jornada = await QuinielaSupport.LoadJornadaAsync(db, request.TeamId, request.JornadaId, cancellationToken);
+                    var round = await QuinielaSupport.LoadRoundAsync(federationDb, jornada.RffmRoundId, cancellationToken);
+                    var now = timeProvider.GetUtcNow().UtcDateTime;
+                    jornada.EnsurePicksOpen(round.FirstValidKickoffUtc, now);
 
-                    var lastNumber = await db.QuinielaTickets
-                        .Where(t => t.JornadaId == jornada.Id && t.ApplicationUserId == userId)
-                        .Select(t => (int?)t.Number)
-                        .MaxAsync(cancellationToken) ?? 0;
-                    ticket = QuinielaTicket.Create(jornada.Id, userId, domainPicks, request.PlenoHome, request.PlenoAway, lastNumber + 1);
-                    db.QuinielaTickets.Add(ticket);
-                }
-                else
-                {
-                    ticket = await db.QuinielaTickets.SingleOrDefaultAsync(
-                            t => t.Id == request.TicketId && t.JornadaId == jornada.Id && t.ApplicationUserId == userId, cancellationToken)
-                        ?? throw new NotFoundException($"QuinielaTicket '{request.TicketId}' Not Found", ErrorCodes.QuinielaTicketNotFound);
-                    ticket.ReplacePicks(domainPicks, request.PlenoHome, request.PlenoAway);
-                }
+                    var allCodes = round.Matches.Select(m => m.RecordCode).ToHashSet();
+                    var validCodes = round.ValidMatches.Select(m => m.RecordCode).ToHashSet();
+                    var unknownMatch = request.Picks.Any(p => !allCodes.Contains(p.RecordCode));
+                    var picks = request.Picks.Where(p => validCodes.Contains(p.RecordCode)).ToList();
+                    var missingPick = validCodes.Any(code => picks.All(p => p.RecordCode != code));
+                    if (unknownMatch || missingPick)
+                        throw new DomainException("Quiniela",
+                            "El boleto debe tener un pronóstico para cada partido válido de la jornada.", ErrorCodes.QuinielaInvalidTicket);
 
-                await db.SaveChangesAsync(cancellationToken);
-                return QuinielaSupport.ToDto(ticket, round, now);
+                    var domainPicks = picks.Select(p => new QuinielaPick(p.RecordCode, QuinielaSign.FromName(p.Sign))).ToList();
+                    var userId = currentUser.UserId!;
+                    QuinielaTicket ticket;
+                    if (request.TicketId is null)
+                    {
+                        var hasTicketAlready = await db.QuinielaTickets.AnyAsync(
+                            t => t.JornadaId == jornada.Id && t.ApplicationUserId == userId, cancellationToken);
+                        if (hasTicketAlready && !featureFlags.IsEnabled(FeatureFlagCatalog.QuinielaMultipleTickets))
+                            throw new DomainException("Quiniela", "Solo puedes tener un boleto por jornada.", ErrorCodes.QuinielaMultipleTicketsDisabled);
+
+                        var lastNumber = await db.QuinielaTickets
+                            .Where(t => t.JornadaId == jornada.Id && t.ApplicationUserId == userId)
+                            .Select(t => (int?)t.Number)
+                            .MaxAsync(cancellationToken) ?? 0;
+                        ticket = QuinielaTicket.Create(jornada.Id, userId, domainPicks, request.PlenoHome, request.PlenoAway, lastNumber + 1);
+                        db.QuinielaTickets.Add(ticket);
+                    }
+                    else
+                    {
+                        ticket = await db.QuinielaTickets.SingleOrDefaultAsync(
+                                t => t.Id == request.TicketId && t.JornadaId == jornada.Id && t.ApplicationUserId == userId, cancellationToken)
+                            ?? throw new NotFoundException($"QuinielaTicket '{request.TicketId}' Not Found", ErrorCodes.QuinielaTicketNotFound);
+                        ticket.ReplacePicks(domainPicks, request.PlenoHome, request.PlenoAway);
+                    }
+
+                    var charge = await QuinielaSupport.TryChargeFromWalletAsync(db, ticket, jornada, round, now, cancellationToken);
+                    await db.SaveChangesAsync(cancellationToken);
+                    return QuinielaSupport.ToDto(ticket, round, now, charge);
+                });
             }
         }
     }

@@ -24,6 +24,8 @@ namespace RFFM.Api.Domain.Entities.Teams
         public QuinielaPaymentStatus PaymentStatus { get; private set; } = QuinielaPaymentStatus.Pending;
         public DateTime? PaidAt { get; private set; }
         public QuinielaPaymentMethod? PaymentMethod { get; private set; }
+        /// <summary>Pagado con el monedero del equipo (cobro automático).</summary>
+        public bool PaidFromWallet => PaymentStatus == QuinielaPaymentStatus.Paid && PaymentMethod == QuinielaPaymentMethod.Wallet;
         public int? Hits { get; private set; }
         public QuinielaCategory? Category { get; private set; }
         public decimal? Prize { get; private set; }

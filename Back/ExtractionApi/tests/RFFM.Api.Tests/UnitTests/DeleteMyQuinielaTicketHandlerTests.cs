@@ -13,7 +13,8 @@ namespace RFFM.Api.Tests.UnitTests
     [Collection(PostgresCollection.Name)]
     public class DeleteMyQuinielaTicketHandlerTests(PostgresContainerFixture fixture)
     {
-        private static DeleteMyQuinielaTicket.Handler Handler(AppDbContext db, string? userId) => new(db, User(userId));
+        private DeleteMyQuinielaTicket.Handler Handler(AppDbContext db, string? userId) =>
+            new(db, fixture.CreateFederationDbContext(), User(userId), ClockAt(BeforeKickoff));
 
         private async Task<(QuinielaSeed Seed, QuinielaJornada Jornada, QuinielaTicket Ticket)> SeedAsync(
             string suffix, string? ownerOverride = null, bool paid = false)
@@ -54,15 +55,15 @@ namespace RFFM.Api.Tests.UnitTests
         }
 
         [Fact]
-        public async Task Handle_OnAPaidTicket_IsRejectedAndKeepsTheTicket()
+        public async Task Handle_OnATicketPaidInCash_IsRejectedAndKeepsTheTicket()
         {
             var (seed, jornada, ticket) = await SeedAsync("m3", paid: true);
             await using var db = fixture.CreateDbContext();
 
-            var ex = await Assert.ThrowsAsync<DomainException>(() =>
+            var ex = await Assert.ThrowsAsync<ConflictException>(() =>
                 Handler(db, seed.PlayerId).Handle(new DeleteMyQuinielaTicket.Command(seed.TeamId, jornada.Id, ticket.Id), CancellationToken.None).AsTask());
 
-            Assert.Equal(ErrorCodes.QuinielaTicketNotDeletable, ex.Code);
+            Assert.Equal(ErrorCodes.QuinielaTicketPaidManually, ex.Code);
             await using var verify = fixture.CreateDbContext();
             Assert.True(await verify.QuinielaTickets.AnyAsync(t => t.Id == ticket.Id));
         }

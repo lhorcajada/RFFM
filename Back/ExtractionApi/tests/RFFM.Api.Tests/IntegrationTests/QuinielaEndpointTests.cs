@@ -59,7 +59,8 @@ namespace RFFM.Api.Tests.IntegrationTests
         private static readonly IFeatureModule[] Modules =
         [
             new OpenQuiniela(), new GetCurrentQuiniela(), new SaveQuinielaTicket(),
-            new GetQuinielaPayments(), new SetQuinielaTicketPayment(), new SettleQuiniela(), new GetFeatureFlags()
+            new GetQuinielaPayments(), new SetQuinielaTicketPayment(), new SettleQuiniela(), new GetFeatureFlags(),
+            new TopUpQuinielaWallet(), new AdjustQuinielaWallet(), new GetQuinielaWallet(), new GetQuinielaWallets(), new PayQuinielaTicketWithWallet()
         ];
 
         private async Task<(IHost Host, HttpClient Client)> StartHostAsync()
@@ -160,7 +161,12 @@ namespace RFFM.Api.Tests.IntegrationTests
                 Request(HttpMethod.Post, $"{baseUrl}/j/my-tickets", null, Ticket("e1")),
                 Request(HttpMethod.Get, $"{baseUrl}/j/payments", null),
                 Request(HttpMethod.Put, $"{baseUrl}/j/tickets/k/payment", null, new { paid = true, method = "Cash" }),
-                Request(HttpMethod.Post, $"{baseUrl}/j/settle", null)
+                Request(HttpMethod.Post, $"{baseUrl}/j/settle", null),
+                Request(HttpMethod.Get, $"{baseUrl}/wallet", null),
+                Request(HttpMethod.Get, $"{baseUrl}/wallets", null),
+                Request(HttpMethod.Post, $"{baseUrl}/wallets/u/top-ups", null, new { amount = 1 }),
+                Request(HttpMethod.Post, $"{baseUrl}/wallets/u/adjustments", null, new { amount = 1, reason = "x" }),
+                Request(HttpMethod.Post, $"{baseUrl}/j/my-tickets/k/wallet-payment", null)
             };
             foreach (var request in requests)
                 Assert.Equal(HttpStatusCode.Unauthorized, (await client.SendAsync(request)).StatusCode);
@@ -300,6 +306,53 @@ namespace RFFM.Api.Tests.IntegrationTests
             var again = await client.SendAsync(Request(HttpMethod.Post, $"{jornadaUrl}/settle", seed.CoachId));
             Assert.Equal(HttpStatusCode.BadRequest, again.StatusCode);
             Assert.Equal(ErrorCodes.QuinielaAlreadySettled, await ProblemCodeAsync(again));
+        }
+        [Fact]
+        public async Task Wallet_TopUpThenSaveTicket_ChargesAndReportsItInTheResponse()
+        {
+            var (seed, baseUrl) = await SeedAsync("w1");
+            var (host, client) = await StartHostAsync();
+            using var _ = host;
+            var created = await client.SendAsync(Request(HttpMethod.Post, baseUrl, seed.CoachId));
+            var jornada = await created.Content.ReadFromJsonAsync<Dictionary<string, System.Text.Json.JsonElement>>();
+            var jornadaId = jornada!["id"].GetString();
+
+            var topUp = await client.SendAsync(Request(HttpMethod.Post, $"{baseUrl}/wallets/{seed.PlayerId}/top-ups", seed.CoachId, new { amount = 5, description = "Bizum" }));
+            Assert.Equal(HttpStatusCode.Created, topUp.StatusCode);
+
+            var save = await client.SendAsync(Request(HttpMethod.Post, $"{baseUrl}/{jornadaId}/my-tickets", seed.PlayerId, Ticket("w1")));
+            Assert.Equal(HttpStatusCode.Created, save.StatusCode);
+            var ticket = await save.Content.ReadFromJsonAsync<Dictionary<string, System.Text.Json.JsonElement>>();
+            Assert.Equal("Paid", ticket!["paymentStatus"].GetString());
+            Assert.Equal("Wallet", ticket["paymentMethod"].GetString());
+            Assert.Equal(4m, ticket["walletCharge"].GetProperty("balanceAfter").GetDecimal());
+
+            var wallet = await client.SendAsync(Request(HttpMethod.Get, $"{baseUrl}/wallet", seed.PlayerId));
+            Assert.Equal(HttpStatusCode.OK, wallet.StatusCode);
+            var body = await wallet.Content.ReadFromJsonAsync<Dictionary<string, System.Text.Json.JsonElement>>();
+            Assert.Equal(4m, body!["balance"].GetDecimal());
+            Assert.Equal(2, body["movements"].GetArrayLength());
+        }
+
+        [Fact]
+        public async Task Wallet_ValidationAndAuthorizationErrors_AreProblemDetails()
+        {
+            var (seed, baseUrl) = await SeedAsync("w2");
+            var (host, client) = await StartHostAsync();
+            using var _ = host;
+
+            var tooMuch = await client.SendAsync(Request(HttpMethod.Post, $"{baseUrl}/wallets/{seed.PlayerId}/top-ups", seed.CoachId, new { amount = 10.01 }));
+            Assert.Equal(HttpStatusCode.BadRequest, tooMuch.StatusCode);
+
+            var byPlayer = await client.SendAsync(Request(HttpMethod.Post, $"{baseUrl}/wallets/{seed.PlayerId}/top-ups", seed.PlayerId, new { amount = 1 }));
+            Assert.Equal(HttpStatusCode.Forbidden, byPlayer.StatusCode);
+
+            var follower = await client.SendAsync(Request(HttpMethod.Get, $"{baseUrl}/wallet", seed.FollowerId));
+            Assert.Equal(HttpStatusCode.Forbidden, follower.StatusCode);
+
+            var adjust = await client.SendAsync(Request(HttpMethod.Post, $"{baseUrl}/wallets/{seed.PlayerId}/adjustments", seed.CoachId, new { amount = 1, reason = "motivo" }));
+            Assert.Equal(HttpStatusCode.Conflict, adjust.StatusCode);
+            Assert.Equal(ErrorCodes.QuinielaWalletInsufficientBalance, await ProblemCodeAsync(adjust));
         }
     }
 }

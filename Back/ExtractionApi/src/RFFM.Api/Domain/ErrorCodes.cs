@@ -206,5 +206,13 @@ namespace RFFM.Api.Domain
         public const string QuinielaNoNextRound = "QuinielaNoNextRound";
         public const string QuinielaTicketNotDeletable = "QuinielaTicketNotDeletable";
         public const string QuinielaMultipleTicketsDisabled = "QuinielaMultipleTicketsDisabled";
+
+        // Quiniela wallet (Features/Coaches/Quiniela/*Wallet*) - openspec change quiniela-wallet.
+        public const string QuinielaWalletInsufficientBalance = "QuinielaWalletInsufficientBalance";
+        public const string QuinielaWalletInvalidAmount = "QuinielaWalletInvalidAmount";
+        public const string QuinielaWalletConcurrency = "QuinielaWalletConcurrency";
+        public const string QuinielaWalletUserNotInTeam = "QuinielaWalletUserNotInTeam";
+        public const string QuinielaTicketNotPayable = "QuinielaTicketNotPayable";
+        public const string QuinielaTicketPaidManually = "QuinielaTicketPaidManually";
     }
 }

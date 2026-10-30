@@ -47,20 +47,26 @@ namespace RFFM.Api.Features.Coaches.Quiniela
             }
         }
 
-        public class Handler(AppDbContext db, ICurrentUserService currentUser) : IRequestHandler<Command>
+        public class Handler(AppDbContext db, ICurrentUserService currentUser, TimeProvider? timeProvider = null) : IRequestHandler<Command>
         {
             public async ValueTask<Unit> Handle(Command request, CancellationToken cancellationToken)
             {
                 await QuinielaSupport.RequireRoleAsync(db, currentUser, request.TeamId, QuinielaSupport.CoachOnly, cancellationToken);
 
-                var jornada = await QuinielaSupport.LoadJornadaAsync(db, request.TeamId, request.JornadaId, cancellationToken);
-                if (jornada.Status == QuinielaJornadaStatus.Settled)
-                    throw new DomainException("Quiniela", "La quiniela de esta jornada ya está liquidada.", ErrorCodes.QuinielaAlreadySettled);
+                await QuinielaSupport.RunWithWalletRetryAsync(db, async () =>
+                {
+                    var jornada = await QuinielaSupport.LoadJornadaAsync(db, request.TeamId, request.JornadaId, cancellationToken);
+                    if (jornada.Status == QuinielaJornadaStatus.Settled)
+                        throw new DomainException("Quiniela", "La quiniela de esta jornada ya está liquidada.", ErrorCodes.QuinielaAlreadySettled);
 
-                var tickets = await db.QuinielaTickets.Where(t => t.JornadaId == jornada.Id).ToListAsync(cancellationToken);
-                db.QuinielaTickets.RemoveRange(tickets);
-                db.QuinielaJornadas.Remove(jornada);
-                await db.SaveChangesAsync(cancellationToken);
+                    var tickets = await db.QuinielaTickets.Where(t => t.JornadaId == jornada.Id).ToListAsync(cancellationToken);
+                    var now = (timeProvider ?? TimeProvider.System).GetUtcNow().UtcDateTime;
+                    await QuinielaSupport.RefundWalletTicketsAsync(db, tickets, now, cancellationToken);
+                    db.QuinielaTickets.RemoveRange(tickets);
+                    db.QuinielaJornadas.Remove(jornada);
+                    await db.SaveChangesAsync(cancellationToken);
+                    return Unit.Value;
+                });
                 return Unit.Value;
             }
         }

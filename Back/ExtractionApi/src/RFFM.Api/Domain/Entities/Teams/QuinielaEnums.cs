@@ -41,6 +41,8 @@ namespace RFFM.Api.Domain.Entities.Teams
     {
         public static readonly QuinielaPaymentMethod Cash = new(nameof(Cash), 1);
         public static readonly QuinielaPaymentMethod Bizum = new(nameof(Bizum), 2);
+        /// <summary>Cobro automático del monedero del equipo; el entrenador no lo asigna a mano.</summary>
+        public static readonly QuinielaPaymentMethod Wallet = new(nameof(Wallet), 3);
 
         private QuinielaPaymentMethod(string name, int value) : base(name, value) { }
     }
@@ -51,5 +53,16 @@ namespace RFFM.Api.Domain.Entities.Teams
         public static readonly QuinielaJornadaStatus Settled = new(nameof(Settled), 2);
 
         private QuinielaJornadaStatus(string name, int value) : base(name, value) { }
+    }
+
+    /// <summary>Tipo de movimiento del monedero de la quiniela.</summary>
+    public sealed class QuinielaWalletMovementType : SmartEnum<QuinielaWalletMovementType>
+    {
+        public static readonly QuinielaWalletMovementType TopUp = new(nameof(TopUp), 1);
+        public static readonly QuinielaWalletMovementType Adjustment = new(nameof(Adjustment), 2);
+        public static readonly QuinielaWalletMovementType TicketCharge = new(nameof(TicketCharge), 3);
+        public static readonly QuinielaWalletMovementType TicketRefund = new(nameof(TicketRefund), 4);
+
+        private QuinielaWalletMovementType(string name, int value) : base(name, value) { }
     }
 }

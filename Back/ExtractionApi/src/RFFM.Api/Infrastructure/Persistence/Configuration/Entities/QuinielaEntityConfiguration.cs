@@ -52,6 +52,58 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Entities
         }
     }
 
+    internal class QuinielaWalletEntityConfiguration : IEntityTypeConfiguration<QuinielaWallet>
+    {
+        public void Configure(EntityTypeBuilder<QuinielaWallet> builder)
+        {
+            builder.ToTable("QuinielaWallets");
+
+            builder.HasKey(w => w.Id);
+
+            builder.Property(w => w.TeamId).IsRequired();
+            // El usuario vive en el esquema identity (otro DbContext): sin clave foránea.
+            builder.Property(w => w.ApplicationUserId).HasMaxLength(450).IsRequired();
+            builder.Property(w => w.Balance).HasColumnType("decimal(10,2)").IsRequired();
+            builder.Property(w => w.UpdatedAt).IsRequired();
+            // xmin de PostgreSQL como token de concurrencia: dos cobros simultáneos no gastan el mismo saldo.
+            builder.Property(w => w.Version).IsRowVersion();
+
+            builder.HasIndex(w => new { w.TeamId, w.ApplicationUserId }).IsUnique();
+
+            builder.HasOne<Team>()
+                .WithMany()
+                .HasForeignKey(w => w.TeamId)
+                .OnDelete(DeleteBehavior.Cascade);
+        }
+    }
+
+    internal class QuinielaWalletMovementEntityConfiguration : IEntityTypeConfiguration<QuinielaWalletMovement>
+    {
+        public void Configure(EntityTypeBuilder<QuinielaWalletMovement> builder)
+        {
+            builder.ToTable("QuinielaWalletMovements");
+
+            builder.HasKey(m => m.Id);
+
+            builder.Property(m => m.WalletId).IsRequired();
+            builder.Property(m => m.Amount).HasColumnType("decimal(10,2)").IsRequired();
+            builder.Property(m => m.Type).IsRequired();
+            builder.Property(m => m.OccurredAt).IsRequired();
+            builder.Property(m => m.Description).HasMaxLength(QuinielaWallet.Rules.MaxDescriptionLength);
+            // El boleto y el usuario creador pueden desaparecer: el historial se conserva, sin clave foránea.
+            builder.Property(m => m.TicketId).HasMaxLength(36);
+            builder.Property(m => m.CreatedByUserId).HasMaxLength(450);
+
+            builder.HasIndex(m => new { m.WalletId, m.OccurredAt });
+            builder.HasIndex(m => m.TicketId, "IX_QuinielaWalletMovements_TicketId");
+
+            builder.HasOne<QuinielaWallet>()
+                .WithMany()
+                .HasForeignKey(m => m.WalletId)
+                .OnDelete(DeleteBehavior.Cascade);
+        }
+    }
+
     internal class QuinielaTicketEntityConfiguration: IEntityTypeConfiguration<QuinielaTicket>
     {
         public void Configure(EntityTypeBuilder<QuinielaTicket> builder)
