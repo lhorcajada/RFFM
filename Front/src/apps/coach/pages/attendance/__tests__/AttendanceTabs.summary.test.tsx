@@ -165,10 +165,22 @@ describe("AttendanceTabs - resumen de la convocatoria", () => {
     ]);
     await renderTabs();
 
-    await waitFor(() => expect(summaryValue("Convocados")).toBe("4Convocados"));
+    await waitFor(() => expect(summaryValue("Convocados")).toBe("3Convocados"));
     expect(summaryValue("Van")).toBe("2Van");
     expect(summaryValue("Pendientes")).toBe("1Pendientes");
     expect(summaryValue("Bajas")).toBe("1Bajas");
+  });
+
+  it("no cuenta como convocados a los desconvocados: la cabecera de la lista coincide con el resumen", async () => {
+    setup({ roles: ["Coach"], playerId: null });
+    await renderTabs();
+
+    await waitFor(() => expect(summaryValue("Convocados")).toBe("2Convocados"));
+    const summary = screen.getByRole("region", { name: "Resumen de la convocatoria" });
+    const header = screen
+      .getAllByText("Convocados", { selector: "span" })
+      .find((el) => !summary.contains(el));
+    expect(header?.nextElementSibling).toHaveTextContent("2");
   });
 
   it("incluye al jugador propio en las cifras", async () => {

@@ -398,7 +398,7 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isLeagueM
   const totalDesconvocados = shownInjuredNoConv.length + shownInjuredWithConv.length + shownDeclined.length;
 
   const summary = {
-    total: convocatedFiltered.length + injuredNoConv.length,
+    total: pending.length + accepted.length,
     accepted: isLeagueMatch ? pending.length + accepted.length : accepted.length,
     pending: isLeagueMatch ? availabilityPending.length : pending.length,
     declined: declinedNonInjured.length + injuredWithConv.length + injuredNoConv.length,
@@ -830,7 +830,7 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isLeagueM
               <div className={styles.listGroupTitle}>
                 <span>Convocados</span>
                 <span className={styles.listGroupCount}>
-                  {convocatedFiltered.filter((c) => !isOwnPlayer(c.player)).length}
+                  {shownPending.length + shownAccepted.length}
                 </span>
               </div>
             </div>
