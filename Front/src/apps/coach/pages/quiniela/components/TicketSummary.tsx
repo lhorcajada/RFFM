@@ -1,6 +1,6 @@
 import { CircularProgress, LinearProgress } from "@mui/material";
-import type { QuinielaPaymentStatus } from "../../../services/quinielaService";
-import { formatKickoff, formatMoney, paymentStatusLabel } from "../quinielaHelpers";
+import type { QuinielaPaymentStatus, QuinielaTicketPaymentMethod } from "../../../services/quinielaService";
+import { formatKickoff, formatMoney, ticketPaymentLabel } from "../quinielaHelpers";
 import styles from "./TicketSummary.module.css";
 
 type Props = {
@@ -8,6 +8,7 @@ type Props = {
   total: number;
   price: number;
   paymentStatus: QuinielaPaymentStatus | null;
+  paymentMethod?: QuinielaTicketPaymentMethod | null;
   paymentDeadlineUtc: string | null;
   closed: boolean;
   saving: boolean;
@@ -15,8 +16,13 @@ type Props = {
   title?: string;
   canDelete: boolean;
   deleting: boolean;
+  canPayWithWallet?: boolean;
+  walletBlockedReason?: string | null;
+  payingWithWallet?: boolean;
+  manualPaymentNote?: boolean;
   onSave: () => void;
   onDelete: () => void;
+  onPayWithWallet?: () => void;
 };
 
 export default function TicketSummary({
@@ -24,6 +30,7 @@ export default function TicketSummary({
   total,
   price,
   paymentStatus,
+  paymentMethod = null,
   paymentDeadlineUtc,
   closed,
   saving,
@@ -31,8 +38,13 @@ export default function TicketSummary({
   title = "Tu boleto",
   canDelete,
   deleting,
+  canPayWithWallet = false,
+  walletBlockedReason = null,
+  payingWithWallet = false,
+  manualPaymentNote = false,
   onSave,
   onDelete,
+  onPayWithWallet,
 }: Props) {
   const percent = total > 0 ? Math.round((filled / total) * 100) : 0;
   const statusClass = paymentStatus === "Paid" ? styles.paid : paymentStatus === "Expired" ? styles.expired : styles.pending;
@@ -41,7 +53,7 @@ export default function TicketSummary({
       <div className={styles.head}>
         <h2 id="quiniela-ticket-title" className={styles.title}>{title}</h2>
         {paymentStatus ? (
-          <span className={`${styles.status} ${statusClass}`}>{paymentStatusLabel(paymentStatus)}</span>
+          <span className={`${styles.status} ${statusClass}`}>{ticketPaymentLabel(paymentStatus, paymentMethod)}</span>
         ) : (
           <span className={`${styles.status} ${styles.pending}`}>Sin guardar</span>
         )}
@@ -65,10 +77,31 @@ export default function TicketSummary({
       <button type="button" className={styles.save} disabled={!canSave || saving || closed} onClick={onSave}>
         {saving ? <CircularProgress size={20} color="inherit" /> : "Guardar boleto"}
       </button>
+      {canPayWithWallet && (
+        <>
+          <button
+            type="button"
+            className={styles.wallet}
+            disabled={walletBlockedReason !== null || payingWithWallet}
+            aria-describedby={walletBlockedReason ? "quiniela-wallet-blocked" : undefined}
+            onClick={onPayWithWallet}
+          >
+            {payingWithWallet ? <CircularProgress size={20} color="inherit" /> : "Pagar con monedero"}
+          </button>
+          {walletBlockedReason && (
+            <p id="quiniela-wallet-blocked" className={styles.noteVisible}>{walletBlockedReason}</p>
+          )}
+        </>
+      )}
       {canDelete && (
         <button type="button" className={styles.remove} disabled={deleting} onClick={onDelete}>
           Eliminar mi boleto
         </button>
+      )}
+      {manualPaymentNote && (
+        <p className={styles.noteVisible}>
+          Este boleto se pagó en mano o por Bizum: si quieres eliminarlo, pídeselo al entrenador.
+        </p>
       )}
       {paymentDeadlineUtc && (
         <p className={styles.note}>

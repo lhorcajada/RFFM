@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { getMyProfile } from "../../apps/coach/services/coachApi";
-import configurationCoachService from "../../apps/coach/services/configurationCoachService";
 import { getTeamFund } from "../../apps/coach/services/teamFundService";
+import resolveTeamId from "./resolveUserTeamId";
 
 /** Dispatched by any screen that records/edits/reverses a sanction payment, so the
  * header icon (mounted once, outside the sanctions page) picks up the new balance
@@ -13,22 +12,6 @@ export interface TeamFundBalanceInfo {
   visible: boolean;
   balance: number | null;
   teamId: string | null;
-}
-
-async function resolveTeamId(): Promise<string | null> {
-  try {
-    const profile = await getMyProfile();
-    if (profile?.teamId) return profile.teamId;
-  } catch {
-    // fall through to the coach configuration fallback
-  }
-
-  try {
-    const config = await configurationCoachService.getCurrent();
-    return config?.preferredTeamId ?? null;
-  } catch {
-    return null;
-  }
 }
 
 /** Team fund balance for the current user's team, resolved via profile teamId

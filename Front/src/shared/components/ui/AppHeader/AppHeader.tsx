@@ -16,10 +16,18 @@ import { useUser } from "../../../context/UserContext";
 import useAuthToken from "../../../hooks/useAuthToken";
 import useMyPendingSanctionsCount from "../../../hooks/useMyPendingSanctionsCount";
 import useTeamFundBalance from "../../../hooks/useTeamFundBalance";
+import useQuinielaWalletBalance from "../../../hooks/useQuinielaWalletBalance";
+import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import { useLocation, useNavigate } from "react-router-dom";
 import NotificationsBell from "../NotificationsBell/NotificationsBell";
 import useRootClassObserver from "../../../hooks/useRootClassObserver";
 import AppVersionInfo from "../AppVersionInfo/AppVersionInfo";
+
+const MONEY_FORMAT = new Intl.NumberFormat("es-ES", {
+  style: "currency",
+  currency: "EUR",
+  minimumFractionDigits: 2,
+});
 
 interface AppHeaderProps {
   title?: string;
@@ -88,6 +96,7 @@ export default function AppHeader({ title, hideIndicators }: AppHeaderProps) {
   const { isAuthValid } = useAuthToken();
   const pendingSanctions = useMyPendingSanctionsCount();
   const teamFund = useTeamFundBalance();
+  const quinielaWallet = useQuinielaWalletBalance();
   const pendingSanctionsLabel =
     pendingSanctions.count > 0
       ? `${pendingSanctions.count} ${
@@ -95,6 +104,16 @@ export default function AppHeader({ title, hideIndicators }: AppHeaderProps) {
         }`
       : "Sanciones";
   const teamFundLabel = `${teamFund.balance} €`;
+
+  const quinielaWalletLabel = MONEY_FORMAT.format(quinielaWallet.balance ?? 0);
+
+  const handleOpenQuinielaWallet = () => {
+    navigate(
+      quinielaWallet.teamId
+        ? `/coach/quiniela?teamId=${encodeURIComponent(quinielaWallet.teamId)}`
+        : "/coach/quiniela"
+    );
+  };
 
   const handleOpenSanctions = () => {
     navigate(
@@ -170,18 +189,35 @@ export default function AppHeader({ title, hideIndicators }: AppHeaderProps) {
         </div>
 
         <div className={styles.userBox}>
+          {quinielaWallet.visible && !isFederationApp && !hideIndicators && (
+            <Tooltip title="Mi monedero">
+              <IconButton
+                onClick={handleOpenQuinielaWallet}
+                size="small"
+                aria-label={`Monedero: ${quinielaWalletLabel}`}
+                className={styles.walletButton}
+              >
+                <AccountBalanceWalletIcon className={styles.walletIcon} />
+                <span className={styles.walletLabel} aria-hidden="true">
+                  {quinielaWalletLabel}
+                </span>
+              </IconButton>
+            </Tooltip>
+          )}
           {teamFund.visible && !isFederationApp && !hideIndicators && (
-            <IconButton
-              onClick={handleOpenTeamFund}
-              size="small"
-              aria-label={teamFundLabel}
-              className={styles.teamFundButton}
-            >
-              <SavingsIcon className={styles.teamFundIcon} color="success" />
-              <span className={styles.teamFundLabel} aria-hidden="true">
-                {teamFundLabel}
-              </span>
-            </IconButton>
+            <Tooltip title="Hucha del equipo">
+              <IconButton
+                onClick={handleOpenTeamFund}
+                size="small"
+                aria-label={`Hucha del equipo: ${teamFundLabel}`}
+                className={styles.teamFundButton}
+              >
+                <SavingsIcon className={styles.teamFundIcon} color="success" />
+                <span className={styles.teamFundLabel} aria-hidden="true">
+                  {teamFundLabel}
+                </span>
+              </IconButton>
+            </Tooltip>
           )}
           {isAuthValid && !hideIndicators && (
             <NotificationsBell key={isFederationApp ? "federation" : "coach"} app={isFederationApp ? "federation" : "coach"} />

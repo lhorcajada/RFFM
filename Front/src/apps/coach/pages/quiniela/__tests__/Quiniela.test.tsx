@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { QuinielaCurrent, QuinielaMatch } from "../../../services/quinielaService";
+import type { QuinielaCurrent, QuinielaMatch, QuinielaTicket, QuinielaWallet } from "../../../services/quinielaService";
 import { UserProvider } from "../../../../../shared/context/UserContext";
 
 vi.mock("../../../services/authService", () => ({
@@ -33,7 +33,11 @@ const getCurrentQuiniela = vi.fn();
 const saveQuinielaTicket = vi.fn();
 const openQuiniela = vi.fn();
 const deleteMyQuinielaTicket = vi.fn();
+const getMyQuinielaWallet = vi.fn();
+const payQuinielaTicketWithWallet = vi.fn();
 vi.mock("../../../services/quinielaService", () => ({
+  getMyQuinielaWallet: (...args: unknown[]) => getMyQuinielaWallet(...args),
+  payQuinielaTicketWithWallet: (...args: unknown[]) => payQuinielaTicketWithWallet(...args),
   deleteMyQuinielaTicket: (...args: unknown[]) => deleteMyQuinielaTicket(...args),
   getCurrentQuiniela: (...args: unknown[]) => getCurrentQuiniela(...args),
   saveQuinielaTicket: (...args: unknown[]) => saveQuinielaTicket(...args),
@@ -94,6 +98,10 @@ function current(overrides: Partial<QuinielaCurrent> = {}): QuinielaCurrent {
   };
 }
 
+function walletOf(balance: number): QuinielaWallet {
+  return { userId: "u1", userName: "Yo", role: "Player", balance, totalMovements: 0, movements: [] };
+}
+
 function renderPage() {
   return render(
     <UserProvider>
@@ -112,6 +120,7 @@ describe("Quiniela", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     useFeatureFlag.mockReturnValue({ enabled: true, loading: false });
+    getMyQuinielaWallet.mockResolvedValue(walletOf(0));
   });
 
   it("muestra una tarjeta por partido con los equipos", async () => {
@@ -528,6 +537,248 @@ describe("Quiniela", () => {
       expect(screen.getByRole("button", { name: /eliminar mi boleto/i })).toBeInTheDocument();
       fireEvent.click(screen.getByRole("button", { name: "Boleto 2" }));
       expect(screen.queryByRole("button", { name: /eliminar mi boleto/i })).not.toBeInTheDocument();
+    });
+  });
+
+  describe("monedero", () => {
+    const walletTicket = (overrides: Partial<QuinielaTicket> = {}): QuinielaTicket => ({
+      id: "tk1",
+      number: 1,
+      picks: [{ recordCode: "m1", sign: "X" }],
+      plenoHome: 0,
+      plenoAway: 2,
+      paymentStatus: "Pending",
+      paymentDeadlineUtc: "2026-10-30T22:59:00Z",
+      hits: null,
+      category: null,
+      prize: null,
+      ...overrides,
+    });
+    const captureSnackbars = () => {
+      const listener = vi.fn();
+      window.addEventListener("rffm.show_snackbar", listener);
+      const messages = () =>
+        listener.mock.calls.map((call) => (call[0] as CustomEvent<{ message: string; severity: string }>).detail);
+      return { messages, stop: () => window.removeEventListener("rffm.show_snackbar", listener) };
+    };
+    const fillAndSave = async () => {
+      fireEvent.click(within(cardOf("CD Los Olivos")).getByRole("button", { name: /local/i }));
+      fireEvent.click(within(cardOf("Real Valdemar")).getByRole("button", { name: /empate/i }));
+      fireEvent.click(within(cardOf("Unión Robledo")).getByRole("button", { name: /visitante/i }));
+      fireEvent.click(within(screen.getByRole("group", { name: "Goles de Unión Robledo" })).getByRole("button", { name: "0" }));
+      fireEvent.click(within(screen.getByRole("group", { name: "Goles de CD Fresnedillas" })).getByRole("button", { name: "0" }));
+      fireEvent.click(screen.getByRole("button", { name: /guardar boleto/i }));
+    };
+
+    it("muestra el saldo del monedero y consulta el monedero propio del equipo", async () => {
+      getCurrentQuiniela.mockResolvedValue(current());
+      getMyQuinielaWallet.mockResolvedValue(walletOf(2.5));
+      renderPage();
+      await screen.findByText("CD Los Olivos");
+      expect(await screen.findByText("Mi monedero")).toBeInTheDocument();
+      expect(screen.getByText(/2,50\s€/)).toBeInTheDocument();
+      expect(getMyQuinielaWallet).toHaveBeenCalledWith("team-1");
+    });
+
+    it("abre el historial del monedero con «Ver movimientos»", async () => {
+      getCurrentQuiniela.mockResolvedValue(current());
+      getMyQuinielaWallet.mockResolvedValue(walletOf(2.5));
+      renderPage();
+      fireEvent.click(await screen.findByRole("button", { name: /ver movimientos/i }));
+      expect(await screen.findByText(/aún no hay movimientos/i)).toBeInTheDocument();
+      expect(getMyQuinielaWallet).toHaveBeenCalledWith("team-1", { limit: 25, offset: 0 });
+    });
+
+    it("avisa con el importe cobrado y el saldo al guardar un boleto con cobro", async () => {
+      const snackbars = captureSnackbars();
+      getCurrentQuiniela.mockResolvedValue(current());
+      saveQuinielaTicket.mockResolvedValue(walletTicket({ paymentStatus: "Paid", paymentMethod: "Wallet", walletCharge: { amount: 1, balanceAfter: 2 } }));
+      renderPage();
+      await screen.findByText("CD Los Olivos");
+      await fillAndSave();
+
+      await waitFor(() => expect(snackbars.messages().some((m) => /Se han cobrado 1,00\s€ de tu monedero\. Saldo: 2,00\s€/.test(m.message))).toBe(true));
+      snackbars.stop();
+    });
+
+    it("despacha rffm.quiniela_wallet_updated al guardar un boleto con cobro", async () => {
+      const listener = vi.fn();
+      window.addEventListener("rffm.quiniela_wallet_updated", listener);
+      getCurrentQuiniela.mockResolvedValue(current());
+      saveQuinielaTicket.mockResolvedValue(
+        walletTicket({ paymentStatus: "Paid", paymentMethod: "Wallet", walletCharge: { amount: 1, balanceAfter: 2 } }),
+      );
+      renderPage();
+      await screen.findByText("CD Los Olivos");
+      await fillAndSave();
+
+      await waitFor(() => expect(listener).toHaveBeenCalledTimes(1));
+      window.removeEventListener("rffm.quiniela_wallet_updated", listener);
+    });
+
+    it("no avisa del cobro si el guardado no cobró nada", async () => {
+      const snackbars = captureSnackbars();
+      getCurrentQuiniela.mockResolvedValue(current());
+      saveQuinielaTicket.mockResolvedValue(walletTicket());
+      renderPage();
+      await screen.findByText("CD Los Olivos");
+      await fillAndSave();
+
+      await waitFor(() => expect(snackbars.messages().length).toBeGreaterThan(0));
+      expect(snackbars.messages().some((m) => /monedero/i.test(m.message))).toBe(false);
+      snackbars.stop();
+    });
+
+    it("muestra «Pagado con monedero» en un boleto pagado con el monedero", async () => {
+      getCurrentQuiniela.mockResolvedValue(current({ myTickets: [walletTicket({ paymentStatus: "Paid", paymentMethod: "Wallet" })] }));
+      renderPage();
+      await screen.findByText("CD Los Olivos");
+      expect(screen.getByText("Pagado con monedero")).toBeInTheDocument();
+    });
+
+    describe("pagar con monedero", () => {
+      it("se ofrece en un boleto pendiente con pronósticos abiertos", async () => {
+        getCurrentQuiniela.mockResolvedValue(current({ myTickets: [walletTicket()] }));
+        getMyQuinielaWallet.mockResolvedValue(walletOf(3));
+        renderPage();
+        await screen.findByText("CD Los Olivos");
+        expect(await screen.findByRole("button", { name: /pagar con monedero/i })).toBeEnabled();
+      });
+
+      it.each([
+        ["pagado", walletTicket({ paymentStatus: "Paid", paymentMethod: "Cash" })],
+        ["expirado", walletTicket({ paymentStatus: "Expired" })],
+      ])("no se ofrece en un boleto %s", async (_label, ticket) => {
+        getCurrentQuiniela.mockResolvedValue(current({ myTickets: [ticket] }));
+        getMyQuinielaWallet.mockResolvedValue(walletOf(3));
+        renderPage();
+        await screen.findByText("CD Los Olivos");
+        await screen.findByText("Mi monedero");
+        expect(screen.queryByRole("button", { name: /pagar con monedero/i })).not.toBeInTheDocument();
+      });
+
+      it("no se ofrece con los pronósticos cerrados", async () => {
+        const base = current();
+        getCurrentQuiniela.mockResolvedValue(
+          current({ myTickets: [walletTicket()], jornada: { ...base.jornada!, picksClosed: true } }),
+        );
+        getMyQuinielaWallet.mockResolvedValue(walletOf(3));
+        renderPage();
+        await screen.findByText("CD Los Olivos");
+        await screen.findByText("Mi monedero");
+        expect(screen.queryByRole("button", { name: /pagar con monedero/i })).not.toBeInTheDocument();
+      });
+
+      it("queda deshabilitado con el motivo si el saldo no alcanza el precio", async () => {
+        getCurrentQuiniela.mockResolvedValue(current({ myTickets: [walletTicket()] }));
+        getMyQuinielaWallet.mockResolvedValue(walletOf(0.5));
+        renderPage();
+        await screen.findByText("CD Los Olivos");
+        const button = await screen.findByRole("button", { name: /pagar con monedero/i });
+        expect(button).toBeDisabled();
+        expect(screen.getByText(/saldo insuficiente/i)).toBeInTheDocument();
+      });
+
+      it("al pagar avisa del cobro, marca el boleto pagado y refresca el saldo", async () => {
+        const snackbars = captureSnackbars();
+        getCurrentQuiniela.mockResolvedValue(current({ myTickets: [walletTicket()] }));
+        getMyQuinielaWallet.mockResolvedValueOnce(walletOf(3)).mockResolvedValue(walletOf(2));
+        payQuinielaTicketWithWallet.mockResolvedValue(
+          walletTicket({ paymentStatus: "Paid", paymentMethod: "Wallet", walletCharge: { amount: 1, balanceAfter: 2 } }),
+        );
+        renderPage();
+        await screen.findByText("CD Los Olivos");
+        fireEvent.click(await screen.findByRole("button", { name: /pagar con monedero/i }));
+
+        await waitFor(() => expect(payQuinielaTicketWithWallet).toHaveBeenCalledWith("team-1", "j1", "tk1"));
+        expect(await screen.findByText("Pagado con monedero")).toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: /pagar con monedero/i })).not.toBeInTheDocument();
+        expect(snackbars.messages().some((m) => m.severity === "success" && /Se han cobrado 1,00\s€/.test(m.message))).toBe(true);
+        await waitFor(() => expect(getMyQuinielaWallet).toHaveBeenCalledTimes(2));
+        snackbars.stop();
+      });
+
+      it("despacha rffm.quiniela_wallet_updated tras pagar con el monedero", async () => {
+        const listener = vi.fn();
+        window.addEventListener("rffm.quiniela_wallet_updated", listener);
+        getCurrentQuiniela.mockResolvedValue(current({ myTickets: [walletTicket()] }));
+        getMyQuinielaWallet.mockResolvedValue(walletOf(3));
+        payQuinielaTicketWithWallet.mockResolvedValue(
+          walletTicket({ paymentStatus: "Paid", paymentMethod: "Wallet", walletCharge: { amount: 1, balanceAfter: 2 } }),
+        );
+        renderPage();
+        await screen.findByText("CD Los Olivos");
+        fireEvent.click(await screen.findByRole("button", { name: /pagar con monedero/i }));
+
+        await waitFor(() => expect(listener).toHaveBeenCalledTimes(1));
+        window.removeEventListener("rffm.quiniela_wallet_updated", listener);
+      });
+
+      it("ante un 409 de saldo insuficiente avisa con un error y refresca el saldo", async () => {
+        const snackbars = captureSnackbars();
+        getCurrentQuiniela.mockResolvedValue(current({ myTickets: [walletTicket()] }));
+        getMyQuinielaWallet.mockResolvedValue(walletOf(3));
+        payQuinielaTicketWithWallet.mockRejectedValue({
+          response: { status: 409, data: { detail: "Saldo insuficiente en el monedero.", code: "QuinielaWalletInsufficientBalance" } },
+        });
+        renderPage();
+        await screen.findByText("CD Los Olivos");
+        fireEvent.click(await screen.findByRole("button", { name: /pagar con monedero/i }));
+
+        await waitFor(() =>
+          expect(snackbars.messages()).toContainEqual({ message: "Saldo insuficiente en el monedero.", severity: "error" }),
+        );
+        await waitFor(() => expect(getMyQuinielaWallet).toHaveBeenCalledTimes(2));
+        expect(screen.getByText("Pendiente de pago")).toBeInTheDocument();
+        snackbars.stop();
+      });
+    });
+
+    describe("eliminar un boleto pagado", () => {
+      it("se ofrece en un boleto pagado con monedero y la confirmación avisa del reembolso", async () => {
+        getCurrentQuiniela.mockResolvedValue(current({ myTickets: [walletTicket({ paymentStatus: "Paid", paymentMethod: "Wallet" })] }));
+        renderPage();
+        await screen.findByText("CD Los Olivos");
+
+        fireEvent.click(screen.getByRole("button", { name: /eliminar mi boleto/i }));
+        const dialog = await screen.findByRole("dialog");
+        expect(within(dialog).getByText(/reembols/i)).toBeInTheDocument();
+        expect(within(dialog).getByText(/monedero/i)).toBeInTheDocument();
+      });
+
+      it.each(["Cash", "Bizum"] as const)("no se ofrece en un boleto pagado con %s y se indica que lo pida al entrenador", async (method) => {
+        getCurrentQuiniela.mockResolvedValue(current({ myTickets: [walletTicket({ paymentStatus: "Paid", paymentMethod: method })] }));
+        renderPage();
+        await screen.findByText("CD Los Olivos");
+        expect(screen.queryByRole("button", { name: /eliminar mi boleto/i })).not.toBeInTheDocument();
+        expect(screen.getByText(/pídeselo al entrenador/i)).toBeInTheDocument();
+      });
+
+      it("no se ofrece en un boleto pagado con monedero si los pronósticos están cerrados", async () => {
+        const base = current();
+        getCurrentQuiniela.mockResolvedValue(
+          current({
+            myTickets: [walletTicket({ paymentStatus: "Paid", paymentMethod: "Wallet" })],
+            jornada: { ...base.jornada!, picksClosed: true },
+          }),
+        );
+        renderPage();
+        await screen.findByText("CD Los Olivos");
+        expect(screen.queryByRole("button", { name: /eliminar mi boleto/i })).not.toBeInTheDocument();
+      });
+    });
+
+    it("el entrenador ve el acceso a los monederos", async () => {
+      getCurrentQuiniela.mockResolvedValue(current({ canManage: true }));
+      renderPage();
+      expect(await screen.findByRole("button", { name: /monederos/i })).toBeInTheDocument();
+    });
+
+    it("el participante no ve el acceso a los monederos", async () => {
+      getCurrentQuiniela.mockResolvedValue(current({ canManage: false }));
+      renderPage();
+      await screen.findByText("CD Los Olivos");
+      expect(screen.queryByRole("button", { name: /monederos/i })).not.toBeInTheDocument();
     });
   });
 

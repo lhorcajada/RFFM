@@ -204,6 +204,25 @@ describe("buildTeamSections — Quiniela", () => {
   });
 });
 
+describe("buildTeamSections — Monederos de la quiniela", () => {
+  it("coloca los Monederos en Competición con el equipo en la ruta", () => {
+    expect(groupOf("Monederos de la quiniela")).toBe("Competición");
+    expect(findItem("Monederos de la quiniela", { teamId: "team-1" })?.to).toBe("/coach/quiniela/monederos?teamId=team-1");
+  });
+
+  it("muestra los Monederos al entrenador con acceso", () => {
+    expect(labels({ isPlayer: false })).toContain("Monederos de la quiniela");
+  });
+
+  it("oculta los Monederos al jugador aunque tenga acceso", () => {
+    expect(labels({ isPlayer: true })).not.toContain("Monederos de la quiniela");
+  });
+
+  it("oculta los Monederos sin permiso de la funcionalidad", () => {
+    expect(labels({ hasFeatureAccess: (r) => r !== COACH_FEATURE_ROUTES.Quiniela })).not.toContain("Monederos de la quiniela");
+  });
+});
+
 describe("buildTeamSections — Bolsa de la quiniela", () => {
   it("coloca la Bolsa en Competición con el equipo en la ruta", () => {
     expect(groupOf("Bolsa de la quiniela")).toBe("Competición");

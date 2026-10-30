@@ -1,4 +1,9 @@
-import type { QuinielaPaymentStatus } from "../../services/quinielaService";
+import type {
+  QuinielaPaymentStatus,
+  QuinielaTicketPaymentMethod,
+  QuinielaWalletCharge,
+  QuinielaWalletMovementType,
+} from "../../services/quinielaService";
 
 const MADRID_TZ = "Europe/Madrid";
 
@@ -87,7 +92,44 @@ export function roleLabel(role: string): string {
 export function paymentMethodLabel(method: string | null | undefined): string | null {
   if (method === "Cash") return "Efectivo";
   if (method === "Bizum") return "Bizum";
+  if (method === "Wallet") return "Monedero";
   return null;
+}
+
+export function ticketPaymentLabel(
+  status: QuinielaPaymentStatus,
+  method: QuinielaTicketPaymentMethod | null | undefined,
+): string {
+  return status === "Paid" && method === "Wallet" ? "Pagado con monedero" : paymentStatusLabel(status);
+}
+
+const WALLET_MOVEMENT_LABELS: Record<QuinielaWalletMovementType, string> = {
+  TopUp: "Recarga",
+  Adjustment: "Ajuste",
+  TicketCharge: "Cobro de boleto",
+  TicketRefund: "Reembolso de boleto",
+};
+
+export function walletMovementLabel(type: QuinielaWalletMovementType): string {
+  return WALLET_MOVEMENT_LABELS[type] ?? type;
+}
+
+export const WALLET_MIN_AMOUNT = 0.01;
+export const WALLET_MAX_AMOUNT = 10;
+
+export function parseWalletAmount(text: string): { value: number } | { error: string } {
+  const normalized = text.trim().replace(",", ".");
+  if (!normalized) return { error: "Introduce un importe." };
+  if (!/^\d+(\.\d{1,2})?$/.test(normalized)) return { error: "El importe debe ser un número con 2 decimales como máximo." };
+  const value = Number(normalized);
+  if (value < WALLET_MIN_AMOUNT || value > WALLET_MAX_AMOUNT) {
+    return { error: `El importe debe estar entre ${formatMoney(WALLET_MIN_AMOUNT)} y ${formatMoney(WALLET_MAX_AMOUNT)}.` };
+  }
+  return { value };
+}
+
+export function walletChargeMessage(charge: QuinielaWalletCharge): string {
+  return `Se han cobrado ${formatMoney(charge.amount)} de tu monedero. Saldo: ${formatMoney(charge.balanceAfter)}`;
 }
 
 export function signedMoney(value: number): string {

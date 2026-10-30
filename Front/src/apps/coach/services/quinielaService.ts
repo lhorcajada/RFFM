@@ -3,6 +3,7 @@ import client from "../../../core/api/client";
 export type QuinielaSign = "1" | "X" | "2";
 export type QuinielaPaymentStatus = "Pending" | "Paid" | "Expired";
 export type QuinielaPaymentMethod = "Cash" | "Bizum";
+export type QuinielaTicketPaymentMethod = QuinielaPaymentMethod | "Wallet";
 export type QuinielaCategory = "None" | "Special" | "First" | "Second" | "Third";
 
 export type QuinielaJornada = {
@@ -36,6 +37,11 @@ export type QuinielaPick = {
   sign: QuinielaSign;
 };
 
+export type QuinielaWalletCharge = {
+  amount: number;
+  balanceAfter: number;
+};
+
 export type QuinielaTicket = {
   id: string;
   number: number;
@@ -43,6 +49,8 @@ export type QuinielaTicket = {
   plenoHome: number;
   plenoAway: number;
   paymentStatus: QuinielaPaymentStatus;
+  paymentMethod?: QuinielaTicketPaymentMethod | null;
+  walletCharge?: QuinielaWalletCharge | null;
   paymentDeadlineUtc: string | null;
   hits: number | null;
   category: QuinielaCategory | null;
@@ -99,7 +107,7 @@ export type QuinielaPaymentTicket = {
   userName: string;
   role: string;
   paymentStatus: QuinielaPaymentStatus;
-  paymentMethod: QuinielaPaymentMethod | null;
+  paymentMethod: QuinielaTicketPaymentMethod | null;
   paidAt: string | null;
   hits: number | null;
   category: QuinielaCategory | null;
@@ -158,6 +166,54 @@ export type QuinielaSettlement = {
   fundAmount: number;
   carryOut: number;
   tickets: QuinielaTicketResult[];
+};
+
+export type QuinielaWalletMovementType = "TopUp" | "Adjustment" | "TicketCharge" | "TicketRefund";
+
+export type QuinielaWalletMovement = {
+  id: string;
+  type: QuinielaWalletMovementType;
+  amount: number;
+  occurredAt: string;
+  description: string | null;
+  ticketId: string | null;
+};
+
+export type QuinielaWallet = {
+  userId: string;
+  userName: string;
+  role: string;
+  balance: number;
+  totalMovements: number;
+  movements: QuinielaWalletMovement[];
+};
+
+export type QuinielaWalletSummary = {
+  userId: string;
+  userName: string;
+  role: string;
+  balance: number;
+};
+
+export type QuinielaWalletOperation = {
+  userId: string;
+  balance: number;
+  movement: QuinielaWalletMovement;
+};
+
+export type QuinielaWalletPage = {
+  limit?: number;
+  offset?: number;
+};
+
+export type TopUpQuinielaWalletRequest = {
+  amount: number;
+  description?: string;
+};
+
+export type AdjustQuinielaWalletRequest = {
+  amount: number;
+  reason: string;
 };
 
 const quinielaUrl = (teamId: string) => `/api/teams/${encodeURIComponent(teamId)}/quiniela`;
@@ -219,6 +275,65 @@ export async function deleteMyQuinielaTicket(teamId: string, jornadaId: string, 
 
 export async function resetQuiniela(teamId: string, jornadaId: string): Promise<void> {
   await client.delete(jornadaUrl(teamId, jornadaId));
+}
+
+const walletPageParams = ({ limit = 25, offset = 0 }: QuinielaWalletPage) => ({ params: { limit, offset } });
+
+export async function getMyQuinielaWallet(teamId: string, page: QuinielaWalletPage = {}): Promise<QuinielaWallet> {
+  const resp = await client.get<QuinielaWallet>(`${quinielaUrl(teamId)}/wallet`, walletPageParams(page));
+  return resp.data;
+}
+
+export async function getQuinielaWalletOf(
+  teamId: string,
+  userId: string,
+  page: QuinielaWalletPage = {},
+): Promise<QuinielaWallet> {
+  const resp = await client.get<QuinielaWallet>(
+    `${quinielaUrl(teamId)}/wallets/${encodeURIComponent(userId)}`,
+    walletPageParams(page),
+  );
+  return resp.data;
+}
+
+export async function getQuinielaWallets(teamId: string): Promise<QuinielaWalletSummary[]> {
+  const resp = await client.get<QuinielaWalletSummary[]>(`${quinielaUrl(teamId)}/wallets`);
+  return resp.data;
+}
+
+export async function topUpQuinielaWallet(
+  teamId: string,
+  userId: string,
+  body: TopUpQuinielaWalletRequest,
+): Promise<QuinielaWalletOperation> {
+  const resp = await client.post<QuinielaWalletOperation>(
+    `${quinielaUrl(teamId)}/wallets/${encodeURIComponent(userId)}/top-ups`,
+    body,
+  );
+  return resp.data;
+}
+
+export async function adjustQuinielaWallet(
+  teamId: string,
+  userId: string,
+  body: AdjustQuinielaWalletRequest,
+): Promise<QuinielaWalletOperation> {
+  const resp = await client.post<QuinielaWalletOperation>(
+    `${quinielaUrl(teamId)}/wallets/${encodeURIComponent(userId)}/adjustments`,
+    body,
+  );
+  return resp.data;
+}
+
+export async function payQuinielaTicketWithWallet(
+  teamId: string,
+  jornadaId: string,
+  ticketId: string,
+): Promise<QuinielaTicket> {
+  const resp = await client.post<QuinielaTicket>(
+    `${jornadaUrl(teamId, jornadaId)}/my-tickets/${encodeURIComponent(ticketId)}/wallet-payment`,
+  );
+  return resp.data;
 }
 
 export async function getQuinielaSettings(teamId: string): Promise<QuinielaSettings> {

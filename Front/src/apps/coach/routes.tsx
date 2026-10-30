@@ -52,6 +52,7 @@ const Sanctions = lazy(() => import("./pages/sanctions/Sanctions"));
 const Lottery = lazy(() => import("./pages/lottery/Lottery"));
 const Quiniela = lazy(() => import("./pages/quiniela/Quiniela"));
 const QuinielaPool = lazy(() => import("./pages/quiniela/QuinielaPool"));
+const QuinielaWallets = lazy(() => import("./pages/quiniela/QuinielaWallets"));
 const Rivals = lazy(() => import("./pages/rivals/Rivals"));
 const Results = lazy(() => import("./pages/results/Results"));
 const RivalStats = lazy(() => import("./pages/rivalStats/RivalStats"));
@@ -447,6 +448,14 @@ function CoachRoutesContent() {
               element={
                 <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.Quiniela}>
                   <QuinielaPool />
+                </RequireFeaturePermission>
+              }
+            />
+            <Route
+              path="quiniela/monederos"
+              element={
+                <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.Quiniela}>
+                  <QuinielaWallets />
                 </RequireFeaturePermission>
               }
             />

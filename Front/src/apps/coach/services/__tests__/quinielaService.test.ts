@@ -7,12 +7,18 @@ vi.mock("../../../../core/api/client", () => ({
 
 import client from "../../../../core/api/client";
 import {
+  adjustQuinielaWallet,
   deleteMyQuinielaTicket,
   deleteQuinielaTicket,
   getCurrentQuiniela,
+  getMyQuinielaWallet,
   getQuinielaPayments,
+  getQuinielaWalletOf,
+  getQuinielaWallets,
   openQuiniela,
+  payQuinielaTicketWithWallet,
   resetQuiniela,
+  topUpQuinielaWallet,
   saveQuinielaTicket,
   setQuinielaTicketPayment,
   settleQuiniela,
@@ -100,5 +106,55 @@ describe("quinielaService", () => {
     mocked.delete.mockResolvedValue({});
     await resetQuiniela("t1", "j1");
     expect(mocked.delete).toHaveBeenCalledWith("/api/teams/t1/quiniela/j1");
+  });
+
+  describe("monedero", () => {
+    it("getMyQuinielaWallet hace GET a /wallet con limit y offset", async () => {
+      mocked.get.mockResolvedValue({ data: { balance: 2 } });
+      const result = await getMyQuinielaWallet("t1", { limit: 25, offset: 50 });
+      expect(mocked.get).toHaveBeenCalledWith("/api/teams/t1/quiniela/wallet", { params: { limit: 25, offset: 50 } });
+      expect(result).toEqual({ balance: 2 });
+    });
+
+    it("getMyQuinielaWallet usa limit 25 y offset 0 por defecto", async () => {
+      mocked.get.mockResolvedValue({ data: {} });
+      await getMyQuinielaWallet("t1");
+      expect(mocked.get).toHaveBeenCalledWith("/api/teams/t1/quiniela/wallet", { params: { limit: 25, offset: 0 } });
+    });
+
+    it("getQuinielaWalletOf hace GET a /wallets/{userId}", async () => {
+      mocked.get.mockResolvedValue({ data: { userId: "u 1" } });
+      const result = await getQuinielaWalletOf("t1", "u 1", { limit: 10, offset: 0 });
+      expect(mocked.get).toHaveBeenCalledWith("/api/teams/t1/quiniela/wallets/u%201", { params: { limit: 10, offset: 0 } });
+      expect(result).toEqual({ userId: "u 1" });
+    });
+
+    it("getQuinielaWallets hace GET a /wallets", async () => {
+      mocked.get.mockResolvedValue({ data: [{ userId: "u1" }] });
+      const result = await getQuinielaWallets("t1");
+      expect(mocked.get).toHaveBeenCalledWith("/api/teams/t1/quiniela/wallets");
+      expect(result).toEqual([{ userId: "u1" }]);
+    });
+
+    it("topUpQuinielaWallet hace POST a /wallets/{userId}/top-ups", async () => {
+      mocked.post.mockResolvedValue({ data: { balance: 3 } });
+      const result = await topUpQuinielaWallet("t1", "u1", { amount: 3, description: "Bizum" });
+      expect(mocked.post).toHaveBeenCalledWith("/api/teams/t1/quiniela/wallets/u1/top-ups", { amount: 3, description: "Bizum" });
+      expect(result).toEqual({ balance: 3 });
+    });
+
+    it("adjustQuinielaWallet hace POST a /wallets/{userId}/adjustments", async () => {
+      mocked.post.mockResolvedValue({ data: { balance: 1 } });
+      const result = await adjustQuinielaWallet("t1", "u1", { amount: 2, reason: "Error" });
+      expect(mocked.post).toHaveBeenCalledWith("/api/teams/t1/quiniela/wallets/u1/adjustments", { amount: 2, reason: "Error" });
+      expect(result).toEqual({ balance: 1 });
+    });
+
+    it("payQuinielaTicketWithWallet hace POST a /wallet-payment sin cuerpo y devuelve el boleto", async () => {
+      mocked.post.mockResolvedValue({ data: { id: "tk1", paymentStatus: "Paid" } });
+      const result = await payQuinielaTicketWithWallet("t1", "j1", "tk 1");
+      expect(mocked.post).toHaveBeenCalledWith("/api/teams/t1/quiniela/j1/my-tickets/tk%201/wallet-payment");
+      expect(result).toEqual({ id: "tk1", paymentStatus: "Paid" });
+    });
   });
 });

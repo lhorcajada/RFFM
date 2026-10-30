@@ -100,6 +100,29 @@
   opacity: 0.5;
 }
 
+.wallet {
+  min-height: 48px;
+  border: 1px solid var(--rffm-primary);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--rffm-primary);
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.wallet:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.noteVisible {
+  margin: 0;
+  color: var(--rffm-muted, #a59f9f);
+  font-size: 0.8125rem;
+}
+
 .remove {
   min-height: 44px;
   border: 1px solid var(--rffm-status-declined);

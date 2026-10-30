@@ -4,6 +4,7 @@ import { Box, Button, CircularProgress, Stack } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import PaymentsOutlinedIcon from "@mui/icons-material/PaymentsOutlined";
 import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
+import AccountBalanceWalletOutlinedIcon from "@mui/icons-material/AccountBalanceWalletOutlined";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import EmptyState from "../../../../shared/components/ui/EmptyState/EmptyState";
@@ -13,9 +14,16 @@ import { FEATURE_FLAGS } from "../../../../shared/services/featureFlagsService";
 import useTeamDashboardBack from "../../hooks/useTeamDashboardBack";
 import useTeamAndClub from "../../hooks/useTeamAndClub.tsx";
 import ConfirmDialog from "../../../../shared/components/ui/ConfirmDialog/ConfirmDialog";
-import { deleteMyQuinielaTicket, getCurrentQuiniela, openQuiniela, saveQuinielaTicket } from "../../services/quinielaService";
-import type { QuinielaCurrent, QuinielaSign, QuinielaTicket } from "../../services/quinielaService";
-import { apiErrorMessage, formatKickoff, goalsFromLabel, goalsToLabel } from "./quinielaHelpers";
+import {
+  deleteMyQuinielaTicket,
+  getCurrentQuiniela,
+  getMyQuinielaWallet,
+  openQuiniela,
+  payQuinielaTicketWithWallet,
+  saveQuinielaTicket,
+} from "../../services/quinielaService";
+import type { QuinielaCurrent, QuinielaSign, QuinielaTicket, QuinielaWallet } from "../../services/quinielaService";
+import { apiErrorMessage, formatKickoff, formatMoney, goalsFromLabel, goalsToLabel, walletChargeMessage } from "./quinielaHelpers";
 import MatchPickCard from "./components/MatchPickCard";
 import PlenoCard from "./components/PlenoCard";
 import PoolSummary from "./components/PoolSummary";
@@ -23,6 +31,9 @@ import PreviousResultCard from "./components/PreviousResultCard";
 import QuinielaRulesDialog from "./components/QuinielaRulesDialog";
 import TicketSummary from "./components/TicketSummary";
 import TicketTabs, { NEW_TICKET } from "./components/TicketTabs";
+import WalletCard from "./components/WalletCard";
+import WalletMovementsDialog from "./components/WalletMovementsDialog";
+import { QUINIELA_WALLET_UPDATED_EVENT } from "../../../../shared/hooks/useQuinielaWalletBalance";
 import { currentUserId, markQuinielaSeen } from "../team-dashboard/utils/quinielaNovelty";
 import styles from "./Quiniela.module.css";
 
@@ -30,6 +41,10 @@ type Picks = Record<string, QuinielaSign>;
 
 function notify(message: string, severity: "success" | "error") {
   window.dispatchEvent(new CustomEvent("rffm.show_snackbar", { detail: { message, severity } }));
+}
+
+function notifyWalletUpdated() {
+  window.dispatchEvent(new CustomEvent(QUINIELA_WALLET_UPDATED_EVENT));
 }
 
 function picksFromTicket(ticket: QuinielaTicket | null): Picks {
@@ -55,6 +70,9 @@ export default function Quiniela() {
   const [plenoHome, setPlenoHome] = useState<string | null>(null);
   const [plenoAway, setPlenoAway] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string>(NEW_TICKET);
+  const [wallet, setWallet] = useState<QuinielaWallet | null>(null);
+  const [movementsOpen, setMovementsOpen] = useState(false);
+  const [paying, setPaying] = useState(false);
 
   const selectTicket = useCallback((ticket: QuinielaTicket | null) => {
     setSelectedId(ticket?.id ?? NEW_TICKET);
@@ -85,6 +103,18 @@ export default function Quiniela() {
     [applyCurrent],
   );
 
+  const loadWallet = useCallback(async (id: string) => {
+    try {
+      setWallet(await getMyQuinielaWallet(id));
+    } catch {
+      // El monedero es accesorio: si no carga, la quiniela sigue funcionando.
+    }
+  }, []);
+
+  useEffect(() => {
+    if (teamId) void loadWallet(teamId);
+  }, [teamId, loadWallet]);
+
   useEffect(() => {
     if (teamId) markQuinielaSeen(currentUserId(), teamId);
   }, [teamId]);
@@ -100,6 +130,14 @@ export default function Quiniela() {
   const validMatches = useMemo(() => matches.filter((m) => m.isValid), [matches]);
   const hasPleno = validMatches.some((m) => m.isPleno);
   const closed = jornada?.picksClosed ?? false;
+  const picksOpen = jornada?.status === "Open" && !closed;
+  const isWalletPaid = selectedTicket?.paymentStatus === "Paid" && selectedTicket.paymentMethod === "Wallet";
+  const isManuallyPaid = selectedTicket?.paymentStatus === "Paid" && !isWalletPaid;
+  const canPayWithWallet = selectedTicket?.paymentStatus === "Pending" && picksOpen;
+  const walletBlockedReason =
+    jornada && wallet && wallet.balance < jornada.price
+      ? `Saldo insuficiente: tienes ${formatMoney(wallet.balance)} y el boleto cuesta ${formatMoney(jornada.price)}.`
+      : null;
 
   const total = validMatches.length + (hasPleno ? 1 : 0);
   const pickedCount = validMatches.filter((m) => picks[m.recordCode]).length;
@@ -134,11 +172,35 @@ export default function Quiniela() {
           : prev,
       );
       setSelectedId(ticket.id);
-      notify("Boleto guardado", "success");
+      if (ticket.walletCharge) {
+        notify(`Boleto guardado. ${walletChargeMessage(ticket.walletCharge)}`, "success");
+        void loadWallet(teamId);
+        notifyWalletUpdated();
+      } else {
+        notify("Boleto guardado", "success");
+      }
     } catch (e: unknown) {
       notify(apiErrorMessage(e, "No se pudo guardar el boleto."), "error");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handlePayWithWallet = async () => {
+    if (!teamId || !jornada || !selectedTicket) return;
+    setPaying(true);
+    try {
+      const ticket = await payQuinielaTicketWithWallet(teamId, jornada.id, selectedTicket.id);
+      setCurrent((prev) =>
+        prev ? { ...prev, myTickets: prev.myTickets.map((t) => (t.id === ticket.id ? ticket : t)) } : prev,
+      );
+      notifyWalletUpdated();
+      notify(ticket.walletCharge ? walletChargeMessage(ticket.walletCharge) : "Boleto pagado con el monedero", "success");
+    } catch (e: unknown) {
+      notify(apiErrorMessage(e, "No se pudo pagar el boleto con el monedero."), "error");
+    } finally {
+      void loadWallet(teamId);
+      setPaying(false);
     }
   };
 
@@ -163,6 +225,10 @@ export default function Quiniela() {
       await deleteMyQuinielaTicket(teamId, jornada.id, selectedTicket.id);
       setDeleteOpen(false);
       await load(teamId);
+      if (isWalletPaid) {
+        void loadWallet(teamId);
+        notifyWalletUpdated();
+      }
       notify("Boleto eliminado", "success");
     } catch (e: unknown) {
       setDeleteOpen(false);
@@ -218,9 +284,10 @@ export default function Quiniela() {
           )}
         </div>
 
-        {data.pool && (
+        {(wallet || data.pool) && (
           <div className={styles.pool}>
-            <PoolSummary pool={data.pool} carryIn={jornada.carryIn} />
+            {wallet && <WalletCard balance={wallet.balance} onShowMovements={() => setMovementsOpen(true)} />}
+            {data.pool && <PoolSummary pool={data.pool} carryIn={jornada.carryIn} />}
           </div>
         )}
 
@@ -271,14 +338,20 @@ export default function Quiniela() {
             price={jornada.price}
             title={selectedTicket ? `Boleto ${selectedTicket.number}` : myTickets.length > 0 ? "Nuevo boleto" : "Tu boleto"}
             paymentStatus={selectedTicket?.paymentStatus ?? null}
+            paymentMethod={selectedTicket?.paymentMethod ?? null}
             paymentDeadlineUtc={jornada.paymentDeadlineUtc}
             closed={closed}
             saving={saving}
             canSave={canSave}
-            canDelete={selectedTicket !== null && selectedTicket.paymentStatus !== "Paid" && jornada.status === "Open"}
+            canDelete={selectedTicket !== null && picksOpen && !isManuallyPaid}
             deleting={deleting}
+            canPayWithWallet={canPayWithWallet}
+            walletBlockedReason={walletBlockedReason}
+            payingWithWallet={paying}
+            manualPaymentNote={isManuallyPaid && picksOpen}
             onSave={() => void handleSave()}
             onDelete={() => setDeleteOpen(true)}
+            onPayWithWallet={() => void handlePayWithWallet()}
           />
         </div>
 
@@ -320,6 +393,16 @@ export default function Quiniela() {
             </Button>
             {current?.canManage && (
               <Button
+                startIcon={<AccountBalanceWalletOutlinedIcon />}
+                onClick={() => navigate(`/coach/quiniela/monederos${teamId ? `?teamId=${encodeURIComponent(teamId)}` : ""}`)}
+                variant="outlined"
+                size="small"
+              >
+                Monederos
+              </Button>
+            )}
+            {current?.canManage && (
+              <Button
                 startIcon={<PaymentsOutlinedIcon />}
                 onClick={() => navigate(`/coach/quiniela/bolsa${teamId ? `?teamId=${encodeURIComponent(teamId)}` : ""}`)}
                 variant="outlined"
@@ -334,10 +417,20 @@ export default function Quiniela() {
         <div className={styles.content}>{renderContent()}</div>
       </ContentLayout>
       <QuinielaRulesDialog open={rulesOpen} onClose={() => setRulesOpen(false)} />
+      <WalletMovementsDialog
+        open={movementsOpen}
+        title="Mi monedero"
+        fetchPage={(limit, offset) => (teamId ? getMyQuinielaWallet(teamId, { limit, offset }) : Promise.reject(new Error("Sin equipo")))}
+        onClose={() => setMovementsOpen(false)}
+      />
       <ConfirmDialog
         open={deleteOpen}
         title="Eliminar mi boleto"
-        description="Se eliminará tu boleto de esta jornada. Podrás rellenar uno nuevo mientras los pronósticos sigan abiertos."
+        description={
+          isWalletPaid
+            ? `Se eliminará tu boleto de esta jornada y se te reembolsarán ${formatMoney(jornada?.price)} en tu monedero. Podrás rellenar uno nuevo mientras los pronósticos sigan abiertos.`
+            : "Se eliminará tu boleto de esta jornada. Podrás rellenar uno nuevo mientras los pronósticos sigan abiertos."
+        }
         confirmText="Eliminar"
         processing={deleting}
         onCancel={() => setDeleteOpen(false)}
