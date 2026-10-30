@@ -60,7 +60,7 @@ Each ticket SHALL cost 1.00 EUR. A ticket still pending after Friday 23:59 (Madr
 - **THEN** it is shown as expired and excluded from the distribution
 
 ### Requirement: The coach manages the pot and payments
-Only the team's coach SHALL list the jornada's tickets with totals (collected, pending, prizes, team fund), mark a ticket as paid or pending, and see the pot movements.
+Only the team's coach SHALL list the jornada's tickets with totals (collected, pending, prizes, team fund), mark a ticket as paid (Cash or Bizum) or pending, and see the pot movements. A ticket paid from the wallet SHALL count as collected. Marking a wallet-paid ticket as pending, or as paid by another method, SHALL refund the wallet charge to its owner.
 
 #### Scenario: Mark as paid
 - **WHEN** the coach marks a pending ticket as paid
@@ -69,6 +69,18 @@ Only the team's coach SHALL list the jornada's tickets with totals (collected, p
 #### Scenario: Not the coach
 - **WHEN** a player requests the payments of the jornada
 - **THEN** the request is rejected as forbidden
+
+#### Scenario: Wallet-paid ticket counts as collected
+- **WHEN** a ticket is paid from the wallet
+- **THEN** the collected total includes its price and the ticket shows the method Wallet
+
+#### Scenario: Wallet-paid ticket back to pending
+- **WHEN** the coach marks a wallet-paid ticket as pending
+- **THEN** the ticket is pending and the owner is refunded the charge
+
+#### Scenario: Wallet is not a manual method
+- **WHEN** the coach marks a ticket as paid with method Wallet
+- **THEN** the request is rejected with a validation ProblemDetails
 
 ### Requirement: Settlement follows the official quiniela
 The coach SHALL settle a jornada once all valid matches are final. Prize categories are: Especial (all valid signs and exact Pleno), 1st (all valid signs), 2nd (one miss) and 3rd (two misses). The prize pool SHALL equal 55 % of the collected amount plus the carry-over, and each category SHALL receive pool x weight / 38.5 with the official weights adapted to four categories and rescaled (Especial 7.5, 1st 16, 2nd 7.5, 3rd 7.5). Each category's prize is split equally among its paid, non-expired winners and truncated to the cent; rounding remainders become the carry-over. An empty Especial or 1st category SHALL become carry-over; an empty 2nd category SHALL add its amount to the 3rd; an empty 3rd category (including what it received from the 2nd) SHALL become carry-over. The prize of a category SHALL NOT exceed the prize of a higher category with winners: when it would, both funds are added and split among the winners of both categories. The remaining 45 % SHALL be added to the team fund.
