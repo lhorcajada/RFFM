@@ -446,6 +446,20 @@ describe("QuinielaPool", () => {
     expect(within(groups[1]).getAllByTestId("payment-card")).toHaveLength(1);
   });
 
+  it("permite al entrenador marcar como pagado un boleto expirado", async () => {
+    setQuinielaTicketPayment.mockResolvedValue(undefined);
+    getQuinielaPayments.mockResolvedValue(
+      payments({
+        tickets: [ticket({ id: "t9", userId: "u9", userName: "Marta Gil", number: 1, paymentStatus: "Expired", paymentMethod: null, paidAt: null })],
+      }),
+    );
+    renderPage();
+    await screen.findByText("Marta Gil");
+
+    fireEvent.click(screen.getByRole("button", { name: /pagado por bizum/i }));
+    await waitFor(() => expect(setQuinielaTicketPayment).toHaveBeenCalledWith("team-1", "j1", "t9", { paid: true, method: "Bizum" }));
+  });
+
   it("cada boleto del grupo se revisa, paga y elimina por separado", async () => {
     setQuinielaTicketPayment.mockResolvedValue(undefined);
     getQuinielaPayments.mockResolvedValue(

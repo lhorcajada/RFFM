@@ -72,7 +72,7 @@ export default function PaymentCard({ ticket, price, matches, editable, busy, on
         )}
       </div>
       {expanded && <TicketPicks ticket={ticket} matches={matches} />}
-      {editable && ticket.paymentStatus === "Pending" && (
+      {editable && (ticket.paymentStatus === "Pending" || ticket.paymentStatus === "Expired") && (
         <div className={styles.payRow}>
           <span className={styles.payLabel}>Marcar como pagado</span>
           <div className={styles.payButtons}>
