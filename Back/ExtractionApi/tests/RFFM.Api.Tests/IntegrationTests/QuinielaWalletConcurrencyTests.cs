@@ -100,5 +100,36 @@ namespace RFFM.Api.Tests.IntegrationTests
             Assert.Equal(1, outcomes.Count(o => o));
             Assert.Equal(4m, await Wallets.BalanceOfAsync(fixture, seed.TeamId, seed.PlayerId));
         }
+
+        [Fact]
+        public async Task ChargingATicketThatWasPaidAfterItWasRead_DoesNotChargeTheWalletTwice()
+        {
+            var seed = await SeedTeamAsync(fixture);
+            var roundId = await SeedRoundAsync(fixture, seed.GroupCode, 1, StandardMatches("k4"));
+            var jornada = await SeedJornadaAsync(fixture, seed.TeamId, roundId);
+            var ticket = await SeedTicketAsync(fixture, jornada.Id, seed.PlayerId, "k4", QuinielaSign.Home, QuinielaSign.Draw, QuinielaSign.Away);
+            await Wallets.SeedWalletAsync(fixture, seed.TeamId, seed.PlayerId, 5m);
+
+            await using var staleDb = fixture.CreateDbContext();
+            await using var fed = fixture.CreateFederationDbContext();
+            var staleTicket = await staleDb.QuinielaTickets.SingleAsync(t => t.Id == ticket.Id);
+            var staleJornada = await QuinielaSupport.LoadJornadaAsync(staleDb, seed.TeamId, jornada.Id, CancellationToken.None);
+            var round = await QuinielaSupport.LoadRoundAsync(fed, staleJornada.RffmRoundId, CancellationToken.None);
+
+            await using (var otherDb = fixture.CreateDbContext())
+            await using (var otherFed = fixture.CreateFederationDbContext())
+            {
+                await new PayQuinielaTicketWithWallet.Handler(otherDb, otherFed, User(seed.PlayerId), ClockAt(BeforeKickoff))
+                    .Handle(new PayQuinielaTicketWithWallet.Command(seed.TeamId, jornada.Id, ticket.Id), CancellationToken.None);
+            }
+
+            var ex = await Assert.ThrowsAsync<ConflictException>(() =>
+                QuinielaSupport.TryChargeFromWalletAsync(staleDb, staleTicket, staleJornada, round, BeforeKickoff, CancellationToken.None));
+
+            Assert.Equal(ErrorCodes.QuinielaTicketNotPayable, ex.Code);
+            Assert.Equal(4m, await Wallets.BalanceOfAsync(fixture, seed.TeamId, seed.PlayerId));
+            var movements = await Wallets.MovementsOfAsync(fixture, seed.TeamId, seed.PlayerId);
+            Assert.Single(movements.Where(m => m.Type == QuinielaWalletMovementType.TicketCharge));
+        }
     }
 }

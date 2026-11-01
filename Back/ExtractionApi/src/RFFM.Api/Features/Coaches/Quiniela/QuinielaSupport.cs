@@ -314,6 +314,15 @@ namespace RFFM.Api.Features.Coaches.Quiniela
 
             var wallet = await db.QuinielaWallets.SingleOrDefaultAsync(
                 w => w.TeamId == jornada.TeamId && w.ApplicationUserId == ticket.ApplicationUserId, ct);
+
+            // Otro pago puede haber terminado entre la lectura del boleto y la del monedero: el boleto leído sigue
+            // "pendiente" pero el monedero ya trae el saldo nuevo, y el token xmin no detectaría el cobro doble.
+            // Releer el estado después del monedero cierra esa ventana en cualquier orden de ejecución.
+            var alreadyPaid = await db.QuinielaTickets.AsNoTracking()
+                .AnyAsync(t => t.Id == ticket.Id && t.PaymentStatus == QuinielaPaymentStatus.Paid, ct);
+            if (alreadyPaid)
+                throw new ConflictException("El boleto ya está pagado.", ErrorCodes.QuinielaTicketNotPayable);
+
             var movement = wallet?.TryChargeTicket(ticket.Id, jornada.Price, nowUtc);
             if (wallet is null || movement is null)
                 return null;
