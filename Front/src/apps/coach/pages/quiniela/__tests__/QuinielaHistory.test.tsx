@@ -1,7 +1,14 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { QuinielaCurrent, QuinielaHistory, QuinielaHistoryItem, QuinielaTicket } from "../../../services/quinielaService";
+import type {
+  QuinielaCurrent,
+  QuinielaHistory,
+  QuinielaHistoryItem,
+  QuinielaJornadaResults,
+  QuinielaPaymentTicket,
+  QuinielaTicket,
+} from "../../../services/quinielaService";
 import { UserProvider } from "../../../../../shared/context/UserContext";
 
 vi.mock("../../../services/authService", () => ({
@@ -26,9 +33,11 @@ vi.mock("../../../../../shared/hooks/useAuditPageAccess", () => ({ useAuditPageA
 
 const getCurrentQuiniela = vi.fn();
 const getQuinielaHistory = vi.fn();
+const getQuinielaJornadaResults = vi.fn();
 vi.mock("../../../services/quinielaService", () => ({
   getCurrentQuiniela: (...args: unknown[]) => getCurrentQuiniela(...args),
   getQuinielaHistory: (...args: unknown[]) => getQuinielaHistory(...args),
+  getQuinielaJornadaResults: (...args: unknown[]) => getQuinielaJornadaResults(...args),
 }));
 
 import QuinielaHistoryPage from "../QuinielaHistory";
@@ -87,6 +96,48 @@ function item(roundNumber: number, overrides: Partial<QuinielaHistoryItem> = {})
     myPrize: null,
     winners: [],
     ...overrides,
+  };
+}
+
+function paymentTicket(overrides: Partial<QuinielaPaymentTicket> = {}): QuinielaPaymentTicket {
+  return {
+    id: "tk1",
+    number: 1,
+    userId: "u1",
+    userName: "Carla Ruiz",
+    role: "Player",
+    paymentStatus: "Paid",
+    paymentMethod: "Cash",
+    paidAt: "2026-11-01T10:00:00Z",
+    hits: 1,
+    category: "Second",
+    prize: 1.5,
+    picks: [
+      { recordCode: "m1", sign: "1" },
+      { recordCode: "m2", sign: "2" },
+    ],
+    plenoHome: 1,
+    plenoAway: 1,
+    ...overrides,
+  };
+}
+
+function jornadaResults(tickets: QuinielaPaymentTicket[]): QuinielaJornadaResults {
+  const match = (recordCode: string, homeTeam: string, awayTeam: string, homeGoals: number, awayGoals: number, isPleno = false) => ({
+    recordCode,
+    homeTeam,
+    awayTeam,
+    kickoffUtc: "2026-11-01T10:00:00Z",
+    isValid: true,
+    isPleno,
+    homeGoals,
+    awayGoals,
+    isFinal: true,
+  });
+  return {
+    roundNumber: 7,
+    matches: [match("m1", "Alcobendas", "Getafe", 2, 0), match("m2", "Leganés", "Rayo", 1, 1, true)],
+    tickets,
   };
 }
 
@@ -235,6 +286,80 @@ describe("QuinielaHistory", () => {
       expect(await screen.findByRole("region", { name: /jornada 6/i })).toBeInTheDocument();
       expect(getQuinielaHistory).toHaveBeenLastCalledWith("team-1", { limit: 10, offset: 1 });
       expect(screen.queryByRole("button", { name: /cargar más/i })).not.toBeInTheDocument();
+    });
+  });
+
+  describe("boletos de una jornada liquidada", () => {
+    beforeEach(() => {
+      getQuinielaHistory.mockResolvedValue(history([item(7, { jornadaId: "j-7" })]));
+    });
+
+    it("al pulsar «Ver boletos» carga los boletos de esa jornada y marca aciertos y fallos de cada partido", async () => {
+      getQuinielaJornadaResults.mockResolvedValue(jornadaResults([paymentTicket()]));
+      renderPage();
+
+      const card = await screen.findByRole("region", { name: /jornada 7/i });
+      fireEvent.click(within(card).getByRole("button", { name: /ver boletos de la jornada 7/i }));
+
+      expect(await within(card).findByText("Carla Ruiz")).toBeInTheDocument();
+      expect(getQuinielaJornadaResults).toHaveBeenCalledWith("team-1", "j-7");
+      expect(within(card).getAllByLabelText("Acierto")).toHaveLength(1);
+      expect(within(card).getAllByLabelText("Fallo")).toHaveLength(1);
+      expect(within(card).getByText("2-0")).toBeInTheDocument();
+    });
+
+    it("muestra el nombre de cada participante cuando la jornada tiene boletos de varios usuarios", async () => {
+      getQuinielaJornadaResults.mockResolvedValue(
+        jornadaResults([
+          paymentTicket({ id: "a", userName: "Carla Ruiz" }),
+          paymentTicket({ id: "b", userId: "u2", userName: "Marcos Gil", number: 1 }),
+        ]),
+      );
+      renderPage();
+
+      const card = await screen.findByRole("region", { name: /jornada 7/i });
+      fireEvent.click(within(card).getByRole("button", { name: /ver boletos de la jornada 7/i }));
+
+      expect(await within(card).findByText("Carla Ruiz")).toBeInTheDocument();
+      expect(within(card).getByText("Marcos Gil")).toBeInTheDocument();
+    });
+
+    it("con el segundo clic oculta los boletos sin volver a pedirlos", async () => {
+      getQuinielaJornadaResults.mockResolvedValue(jornadaResults([paymentTicket()]));
+      renderPage();
+
+      const card = await screen.findByRole("region", { name: /jornada 7/i });
+      const toggle = within(card).getByRole("button", { name: /ver boletos de la jornada 7/i });
+      fireEvent.click(toggle);
+      await within(card).findByText("Carla Ruiz");
+      fireEvent.click(within(card).getByRole("button", { name: /ocultar boletos de la jornada 7/i }));
+
+      expect(within(card).queryByText("Carla Ruiz")).not.toBeInTheDocument();
+      fireEvent.click(within(card).getByRole("button", { name: /ver boletos de la jornada 7/i }));
+      expect(await within(card).findByText("Carla Ruiz")).toBeInTheDocument();
+      expect(getQuinielaJornadaResults).toHaveBeenCalledTimes(1);
+    });
+
+    it("si la jornada no tiene boletos del usuario lo indica", async () => {
+      getQuinielaJornadaResults.mockResolvedValue(jornadaResults([]));
+      renderPage();
+
+      const card = await screen.findByRole("region", { name: /jornada 7/i });
+      fireEvent.click(within(card).getByRole("button", { name: /ver boletos de la jornada 7/i }));
+
+      expect(await within(card).findByText(/no hay boletos en esta jornada/i)).toBeInTheDocument();
+    });
+
+    it("si falla la carga muestra un aviso y deja reintentar", async () => {
+      getQuinielaJornadaResults.mockRejectedValueOnce(new Error("boom")).mockResolvedValue(jornadaResults([paymentTicket()]));
+      renderPage();
+
+      const card = await screen.findByRole("region", { name: /jornada 7/i });
+      fireEvent.click(within(card).getByRole("button", { name: /ver boletos de la jornada 7/i }));
+      expect(await within(card).findByText(/no se pudieron cargar los boletos/i)).toBeInTheDocument();
+
+      fireEvent.click(within(card).getByRole("button", { name: /ver boletos de la jornada 7/i }));
+      expect(await within(card).findByText("Carla Ruiz")).toBeInTheDocument();
     });
   });
 

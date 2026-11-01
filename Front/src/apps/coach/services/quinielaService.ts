@@ -133,6 +133,12 @@ export type QuinielaPaymentTicket = {
   plenoAway: number;
 };
 
+export type QuinielaJornadaResults = {
+  roundNumber: number;
+  matches: QuinielaMatch[];
+  tickets: QuinielaPaymentTicket[];
+};
+
 export type QuinielaTotals = {
   collected: number;
   pending: number;
@@ -265,6 +271,11 @@ export async function saveQuinielaTicket(
 
 export async function getQuinielaPayments(teamId: string, jornadaId: string): Promise<QuinielaPayments> {
   const resp = await client.get<QuinielaPayments>(`${jornadaUrl(teamId, jornadaId)}/payments`);
+  return resp.data;
+}
+
+export async function getQuinielaJornadaResults(teamId: string, jornadaId: string): Promise<QuinielaJornadaResults> {
+  const resp = await client.get<QuinielaJornadaResults>(`${jornadaUrl(teamId, jornadaId)}/results`);
   return resp.data;
 }
 

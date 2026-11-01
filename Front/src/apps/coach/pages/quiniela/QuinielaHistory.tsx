@@ -10,6 +10,7 @@ import { COACH_FEATURE_ROUTES } from "../../constants/featureRoutes";
 import useTeamAndClub from "../../hooks/useTeamAndClub.tsx";
 import { getCurrentQuiniela, getQuinielaHistory } from "../../services/quinielaService";
 import type { QuinielaCurrent, QuinielaHistoryItem } from "../../services/quinielaService";
+import JornadaTickets from "./components/JornadaTickets";
 import { categoryLabel, formatKickoff, formatMoney, ticketOwnerLabel } from "./quinielaHelpers";
 import styles from "./QuinielaHistory.module.css";
 
@@ -72,7 +73,7 @@ function CurrentCard({ current, quinielaHref }: { current: QuinielaCurrent; quin
   );
 }
 
-function JornadaCard({ item }: { item: QuinielaHistoryItem }) {
+function JornadaCard({ item, teamId }: { item: QuinielaHistoryItem; teamId: string }) {
   const myPrize = item.myPrize ?? 0;
   return (
     <section aria-label={`Jornada ${item.roundNumber}`} className={styles.card}>
@@ -122,6 +123,7 @@ function JornadaCard({ item }: { item: QuinielaHistoryItem }) {
           ))}
         </ul>
       )}
+      <JornadaTickets teamId={teamId} jornadaId={item.jornadaId} roundNumber={item.roundNumber} />
     </section>
   );
 }
@@ -202,7 +204,7 @@ export default function QuinielaHistory() {
         ) : (
           <div className={styles.stack}>
             {items.map((item) => (
-              <JornadaCard key={item.jornadaId} item={item} />
+              <JornadaCard key={item.jornadaId} item={item} teamId={teamId} />
             ))}
             {items.length < total && (
               <Button variant="outlined" onClick={() => void handleLoadMore()} disabled={loadingMore} className={styles.more}>
