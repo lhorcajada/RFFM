@@ -389,7 +389,7 @@ export default function Quiniela() {
         title={jornada ? `Quiniela · Jornada ${jornada.roundNumber}` : "Quiniela"}
         subtitle={subtitle}
         actionBar={
-          <Stack direction="row" spacing={1}>
+          <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap", justifyContent: "flex-end", minWidth: 0 }}>
             <Button startIcon={<ArrowBackIcon />} onClick={() => goToTeamDashboard()} variant="outlined" size="small">
               Volver
             </Button>

@@ -181,7 +181,7 @@ export default function QuinielaWallets() {
         title="Monederos de la quiniela"
         subtitle="Saldo de cada participante para pagar sus boletos"
         actionBar={
-          <Stack direction="row" spacing={1}>
+          <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap", justifyContent: "flex-end", minWidth: 0 }}>
             <Button startIcon={<ArrowBackIcon />} onClick={() => navigate(quinielaPath)} variant="outlined" size="small">
               Volver
             </Button>
