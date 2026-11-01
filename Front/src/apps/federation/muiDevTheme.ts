@@ -57,6 +57,7 @@ const devTheme = createTheme(gameTheme, {
           "--bg": "#170a02",
           "--rffm-dash-card-bg": "#2b1404",
           "--rffm-dash-accent": "#ff6a00",
+          "--rffm-dash-on-accent": "#170a02",
           "--rffm-dash-card-text": "#fff3e8",
           "--rffm-dash-desc-text": "rgba(255, 224, 191, 0.65)",
           "--rffm-dash-card-border": "rgba(255, 106, 0, 0.22)",

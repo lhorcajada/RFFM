@@ -404,6 +404,7 @@ const gameTheme = createTheme({
           // ─── Enhanced dashboard card variables ───
           "--rffm-dash-card-bg": "#0a1628",
           "--rffm-dash-accent": "#00e5ff",
+          "--rffm-dash-on-accent": "#030a15",
           "--rffm-dash-card-text": "#f0f8ff",
           "--rffm-dash-desc-text": "rgba(210, 240, 255, 0.65)",
           "--rffm-dash-card-border": "rgba(0, 229, 255, 0.22)",
