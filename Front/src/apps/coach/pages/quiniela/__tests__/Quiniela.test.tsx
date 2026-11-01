@@ -35,9 +35,11 @@ const openQuiniela = vi.fn();
 const deleteMyQuinielaTicket = vi.fn();
 const getMyQuinielaWallet = vi.fn();
 const payQuinielaTicketWithWallet = vi.fn();
+const donateFromQuinielaWallet = vi.fn();
 vi.mock("../../../services/quinielaService", () => ({
   getMyQuinielaWallet: (...args: unknown[]) => getMyQuinielaWallet(...args),
   payQuinielaTicketWithWallet: (...args: unknown[]) => payQuinielaTicketWithWallet(...args),
+  donateFromQuinielaWallet: (...args: unknown[]) => donateFromQuinielaWallet(...args),
   deleteMyQuinielaTicket: (...args: unknown[]) => deleteMyQuinielaTicket(...args),
   getCurrentQuiniela: (...args: unknown[]) => getCurrentQuiniela(...args),
   saveQuinielaTicket: (...args: unknown[]) => saveQuinielaTicket(...args),
@@ -644,6 +646,38 @@ describe("Quiniela", () => {
       renderPage();
       await screen.findByText("CD Los Olivos");
       expect(screen.getByText("Pagado con monedero")).toBeInTheDocument();
+    });
+
+    describe("donar al equipo", () => {
+      it("dona el importe, avisa y refresca el saldo", async () => {
+        const snackbars = captureSnackbars();
+        getCurrentQuiniela.mockResolvedValue(current({ myTickets: [walletTicket()] }));
+        getMyQuinielaWallet.mockResolvedValueOnce(walletOf(5)).mockResolvedValue(walletOf(3));
+        donateFromQuinielaWallet.mockResolvedValue({ userId: "u1", balance: 3, movement: {} });
+        renderPage();
+        fireEvent.click(await screen.findByRole("button", { name: /donar al equipo/i }));
+        fireEvent.change(await screen.findByLabelText(/importe/i), { target: { value: "2" } });
+        fireEvent.click(screen.getByRole("button", { name: /^donar$/i }));
+
+        await waitFor(() => expect(donateFromQuinielaWallet).toHaveBeenCalledWith("team-1", 2));
+        await waitFor(() => expect(snackbars.messages().some((m) => m.severity === "success" && /gracias/i.test(m.message))).toBe(true));
+        await waitFor(() => expect(getMyQuinielaWallet).toHaveBeenCalledTimes(2));
+        snackbars.stop();
+      });
+
+      it("muestra el error si la donación falla", async () => {
+        const snackbars = captureSnackbars();
+        getCurrentQuiniela.mockResolvedValue(current({ myTickets: [walletTicket()] }));
+        getMyQuinielaWallet.mockResolvedValue(walletOf(5));
+        donateFromQuinielaWallet.mockRejectedValue(new Error("boom"));
+        renderPage();
+        fireEvent.click(await screen.findByRole("button", { name: /donar al equipo/i }));
+        fireEvent.change(await screen.findByLabelText(/importe/i), { target: { value: "2" } });
+        fireEvent.click(screen.getByRole("button", { name: /^donar$/i }));
+
+        await waitFor(() => expect(snackbars.messages().some((m) => m.severity === "error")).toBe(true));
+        snackbars.stop();
+      });
     });
 
     describe("pagar con monedero", () => {

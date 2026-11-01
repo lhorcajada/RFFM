@@ -30,6 +30,17 @@
   line-height: 1.1;
 }
 
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.action:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .action {
   min-height: 44px;
   padding: 0 16px;

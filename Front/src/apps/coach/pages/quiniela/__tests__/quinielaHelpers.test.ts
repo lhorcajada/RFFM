@@ -4,6 +4,7 @@ import {
   formatMoney,
   goalsFromLabel,
   goalsToLabel,
+  parseDonationAmount,
   parseWalletAmount,
   paymentMethodLabel,
   paymentStatusLabel,
@@ -69,6 +70,31 @@ describe("quinielaHelpers", () => {
     it.each(["", "abc", "0", "0,00", "10,01", "11", "-1", "1,234"])("rechaza «%s»", (text) => {
       expect(parseWalletAmount(text)).toHaveProperty("error");
     });
+  });
+
+  describe("parseDonationAmount", () => {
+    it.each([
+      ["0,01", 5, 0.01],
+      ["25", 25, 25],
+      [" 3,25 ", 10, 3.25],
+    ])("acepta %s con saldo %s", (text, balance, value) => {
+      expect(parseDonationAmount(text, balance)).toEqual({ value });
+    });
+
+    it.each([
+      ["", 5],
+      ["abc", 5],
+      ["0", 5],
+      ["-1", 5],
+      ["1,234", 5],
+      ["5,01", 5],
+    ])("rechaza «%s» con saldo %s", (text, balance) => {
+      expect(parseDonationAmount(text, balance)).toHaveProperty("error");
+    });
+  });
+
+  it("walletMovementLabel nombra la donación", () => {
+    expect(walletMovementLabel("Donation")).toBe("Donación");
   });
 
   it("walletChargeMessage indica importe cobrado y saldo restante", () => {

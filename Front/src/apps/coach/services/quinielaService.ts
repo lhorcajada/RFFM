@@ -190,7 +190,7 @@ export type QuinielaSettlement = {
   tickets: QuinielaTicketResult[];
 };
 
-export type QuinielaWalletMovementType = "TopUp" | "Adjustment" | "TicketCharge" | "TicketRefund" | "Prize";
+export type QuinielaWalletMovementType = "TopUp" | "Adjustment" | "TicketCharge" | "TicketRefund" | "Prize" | "Donation";
 
 export type QuinielaWalletMovement = {
   id: string;
@@ -349,6 +349,11 @@ export type QuinielaPrizeCredit = { tickets: number; total: number };
 
 export async function creditQuinielaPrizes(teamId: string): Promise<QuinielaPrizeCredit> {
   const resp = await client.post<QuinielaPrizeCredit>(`${quinielaUrl(teamId)}/wallets/prize-credits`);
+  return resp.data;
+}
+
+export async function donateFromQuinielaWallet(teamId: string, amount: number): Promise<QuinielaWalletOperation> {
+  const resp = await client.post<QuinielaWalletOperation>(`${quinielaUrl(teamId)}/wallet/donations`, { amount });
   return resp.data;
 }
 

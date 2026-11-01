@@ -115,6 +115,7 @@ const WALLET_MOVEMENT_LABELS: Record<QuinielaWalletMovementType, string> = {
   TicketCharge: "Cobro de boleto",
   TicketRefund: "Reembolso de boleto",
   Prize: "Premio",
+  Donation: "Donación",
 };
 
 export function walletMovementLabel(type: QuinielaWalletMovementType): string {
@@ -132,6 +133,16 @@ export function parseWalletAmount(text: string): { value: number } | { error: st
   if (value < WALLET_MIN_AMOUNT || value > WALLET_MAX_AMOUNT) {
     return { error: `El importe debe estar entre ${formatMoney(WALLET_MIN_AMOUNT)} y ${formatMoney(WALLET_MAX_AMOUNT)}.` };
   }
+  return { value };
+}
+
+export function parseDonationAmount(text: string, balance: number): { value: number } | { error: string } {
+  const normalized = text.trim().replace(",", ".");
+  if (!normalized) return { error: "Introduce un importe." };
+  if (!/^\d+(\.\d{1,2})?$/.test(normalized)) return { error: "El importe debe ser un número con 2 decimales como máximo." };
+  const value = Number(normalized);
+  if (value < WALLET_MIN_AMOUNT) return { error: `El importe mínimo es ${formatMoney(WALLET_MIN_AMOUNT)}.` };
+  if (value > balance) return { error: `El importe supera tu saldo (${formatMoney(balance)}).` };
   return { value };
 }
 
