@@ -56,6 +56,24 @@ export function formatMoney(value: number | null | undefined): string {
   return `${amount} €`;
 }
 
+// Pesos de la liquidación (Especial 7,5 / 1ª 16 / 2ª 7,5 / 3ª 7,5). Duplican los del backend (QuinielaScoring).
+const PRIZE_WEIGHTS = { Special: 7.5, First: 16, Second: 7.5, Third: 7.5 } as const;
+const PRIZE_TOTAL_WEIGHT = 38.5;
+
+export type PrizeCategoryKey = keyof typeof PRIZE_WEIGHTS;
+
+/** Porcentaje de la bolsa que se lleva una categoría. */
+export function prizeCategoryShare(category: PrizeCategoryKey): number {
+  return (PRIZE_WEIGHTS[category] / PRIZE_TOTAL_WEIGHT) * 100;
+}
+
+/** Importe de la bolsa que corresponde a cada categoría, truncado al céntimo como la liquidación. */
+export function prizeCategoryFunds(prizePool: number): Record<PrizeCategoryKey, number> {
+  const fundOf = (category: PrizeCategoryKey) =>
+    Math.floor((prizePool * PRIZE_WEIGHTS[category]) / PRIZE_TOTAL_WEIGHT * 100 + 1e-9) / 100;
+  return { Special: fundOf("Special"), First: fundOf("First"), Second: fundOf("Second"), Third: fundOf("Third") };
+}
+
 const PAYMENT_LABELS: Record<QuinielaPaymentStatus, string> = {
   Pending: "Pendiente de pago",
   Paid: "Pagado",

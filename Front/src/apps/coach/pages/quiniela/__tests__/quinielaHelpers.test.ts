@@ -8,6 +8,7 @@ import {
   parseWalletAmount,
   paymentMethodLabel,
   paymentStatusLabel,
+  prizeCategoryFunds,
   ticketPaymentLabel,
   walletChargeMessage,
   walletMovementLabel,
@@ -99,5 +100,15 @@ describe("quinielaHelpers", () => {
 
   it("walletChargeMessage indica importe cobrado y saldo restante", () => {
     expect(walletChargeMessage({ amount: 1, balanceAfter: 2 })).toMatch(/Se han cobrado 1,00\s€ de tu monedero\. Saldo: 2,00\s€/);
+  });
+});
+
+describe("prizeCategoryFunds", () => {
+  it("reparte la bolsa entre las cuatro categorías según sus pesos", () => {
+    expect(prizeCategoryFunds(38.5)).toEqual({ Special: 7.5, First: 16, Second: 7.5, Third: 7.5 });
+  });
+
+  it("trunca cada importe al céntimo, como la liquidación", () => {
+    expect(prizeCategoryFunds(10)).toEqual({ Special: 1.94, First: 4.15, Second: 1.94, Third: 1.94 });
   });
 });

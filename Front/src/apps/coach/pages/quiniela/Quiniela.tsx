@@ -438,7 +438,7 @@ export default function Quiniela() {
       >
         <div className={styles.content}>{renderContent()}</div>
       </ContentLayout>
-      <QuinielaRulesDialog open={rulesOpen} onClose={() => setRulesOpen(false)} />
+      <QuinielaRulesDialog open={rulesOpen} onClose={() => setRulesOpen(false)} prizePool={current?.pool?.prizePool} />
       <ConfirmDialog
         open={deleteOpen}
         title="Eliminar mi boleto"

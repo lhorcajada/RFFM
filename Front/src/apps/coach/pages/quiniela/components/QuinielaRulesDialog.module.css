@@ -109,8 +109,26 @@
   font-size: 0.8125rem;
 }
 
-.prizesNote {
-  margin: 10px 0 0;
+.prizeShare {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--rffm-muted, #a59f9f);
+  font-size: 0.8125rem;
+}
+
+.prizeAmount {
+  color: var(--rffm-text, #f0f0f0);
+  font-size: 0.9375rem;
+}
+
+.splitRules {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 12px 0 0;
+  padding-left: 18px;
   color: var(--rffm-muted, #a59f9f);
   font-size: 0.8125rem;
 }

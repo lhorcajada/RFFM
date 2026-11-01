@@ -1,5 +1,7 @@
 import { Dialog, DialogContent, DialogTitle, IconButton } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
+import { formatMoney, prizeCategoryFunds, prizeCategoryShare } from "../quinielaHelpers";
+import type { PrizeCategoryKey } from "../quinielaHelpers";
 import styles from "./QuinielaRulesDialog.module.css";
 
 const RULES: { title: string; body: string }[] = [
@@ -29,23 +31,35 @@ const RULES: { title: string; body: string }[] = [
   },
   {
     title: "Bolsa y bote",
-    body: "Los boletos pagados forman la bolsa. Si una categoría queda sin acertantes, su premio pasa de bote a la jornada siguiente.",
+    body: "Los boletos pagados forman la bolsa de premios, junto al bote que llegue de la jornada anterior.",
   },
 ];
 
-const PRIZES: { name: string; description: string }[] = [
-  { name: "Categoría Especial", description: "Todos los 1X2 válidos y el Pleno exacto" },
-  { name: "1ª categoría", description: "Todos los 1X2 válidos" },
-  { name: "2ª categoría", description: "Todos menos un acierto" },
-  { name: "3ª categoría", description: "Todos menos dos aciertos" },
+const PRIZES: { key: PrizeCategoryKey; name: string; description: string }[] = [
+  { key: "Special", name: "Categoría Especial", description: "Todos los 1X2 válidos y el Pleno exacto" },
+  { key: "First", name: "1ª categoría", description: "Todos los 1X2 válidos" },
+  { key: "Second", name: "2ª categoría", description: "Todos menos un acierto" },
+  { key: "Third", name: "3ª categoría", description: "Todos menos dos aciertos" },
+];
+
+const SHARE_FORMAT = new Intl.NumberFormat("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+
+const SPLIT_RULES: string[] = [
+  "Una parte de lo recaudado forma la bolsa de premios; el resto de lo recaudado va a la hucha del equipo.",
+  "El importe de cada categoría se reparte a partes iguales entre los acertantes de su categoría, truncado al céntimo.",
+  "Si la 2ª categoría queda desierta, su importe pasa a la 3ª; si no hay acertantes en las demás, pasa de bote a la jornada siguiente.",
+  "Una categoría inferior nunca cobra más por persona que una superior: si ocurriera, se juntan los premios de ambas y se reparten entre todos sus acertantes.",
 ];
 
 type Props = {
   open: boolean;
   onClose: () => void;
+  /** Bolsa de premios de la jornada; con ella se muestra lo que corresponde hoy a cada categoría. */
+  prizePool?: number;
 };
 
-export default function QuinielaRulesDialog({ open, onClose }: Props) {
+export default function QuinielaRulesDialog({ open, onClose, prizePool }: Props) {
+  const funds = prizePool === undefined ? null : prizeCategoryFunds(prizePool);
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm" scroll="paper" aria-labelledby="quiniela-rules-title">
       <DialogTitle id="quiniela-rules-title" className={styles.title}>
@@ -78,12 +92,18 @@ export default function QuinielaRulesDialog({ open, onClose }: Props) {
               <li key={prize.name} className={styles.prize}>
                 <span className={styles.prizeName}>{prize.name}</span>
                 <span className={styles.prizeDescription}>{prize.description}</span>
+                <span className={styles.prizeShare}>
+                  {SHARE_FORMAT.format(prizeCategoryShare(prize.key))} % de la bolsa
+                  {funds && <strong className={styles.prizeAmount}>{formatMoney(funds[prize.key])}</strong>}
+                </span>
               </li>
             ))}
           </ul>
-          <p className={styles.prizesNote}>
-            La bolsa de premios se reparte entre las categorías con pesos fijos; si una queda desierta, su importe pasa de bote.
-          </p>
+          <ul className={styles.splitRules}>
+            {SPLIT_RULES.map((rule) => (
+              <li key={rule}>{rule}</li>
+            ))}
+          </ul>
         </section>
       </DialogContent>
       <div className={styles.footer}>

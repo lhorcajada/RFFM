@@ -802,6 +802,17 @@ describe("Quiniela", () => {
     expect(screen.getByText(/12 participantes/i)).toBeInTheDocument();
   });
 
+  it("las reglas muestran lo que corresponde hoy a cada categoría según la bolsa de la jornada", async () => {
+    getCurrentQuiniela.mockResolvedValue(current());
+    renderPage();
+    await screen.findByText("CD Los Olivos");
+
+    fireEvent.click(screen.getByRole("button", { name: /ver reglas/i }));
+    const dialog = await screen.findByRole("dialog", { name: /reglas de la quiniela/i });
+    const firstCategory = within(dialog).getByText("1ª categoría").closest("li") as HTMLElement;
+    expect(within(firstCategory).getByText(/4,77\s€/)).toBeInTheDocument();
+  });
+
   it("abre y cierra el popup de reglas con las 7 reglas y las 4 categorías", async () => {
     getCurrentQuiniela.mockResolvedValue(current());
     renderPage();
