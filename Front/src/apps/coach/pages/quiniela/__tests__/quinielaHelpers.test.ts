@@ -53,6 +53,7 @@ describe("quinielaHelpers", () => {
     expect(walletMovementLabel("Adjustment")).toBe("Ajuste");
     expect(walletMovementLabel("TicketCharge")).toBe("Cobro de boleto");
     expect(walletMovementLabel("TicketRefund")).toBe("Reembolso de boleto");
+    expect(walletMovementLabel("Prize")).toBe("Premio");
   });
 
   describe("parseWalletAmount", () => {

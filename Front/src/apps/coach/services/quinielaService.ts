@@ -190,7 +190,7 @@ export type QuinielaSettlement = {
   tickets: QuinielaTicketResult[];
 };
 
-export type QuinielaWalletMovementType = "TopUp" | "Adjustment" | "TicketCharge" | "TicketRefund";
+export type QuinielaWalletMovementType = "TopUp" | "Adjustment" | "TicketCharge" | "TicketRefund" | "Prize";
 
 export type QuinielaWalletMovement = {
   id: string;

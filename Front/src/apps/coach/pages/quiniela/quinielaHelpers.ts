@@ -114,6 +114,7 @@ const WALLET_MOVEMENT_LABELS: Record<QuinielaWalletMovementType, string> = {
   Adjustment: "Ajuste",
   TicketCharge: "Cobro de boleto",
   TicketRefund: "Reembolso de boleto",
+  Prize: "Premio",
 };
 
 export function walletMovementLabel(type: QuinielaWalletMovementType): string {
