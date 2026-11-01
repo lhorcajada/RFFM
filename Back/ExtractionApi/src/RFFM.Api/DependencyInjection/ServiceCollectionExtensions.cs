@@ -165,7 +165,9 @@ namespace RFFM.Api.DependencyInjection
             }
             services.AddScoped<RFFM.Api.Features.Coaches.Players.Services.IPlayerService, RFFM.Api.Features.Coaches.Players.Services.PlayerService>();
 
-            services.AddScoped<ICompetitionService, CompetitionService>();
+            services.AddScoped<CompetitionService>();
+            services.AddScoped<ICompetitionService>(sp => new CachedCompetitionService(
+                sp.GetRequiredService<CompetitionService>(), sp.GetRequiredService<Microsoft.Extensions.Caching.Memory.IMemoryCache>()));
             services.AddScoped<ITeamService, TeamService>();
             services.AddScoped<IClubDirectoryService, ClubDirectoryService>();
             services.AddScoped<ICalendarService, CalendarService>();
@@ -199,7 +201,9 @@ namespace RFFM.Api.DependencyInjection
             if (rffmBackgroundEnabled) services.AddHostedService<RFFM.Api.Features.Federation.MatchResultNotifications.Services.MatchResultNotificationWorker>();
             services.AddScoped<RFFM.Api.Features.Coaches.Quiniela.QuinielaAutoCloseService>();
             services.AddHostedService<RFFM.Api.Features.Coaches.Quiniela.QuinielaAutoCloseWorker>();
-            services.AddScoped<IMatchDayService, MatchDayService>();
+            services.AddScoped<MatchDayService>();
+            services.AddScoped<IMatchDayService>(sp => new CachedMatchDayService(
+                sp.GetRequiredService<MatchDayService>(), sp.GetRequiredService<Microsoft.Extensions.Caching.Memory.IMemoryCache>()));
             services.AddScoped<IGoalMinuteParser, GoalMinuteParser>();
             services.AddScoped<ISectorFactory, SectorFactory>();
             services.AddScoped<IGoalSectorsAggregator, GoalSectorsAggregator>();
