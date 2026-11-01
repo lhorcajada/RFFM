@@ -466,6 +466,7 @@ namespace RFFM.Api.Features.Coaches.Quiniela
             services.AddScoped<IValidator<AdjustQuinielaWallet.Command>, AdjustQuinielaWallet.Validator>();
             services.AddScoped<IValidator<PayQuinielaTicketWithWallet.Command>, PayQuinielaTicketWithWallet.Validator>();
             services.AddScoped<IValidator<CreditQuinielaPrizes.Command>, CreditQuinielaPrizes.Validator>();
+            services.AddScoped<IValidator<DonateFromQuinielaWallet.Command>, DonateFromQuinielaWallet.Validator>();
             return services;
         }
     }

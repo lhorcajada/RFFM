@@ -64,7 +64,7 @@ namespace RFFM.Api.Features.Coaches.Quiniela
                 var prizes = settled ? tickets.Sum(t => t.Prize ?? 0m) : 0m;
 
                 var movements = await db.TeamFundMovements.AsNoTracking()
-                    .Where(m => m.TeamId == request.TeamId && m.Source == TeamFundMovementSource.QuinielaFund)
+                    .Where(m => m.TeamId == request.TeamId && (m.Source == TeamFundMovementSource.QuinielaFund || m.Source == TeamFundMovementSource.QuinielaDonation))
                     .OrderByDescending(m => m.OccurredAt)
                     .Select(m => new QuinielaFundMovementDto(m.Id, m.Amount, m.OccurredAt, m.Description))
                     .ToListAsync(cancellationToken);

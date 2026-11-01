@@ -13,6 +13,9 @@ namespace RFFM.Api.Domain.Entities.Teams
         /// <summary>Parte del cobrado de una jornada de quiniela que no se reparte en premios (QuinielaScoring).</summary>
         public static readonly TeamFundMovementSource QuinielaFund = new(nameof(QuinielaFund), 3);
 
+        /// <summary>Donación de un participante desde su monedero de la quiniela al fondo del equipo.</summary>
+        public static readonly TeamFundMovementSource QuinielaDonation = new(nameof(QuinielaDonation), 4);
+
         private TeamFundMovementSource(string name, int value) : base(name, value)
         {
         }

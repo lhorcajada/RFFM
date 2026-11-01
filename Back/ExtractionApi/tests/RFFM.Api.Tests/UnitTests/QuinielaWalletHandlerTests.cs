@@ -47,6 +47,7 @@ namespace RFFM.Api.Tests.UnitTests
     {
         private static TopUpQuinielaWallet.Handler TopUp(AppDbContext db, string? userId) => new(db, User(userId), ClockAt(BeforeKickoff));
         private static AdjustQuinielaWallet.Handler Adjust(AppDbContext db, string? userId) => new(db, User(userId), ClockAt(BeforeKickoff));
+        private static DonateFromQuinielaWallet.Handler Donate(AppDbContext db, string? userId) => new(db, User(userId), ClockAt(BeforeKickoff));
         private static GetQuinielaWallet.Handler Get(AppDbContext db, string? userId) => new(db, User(userId));
         private static GetQuinielaWallets.Handler List(AppDbContext db, string? userId) => new(db, User(userId));
 
@@ -344,6 +345,117 @@ namespace RFFM.Api.Tests.UnitTests
 
             await Assert.ThrowsAsync<ForbiddenAccessException>(() =>
                 List(db, seed.FamilyId).Handle(new GetQuinielaWallets.Query(seed.TeamId), CancellationToken.None).AsTask());
+        }
+
+        // ---- Donación al equipo ----
+
+        private async Task<List<TeamFundMovement>> DonationsToTheFundAsync(string teamId)
+        {
+            await using var db = fixture.CreateDbContext();
+            return await db.TeamFundMovements.AsNoTracking()
+                .Where(m => m.TeamId == teamId && m.Source == TeamFundMovementSource.QuinielaDonation)
+                .ToListAsync();
+        }
+
+        [Fact]
+        public async Task Donate_ByAPlayer_MovesTheMoneyFromTheWalletToTheTeamFund()
+        {
+            var seed = await SeedTeamAsync(fixture);
+            await QuinielaWalletTestSupport.SeedWalletAsync(fixture, seed.TeamId, seed.PlayerId, 8m);
+            await using var db = fixture.CreateDbContext();
+
+            var result = await Donate(db, seed.PlayerId).Handle(new DonateFromQuinielaWallet.Command(seed.TeamId, 3.5m), CancellationToken.None);
+
+            Assert.Equal(4.5m, result.Balance);
+            Assert.Equal("Donation", result.Movement.Type);
+            Assert.Equal(-3.5m, result.Movement.Amount);
+            Assert.Equal(4.5m, await QuinielaWalletTestSupport.BalanceOfAsync(fixture, seed.TeamId, seed.PlayerId));
+            var donations = await DonationsToTheFundAsync(seed.TeamId);
+            Assert.Single(donations);
+            Assert.Equal(3.5m, donations[0].Amount);
+        }
+
+        [Fact]
+        public async Task Donate_TheCoachCanDonateToo()
+        {
+            var seed = await SeedTeamAsync(fixture);
+            await QuinielaWalletTestSupport.SeedWalletAsync(fixture, seed.TeamId, seed.CoachId, 5m);
+            await using var db = fixture.CreateDbContext();
+
+            var result = await Donate(db, seed.CoachId).Handle(new DonateFromQuinielaWallet.Command(seed.TeamId, 5m), CancellationToken.None);
+
+            Assert.Equal(0m, result.Balance);
+            Assert.Single(await DonationsToTheFundAsync(seed.TeamId));
+        }
+
+        [Fact]
+        public async Task Donate_MoreThanTenEuros_IsAllowedWhileTheBalanceCoversIt()
+        {
+            var seed = await SeedTeamAsync(fixture);
+            await QuinielaWalletTestSupport.SeedWalletAsync(fixture, seed.TeamId, seed.FamilyId, 10m);
+            await using var db = fixture.CreateDbContext();
+            await Adjust(db, seed.CoachId).Handle(new AdjustQuinielaWallet.Command(seed.TeamId, seed.FamilyId, 1m, "x"), CancellationToken.None);
+            await using var db2 = fixture.CreateDbContext();
+            await TopUp(db2, seed.CoachId).Handle(new TopUpQuinielaWallet.Command(seed.TeamId, seed.FamilyId, 10m, null), CancellationToken.None);
+            await using var db3 = fixture.CreateDbContext();
+
+            var result = await Donate(db3, seed.FamilyId).Handle(new DonateFromQuinielaWallet.Command(seed.TeamId, 19m), CancellationToken.None);
+
+            Assert.Equal(0m, result.Balance);
+        }
+
+        [Fact]
+        public async Task Donate_MoreThanTheBalance_ThrowsConflictAndChangesNothing()
+        {
+            var seed = await SeedTeamAsync(fixture);
+            await QuinielaWalletTestSupport.SeedWalletAsync(fixture, seed.TeamId, seed.PlayerId, 2m);
+            await using var db = fixture.CreateDbContext();
+
+            var ex = await Assert.ThrowsAsync<ConflictException>(() =>
+                Donate(db, seed.PlayerId).Handle(new DonateFromQuinielaWallet.Command(seed.TeamId, 2.01m), CancellationToken.None).AsTask());
+
+            Assert.Equal(ErrorCodes.QuinielaWalletInsufficientBalance, ex.Code);
+            Assert.Equal(2m, await QuinielaWalletTestSupport.BalanceOfAsync(fixture, seed.TeamId, seed.PlayerId));
+            Assert.Empty(await DonationsToTheFundAsync(seed.TeamId));
+        }
+
+        [Fact]
+        public async Task Donate_WithoutWallet_ThrowsConflict()
+        {
+            var seed = await SeedTeamAsync(fixture);
+            await using var db = fixture.CreateDbContext();
+
+            await Assert.ThrowsAsync<ConflictException>(() =>
+                Donate(db, seed.PlayerId).Handle(new DonateFromQuinielaWallet.Command(seed.TeamId, 1m), CancellationToken.None).AsTask());
+        }
+
+        [Fact]
+        public async Task Donate_ByAFollowerOfTheTeam_ThrowsForbidden()
+        {
+            var seed = await SeedTeamAsync(fixture);
+            await using var db = fixture.CreateDbContext();
+
+            await Assert.ThrowsAsync<ForbiddenAccessException>(() =>
+                Donate(db, seed.FollowerId).Handle(new DonateFromQuinielaWallet.Command(seed.TeamId, 1m), CancellationToken.None).AsTask());
+        }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(-1)]
+        [InlineData(1.005)]
+        public void DonateValidator_RejectsNonPositiveOrMoreThanTwoDecimals(double amount)
+        {
+            var result = new DonateFromQuinielaWallet.Validator().Validate(new DonateFromQuinielaWallet.Command("team", (decimal)amount));
+
+            Assert.False(result.IsValid);
+        }
+
+        [Fact]
+        public void DonateValidator_AcceptsAnAmountWithoutUpperCap()
+        {
+            var result = new DonateFromQuinielaWallet.Validator().Validate(new DonateFromQuinielaWallet.Command("team", 250.50m));
+
+            Assert.True(result.IsValid);
         }
     }
 }

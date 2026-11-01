@@ -79,6 +79,18 @@ namespace RFFM.Api.Domain.Entities.Teams
             return Apply(amount, QuinielaWalletMovementType.Prize, nowUtc, description, ticketId, null);
         }
 
+        /// <summary>Dona <paramref name="amount"/> (positivo, sin tope) al fondo del equipo; nunca deja el saldo en negativo.</summary>
+        public QuinielaWalletMovement Donate(decimal amount, DateTime nowUtc, string description)
+        {
+            var invalid = amount <= 0m || decimal.Round(amount, 2) != amount;
+            if (invalid)
+                throw new DomainException(Title, "El importe debe ser mayor que 0 y con dos decimales como máximo.", ErrorCodes.QuinielaWalletInvalidAmount);
+            if (amount > Balance)
+                throw new ConflictException($"El saldo ({Balance:0.00} €) no cubre la donación de {amount:0.00} €.", ErrorCodes.QuinielaWalletInsufficientBalance);
+
+            return Apply(-amount, QuinielaWalletMovementType.Donation, nowUtc, description, null, ApplicationUserId);
+        }
+
         private static void EnsureValidManualAmount(decimal amount)
         {
             var invalid = amount <= 0m || amount > Rules.MaxMovementAmount || decimal.Round(amount, 2) != amount;

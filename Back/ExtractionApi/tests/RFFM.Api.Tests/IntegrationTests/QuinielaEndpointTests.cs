@@ -60,7 +60,7 @@ namespace RFFM.Api.Tests.IntegrationTests
         [
             new OpenQuiniela(), new GetCurrentQuiniela(), new SaveQuinielaTicket(),
             new GetQuinielaPayments(), new SetQuinielaTicketPayment(), new SettleQuiniela(), new GetFeatureFlags(),
-            new TopUpQuinielaWallet(), new AdjustQuinielaWallet(), new GetQuinielaWallet(), new GetQuinielaWallets(), new PayQuinielaTicketWithWallet(),
+            new TopUpQuinielaWallet(), new AdjustQuinielaWallet(), new GetQuinielaWallet(), new GetQuinielaWallets(), new PayQuinielaTicketWithWallet(), new DonateFromQuinielaWallet(),
             new CreditQuinielaPrizes()
         ];
 
@@ -168,7 +168,8 @@ namespace RFFM.Api.Tests.IntegrationTests
                 Request(HttpMethod.Post, $"{baseUrl}/wallets/u/top-ups", null, new { amount = 1 }),
                 Request(HttpMethod.Post, $"{baseUrl}/wallets/prize-credits", null),
                 Request(HttpMethod.Post, $"{baseUrl}/wallets/u/adjustments", null, new { amount = 1, reason = "x" }),
-                Request(HttpMethod.Post, $"{baseUrl}/j/my-tickets/k/wallet-payment", null)
+                Request(HttpMethod.Post, $"{baseUrl}/j/my-tickets/k/wallet-payment", null),
+                Request(HttpMethod.Post, $"{baseUrl}/wallet/donations", null, new { amount = 1 })
             };
             foreach (var request in requests)
                 Assert.Equal(HttpStatusCode.Unauthorized, (await client.SendAsync(request)).StatusCode);
