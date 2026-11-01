@@ -26,8 +26,10 @@
 
 @media (max-width: 420px) {
   .appName {
+    flex-shrink: 1;
+    min-width: 0;
     font-size: 0.95rem;
-    margin-left: 6px;
+    margin-left: 0;
     white-space: normal; /* allow wrapping */
     overflow: visible;
     text-overflow: clip;
@@ -145,6 +147,16 @@
 
 /* Responsive tweaks for header spacing */
 @media (max-width: 420px) {
+  .toolbar {
+    gap: 4px;
+  }
+
+  .brand {
+    flex: 0 1 auto;
+    min-width: 0;
+    gap: 6px;
+  }
+
   .brandLogo {
     width: 40px;
   }
