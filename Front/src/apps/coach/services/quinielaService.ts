@@ -345,6 +345,13 @@ export async function topUpQuinielaWallet(
   return resp.data;
 }
 
+export type QuinielaPrizeCredit = { tickets: number; total: number };
+
+export async function creditQuinielaPrizes(teamId: string): Promise<QuinielaPrizeCredit> {
+  const resp = await client.post<QuinielaPrizeCredit>(`${quinielaUrl(teamId)}/wallets/prize-credits`);
+  return resp.data;
+}
+
 export async function adjustQuinielaWallet(
   teamId: string,
   userId: string,

@@ -28,11 +28,13 @@ const getQuinielaWallets = vi.fn();
 const getQuinielaWalletOf = vi.fn();
 const topUpQuinielaWallet = vi.fn();
 const adjustQuinielaWallet = vi.fn();
+const creditQuinielaPrizes = vi.fn();
 vi.mock("../../../services/quinielaService", () => ({
   getQuinielaWallets: (...args: unknown[]) => getQuinielaWallets(...args),
   getQuinielaWalletOf: (...args: unknown[]) => getQuinielaWalletOf(...args),
   topUpQuinielaWallet: (...args: unknown[]) => topUpQuinielaWallet(...args),
   adjustQuinielaWallet: (...args: unknown[]) => adjustQuinielaWallet(...args),
+  creditQuinielaPrizes: (...args: unknown[]) => creditQuinielaPrizes(...args),
 }));
 
 import QuinielaWallets from "../QuinielaWallets";
@@ -251,5 +253,44 @@ describe("QuinielaWallets", () => {
     const dialog = await screen.findByRole("dialog");
     expect(await within(dialog).findByText("Recarga")).toBeInTheDocument();
     expect(getQuinielaWalletOf).toHaveBeenCalledWith("team-1", "u1", { limit: 25, offset: 0 });
+  });
+
+  describe("abonar premios pendientes", () => {
+    beforeEach(() => {
+      getQuinielaWallets.mockResolvedValue(wallets);
+    });
+
+    it("pide confirmación y abona los premios mostrando el total", async () => {
+      creditQuinielaPrizes.mockResolvedValue({ tickets: 2, total: 5.5 });
+      const snackbars = captureSnackbars();
+      renderPage();
+      fireEvent.click(await screen.findByRole("button", { name: /abonar premios pendientes/i }));
+      expect(creditQuinielaPrizes).not.toHaveBeenCalled();
+      fireEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: /^abonar$/i }));
+      await waitFor(() => expect(creditQuinielaPrizes).toHaveBeenCalledWith("team-1"));
+      await waitFor(() => expect(snackbars.messages().some((m) => m.severity === "success" && m.message.includes("2 premios"))).toBe(true));
+      expect(getQuinielaWallets).toHaveBeenCalledTimes(2);
+      snackbars.stop();
+    });
+
+    it("avisa de que no queda nada por abonar", async () => {
+      creditQuinielaPrizes.mockResolvedValue({ tickets: 0, total: 0 });
+      const snackbars = captureSnackbars();
+      renderPage();
+      fireEvent.click(await screen.findByRole("button", { name: /abonar premios pendientes/i }));
+      fireEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: /^abonar$/i }));
+      await waitFor(() => expect(snackbars.messages().some((m) => m.message.includes("No queda ningún premio"))).toBe(true));
+      snackbars.stop();
+    });
+
+    it("muestra un error si falla el abono", async () => {
+      creditQuinielaPrizes.mockRejectedValue(new Error("boom"));
+      const snackbars = captureSnackbars();
+      renderPage();
+      fireEvent.click(await screen.findByRole("button", { name: /abonar premios pendientes/i }));
+      fireEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: /^abonar$/i }));
+      await waitFor(() => expect(snackbars.messages().some((m) => m.severity === "error")).toBe(true));
+      snackbars.stop();
+    });
   });
 });

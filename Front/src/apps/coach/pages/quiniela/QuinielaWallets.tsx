@@ -11,6 +11,7 @@ import { QUINIELA_WALLET_UPDATED_EVENT } from "../../../../shared/hooks/useQuini
 import useTeamAndClub from "../../hooks/useTeamAndClub.tsx";
 import {
   adjustQuinielaWallet,
+  creditQuinielaPrizes,
   getQuinielaWalletOf,
   getQuinielaWallets,
   topUpQuinielaWallet,
@@ -46,6 +47,7 @@ export default function QuinielaWallets() {
   const [amountTarget, setAmountTarget] = useState<AmountTarget | null>(null);
   const [pendingAdjustment, setPendingAdjustment] = useState<PendingAdjustment | null>(null);
   const [processing, setProcessing] = useState(false);
+  const [creditPrizesOpen, setCreditPrizesOpen] = useState(false);
   const [movementsUser, setMovementsUser] = useState<QuinielaWalletSummary | null>(null);
 
   const load = useCallback(async (id: string) => {
@@ -100,6 +102,27 @@ export default function QuinielaWallets() {
     } catch (e: unknown) {
       setPendingAdjustment(null);
       notify(apiErrorMessage(e, "No se pudo restar el saldo."), "error");
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleCreditPrizesConfirmed = async () => {
+    if (!teamId) return;
+    setProcessing(true);
+    try {
+      const { tickets, total } = await creditQuinielaPrizes(teamId);
+      setCreditPrizesOpen(false);
+      if (tickets === 0) {
+        notify("No queda ningún premio por abonar.", "success");
+      } else {
+        notify(`${tickets} ${tickets === 1 ? "premio abonado" : "premios abonados"} (${formatMoney(total)})`, "success");
+        window.dispatchEvent(new CustomEvent(QUINIELA_WALLET_UPDATED_EVENT));
+        await load(teamId);
+      }
+    } catch (e: unknown) {
+      setCreditPrizesOpen(false);
+      notify(apiErrorMessage(e, "No se pudieron abonar los premios."), "error");
     } finally {
       setProcessing(false);
     }
@@ -162,6 +185,9 @@ export default function QuinielaWallets() {
             <Button startIcon={<ArrowBackIcon />} onClick={() => navigate(quinielaPath)} variant="outlined" size="small">
               Volver
             </Button>
+            <Button onClick={() => setCreditPrizesOpen(true)} variant="contained" size="small">
+              Abonar premios pendientes
+            </Button>
           </Stack>
         }
       >
@@ -174,6 +200,15 @@ export default function QuinielaWallets() {
         processing={processing}
         onCancel={() => setAmountTarget(null)}
         onSubmit={handleAmountSubmit}
+      />
+      <ConfirmDialog
+        open={creditPrizesOpen}
+        title="Abonar premios pendientes"
+        description="Se abonarán en los monederos los premios de las jornadas ya liquidadas que aún no se hayan abonado. Cada premio se abona una sola vez."
+        confirmText="Abonar"
+        processing={processing}
+        onCancel={() => setCreditPrizesOpen(false)}
+        onConfirm={() => void handleCreditPrizesConfirmed()}
       />
       <ConfirmDialog
         open={pendingAdjustment !== null}
