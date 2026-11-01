@@ -70,6 +70,15 @@ namespace RFFM.Api.Domain.Entities.Teams
             return Apply(amount, QuinielaWalletMovementType.TicketRefund, nowUtc, null, ticketId, null);
         }
 
+        /// <summary>Abona el premio de un boleto liquidado; no aplica el tope de los movimientos manuales.</summary>
+        public QuinielaWalletMovement CreditPrize(string ticketId, decimal amount, DateTime nowUtc, string description)
+        {
+            if (amount <= 0m)
+                throw new DomainException(Title, "El importe del premio debe ser mayor que 0.", ErrorCodes.QuinielaWalletInvalidAmount);
+
+            return Apply(amount, QuinielaWalletMovementType.Prize, nowUtc, description, ticketId, null);
+        }
+
         private static void EnsureValidManualAmount(decimal amount)
         {
             var invalid = amount <= 0m || amount > Rules.MaxMovementAmount || decimal.Round(amount, 2) != amount;

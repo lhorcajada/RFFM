@@ -62,6 +62,7 @@ namespace RFFM.Api.Domain.Entities.Teams
         public static readonly QuinielaWalletMovementType Adjustment = new(nameof(Adjustment), 2);
         public static readonly QuinielaWalletMovementType TicketCharge = new(nameof(TicketCharge), 3);
         public static readonly QuinielaWalletMovementType TicketRefund = new(nameof(TicketRefund), 4);
+        public static readonly QuinielaWalletMovementType Prize = new(nameof(Prize), 5);
 
         private QuinielaWalletMovementType(string name, int value) : base(name, value) { }
     }

@@ -49,6 +49,8 @@ namespace RFFM.Api.Features.Coaches.Quiniela
         string JornadaId, int RoundNumber, DateTime SettledAt, decimal Collected, decimal PrizePool, decimal CarryOut,
         int? MyHits, string? MyCategory, decimal? MyPrize, IReadOnlyList<QuinielaWinnerDto> Winners);
 
+    public record QuinielaPrizeCreditDto(int Tickets, decimal Total);
+
     public record QuinielaHistoryDto(int Total, IReadOnlyList<QuinielaHistoryItemDto> Items);
 
     public record QuinielaJornadaResultsDto(
@@ -238,6 +240,50 @@ namespace RFFM.Api.Features.Coaches.Quiniela
             }
         }
 
+        /// <summary>
+        /// Abona al monedero de cada dueño el premio de los boletos indicados que aún no lo tienen abonado
+        /// (idempotente: un boleto con movimiento de premio se salta). Crea el monedero si no existe. El llamante persiste.
+        /// </summary>
+        public static async Task<QuinielaPrizeCreditDto> CreditPrizesAsync(
+            AppDbContext db, string teamId, IReadOnlyCollection<(QuinielaTicket Ticket, int RoundNumber)> winners, DateTime nowUtc,
+            string descriptionSuffix, CancellationToken ct)
+        {
+            var prized = winners.Where(w => w.Ticket.Prize is > 0m).ToList();
+            if (prized.Count == 0)
+                return new QuinielaPrizeCreditDto(0, 0m);
+
+            var ticketIds = prized.Select(w => w.Ticket.Id).ToList();
+            var alreadyCredited = (await db.QuinielaWalletMovements.AsNoTracking()
+                    .Where(m => m.TicketId != null && ticketIds.Contains(m.TicketId) && m.Type == QuinielaWalletMovementType.Prize)
+                    .Select(m => m.TicketId!)
+                    .ToListAsync(ct))
+                .ToHashSet();
+
+            var pending = prized.Where(w => !alreadyCredited.Contains(w.Ticket.Id)).ToList();
+            if (pending.Count == 0)
+                return new QuinielaPrizeCreditDto(0, 0m);
+
+            var userIds = pending.Select(w => w.Ticket.ApplicationUserId).Distinct().ToList();
+            var wallets = await db.QuinielaWallets
+                .Where(w => w.TeamId == teamId && userIds.Contains(w.ApplicationUserId))
+                .ToDictionaryAsync(w => w.ApplicationUserId, ct);
+
+            foreach (var (ticket, roundNumber) in pending)
+            {
+                if (!wallets.TryGetValue(ticket.ApplicationUserId, out var wallet))
+                {
+                    wallet = QuinielaWallet.Create(teamId, ticket.ApplicationUserId);
+                    wallets[ticket.ApplicationUserId] = wallet;
+                    db.QuinielaWallets.Add(wallet);
+                }
+
+                db.QuinielaWalletMovements.Add(
+                    wallet.CreditPrize(ticket.Id, ticket.Prize!.Value, nowUtc, $"Premio jornada {roundNumber}{descriptionSuffix}"));
+            }
+
+            return new QuinielaPrizeCreditDto(pending.Count, pending.Sum(w => w.Ticket.Prize!.Value));
+        }
+
         private static bool IsWalletConflict(Exception ex) =>
             ex is DbUpdateConcurrencyException
             || ex is DbUpdateException { InnerException: PostgresException { SqlState: PostgresErrorCodes.UniqueViolation } };
@@ -419,6 +465,7 @@ namespace RFFM.Api.Features.Coaches.Quiniela
             services.AddScoped<IValidator<TopUpQuinielaWallet.Command>, TopUpQuinielaWallet.Validator>();
             services.AddScoped<IValidator<AdjustQuinielaWallet.Command>, AdjustQuinielaWallet.Validator>();
             services.AddScoped<IValidator<PayQuinielaTicketWithWallet.Command>, PayQuinielaTicketWithWallet.Validator>();
+            services.AddScoped<IValidator<CreditQuinielaPrizes.Command>, CreditQuinielaPrizes.Validator>();
             return services;
         }
     }

@@ -60,7 +60,8 @@ namespace RFFM.Api.Tests.IntegrationTests
         [
             new OpenQuiniela(), new GetCurrentQuiniela(), new SaveQuinielaTicket(),
             new GetQuinielaPayments(), new SetQuinielaTicketPayment(), new SettleQuiniela(), new GetFeatureFlags(),
-            new TopUpQuinielaWallet(), new AdjustQuinielaWallet(), new GetQuinielaWallet(), new GetQuinielaWallets(), new PayQuinielaTicketWithWallet()
+            new TopUpQuinielaWallet(), new AdjustQuinielaWallet(), new GetQuinielaWallet(), new GetQuinielaWallets(), new PayQuinielaTicketWithWallet(),
+            new CreditQuinielaPrizes()
         ];
 
         private async Task<(IHost Host, HttpClient Client)> StartHostAsync()
@@ -165,6 +166,7 @@ namespace RFFM.Api.Tests.IntegrationTests
                 Request(HttpMethod.Get, $"{baseUrl}/wallet", null),
                 Request(HttpMethod.Get, $"{baseUrl}/wallets", null),
                 Request(HttpMethod.Post, $"{baseUrl}/wallets/u/top-ups", null, new { amount = 1 }),
+                Request(HttpMethod.Post, $"{baseUrl}/wallets/prize-credits", null),
                 Request(HttpMethod.Post, $"{baseUrl}/wallets/u/adjustments", null, new { amount = 1, reason = "x" }),
                 Request(HttpMethod.Post, $"{baseUrl}/j/my-tickets/k/wallet-payment", null)
             };

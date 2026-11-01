@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using RFFM.Api.Domain;
 using RFFM.Api.Domain.Entities.Teams;
 using RFFM.Api.Infrastructure.Persistence;
@@ -26,6 +27,8 @@ namespace RFFM.Api.Features.Coaches.Quiniela
             foreach (var score in result.Tickets)
                 tickets.Single(t => t.Id == score.TicketId).ApplyResult(score.Hits, score.Category, score.Prize);
             jornada.Settle(result.CarryOut, nowUtc);
+            await QuinielaSupport.CreditPrizesAsync(
+                db, jornada.TeamId, tickets.Select(t => (t, round.Number)).ToList(), nowUtc, string.Empty, ct);
 
             if (result.FundAmount > 0m)
                 db.TeamFundMovements.Add(TeamFundMovement.Create(
@@ -36,10 +39,16 @@ namespace RFFM.Api.Features.Coaches.Quiniela
             {
                 await db.SaveChangesAsync(ct);
             }
-            catch (DbUpdateConcurrencyException)
+            catch (Exception ex) when (ex is DbUpdateConcurrencyException or DbUpdateException { InnerException: PostgresException { SqlState: PostgresErrorCodes.UniqueViolation } })
             {
                 db.ChangeTracker.Clear();
-                throw new DomainException("Quiniela", "La quiniela de esta jornada ya está liquidada.", ErrorCodes.QuinielaAlreadySettled);
+                var alreadySettled = await db.QuinielaJornadas.AsNoTracking()
+                    .AnyAsync(j => j.Id == jornada.Id && j.Status == QuinielaJornadaStatus.Settled, ct);
+                if (alreadySettled)
+                    throw new DomainException("Quiniela", "La quiniela de esta jornada ya está liquidada.", ErrorCodes.QuinielaAlreadySettled);
+
+                throw new ConflictException(
+                    "El monedero está siendo modificado por otra operación. Inténtalo de nuevo.", ErrorCodes.QuinielaWalletConcurrency);
             }
 
             return new QuinielaSettlementDto(
