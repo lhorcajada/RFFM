@@ -77,10 +77,13 @@
   box-sizing: border-box;
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   justify-content: center;
-  gap: 8px;
+  gap: 2px 8px;
   min-height: 52px;
+  padding: 4px 6px;
   border-radius: 8px;
+  text-align: center;
   border: 1px solid;
   font-size: 0.875rem;
   font-weight: 700;
