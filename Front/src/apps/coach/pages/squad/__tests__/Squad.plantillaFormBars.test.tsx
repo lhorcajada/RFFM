@@ -159,6 +159,6 @@ describe("Squad — pestaña Plantilla muestra Ef/R/C en las tarjetas", () => {
     renderSquad();
 
     await screen.findAllByTestId("player-form-bar-ef");
-    expect(screen.getAllByLabelText(/Leyenda de Ef, Rodaje y Cansancio/i)).toHaveLength(1);
+    expect(await screen.findAllByLabelText(/Leyenda de Ef, Rodaje y Cansancio/i)).toHaveLength(1);
   });
 });
