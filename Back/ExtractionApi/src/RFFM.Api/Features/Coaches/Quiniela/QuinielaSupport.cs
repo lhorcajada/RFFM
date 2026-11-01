@@ -43,7 +43,7 @@ namespace RFFM.Api.Features.Coaches.Quiniela
 
     public record QuinielaPreviousDto(
         string JornadaId, int RoundNumber, DateTime SettledAt, decimal CarryOut, int? MyHits, string? MyCategory, decimal? MyPrize,
-        IReadOnlyList<QuinielaWinnerDto> Winners);
+        IReadOnlyList<QuinielaWinnerDto> Winners, DateTime? FirstKickoffUtc = null);
 
     public record QuinielaHistoryItemDto(
         string JornadaId, int RoundNumber, DateTime SettledAt, decimal Collected, decimal PrizePool, decimal CarryOut,

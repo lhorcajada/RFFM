@@ -115,6 +115,23 @@ namespace RFFM.Api.Tests.UnitTests
         }
 
         [Fact]
+        public async Task Handle_AfterSettlingExposesTheFirstKickoffOfThePreviousJornada()
+        {
+            var seed = await SeedTeamAsync(fixture);
+            var roundId = await SeedRoundAsync(fixture, seed.GroupCode, 1, StandardMatches("c5", "1-0", "1-1", "0-1"));
+            var jornada = await SeedJornadaAsync(fixture, seed.TeamId, roundId);
+            await using (var setup = fixture.CreateDbContext())
+            {
+                (await setup.QuinielaJornadas.SingleAsync(j => j.Id == jornada.Id)).Settle(0m, AfterMatches);
+                await setup.SaveChangesAsync();
+            }
+
+            var dto = (await CurrentAsync(seed.TeamId, seed.PlayerId, AfterMatches)).Value;
+
+            Assert.Equal(new DateTime(2026, 11, 7, 15, 0, 0, DateTimeKind.Utc), dto.Previous!.FirstKickoffUtc);
+        }
+
+        [Fact]
         public async Task Handle_FlagsTheCoachAsManager()
         {
             var seed = await SeedTeamAsync(fixture);

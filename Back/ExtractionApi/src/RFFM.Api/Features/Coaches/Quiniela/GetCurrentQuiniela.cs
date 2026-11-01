@@ -80,13 +80,12 @@ namespace RFFM.Api.Features.Coaches.Quiniela
                 if (last is null)
                     return null;
 
-                var roundNumber = await federationDb.RffmRounds.AsNoTracking()
-                    .Where(r => r.Id == last.RffmRoundId).Select(r => r.Number).SingleOrDefaultAsync(ct);
+                var round = await QuinielaSupport.LoadRoundAsync(federationDb, last.RffmRoundId, ct);
                 var result = (await QuinielaSupport.LoadResultsAsync(db, teamId, [last.Id], userId, ct, identityDb))[last.Id];
 
                 return new QuinielaPreviousDto(
-                    last.Id, roundNumber, last.SettledAt!.Value, last.CarryOut ?? 0m, result.MyHits, result.MyCategory, result.MyPrize,
-                    result.Winners);
+                    last.Id, round.Number, last.SettledAt!.Value, last.CarryOut ?? 0m, result.MyHits, result.MyCategory, result.MyPrize,
+                    result.Winners, round.FirstValidKickoffUtc);
             }
         }
     }
