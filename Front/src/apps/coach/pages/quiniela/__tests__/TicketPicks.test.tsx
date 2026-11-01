@@ -102,4 +102,31 @@ describe("TicketPicks", () => {
     render(<TicketPicks ticket={ticket({ picks: [{ recordCode: "m1", sign: "1" }] })} matches={matches} />);
     expect(within(rowOf("Real Valdemar")).getByLabelText("Sin pronóstico")).toBeInTheDocument();
   });
+
+  it("marca en su fila el partido que es el Pleno", () => {
+    render(<TicketPicks ticket={ticket()} matches={matches} />);
+
+    expect(within(rowOf("Unión Robledo")).getByLabelText("Partido del Pleno")).toBeInTheDocument();
+    expect(within(rowOf("CD Los Olivos")).queryByLabelText("Partido del Pleno")).not.toBeInTheDocument();
+  });
+
+  it("nombra el partido del Pleno en su línea", () => {
+    render(<TicketPicks ticket={ticket()} matches={matches} />);
+    expect(screen.getByLabelText("Pleno al 15")).toHaveTextContent("Unión Robledo - CD Fresnedillas");
+  });
+
+  it("muestra el resultado real del Pleno junto al pronóstico cuando ha terminado", () => {
+    const finished = [
+      match({ recordCode: "m3", homeTeam: "Unión Robledo", awayTeam: "CD Fresnedillas", isPleno: true, homeGoals: 1, awayGoals: 5, isFinal: true }),
+    ];
+    render(<TicketPicks ticket={ticket()} matches={finished} />);
+
+    expect(screen.getByLabelText("Resultado del Pleno")).toHaveTextContent("1 - M");
+    expect(screen.getByLabelText("Pleno fallado")).toBeInTheDocument();
+  });
+
+  it("no muestra resultado del Pleno si el partido no ha terminado", () => {
+    render(<TicketPicks ticket={ticket()} matches={matches} />);
+    expect(screen.queryByLabelText("Resultado del Pleno")).not.toBeInTheDocument();
+  });
 });

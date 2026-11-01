@@ -29,6 +29,11 @@ export default function TicketPicks({ ticket, matches }: Props) {
               <span className={styles.teams}>
                 <span className={styles.team}>{match.homeTeam}</span>
                 <span className={styles.team}>{match.awayTeam}</span>
+                {match.isPleno && (
+                  <span className={styles.badge} aria-label="Partido del Pleno">
+                    Pleno
+                  </span>
+                )}
               </span>
               <span className={styles.outcome}>
                 {finished && <span className={styles.score}>{`${match.homeGoals}-${match.awayGoals}`}</span>}
@@ -48,15 +53,24 @@ export default function TicketPicks({ ticket, matches }: Props) {
         })}
       </ol>
       {pleno && (
-        <p className={styles.pleno} aria-label="Pleno al 15">
-          <span>Pleno</span>
-          <strong>{`${goalsToLabel(ticket.plenoHome)} - ${goalsToLabel(ticket.plenoAway)}`}</strong>
+        <div className={styles.pleno} aria-label="Pleno al 15">
+          <span>{`Pleno · ${pleno.homeTeam} - ${pleno.awayTeam}`}</span>
+          <span className={styles.plenoLine}>
+            <span>Tu pronóstico</span>
+            <strong>{`${goalsToLabel(ticket.plenoHome)} - ${goalsToLabel(ticket.plenoAway)}`}</strong>
+            {plenoFinal && (
+              <span className={plenoHit ? styles.hit : styles.miss} aria-label={plenoHit ? "Pleno acertado" : "Pleno fallado"}>
+                {plenoHit ? "✓" : "✗"}
+              </span>
+            )}
+          </span>
           {plenoFinal && (
-            <span className={plenoHit ? styles.hit : styles.miss} aria-label={plenoHit ? "Pleno acertado" : "Pleno fallado"}>
-              {plenoHit ? "✓" : "✗"}
+            <span className={styles.plenoLine} aria-label="Resultado del Pleno">
+              <span>Resultado</span>
+              <strong>{`${goalsToLabel(pleno.homeGoals as number)} - ${goalsToLabel(pleno.awayGoals as number)}`}</strong>
             </span>
           )}
-        </p>
+        </div>
       )}
     </div>
   );
