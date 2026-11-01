@@ -50,7 +50,7 @@ namespace RFFM.Api.Features.Coaches.Quiniela
         /// <param name="Offset">Movimientos a saltar.</param>
         public record Query(string TeamId, string? UserId, int Limit, int Offset) : IQueryApp<QuinielaWalletDto>;
 
-        public class Handler(AppDbContext db, ICurrentUserService currentUser) : IRequestHandler<Query, QuinielaWalletDto>
+        public class Handler(AppDbContext db, ICurrentUserService currentUser, IdentityDbContext? identityDb = null) : IRequestHandler<Query, QuinielaWalletDto>
         {
             public async ValueTask<QuinielaWalletDto> Handle(Query request, CancellationToken cancellationToken)
             {
@@ -67,7 +67,7 @@ namespace RFFM.Api.Features.Coaches.Quiniela
 
                 var wallet = await db.QuinielaWallets.AsNoTracking()
                     .SingleOrDefaultAsync(w => w.TeamId == request.TeamId && w.ApplicationUserId == userId, cancellationToken);
-                var participant = (await QuinielaSupport.LoadParticipantsAsync(db, request.TeamId, [userId], cancellationToken))[userId];
+                var participant = (await QuinielaSupport.LoadParticipantsAsync(db, request.TeamId, [userId], cancellationToken, identityDb))[userId];
                 if (wallet is null)
                     return new QuinielaWalletDto(userId, participant.Name, participant.Role, 0m, 0, []);
 

@@ -35,7 +35,8 @@ namespace RFFM.Api.Features.Coaches.Quiniela
 
         public record Query(string TeamId, int? Limit = null, int? Offset = null) : IQueryApp<QuinielaHistoryDto>;
 
-        public class Handler(AppDbContext db, FederationDbContext federationDb, ICurrentUserService currentUser)
+        public class Handler(AppDbContext db, FederationDbContext federationDb, ICurrentUserService currentUser,
+            IdentityDbContext? identityDb = null)
             : IRequestHandler<Query, QuinielaHistoryDto>
         {
             public async ValueTask<QuinielaHistoryDto> Handle(Query request, CancellationToken cancellationToken)
@@ -57,7 +58,7 @@ namespace RFFM.Api.Features.Coaches.Quiniela
                     .Where(r => roundIds.Contains(r.Id))
                     .ToDictionaryAsync(r => r.Id, r => r.Number, cancellationToken);
                 var results = await QuinielaSupport.LoadResultsAsync(
-                    db, request.TeamId, page.Select(j => j.Id).ToList(), currentUser.UserId!, cancellationToken);
+                    db, request.TeamId, page.Select(j => j.Id).ToList(), currentUser.UserId!, cancellationToken, identityDb);
 
                 var items = page.Select(j =>
                 {

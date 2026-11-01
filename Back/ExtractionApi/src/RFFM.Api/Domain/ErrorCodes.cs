@@ -214,5 +214,6 @@ namespace RFFM.Api.Domain
         public const string QuinielaWalletUserNotInTeam = "QuinielaWalletUserNotInTeam";
         public const string QuinielaTicketNotPayable = "QuinielaTicketNotPayable";
         public const string QuinielaTicketPaidManually = "QuinielaTicketPaidManually";
+        public const string QuinielaNotSettled = "QuinielaNotSettled";
     }
 }

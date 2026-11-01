@@ -32,7 +32,7 @@ namespace RFFM.Api.Features.Coaches.Quiniela
 
         public record Query(string TeamId) : IQueryApp<IReadOnlyList<QuinielaWalletSummaryDto>>;
 
-        public class Handler(AppDbContext db, ICurrentUserService currentUser)
+        public class Handler(AppDbContext db, ICurrentUserService currentUser, IdentityDbContext? identityDb = null)
             : IRequestHandler<Query, IReadOnlyList<QuinielaWalletSummaryDto>>
         {
             public async ValueTask<IReadOnlyList<QuinielaWalletSummaryDto>> Handle(Query request, CancellationToken cancellationToken)
@@ -48,7 +48,7 @@ namespace RFFM.Api.Features.Coaches.Quiniela
                 var balances = await db.QuinielaWallets.AsNoTracking()
                     .Where(w => w.TeamId == request.TeamId && userIds.Contains(w.ApplicationUserId))
                     .ToDictionaryAsync(w => w.ApplicationUserId, w => w.Balance, cancellationToken);
-                var participants = await QuinielaSupport.LoadParticipantsAsync(db, request.TeamId, userIds, cancellationToken);
+                var participants = await QuinielaSupport.LoadParticipantsAsync(db, request.TeamId, userIds, cancellationToken, identityDb);
 
                 return userIds
                     .Select(id => new QuinielaWalletSummaryDto(id, participants[id].Name, participants[id].Role, balances.GetValueOrDefault(id)))

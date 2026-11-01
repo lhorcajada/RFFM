@@ -51,6 +51,9 @@ namespace RFFM.Api.Features.Coaches.Quiniela
 
     public record QuinielaHistoryDto(int Total, IReadOnlyList<QuinielaHistoryItemDto> Items);
 
+    public record QuinielaJornadaResultsDto(
+        int RoundNumber, IReadOnlyList<QuinielaMatchDto> Matches, IReadOnlyList<QuinielaPaymentTicketDto> Tickets);
+
     public record QuinielaCurrentDto(
         bool IsOpen, QuinielaJornadaDto? Jornada, IReadOnlyList<QuinielaMatchDto> Matches, IReadOnlyList<QuinielaTicketDto> MyTickets,
         QuinielaPoolDto? Pool, QuinielaPreviousDto? Previous, bool CanManage);
@@ -303,7 +306,8 @@ namespace RFFM.Api.Features.Coaches.Quiniela
 
         /// <summary>Nombre (datos personales) y rol en el equipo de cada usuario con boleto.</summary>
         public static async Task<Dictionary<string, Participant>> LoadParticipantsAsync(
-            AppDbContext db, string teamId, IReadOnlyCollection<string> userIds, CancellationToken ct)
+            AppDbContext db, string teamId, IReadOnlyCollection<string> userIds, CancellationToken ct,
+            IdentityDbContext? identityDb = null)
         {
             userIds = userIds.Distinct().ToList();
             var roles = await db.UserTeams.AsNoTracking()
@@ -320,6 +324,13 @@ namespace RFFM.Api.Features.Coaches.Quiniela
                 .Select(f => new { UserId = f.LinkedUserId!, f.Name, f.LastName })
                 .ToListAsync(ct);
 
+            var userNames = identityDb is null
+                ? new Dictionary<string, string?>()
+                : await identityDb.Users.AsNoTracking()
+                    .Where(u => userIds.Contains(u.Id))
+                    .Select(u => new { u.Id, u.UserName })
+                    .ToDictionaryAsync(u => u.Id, u => u.UserName, ct);
+
             return userIds.ToDictionary(
                 id => id,
                 id =>
@@ -331,7 +342,9 @@ namespace RFFM.Api.Features.Coaches.Quiniela
                         ? $"{name.FirstName} {name.LastName}".Trim()
                         : familyName is not null && $"{familyName.Name} {familyName.LastName}".Trim() is { Length: > 0 } familyFullName
                             ? familyFullName
-                            : "Sin nombre";
+                            : userNames.GetValueOrDefault(id) is { Length: > 0 } userName
+                                ? userName
+                                : "Sin nombre";
                     return new Participant(fullName, role is null ? string.Empty : Membership.GetById(role.RoleId)?.Key ?? string.Empty);
                 });
         }
@@ -341,11 +354,12 @@ namespace RFFM.Api.Features.Coaches.Quiniela
 
         /// <summary>Premiados y resultado propio de varias jornadas liquidadas con una sola consulta de boletos.</summary>
         public static async Task<Dictionary<string, JornadaResult>> LoadResultsAsync(
-            AppDbContext db, string teamId, IReadOnlyCollection<string> jornadaIds, string userId, CancellationToken ct)
+            AppDbContext db, string teamId, IReadOnlyCollection<string> jornadaIds, string userId, CancellationToken ct,
+            IdentityDbContext? identityDb = null)
         {
             var tickets = await db.QuinielaTickets.AsNoTracking().Where(t => jornadaIds.Contains(t.JornadaId)).ToListAsync(ct);
             var winning = tickets.Where(t => t.Category is not null && t.Category != QuinielaCategory.None).ToList();
-            var participants = await LoadParticipantsAsync(db, teamId, winning.Select(t => t.ApplicationUserId).ToList(), ct);
+            var participants = await LoadParticipantsAsync(db, teamId, winning.Select(t => t.ApplicationUserId).ToList(), ct, identityDb);
 
             return jornadaIds.ToDictionary(id => id, id =>
             {

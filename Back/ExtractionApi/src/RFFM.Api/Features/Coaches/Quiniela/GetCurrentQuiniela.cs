@@ -34,7 +34,8 @@ namespace RFFM.Api.Features.Coaches.Quiniela
 
         public record Query(string TeamId) : IQueryApp<QuinielaCurrentDto>;
 
-        public class Handler(AppDbContext db, FederationDbContext federationDb, ICurrentUserService currentUser, TimeProvider timeProvider)
+        public class Handler(AppDbContext db, FederationDbContext federationDb, ICurrentUserService currentUser, TimeProvider timeProvider,
+            IdentityDbContext? identityDb = null)
             : IRequestHandler<Query, QuinielaCurrentDto>
         {
             public async ValueTask<QuinielaCurrentDto> Handle(Query request, CancellationToken cancellationToken)
@@ -81,7 +82,7 @@ namespace RFFM.Api.Features.Coaches.Quiniela
 
                 var roundNumber = await federationDb.RffmRounds.AsNoTracking()
                     .Where(r => r.Id == last.RffmRoundId).Select(r => r.Number).SingleOrDefaultAsync(ct);
-                var result = (await QuinielaSupport.LoadResultsAsync(db, teamId, [last.Id], userId, ct))[last.Id];
+                var result = (await QuinielaSupport.LoadResultsAsync(db, teamId, [last.Id], userId, ct, identityDb))[last.Id];
 
                 return new QuinielaPreviousDto(
                     last.Id, roundNumber, last.SettledAt!.Value, last.CarryOut ?? 0m, result.MyHits, result.MyCategory, result.MyPrize,

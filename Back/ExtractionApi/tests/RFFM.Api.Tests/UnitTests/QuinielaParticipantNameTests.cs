@@ -1,4 +1,5 @@
 #nullable enable
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Domain.Entities.Players;
 using RFFM.Api.Domain.Entities;
@@ -15,7 +16,7 @@ namespace RFFM.Api.Tests.UnitTests
     [Collection(PostgresCollection.Name)]
     public class QuinielaParticipantNameTests(PostgresContainerFixture fixture)
     {
-        private async Task<string> PaymentsNameOfAsync(QuinielaSeed seed, string userId, string suffix)
+        private async Task<string> PaymentsNameOfAsync(QuinielaSeed seed, string userId, string suffix, bool withIdentity = false)
         {
             var roundId = await SeedRoundAsync(fixture, seed.GroupCode, 1, StandardMatches(suffix));
             var jornada = await SeedJornadaAsync(fixture, seed.TeamId, roundId);
@@ -23,7 +24,9 @@ namespace RFFM.Api.Tests.UnitTests
             await using var db = fixture.CreateDbContext();
             await using var fed = fixture.CreateFederationDbContext();
 
-            var dto = await new GetQuinielaPayments.Handler(db, fed, User(seed.CoachId), ClockAt(BeforeKickoff))
+            await using var identity = fixture.CreateIdentityDbContext();
+
+            var dto = await new GetQuinielaPayments.Handler(db, fed, User(seed.CoachId), ClockAt(BeforeKickoff), withIdentity ? identity : null)
                 .Handle(new GetQuinielaPayments.Query(seed.TeamId, jornada.Id), CancellationToken.None);
 
             return Assert.Single(dto.Tickets).UserName;
@@ -89,6 +92,37 @@ namespace RFFM.Api.Tests.UnitTests
             var seed = await SeedTeamAsync(fixture);
 
             Assert.Equal("Sin nombre", await PaymentsNameOfAsync(seed, seed.FamilyId, "n3"));
+        }
+
+        [Fact]
+        public async Task Payments_FallsBackToTheUserName_WhenThereIsNoPersonalDataNorFamilyMember()
+        {
+            var seed = await SeedTeamAsync(fixture);
+            await using (var identity = fixture.CreateIdentityDbContext())
+            {
+                identity.Users.Add(new IdentityUser { Id = seed.CoachId, UserName = "entrenador.ana" });
+                await identity.SaveChangesAsync();
+            }
+
+            Assert.Equal("entrenador.ana", await PaymentsNameOfAsync(seed, seed.CoachId, "n4", withIdentity: true));
+        }
+
+        [Fact]
+        public async Task Payments_PrefersThePersonalDataName_OverTheUserName()
+        {
+            var seed = await SeedTeamAsync(fixture);
+            await using (var db = fixture.CreateDbContext())
+            {
+                db.UserPersonalData.Add(UserPersonalData.Create(seed.PlayerId, "Pablo", "Vega", null, null));
+                await db.SaveChangesAsync();
+            }
+            await using (var identity = fixture.CreateIdentityDbContext())
+            {
+                identity.Users.Add(new IdentityUser { Id = seed.PlayerId, UserName = "pablo.v" });
+                await identity.SaveChangesAsync();
+            }
+
+            Assert.Equal("Pablo Vega", await PaymentsNameOfAsync(seed, seed.PlayerId, "n5", withIdentity: true));
         }
     }
 }

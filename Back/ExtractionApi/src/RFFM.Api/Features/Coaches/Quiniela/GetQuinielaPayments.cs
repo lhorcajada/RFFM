@@ -33,7 +33,8 @@ namespace RFFM.Api.Features.Coaches.Quiniela
 
         public record Query(string TeamId, string JornadaId) : IQueryApp<QuinielaPaymentsDto>;
 
-        public class Handler(AppDbContext db, FederationDbContext federationDb, ICurrentUserService currentUser, TimeProvider timeProvider)
+        public class Handler(AppDbContext db, FederationDbContext federationDb, ICurrentUserService currentUser, TimeProvider timeProvider,
+            IdentityDbContext? identityDb = null)
             : IRequestHandler<Query, QuinielaPaymentsDto>
         {
             public async ValueTask<QuinielaPaymentsDto> Handle(Query request, CancellationToken cancellationToken)
@@ -48,7 +49,7 @@ namespace RFFM.Api.Features.Coaches.Quiniela
                     .Where(t => t.JornadaId == jornada.Id)
                     .ToListAsync(cancellationToken);
                 var participants = await QuinielaSupport.LoadParticipantsAsync(
-                    db, request.TeamId, tickets.Select(t => t.ApplicationUserId).ToList(), cancellationToken);
+                    db, request.TeamId, tickets.Select(t => t.ApplicationUserId).ToList(), cancellationToken, identityDb);
 
                 var rows = tickets
                     .Select(t => (Ticket: t, Status: QuinielaSupport.EffectiveStatus(t, round, now)))

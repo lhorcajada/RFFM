@@ -60,7 +60,8 @@ namespace RFFM.Api.Features.Coaches.Quiniela
             }
         }
 
-        public class Handler(AppDbContext db, ICurrentUserService currentUser, TimeProvider timeProvider)
+        public class Handler(AppDbContext db, ICurrentUserService currentUser, TimeProvider timeProvider,
+            IdentityDbContext? identityDb = null)
             : IRequestHandler<Command, QuinielaPaymentTicketDto>
         {
             public async ValueTask<QuinielaPaymentTicketDto> Handle(Command request, CancellationToken cancellationToken)
@@ -94,7 +95,7 @@ namespace RFFM.Api.Features.Coaches.Quiniela
                     return Unit.Value;
                 });
                 // Sin consultar la jornada RFFM no se conoce el plazo: se devuelve el estado guardado (Paid/Pending).
-                var participants = await QuinielaSupport.LoadParticipantsAsync(db, request.TeamId, [ticket.ApplicationUserId], cancellationToken);
+                var participants = await QuinielaSupport.LoadParticipantsAsync(db, request.TeamId, [ticket.ApplicationUserId], cancellationToken, identityDb);
                 return QuinielaSupport.ToPaymentDto(ticket, participants, ticket.PaymentStatus);
             }
         }
