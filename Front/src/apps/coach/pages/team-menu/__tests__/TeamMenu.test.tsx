@@ -57,7 +57,7 @@ describe("TeamMenu", () => {
   it("muestra los grupos de secciones como encabezados", () => {
     renderMenu();
 
-    for (const title of ["Equipo", "Actividad", "Competición", "Disciplina", "Otros", "Cuenta"]) {
+    for (const title of ["Equipo", "Actividad", "Competición", "Juegos", "Gestión de juegos", "Disciplina", "Otros", "Cuenta"]) {
       expect(screen.getByRole("heading", { level: 2, name: title })).toBeInTheDocument();
     }
   });

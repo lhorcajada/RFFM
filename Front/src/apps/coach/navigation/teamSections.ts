@@ -88,13 +88,24 @@ export function buildTeamSections({
         { key: "results", label: "Resultados", to: team("/coach/results"), icon: ScoreboardOutlinedIcon, visible: canSeeCompetition },
         { key: "classification", label: "Clasificación", to: team("/coach/classification"), icon: EmojiEventsOutlinedIcon, visible: canSeeCompetition },
         { key: "rival-stats", label: "Estadísticas de rivales", to: team("/coach/rival-stats"), icon: QueryStatsOutlinedIcon, visible: canSeeCompetition },
-        { key: "quiniela", label: "Quiniela", to: team("/coach/quiniela"), icon: SportsSoccerOutlinedIcon, visible: hasFeatureAccess(COACH_FEATURE_ROUTES.Quiniela) },
-        { key: "quiniela-history", label: "Histórico de quinielas", to: team("/coach/quiniela/historico"), icon: HistoryOutlinedIcon, visible: hasFeatureAccess(COACH_FEATURE_ROUTES.Quiniela) },
-        { key: "quiniela-my-wallet", label: "Mi monedero", to: team("/coach/quiniela/mi-monedero"), icon: AccountBalanceWalletOutlinedIcon, visible: hasFeatureAccess(COACH_FEATURE_ROUTES.Quiniela) },
-        { key: "quiniela-pool", label: "Bolsa de la quiniela", to: team("/coach/quiniela/bolsa"), icon: PaymentsOutlinedIcon, visible: !isPlayer && hasFeatureAccess(COACH_FEATURE_ROUTES.Quiniela) },
-        { key: "quiniela-wallets", label: "Monederos de la quiniela", to: team("/coach/quiniela/monederos"), icon: AccountBalanceWalletOutlinedIcon, visible: !isPlayer && hasFeatureAccess(COACH_FEATURE_ROUTES.Quiniela) },
         { key: "rivals", label: "Rivales", to: "/coach/rivals", icon: ShieldOutlinedIcon, visible: hasFeatureAccess(COACH_FEATURE_ROUTES.Rivals) },
         { key: "game-model", label: "Modelo de Juego", to: team("/coach/game-model"), icon: SchemaOutlinedIcon, visible: hasFeatureAccess(COACH_FEATURE_ROUTES.GameModel) },
+      ],
+    },
+    {
+      title: "Juegos",
+      items: [
+        { key: "quiniela", label: "Mi boleto", to: team("/coach/quiniela"), icon: SportsSoccerOutlinedIcon, visible: hasFeatureAccess(COACH_FEATURE_ROUTES.Quiniela) },
+        { key: "quiniela-history", label: "Resultados y premios", to: team("/coach/quiniela/historico"), icon: HistoryOutlinedIcon, visible: hasFeatureAccess(COACH_FEATURE_ROUTES.Quiniela) },
+        { key: "quiniela-my-wallet", label: "Mi monedero", to: team("/coach/quiniela/mi-monedero"), icon: AccountBalanceWalletOutlinedIcon, visible: hasFeatureAccess(COACH_FEATURE_ROUTES.Quiniela) },
+        { key: "lottery", label: "Lotería", to: "/coach/lottery", icon: ConfirmationNumberOutlinedIcon, visible: hasFeatureAccess(COACH_FEATURE_ROUTES.Lottery) },
+      ],
+    },
+    {
+      title: "Gestión de juegos",
+      items: [
+        { key: "quiniela-pool", label: "Bolsa y pagos", to: team("/coach/quiniela/bolsa"), icon: PaymentsOutlinedIcon, visible: !isPlayer && hasFeatureAccess(COACH_FEATURE_ROUTES.Quiniela) },
+        { key: "quiniela-wallets", label: "Monederos del equipo", to: team("/coach/quiniela/monederos"), icon: AccountBalanceWalletOutlinedIcon, visible: !isPlayer && hasFeatureAccess(COACH_FEATURE_ROUTES.Quiniela) },
       ],
     },
     {
@@ -110,7 +121,6 @@ export function buildTeamSections({
       title: "Otros",
       items: [
         { key: "news", label: "Noticias", to: "/coach/news", icon: NewspaperOutlinedIcon, visible: hasFeatureAccess(COACH_FEATURE_ROUTES.News) },
-        { key: "lottery", label: "Lotería", to: "/coach/lottery", icon: ConfirmationNumberOutlinedIcon, visible: hasFeatureAccess(COACH_FEATURE_ROUTES.Lottery) },
         { key: "season-access", label: "Pruebas de acceso", to: "/coach/season-access", icon: AssignmentTurnedInOutlinedIcon, visible: hasFeatureAccess(COACH_FEATURE_ROUTES.SeasonAccess) },
         // Every authenticated role has its own inbox, scoped server-side to the user.
         { key: "notifications", label: "Notificaciones", to: "/coach/notifications", icon: NotificationsNoneOutlinedIcon, visible: true },

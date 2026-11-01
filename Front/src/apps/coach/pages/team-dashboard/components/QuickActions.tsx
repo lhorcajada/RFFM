@@ -5,6 +5,7 @@ import { buildTeamSections } from "../../../navigation/teamSections";
 import styles from "./QuickActions.module.css";
 
 const QUICK_ACTION_KEYS = ["squad", "injured", "attendance-summary", "quiniela"];
+const QUICK_ACTION_LABELS: Record<string, string> = { quiniela: "Quiniela" };
 
 export default function QuickActions({ teamId }: { teamId: string | null }) {
   const { loading, hasFeatureAccess } = usePermissions();
@@ -12,7 +13,9 @@ export default function QuickActions({ teamId }: { teamId: string | null }) {
   const items = useMemo(() => {
     if (loading) return [];
     const all = buildTeamSections({ teamId, isPlayer: false, hasFeatureAccess }).flatMap((g) => g.items);
-    return QUICK_ACTION_KEYS.flatMap((key) => all.filter((item) => item.key === key));
+    return QUICK_ACTION_KEYS.flatMap((key) =>
+      all.filter((item) => item.key === key).map((item) => ({ ...item, label: QUICK_ACTION_LABELS[key] ?? item.label })),
+    );
   }, [loading, teamId, hasFeatureAccess]);
 
   if (items.length === 0) return null;

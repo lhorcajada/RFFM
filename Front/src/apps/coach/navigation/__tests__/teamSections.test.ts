@@ -44,6 +44,8 @@ describe("buildTeamSections — grupos", () => {
       "Equipo",
       "Actividad",
       "Competición",
+      "Juegos",
+      "Gestión de juegos",
       "Disciplina",
       "Otros",
       "Cuenta",
@@ -187,89 +189,66 @@ describe("buildTeamSections — permisos", () => {
   });
 });
 
-describe("buildTeamSections — Quiniela", () => {
-  it("coloca Quiniela en Competición con el equipo en la ruta", () => {
-    expect(groupOf("Quiniela")).toBe("Competición");
-    expect(findItem("Quiniela", { teamId: "team-1" })?.to).toBe("/coach/quiniela?teamId=team-1");
-    expect(findItem("Quiniela")?.to).toBe("/coach/quiniela");
-  });
+const QUINIELA_ACCESS = (r: string) => r === COACH_FEATURE_ROUTES.Quiniela;
+const NO_QUINIELA = (r: string) => r !== COACH_FEATURE_ROUTES.Quiniela;
 
-  it("muestra Quiniela al jugador y al entrenador con acceso", () => {
-    expect(labels({ isPlayer: true, hasFeatureAccess: (r) => r === COACH_FEATURE_ROUTES.Quiniela })).toContain("Quiniela");
-    expect(labels({ isPlayer: false, hasFeatureAccess: (r) => r === COACH_FEATURE_ROUTES.Quiniela })).toContain("Quiniela");
-  });
-
-  it("oculta Quiniela sin permiso de la funcionalidad", () => {
-    expect(labels({ hasFeatureAccess: (r) => r !== COACH_FEATURE_ROUTES.Quiniela })).not.toContain("Quiniela");
-  });
-});
-
-describe("buildTeamSections — Histórico de quinielas", () => {
-  it("coloca el Histórico en Competición con el equipo en la ruta", () => {
-    expect(groupOf("Histórico de quinielas")).toBe("Competición");
-    expect(findItem("Histórico de quinielas", { teamId: "team-1" })?.to).toBe("/coach/quiniela/historico?teamId=team-1");
-  });
-
-  it("lo muestra al jugador y al entrenador con acceso", () => {
-    expect(labels({ isPlayer: true, hasFeatureAccess: (r) => r === COACH_FEATURE_ROUTES.Quiniela })).toContain("Histórico de quinielas");
-    expect(labels({ isPlayer: false, hasFeatureAccess: (r) => r === COACH_FEATURE_ROUTES.Quiniela })).toContain("Histórico de quinielas");
-  });
-
-  it("lo oculta sin permiso de la funcionalidad", () => {
-    expect(labels({ hasFeatureAccess: (r) => r !== COACH_FEATURE_ROUTES.Quiniela })).not.toContain("Histórico de quinielas");
-  });
-});
-
-describe("buildTeamSections — Mi monedero", () => {
-  it("coloca Mi monedero en Competición con el equipo en la ruta", () => {
-    expect(groupOf("Mi monedero")).toBe("Competición");
+describe("buildTeamSections — Juegos", () => {
+  it("agrupa Mi boleto, Resultados y premios y Mi monedero en Juegos con el equipo en la ruta", () => {
+    expect(groupOf("Mi boleto")).toBe("Juegos");
+    expect(findItem("Mi boleto", { teamId: "team-1" })?.to).toBe("/coach/quiniela?teamId=team-1");
+    expect(findItem("Mi boleto")?.to).toBe("/coach/quiniela");
+    expect(groupOf("Resultados y premios")).toBe("Juegos");
+    expect(findItem("Resultados y premios", { teamId: "team-1" })?.to).toBe("/coach/quiniela/historico?teamId=team-1");
+    expect(groupOf("Mi monedero")).toBe("Juegos");
     expect(findItem("Mi monedero", { teamId: "team-1" })?.to).toBe("/coach/quiniela/mi-monedero?teamId=team-1");
   });
 
-  it("lo muestra al entrenador y al jugador con acceso", () => {
-    expect(labels({ isPlayer: false })).toContain("Mi monedero");
-    expect(labels({ isPlayer: true })).toContain("Mi monedero");
+  it("mueve la Lotería a Juegos", () => {
+    expect(groupOf("Lotería")).toBe("Juegos");
   });
 
-  it("lo oculta sin permiso de la funcionalidad", () => {
-    expect(labels({ hasFeatureAccess: (r) => r !== COACH_FEATURE_ROUTES.Quiniela })).not.toContain("Mi monedero");
-  });
-});
-
-describe("buildTeamSections — Monederos de la quiniela", () => {
-  it("coloca los Monederos en Competición con el equipo en la ruta", () => {
-    expect(groupOf("Monederos de la quiniela")).toBe("Competición");
-    expect(findItem("Monederos de la quiniela", { teamId: "team-1" })?.to).toBe("/coach/quiniela/monederos?teamId=team-1");
+  it("ya no deja nada de la quiniela en Competición ni usa los nombres antiguos", () => {
+    const competition = build().find((group) => group.title === "Competición")?.items.map((item) => item.label) ?? [];
+    expect(competition).toEqual(["Calendario", "Resultados", "Clasificación", "Estadísticas de rivales", "Rivales", "Modelo de Juego"]);
+    expect(labels()).not.toContain("Quiniela");
+    expect(labels()).not.toContain("Histórico de quinielas");
   });
 
-  it("muestra los Monederos al entrenador con acceso", () => {
-    expect(labels({ isPlayer: false })).toContain("Monederos de la quiniela");
+  it("muestra las opciones del jugador a jugadores y entrenadores con acceso a la quiniela", () => {
+    for (const isPlayer of [true, false]) {
+      expect(labels({ isPlayer, hasFeatureAccess: QUINIELA_ACCESS })).toEqual(
+        expect.arrayContaining(["Mi boleto", "Resultados y premios", "Mi monedero"]),
+      );
+    }
   });
 
-  it("oculta los Monederos al jugador aunque tenga acceso", () => {
-    expect(labels({ isPlayer: true })).not.toContain("Monederos de la quiniela");
-  });
-
-  it("oculta los Monederos sin permiso de la funcionalidad", () => {
-    expect(labels({ hasFeatureAccess: (r) => r !== COACH_FEATURE_ROUTES.Quiniela })).not.toContain("Monederos de la quiniela");
+  it("oculta las opciones de la quiniela sin permiso de la funcionalidad", () => {
+    expect(labels({ hasFeatureAccess: NO_QUINIELA })).not.toContain("Mi boleto");
+    expect(labels({ hasFeatureAccess: NO_QUINIELA })).not.toContain("Resultados y premios");
+    expect(labels({ hasFeatureAccess: NO_QUINIELA })).not.toContain("Mi monedero");
   });
 });
 
-describe("buildTeamSections — Bolsa de la quiniela", () => {
-  it("coloca la Bolsa en Competición con el equipo en la ruta", () => {
-    expect(groupOf("Bolsa de la quiniela")).toBe("Competición");
-    expect(findItem("Bolsa de la quiniela", { teamId: "team-1" })?.to).toBe("/coach/quiniela/bolsa?teamId=team-1");
+describe("buildTeamSections — Gestión de juegos", () => {
+  it("coloca Bolsa y pagos y Monederos del equipo en Gestión de juegos con el equipo en la ruta", () => {
+    expect(groupOf("Bolsa y pagos")).toBe("Gestión de juegos");
+    expect(findItem("Bolsa y pagos", { teamId: "team-1" })?.to).toBe("/coach/quiniela/bolsa?teamId=team-1");
+    expect(groupOf("Monederos del equipo")).toBe("Gestión de juegos");
+    expect(findItem("Monederos del equipo", { teamId: "team-1" })?.to).toBe("/coach/quiniela/monederos?teamId=team-1");
   });
 
-  it("muestra la Bolsa al entrenador con acceso", () => {
-    expect(labels({ isPlayer: false })).toContain("Bolsa de la quiniela");
+  it("las muestra al entrenador con acceso", () => {
+    expect(labels({ isPlayer: false })).toEqual(expect.arrayContaining(["Bolsa y pagos", "Monederos del equipo"]));
   });
 
-  it("oculta la Bolsa al jugador aunque tenga acceso", () => {
-    expect(labels({ isPlayer: true })).not.toContain("Bolsa de la quiniela");
+  it("las oculta al jugador y no muestra el grupo", () => {
+    expect(labels({ isPlayer: true })).not.toContain("Bolsa y pagos");
+    expect(labels({ isPlayer: true })).not.toContain("Monederos del equipo");
+    expect(build({ isPlayer: true }).map((group) => group.title)).not.toContain("Gestión de juegos");
   });
 
-  it("oculta la Bolsa sin permiso de la funcionalidad", () => {
-    expect(labels({ hasFeatureAccess: (r) => r !== COACH_FEATURE_ROUTES.Quiniela })).not.toContain("Bolsa de la quiniela");
+  it("las oculta sin permiso de la funcionalidad", () => {
+    expect(labels({ hasFeatureAccess: NO_QUINIELA })).not.toContain("Bolsa y pagos");
+    expect(labels({ hasFeatureAccess: NO_QUINIELA })).not.toContain("Monederos del equipo");
   });
 });
