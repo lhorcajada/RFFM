@@ -26,7 +26,8 @@
   pointer-events: none;
 }
 
-.topRow,
+.bar,
+.body,
 .headline,
 .facts,
 .status,
@@ -35,11 +36,71 @@
   position: relative;
 }
 
-.topRow {
+
+.bar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 8px;
+}
+
+.heading {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.barText {
+  min-width: 0;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.chevron,
+.chevronOpen {
+  flex: none;
+  margin-left: auto;
+  color: var(--rffm-muted);
+  transition: transform 0.2s ease;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+.go,
+.go:visited {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--rffm-primary) 18%, transparent);
+  color: var(--rffm-primary);
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
 .noveltyBadge {
@@ -54,20 +115,6 @@
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-}
-
-.kicker {
-  color: var(--rffm-muted);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.round {
-  color: var(--rffm-muted);
-  font-size: 13px;
-  font-weight: 600;
 }
 
 .headline {

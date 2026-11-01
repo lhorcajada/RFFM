@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  formatJornadaDay,
   formatKickoff,
   formatMoney,
   goalsFromLabel,
@@ -17,6 +18,18 @@ import {
 describe("quinielaHelpers", () => {
   it("formatKickoff muestra día y hora de Madrid", () => {
     expect(formatKickoff("2026-10-31T09:00:00Z")).toMatch(/31 oct.*10:00/i);
+  });
+
+  it("formatJornadaDay muestra el día de la semana y la fecha dd/mm/yyyy de Madrid", () => {
+    expect(formatJornadaDay("2026-11-07T15:00:00Z")).toBe("sábado 07/11/2026");
+  });
+
+  it("formatJornadaDay usa el día de Madrid aunque en UTC sea el anterior", () => {
+    expect(formatJornadaDay("2026-11-07T23:30:00Z")).toBe("domingo 08/11/2026");
+  });
+
+  it("formatJornadaDay devuelve cadena vacía si no hay fecha", () => {
+    expect(formatJornadaDay(null)).toBe("");
   });
 
   it("formatKickoff devuelve «Sin horario» si no hay fecha", () => {

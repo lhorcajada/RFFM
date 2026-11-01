@@ -83,6 +83,7 @@ export type QuinielaPrevious = {
   myCategory: QuinielaCategory | null;
   myPrize: number | null;
   winners: QuinielaWinner[];
+  firstKickoffUtc?: string | null;
 };
 
 export type QuinielaHistoryItem = QuinielaPrevious & {

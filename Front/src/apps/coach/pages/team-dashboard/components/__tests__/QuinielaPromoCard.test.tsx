@@ -67,6 +67,18 @@ function renderCard() {
   );
 }
 
+const BET_TOGGLE = /haz tu apuesta|quiniela de la jornada/i;
+
+async function expandBet() {
+  const toggle = await screen.findByRole("button", { name: BET_TOGGLE });
+  if (toggle.getAttribute("aria-expanded") !== "true") await userEvent.click(toggle);
+}
+
+async function expandResults() {
+  const toggle = await screen.findByRole("button", { name: /resultados de la quiniela/i });
+  if (toggle.getAttribute("aria-expanded") !== "true") await userEvent.click(toggle);
+}
+
 describe("QuinielaPromoCard", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -87,6 +99,7 @@ describe("QuinielaPromoCard", () => {
   it("muestra la bolsa posible con los pendientes de pago", async () => {
     getCurrentQuiniela.mockResolvedValue(current());
     renderCard();
+    await expandBet();
 
     const possible = (await screen.findByText("Bolsa posible")).parentElement as HTMLElement;
     expect(possible).toHaveTextContent(/13,50\s€/);
@@ -102,7 +115,9 @@ describe("QuinielaPromoCard", () => {
       myCategory: null,
       myPrize: null,
       winners,
+      firstKickoffUtc: "2026-10-24T15:00:00Z",
     });
+    const winner = { userName: "Carla Ruiz", category: "Special" as const, hits: 14, prize: 6.5, ticketNumber: 1 };
     const closed = (winners: QuinielaPrevious["winners"]) =>
       current({ isOpen: false, jornada: null, matches: [], pool: null, previous: previous(winners) });
 
@@ -114,32 +129,66 @@ describe("QuinielaPromoCard", () => {
         ]),
       );
       renderCard();
+      await expandResults();
 
-      const card = await screen.findByRole("region", { name: /ganadores de la quiniela/i });
-      expect(card).toHaveTextContent("Jornada 6");
+      const card = await screen.findByRole("region", { name: /resultados de la quiniela/i });
       expect(card).toHaveTextContent("Carla Ruiz");
       expect(card).toHaveTextContent("Categoría Especial");
       expect(card).toHaveTextContent(/6,50\s€/);
       expect(card).toHaveTextContent("Lucas Medina · Boleto 2");
     });
 
+    it("aparece plegada con la jornada y el día del primer partido, sin mostrar los ganadores", async () => {
+      getCurrentQuiniela.mockResolvedValue(closed([winner]));
+      renderCard();
+
+      const toggle = await screen.findByRole("button", { name: /resultados de la quiniela/i });
+      expect(toggle).toHaveTextContent("Resultados de la quiniela - Jornada 6 día sábado 24/10/2026");
+      expect(toggle).toHaveAttribute("aria-expanded", "false");
+      expect(screen.queryByText("Carla Ruiz")).not.toBeInTheDocument();
+    });
+
+    it("al pulsarla se despliegan los ganadores y al volver a pulsarla se pliegan", async () => {
+      getCurrentQuiniela.mockResolvedValue(closed([winner]));
+      renderCard();
+
+      const toggle = await screen.findByRole("button", { name: /resultados de la quiniela/i });
+      await userEvent.click(toggle);
+      expect(toggle).toHaveAttribute("aria-expanded", "true");
+      expect(screen.getByText("Carla Ruiz")).toBeInTheDocument();
+
+      await userEvent.click(toggle);
+      expect(screen.queryByText("Carla Ruiz")).not.toBeInTheDocument();
+    });
+
+    it("sin fecha del primer partido muestra solo la jornada", async () => {
+      const data = closed([winner]);
+      data.previous = { ...data.previous!, firstKickoffUtc: null };
+      getCurrentQuiniela.mockResolvedValue(data);
+      renderCard();
+
+      expect(await screen.findByRole("button", { name: /resultados de la quiniela/i })).toHaveTextContent(
+        /^Resultados de la quiniela - Jornada 6$/,
+      );
+    });
+
     it("sin acertantes avisa de que el bote pasa a la siguiente jornada", async () => {
       getCurrentQuiniela.mockResolvedValue(closed([]));
       renderCard();
+      await expandResults();
 
-      const card = await screen.findByRole("region", { name: /ganadores de la quiniela/i });
+      const card = await screen.findByRole("region", { name: /resultados de la quiniela/i });
       expect(card).toHaveTextContent(/sin acertantes/i);
       expect(card).toHaveTextContent(/2,00\s€/);
     });
 
-    const winner = { userName: "Carla Ruiz", category: "Special" as const, hits: 14, prize: 6.5, ticketNumber: 1 };
-
     it("se muestra junto a la quiniela nueva mientras no cierra su plazo", async () => {
       getCurrentQuiniela.mockResolvedValue(current({ previous: previous([winner]) }));
       renderCard();
+      await expandResults();
 
-      expect(await screen.findByRole("region", { name: /ganadores de la quiniela/i })).toHaveTextContent("Carla Ruiz");
-      expect(screen.getByText("Quiniela del equipo")).toBeInTheDocument();
+      expect(await screen.findByRole("region", { name: /resultados de la quiniela/i })).toHaveTextContent("Carla Ruiz");
+      expect(screen.getByRole("button", { name: BET_TOGGLE })).toBeInTheDocument();
     });
 
     it("se oculta cuando el plazo de la jornada nueva ya ha cerrado", async () => {
@@ -148,8 +197,8 @@ describe("QuinielaPromoCard", () => {
       getCurrentQuiniela.mockResolvedValue(data);
       renderCard();
 
-      await screen.findByText("Quiniela del equipo");
-      expect(screen.queryByRole("region", { name: /ganadores de la quiniela/i })).not.toBeInTheDocument();
+      await screen.findByRole("button", { name: BET_TOGGLE });
+      expect(screen.queryByRole("region", { name: /resultados de la quiniela/i })).not.toBeInTheDocument();
     });
 
     it("destaca el premio propio del usuario", async () => {
@@ -162,8 +211,9 @@ describe("QuinielaPromoCard", () => {
         }),
       );
       renderCard();
+      await expandResults();
 
-      const card = await screen.findByRole("region", { name: /ganadores de la quiniela/i });
+      const card = await screen.findByRole("region", { name: /resultados de la quiniela/i });
       expect(card).toHaveTextContent(/tu premio/i);
       expect(card).toHaveTextContent(/6,50\s€/);
     });
@@ -171,8 +221,9 @@ describe("QuinielaPromoCard", () => {
     it("enlaza al histórico de quinielas", async () => {
       getCurrentQuiniela.mockResolvedValue(closed([winner]));
       renderCard();
+      await expandResults();
 
-      const card = await screen.findByRole("region", { name: /ganadores de la quiniela/i });
+      const card = await screen.findByRole("region", { name: /resultados de la quiniela/i });
       expect(within(card).getByRole("link", { name: /ver histórico/i })).toHaveAttribute(
         "href",
         "/coach/quiniela/historico?teamId=team-1",
@@ -197,6 +248,7 @@ describe("QuinielaPromoCard", () => {
       data.jornada = { ...data.jornada!, picksClosed: true };
       getCurrentQuiniela.mockResolvedValue(data);
       renderCard();
+      await expandBet();
 
       expect(await screen.findByRole("link", { name: /ver resultados anteriores/i })).toHaveAttribute(
         "href",
@@ -207,6 +259,7 @@ describe("QuinielaPromoCard", () => {
     it("sin jornadas liquidadas no ofrece el enlace", async () => {
       getCurrentQuiniela.mockResolvedValue(current({ previous: null }));
       renderCard();
+      await expandBet();
 
       await screen.findByText("Quiniela del equipo");
       expect(screen.queryByRole("link", { name: /ver resultados anteriores/i })).not.toBeInTheDocument();
@@ -216,6 +269,7 @@ describe("QuinielaPromoCard", () => {
   it("muestra el bote acumulado junto a la bolsa", async () => {
     getCurrentQuiniela.mockResolvedValue(current());
     renderCard();
+    await expandBet();
 
     const bote = (await screen.findByText("Bote")).parentElement as HTMLElement;
     expect(bote).toHaveTextContent(/3,50\s€/);
@@ -226,6 +280,7 @@ describe("QuinielaPromoCard", () => {
       .mockResolvedValueOnce(current())
       .mockResolvedValue(current({ pool: { participants: 13, paidTickets: 9, collected: 9, prizePool: 12.5, possiblePrizePool: 14.5 } }));
     renderCard();
+    await expandBet();
     await screen.findByText(/11,50\s€/);
 
     document.dispatchEvent(new Event("visibilitychange"));
@@ -237,6 +292,7 @@ describe("QuinielaPromoCard", () => {
   it("conserva los datos si falla una actualización automática", async () => {
     getCurrentQuiniela.mockResolvedValueOnce(current()).mockRejectedValue(new Error("boom"));
     renderCard();
+    await expandBet();
     await screen.findByText(/11,50\s€/);
 
     document.dispatchEvent(new Event("visibilitychange"));
@@ -245,9 +301,41 @@ describe("QuinielaPromoCard", () => {
     expect(screen.getByText(/11,50\s€/)).toBeInTheDocument();
   });
 
+  it("la tarjeta de apuesta aparece plegada con la jornada y el día del primer partido", async () => {
+    getCurrentQuiniela.mockResolvedValue(current());
+    renderCard();
+
+    const toggle = await screen.findByRole("button", { name: BET_TOGGLE });
+    expect(toggle).toHaveTextContent("Haz tu apuesta para la siguiente jornada 7 día sábado 31/10/2026");
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("link", { name: /Rellenar mi boleto/ })).not.toBeInTheDocument();
+  });
+
+  it("desde la tarjeta plegada se puede ir directo al boleto nuevo", async () => {
+    getCurrentQuiniela.mockResolvedValue(current());
+    renderCard();
+
+    expect(await screen.findByRole("link", { name: /ir al boleto/i })).toHaveAttribute(
+      "href",
+      "/coach/quiniela?teamId=team-1",
+    );
+  });
+
+  it("con los pronósticos cerrados el título deja de invitar a apostar", async () => {
+    const data = current();
+    data.jornada = { ...data.jornada!, picksClosed: true };
+    getCurrentQuiniela.mockResolvedValue(data);
+    renderCard();
+
+    expect(await screen.findByRole("button", { name: BET_TOGGLE })).toHaveTextContent(
+      "Quiniela de la jornada 7 día sábado 31/10/2026",
+    );
+  });
+
   it("sin boleto muestra «Rellenar mi boleto» hacia la quiniela del equipo, con la bolsa y el cierre", async () => {
     getCurrentQuiniela.mockResolvedValue(current());
     renderCard();
+    await expandBet();
 
     const cta = await screen.findByRole("link", { name: /Rellenar mi boleto/ });
     expect(cta).toHaveAttribute("href", "/coach/quiniela?teamId=team-1");
@@ -260,6 +348,7 @@ describe("QuinielaPromoCard", () => {
   it("con el boleto pendiente de pago muestra el plazo del viernes y «Ver mi boleto»", async () => {
     getCurrentQuiniela.mockResolvedValue(current({ myTickets: [ticket()] }));
     renderCard();
+    await expandBet();
 
     expect(await screen.findByText(/Pendiente de pago · hasta el viernes 23:59/)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Ver mi boleto/ })).toBeInTheDocument();
@@ -268,6 +357,7 @@ describe("QuinielaPromoCard", () => {
   it("con el boleto pagado muestra «Boleto pagado»", async () => {
     getCurrentQuiniela.mockResolvedValue(current({ myTickets: [ticket({ paymentStatus: "Paid" })] }));
     renderCard();
+    await expandBet();
 
     expect(await screen.findByText(/Boleto pagado/)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Ver mi boleto/ })).toBeInTheDocument();
@@ -278,6 +368,7 @@ describe("QuinielaPromoCard", () => {
       current({ myTickets: [ticket({ paymentStatus: "Paid" }), ticket({ id: "tk2", number: 2, paymentStatus: "Pending" })] }),
     );
     renderCard();
+    await expandBet();
 
     expect(await screen.findByText(/Pendiente de pago · hasta el viernes 23:59/)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Ver mis boletos/ })).toBeInTheDocument();
@@ -288,6 +379,7 @@ describe("QuinielaPromoCard", () => {
       current({ myTickets: [ticket({ paymentStatus: "Paid" }), ticket({ id: "tk2", number: 2, paymentStatus: "Paid" })] }),
     );
     renderCard();
+    await expandBet();
 
     expect(await screen.findByText(/Boleto pagado/)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Ver mis boletos/ })).toBeInTheDocument();
@@ -303,6 +395,7 @@ describe("QuinielaPromoCard", () => {
     it("con boleto muestra «Pronósticos cerrados», la hora a la que cerró y «Ver mi boleto»", async () => {
       getCurrentQuiniela.mockResolvedValue(closedCurrent({ myTickets: [ticket({ paymentStatus: "Paid" })] }));
       renderCard();
+    await expandBet();
 
       expect(await screen.findByText("Pronósticos cerrados")).toBeInTheDocument();
       expect(screen.getByText("Cerró")).toBeInTheDocument();
@@ -313,6 +406,7 @@ describe("QuinielaPromoCard", () => {
     it("sin boleto avisa de que no participa en la jornada", async () => {
       getCurrentQuiniela.mockResolvedValue(closedCurrent());
       renderCard();
+    await expandBet();
 
       expect(await screen.findByText(/no participas en esta jornada/i)).toBeInTheDocument();
       expect(screen.getByRole("link", { name: /Ver quiniela/ })).toBeInTheDocument();
@@ -332,7 +426,7 @@ describe("QuinielaPromoCard", () => {
     getCurrentQuiniela.mockResolvedValue(current());
     renderCard();
 
-    await screen.findByRole("link", { name: /Rellenar mi boleto/ });
+    await screen.findByRole("button", { name: BET_TOGGLE });
     expect(screen.queryByText("Novedad")).not.toBeInTheDocument();
   });
 
@@ -341,7 +435,7 @@ describe("QuinielaPromoCard", () => {
     getCurrentQuiniela.mockResolvedValue(current());
     renderCard();
 
-    await screen.findByRole("link", { name: /Rellenar mi boleto/ });
+    await screen.findByRole("button", { name: BET_TOGGLE });
     expect(screen.queryByText("Novedad")).not.toBeInTheDocument();
   });
 
@@ -352,7 +446,7 @@ describe("QuinielaPromoCard", () => {
     getCurrentQuiniela.mockResolvedValue(current());
     renderCard();
 
-    expect(await screen.findByRole("link", { name: /Rellenar mi boleto/ })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: BET_TOGGLE })).toBeInTheDocument();
     expect(screen.getByText("Novedad")).toBeInTheDocument();
   });
 
@@ -395,7 +489,7 @@ describe("QuinielaPromoCard", () => {
     getCurrentQuiniela.mockResolvedValue(current());
     renderCard();
 
-    await screen.findByRole("link", { name: /Rellenar mi boleto/ });
+    await screen.findByRole("button", { name: BET_TOGGLE });
     expect(getCurrentQuiniela).toHaveBeenCalledTimes(1);
     expect(getCurrentQuiniela).toHaveBeenCalledWith("team-1");
   });
@@ -404,6 +498,7 @@ describe("QuinielaPromoCard", () => {
     getCurrentQuiniela.mockResolvedValue(current());
     const user = userEvent.setup({ advanceTimers: () => undefined });
     renderCard();
+    await expandBet();
 
     await user.click(await screen.findByRole("button", { name: /Ver reglas/ }));
 

@@ -1,13 +1,15 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useId, useState } from "react";
 import { Link } from "react-router-dom";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { usePermissions } from "../../../../../shared/hooks/usePermissions";
 import { COACH_FEATURE_ROUTES } from "../../../constants/featureRoutes";
 import useAutoRefresh from "../../../hooks/useAutoRefresh";
 import { getCurrentQuiniela } from "../../../services/quinielaService";
 import type { QuinielaCurrent } from "../../../services/quinielaService";
 import {
+  formatJornadaDay,
   formatKickoff,
   formatMoney,
   quinielaHistoryHref,
@@ -77,6 +79,8 @@ export default function QuinielaPromoCard({
   const { loading: permissionsLoading, hasFeatureAccess } = usePermissions();
   const [current, setCurrent] = useState<QuinielaCurrent | null>(null);
   const [rulesOpen, setRulesOpen] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const bodyId = useId();
 
   const allowed =
     !permissionsLoading && hasFeatureAccess(COACH_FEATURE_ROUTES.Quiniela);
@@ -134,6 +138,8 @@ export default function QuinielaPromoCard({
       : STATE_VIEWS[state];
   const previous = current.previous;
   const showNovelty = isQuinielaNovelty(currentUserId(), teamId);
+  const day = formatJornadaDay(current.jornada.firstKickoffUtc);
+  const barText = `${closed ? "Quiniela de la jornada" : "Haz tu apuesta para la siguiente jornada"} ${current.jornada.roundNumber}${day ? ` día ${day}` : ""}`;
 
   return (
     <>
@@ -142,73 +148,89 @@ export default function QuinielaPromoCard({
       )}
       <section aria-label="Quiniela de la jornada" className={styles.card}>
         <span className={styles.glow} aria-hidden="true" />
-        <div className={styles.topRow}>
-          {showNovelty ? (
-            <span className={styles.noveltyBadge}>
-              <AutoAwesomeIcon fontSize="inherit" aria-hidden="true" />
-              Novedad
-            </span>
-          ) : (
-            <span className={styles.kicker}>Quiniela</span>
-          )}
-          <span className={styles.round}>
-            Jornada {current.jornada.roundNumber}
-          </span>
-        </div>
-
-        <div className={styles.headline}>
-          <h2 className={styles.title}>Quiniela del equipo</h2>
-          <span className={styles.lead}>{view.lead}</span>
-        </div>
-
-        <div className={styles.facts}>
-          <div className={styles.fact}>
-            <span className={styles.factLabel}>Bolsa</span>
-            <span className={styles.pot}>
-              {formatMoney(current.pool?.prizePool ?? 0)}
-            </span>
-          </div>
-          <div className={styles.fact}>
-            <span className={styles.factLabel}>Bolsa posible</span>
-            <span className={styles.factValue}>
-              {formatMoney(current.pool?.possiblePrizePool ?? 0)}
-            </span>
-          </div>
-          <div className={styles.fact}>
-            <span className={styles.factLabel}>Bote</span>
-            <span className={styles.factValue}>
-              {formatMoney(current.jornada.carryIn)}
-            </span>
-          </div>
-          <div className={styles.fact}>
-            <span className={styles.factLabel}>
-              {closed ? "Cerró" : "Cierra"}
-            </span>
-            <span className={styles.factValue}>
-              {formatKickoff(current.jornada.firstKickoffUtc)}
-            </span>
-          </div>
-        </div>
-
-        <div className={`${styles.status} ${view.tone}`}>{view.status}</div>
-
-        <Link to={href} className={styles.cta}>
-          {current.myTickets.length > 1
-            ? view.cta.replace("mi boleto", "mis boletos")
-            : view.cta}
-          <ArrowForwardIcon fontSize="small" aria-hidden="true" />
-        </Link>
-        <button
-          type="button"
-          className={styles.rules}
-          onClick={() => setRulesOpen(true)}
-        >
-          Ver reglas · 1 € por boleto
-        </button>
-        {previous && (
-          <Link to={quinielaHistoryHref(teamId)} className={styles.rules}>
-            Ver resultados anteriores
+        <div className={styles.bar}>
+          <h2 className={styles.heading}>
+            <button
+              type="button"
+              className={styles.toggle}
+              aria-expanded={expanded}
+              aria-controls={bodyId}
+              onClick={() => setExpanded((value) => !value)}
+            >
+              {showNovelty && (
+                <span className={styles.noveltyBadge}>
+                  <AutoAwesomeIcon fontSize="inherit" aria-hidden="true" />
+                  Novedad
+                </span>
+              )}
+              <span className={styles.barText}>{barText}</span>
+              <ExpandMoreIcon
+                className={expanded ? styles.chevronOpen : styles.chevron}
+                aria-hidden="true"
+              />
+            </button>
+          </h2>
+          <Link to={href} className={styles.go} aria-label="Ir al boleto">
+            <ArrowForwardIcon fontSize="small" aria-hidden="true" />
           </Link>
+        </div>
+        {expanded && (
+          <div id={bodyId} className={styles.body}>
+            <div className={styles.headline}>
+              <h3 className={styles.title}>Quiniela del equipo</h3>
+              <span className={styles.lead}>{view.lead}</span>
+            </div>
+
+            <div className={styles.facts}>
+              <div className={styles.fact}>
+                <span className={styles.factLabel}>Bolsa</span>
+                <span className={styles.pot}>
+                  {formatMoney(current.pool?.prizePool ?? 0)}
+                </span>
+              </div>
+              <div className={styles.fact}>
+                <span className={styles.factLabel}>Bolsa posible</span>
+                <span className={styles.factValue}>
+                  {formatMoney(current.pool?.possiblePrizePool ?? 0)}
+                </span>
+              </div>
+              <div className={styles.fact}>
+                <span className={styles.factLabel}>Bote</span>
+                <span className={styles.factValue}>
+                  {formatMoney(current.jornada.carryIn)}
+                </span>
+              </div>
+              <div className={styles.fact}>
+                <span className={styles.factLabel}>
+                  {closed ? "Cerró" : "Cierra"}
+                </span>
+                <span className={styles.factValue}>
+                  {formatKickoff(current.jornada.firstKickoffUtc)}
+                </span>
+              </div>
+            </div>
+
+            <div className={`${styles.status} ${view.tone}`}>{view.status}</div>
+
+            <Link to={href} className={styles.cta}>
+              {current.myTickets.length > 1
+                ? view.cta.replace("mi boleto", "mis boletos")
+                : view.cta}
+              <ArrowForwardIcon fontSize="small" aria-hidden="true" />
+            </Link>
+            <button
+              type="button"
+              className={styles.rules}
+              onClick={() => setRulesOpen(true)}
+            >
+              Ver reglas · 1 € por boleto
+            </button>
+            {previous && (
+              <Link to={quinielaHistoryHref(teamId)} className={styles.rules}>
+                Ver resultados anteriores
+              </Link>
+            )}
+          </div>
         )}
         <QuinielaRulesDialog
           open={rulesOpen}

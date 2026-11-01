@@ -51,6 +51,15 @@ export function formatKickoff(value: string | null | undefined): string {
   return `${capitalize(day)} · ${time}`;
 }
 
+/** «sábado 07/11/2026» en hora de Madrid; vacío si no hay fecha. */
+export function formatJornadaDay(value: string | null | undefined): string {
+  if (!value) return "";
+  const date = parseUtc(value);
+  const weekday = new Intl.DateTimeFormat("es-ES", { timeZone: MADRID_TZ, weekday: "long" }).format(date);
+  const dayMonthYear = new Intl.DateTimeFormat("es-ES", { timeZone: MADRID_TZ, day: "2-digit", month: "2-digit", year: "numeric" }).format(date);
+  return `${weekday} ${dayMonthYear}`;
+}
+
 export function formatMoney(value: number | null | undefined): string {
   const amount = new Intl.NumberFormat("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: false }).format(value ?? 0);
   return `${amount} €`;
