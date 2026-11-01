@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { QuinielaCurrent, QuinielaMatch, QuinielaTicket, QuinielaWallet } from "../../../services/quinielaService";
 import { UserProvider } from "../../../../../shared/context/UserContext";
@@ -35,11 +35,9 @@ const openQuiniela = vi.fn();
 const deleteMyQuinielaTicket = vi.fn();
 const getMyQuinielaWallet = vi.fn();
 const payQuinielaTicketWithWallet = vi.fn();
-const donateFromQuinielaWallet = vi.fn();
 vi.mock("../../../services/quinielaService", () => ({
   getMyQuinielaWallet: (...args: unknown[]) => getMyQuinielaWallet(...args),
   payQuinielaTicketWithWallet: (...args: unknown[]) => payQuinielaTicketWithWallet(...args),
-  donateFromQuinielaWallet: (...args: unknown[]) => donateFromQuinielaWallet(...args),
   deleteMyQuinielaTicket: (...args: unknown[]) => deleteMyQuinielaTicket(...args),
   getCurrentQuiniela: (...args: unknown[]) => getCurrentQuiniela(...args),
   saveQuinielaTicket: (...args: unknown[]) => saveQuinielaTicket(...args),
@@ -108,7 +106,10 @@ function renderPage() {
   return render(
     <UserProvider>
       <MemoryRouter initialEntries={["/coach/quiniela?teamId=team-1"]}>
-        <Quiniela />
+        <Routes>
+          <Route path="/coach/quiniela" element={<Quiniela />} />
+          <Route path="/coach/quiniela/mi-monedero" element={<div>Página Mi monedero</div>} />
+        </Routes>
       </MemoryRouter>
     </UserProvider>,
   );
@@ -582,23 +583,22 @@ describe("Quiniela", () => {
       fireEvent.click(screen.getByRole("button", { name: /guardar boleto/i }));
     };
 
-    it("muestra el saldo del monedero y consulta el monedero propio del equipo", async () => {
+    it("no muestra el monedero dentro de la quiniela, que solo enlaza a Mi monedero", async () => {
       getCurrentQuiniela.mockResolvedValue(current());
       getMyQuinielaWallet.mockResolvedValue(walletOf(2.5));
       renderPage();
       await screen.findByText("CD Los Olivos");
-      expect(await screen.findByText("Mi monedero")).toBeInTheDocument();
-      expect(screen.getByText(/2,50\s€/)).toBeInTheDocument();
-      expect(getMyQuinielaWallet).toHaveBeenCalledWith("team-1");
+      expect(screen.queryByRole("button", { name: /ver movimientos/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /donar al equipo/i })).not.toBeInTheDocument();
+      expect(screen.queryByText(/2,50\s€/)).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /mi monedero/i })).toBeInTheDocument();
     });
 
-    it("abre el historial del monedero con «Ver movimientos»", async () => {
+    it("lleva a la página Mi monedero del equipo con el botón «Mi monedero»", async () => {
       getCurrentQuiniela.mockResolvedValue(current());
-      getMyQuinielaWallet.mockResolvedValue(walletOf(2.5));
       renderPage();
-      fireEvent.click(await screen.findByRole("button", { name: /ver movimientos/i }));
-      expect(await screen.findByText(/aún no hay movimientos/i)).toBeInTheDocument();
-      expect(getMyQuinielaWallet).toHaveBeenCalledWith("team-1", { limit: 25, offset: 0 });
+      fireEvent.click(await screen.findByRole("button", { name: /mi monedero/i }));
+      expect(await screen.findByText("Página Mi monedero")).toBeInTheDocument();
     });
 
     it("avisa con el importe cobrado y el saldo al guardar un boleto con cobro", async () => {
@@ -646,38 +646,6 @@ describe("Quiniela", () => {
       renderPage();
       await screen.findByText("CD Los Olivos");
       expect(screen.getByText("Pagado con monedero")).toBeInTheDocument();
-    });
-
-    describe("donar al equipo", () => {
-      it("dona el importe, avisa y refresca el saldo", async () => {
-        const snackbars = captureSnackbars();
-        getCurrentQuiniela.mockResolvedValue(current({ myTickets: [walletTicket()] }));
-        getMyQuinielaWallet.mockResolvedValueOnce(walletOf(5)).mockResolvedValue(walletOf(3));
-        donateFromQuinielaWallet.mockResolvedValue({ userId: "u1", balance: 3, movement: {} });
-        renderPage();
-        fireEvent.click(await screen.findByRole("button", { name: /donar al equipo/i }));
-        fireEvent.change(await screen.findByLabelText(/importe/i), { target: { value: "2" } });
-        fireEvent.click(screen.getByRole("button", { name: /^donar$/i }));
-
-        await waitFor(() => expect(donateFromQuinielaWallet).toHaveBeenCalledWith("team-1", 2));
-        await waitFor(() => expect(snackbars.messages().some((m) => m.severity === "success" && /gracias/i.test(m.message))).toBe(true));
-        await waitFor(() => expect(getMyQuinielaWallet).toHaveBeenCalledTimes(2));
-        snackbars.stop();
-      });
-
-      it("muestra el error si la donación falla", async () => {
-        const snackbars = captureSnackbars();
-        getCurrentQuiniela.mockResolvedValue(current({ myTickets: [walletTicket()] }));
-        getMyQuinielaWallet.mockResolvedValue(walletOf(5));
-        donateFromQuinielaWallet.mockRejectedValue(new Error("boom"));
-        renderPage();
-        fireEvent.click(await screen.findByRole("button", { name: /donar al equipo/i }));
-        fireEvent.change(await screen.findByLabelText(/importe/i), { target: { value: "2" } });
-        fireEvent.click(screen.getByRole("button", { name: /^donar$/i }));
-
-        await waitFor(() => expect(snackbars.messages().some((m) => m.severity === "error")).toBe(true));
-        snackbars.stop();
-      });
     });
 
     describe("pagar con monedero", () => {

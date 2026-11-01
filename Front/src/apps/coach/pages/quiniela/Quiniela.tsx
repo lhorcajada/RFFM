@@ -18,7 +18,6 @@ import ConfirmDialog from "../../../../shared/components/ui/ConfirmDialog/Confir
 import {
   deleteMyQuinielaTicket,
   getCurrentQuiniela,
-  donateFromQuinielaWallet,
   getMyQuinielaWallet,
   openQuiniela,
   payQuinielaTicketWithWallet,
@@ -41,9 +40,6 @@ import PreviousResultCard from "./components/PreviousResultCard";
 import QuinielaRulesDialog from "./components/QuinielaRulesDialog";
 import TicketSummary from "./components/TicketSummary";
 import TicketTabs, { NEW_TICKET } from "./components/TicketTabs";
-import WalletCard from "./components/WalletCard";
-import WalletDonateDialog from "./components/WalletDonateDialog";
-import WalletMovementsDialog from "./components/WalletMovementsDialog";
 import { QUINIELA_WALLET_UPDATED_EVENT } from "../../../../shared/hooks/useQuinielaWalletBalance";
 import { currentUserId, markQuinielaSeen } from "../team-dashboard/utils/quinielaNovelty";
 import styles from "./Quiniela.module.css";
@@ -82,9 +78,6 @@ export default function Quiniela() {
   const [plenoAway, setPlenoAway] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string>(NEW_TICKET);
   const [wallet, setWallet] = useState<QuinielaWallet | null>(null);
-  const [movementsOpen, setMovementsOpen] = useState(false);
-  const [donateOpen, setDonateOpen] = useState(false);
-  const [donating, setDonating] = useState(false);
   const [paying, setPaying] = useState(false);
 
   const selectTicket = useCallback((ticket: QuinielaTicket | null) => {
@@ -199,22 +192,6 @@ export default function Quiniela() {
     }
   };
 
-  const handleDonate = async (amount: number) => {
-    if (!teamId) return;
-    setDonating(true);
-    try {
-      await donateFromQuinielaWallet(teamId, amount);
-      setDonateOpen(false);
-      notifyWalletUpdated();
-      notify(`¡Gracias! Has donado ${formatMoney(amount)} al equipo.`, "success");
-      void loadWallet(teamId);
-    } catch (e: unknown) {
-      notify(apiErrorMessage(e, "No se pudo hacer la donación."), "error");
-    } finally {
-      setDonating(false);
-    }
-  };
-
   const handlePayWithWallet = async () => {
     if (!teamId || !jornada || !selectedTicket) return;
     setPaying(true);
@@ -313,10 +290,9 @@ export default function Quiniela() {
           )}
         </div>
 
-        {(wallet || data.pool) && (
+        {data.pool && (
           <div className={styles.pool}>
-            {wallet && <WalletCard balance={wallet.balance} onShowMovements={() => setMovementsOpen(true)} onDonate={() => setDonateOpen(true)} />}
-            {data.pool && <PoolSummary pool={data.pool} carryIn={jornada.carryIn} />}
+            <PoolSummary pool={data.pool} carryIn={jornada.carryIn} />
           </div>
         )}
 
@@ -429,6 +405,14 @@ export default function Quiniela() {
             >
               Histórico
             </Button>
+            <Button
+              startIcon={<AccountBalanceWalletOutlinedIcon />}
+              onClick={() => navigate(`/coach/quiniela/mi-monedero${teamId ? `?teamId=${encodeURIComponent(teamId)}` : ""}`)}
+              variant="outlined"
+              size="small"
+            >
+              Mi monedero
+            </Button>
             {current?.canManage && (
               <Button
                 startIcon={<AccountBalanceWalletOutlinedIcon />}
@@ -455,19 +439,6 @@ export default function Quiniela() {
         <div className={styles.content}>{renderContent()}</div>
       </ContentLayout>
       <QuinielaRulesDialog open={rulesOpen} onClose={() => setRulesOpen(false)} />
-      <WalletDonateDialog
-        open={donateOpen}
-        balance={wallet?.balance ?? 0}
-        processing={donating}
-        onCancel={() => setDonateOpen(false)}
-        onSubmit={(amount) => void handleDonate(amount)}
-      />
-      <WalletMovementsDialog
-        open={movementsOpen}
-        title="Mi monedero"
-        fetchPage={(limit, offset) => (teamId ? getMyQuinielaWallet(teamId, { limit, offset }) : Promise.reject(new Error("Sin equipo")))}
-        onClose={() => setMovementsOpen(false)}
-      />
       <ConfirmDialog
         open={deleteOpen}
         title="Eliminar mi boleto"

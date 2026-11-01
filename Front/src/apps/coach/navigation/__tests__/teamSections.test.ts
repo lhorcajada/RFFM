@@ -220,6 +220,22 @@ describe("buildTeamSections — Histórico de quinielas", () => {
   });
 });
 
+describe("buildTeamSections — Mi monedero", () => {
+  it("coloca Mi monedero en Competición con el equipo en la ruta", () => {
+    expect(groupOf("Mi monedero")).toBe("Competición");
+    expect(findItem("Mi monedero", { teamId: "team-1" })?.to).toBe("/coach/quiniela/mi-monedero?teamId=team-1");
+  });
+
+  it("lo muestra al entrenador y al jugador con acceso", () => {
+    expect(labels({ isPlayer: false })).toContain("Mi monedero");
+    expect(labels({ isPlayer: true })).toContain("Mi monedero");
+  });
+
+  it("lo oculta sin permiso de la funcionalidad", () => {
+    expect(labels({ hasFeatureAccess: (r) => r !== COACH_FEATURE_ROUTES.Quiniela })).not.toContain("Mi monedero");
+  });
+});
+
 describe("buildTeamSections — Monederos de la quiniela", () => {
   it("coloca los Monederos en Competición con el equipo en la ruta", () => {
     expect(groupOf("Monederos de la quiniela")).toBe("Competición");

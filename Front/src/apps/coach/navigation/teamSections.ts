@@ -90,6 +90,7 @@ export function buildTeamSections({
         { key: "rival-stats", label: "Estadísticas de rivales", to: team("/coach/rival-stats"), icon: QueryStatsOutlinedIcon, visible: canSeeCompetition },
         { key: "quiniela", label: "Quiniela", to: team("/coach/quiniela"), icon: SportsSoccerOutlinedIcon, visible: hasFeatureAccess(COACH_FEATURE_ROUTES.Quiniela) },
         { key: "quiniela-history", label: "Histórico de quinielas", to: team("/coach/quiniela/historico"), icon: HistoryOutlinedIcon, visible: hasFeatureAccess(COACH_FEATURE_ROUTES.Quiniela) },
+        { key: "quiniela-my-wallet", label: "Mi monedero", to: team("/coach/quiniela/mi-monedero"), icon: AccountBalanceWalletOutlinedIcon, visible: hasFeatureAccess(COACH_FEATURE_ROUTES.Quiniela) },
         { key: "quiniela-pool", label: "Bolsa de la quiniela", to: team("/coach/quiniela/bolsa"), icon: PaymentsOutlinedIcon, visible: !isPlayer && hasFeatureAccess(COACH_FEATURE_ROUTES.Quiniela) },
         { key: "quiniela-wallets", label: "Monederos de la quiniela", to: team("/coach/quiniela/monederos"), icon: AccountBalanceWalletOutlinedIcon, visible: !isPlayer && hasFeatureAccess(COACH_FEATURE_ROUTES.Quiniela) },
         { key: "rivals", label: "Rivales", to: "/coach/rivals", icon: ShieldOutlinedIcon, visible: hasFeatureAccess(COACH_FEATURE_ROUTES.Rivals) },

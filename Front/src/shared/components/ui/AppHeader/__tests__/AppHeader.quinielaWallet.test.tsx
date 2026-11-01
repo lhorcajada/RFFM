@@ -94,13 +94,13 @@ describe("AppHeader — saldo del monedero de la quiniela", () => {
     expect(screen.getByRole("button", { name: /Hucha del equipo/ })).toBeInTheDocument();
   });
 
-  it("navega a la quiniela del equipo al pulsar el monedero", async () => {
+  it("navega a la página Mi monedero del equipo al pulsar el monedero", async () => {
     const { default: userEvent } = await import("@testing-library/user-event");
     walletMock = { visible: true, balance: 3, teamId: "team-9" };
 
     renderHeader();
     await userEvent.click(screen.getByRole("button", { name: /Monedero: 3,00\s€/ }));
 
-    expect(navigateMock).toHaveBeenCalledWith("/coach/quiniela?teamId=team-9");
+    expect(navigateMock).toHaveBeenCalledWith("/coach/quiniela/mi-monedero?teamId=team-9");
   });
 });

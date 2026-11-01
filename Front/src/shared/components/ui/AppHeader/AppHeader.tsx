@@ -110,8 +110,8 @@ export default function AppHeader({ title, hideIndicators }: AppHeaderProps) {
   const handleOpenQuinielaWallet = () => {
     navigate(
       quinielaWallet.teamId
-        ? `/coach/quiniela?teamId=${encodeURIComponent(quinielaWallet.teamId)}`
-        : "/coach/quiniela"
+        ? `/coach/quiniela/mi-monedero?teamId=${encodeURIComponent(quinielaWallet.teamId)}`
+        : "/coach/quiniela/mi-monedero"
     );
   };
 

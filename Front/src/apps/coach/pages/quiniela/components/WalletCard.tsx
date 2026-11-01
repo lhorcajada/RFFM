@@ -3,7 +3,7 @@ import styles from "./WalletCard.module.css";
 
 type Props = {
   balance: number;
-  onShowMovements: () => void;
+  onShowMovements?: () => void;
   onDonate?: () => void;
 };
 
@@ -20,9 +20,11 @@ export default function WalletCard({ balance, onShowMovements, onDonate }: Props
             Donar al equipo
           </button>
         )}
-        <button type="button" className={styles.action} onClick={onShowMovements}>
-          Ver movimientos
-        </button>
+        {onShowMovements && (
+          <button type="button" className={styles.action} onClick={onShowMovements}>
+            Ver movimientos
+          </button>
+        )}
       </div>
     </section>
   );

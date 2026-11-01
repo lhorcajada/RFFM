@@ -16,6 +16,11 @@ describe("WalletCard", () => {
     expect(onShowMovements).toHaveBeenCalledTimes(1);
   });
 
+  it("no muestra «Ver movimientos» si no se da forma de abrirlos", () => {
+    render(<WalletCard balance={1} onDonate={vi.fn()} />);
+    expect(screen.queryByRole("button", { name: /ver movimientos/i })).not.toBeInTheDocument();
+  });
+
   it("ofrece «Donar al equipo» y avisa al pulsarlo", () => {
     const onDonate = vi.fn();
     render(<WalletCard balance={3} onShowMovements={vi.fn()} onDonate={onDonate} />);
