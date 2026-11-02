@@ -10,14 +10,38 @@ describe('useAuditPageAccess', () => {
     vi.clearAllMocks();
   });
 
+  it.each(['Dashboard', 'Squad', 'Classification', 'Results', 'Quiniela', 'Notifications'])(
+    'does not call recordPageAccess for the read-only page %s',
+    (pageIdentifier) => {
+      const mockRecordPageAccess = vi.fn().mockResolvedValue(undefined);
+      vi.mocked(auditLogService.recordPageAccess).mockImplementation(mockRecordPageAccess);
+
+      renderHook(() => useAuditPageAccess(pageIdentifier));
+
+      expect(mockRecordPageAccess).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(['AuditLog', 'Settings', 'TeamUsers', 'SeasonAccess', 'ClubRegistrations', 'PlayerDocuments', 'Injured'])(
+    'calls recordPageAccess for the sensitive page %s',
+    (pageIdentifier) => {
+      const mockRecordPageAccess = vi.fn().mockResolvedValue(undefined);
+      vi.mocked(auditLogService.recordPageAccess).mockImplementation(mockRecordPageAccess);
+
+      renderHook(() => useAuditPageAccess(pageIdentifier));
+
+      expect(mockRecordPageAccess).toHaveBeenCalledOnce();
+    },
+  );
+
   it('calls recordPageAccess on mount with the provided pageIdentifier', () => {
     const mockRecordPageAccess = vi.fn().mockResolvedValue(undefined);
     vi.mocked(auditLogService.recordPageAccess).mockImplementation(mockRecordPageAccess);
 
-    renderHook(() => useAuditPageAccess('Dashboard'));
+    renderHook(() => useAuditPageAccess('Settings'));
 
     expect(mockRecordPageAccess).toHaveBeenCalledOnce();
-    expect(mockRecordPageAccess).toHaveBeenCalledWith({ pageIdentifier: 'Dashboard' });
+    expect(mockRecordPageAccess).toHaveBeenCalledWith({ pageIdentifier: 'Settings' });
   });
 
   it('does not call recordPageAccess again on re-render with the same pageIdentifier', () => {
@@ -26,12 +50,12 @@ describe('useAuditPageAccess', () => {
 
     const { rerender } = renderHook(
       ({ pageId }: { pageId: string }) => useAuditPageAccess(pageId),
-      { initialProps: { pageId: 'Dashboard' } },
+      { initialProps: { pageId: 'Settings' } },
     );
 
     expect(mockRecordPageAccess).toHaveBeenCalledTimes(1);
 
-    rerender({ pageId: 'Dashboard' });
+    rerender({ pageId: 'Settings' });
 
     expect(mockRecordPageAccess).toHaveBeenCalledTimes(1);
   });
@@ -42,16 +66,16 @@ describe('useAuditPageAccess', () => {
 
     const { rerender } = renderHook(
       ({ pageId }: { pageId: string }) => useAuditPageAccess(pageId),
-      { initialProps: { pageId: 'Dashboard' } },
+      { initialProps: { pageId: 'Settings' } },
     );
 
     expect(mockRecordPageAccess).toHaveBeenCalledTimes(1);
-    expect(mockRecordPageAccess).toHaveBeenLastCalledWith({ pageIdentifier: 'Dashboard' });
+    expect(mockRecordPageAccess).toHaveBeenLastCalledWith({ pageIdentifier: 'Settings' });
 
-    rerender({ pageId: 'Squad' });
+    rerender({ pageId: 'TeamUsers' });
 
     expect(mockRecordPageAccess).toHaveBeenCalledTimes(2);
-    expect(mockRecordPageAccess).toHaveBeenLastCalledWith({ pageIdentifier: 'Squad' });
+    expect(mockRecordPageAccess).toHaveBeenLastCalledWith({ pageIdentifier: 'TeamUsers' });
   });
 
   it('swallows rejection errors and does not propagate them', async () => {
@@ -59,7 +83,7 @@ describe('useAuditPageAccess', () => {
     vi.mocked(auditLogService.recordPageAccess).mockImplementation(mockRecordPageAccess);
 
     expect(() => {
-      renderHook(() => useAuditPageAccess('Dashboard'));
+      renderHook(() => useAuditPageAccess('Settings'));
     }).not.toThrow();
   });
 
@@ -76,10 +100,10 @@ describe('useAuditPageAccess', () => {
     const mockRecordPageAccess = vi.fn().mockResolvedValue(undefined);
     vi.mocked(auditLogService.recordPageAccess).mockImplementation(mockRecordPageAccess);
 
-    renderHook(() => useAuditPageAccess('Squad', { clubId: 'club-1', teamId: 'team-1' }));
+    renderHook(() => useAuditPageAccess('TeamUsers', { clubId: 'club-1', teamId: 'team-1' }));
 
     expect(mockRecordPageAccess).toHaveBeenCalledWith({
-      pageIdentifier: 'Squad',
+      pageIdentifier: 'TeamUsers',
       clubId: 'club-1',
       teamId: 'team-1',
     });

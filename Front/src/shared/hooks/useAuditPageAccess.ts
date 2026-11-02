@@ -1,10 +1,26 @@
 import { useEffect, useRef } from 'react';
 import { recordPageAccess } from '../services/auditLogService';
 
+// Only sections that expose sensitive data or administration are audited; every other page is
+// a plain read and would just add one INSERT + one request per visit.
+const AUDITED_PAGES: ReadonlySet<string> = new Set([
+  'AuditLog',
+  'Settings',
+  'TeamUsers',
+  'SeasonAccess',
+  'ClubManagement',
+  'ClubPlayers',
+  'ClubRegistrations',
+  'PlayerDocuments',
+  'MyDocuments',
+  'Injured',
+  'Sanctions',
+]);
+
 /**
  * Hook to record a page access event for audit logging.
  * Fires exactly once per unique pageIdentifier, using a ref guard to prevent
- * double-firing in React 19 dev mode.
+ * double-firing in React 19 dev mode. Pages outside AUDITED_PAGES are ignored.
  *
  * @param pageIdentifier The page/section identifier (e.g., "Dashboard", "Squad")
  * @param options Optional clubId and teamId to include in the audit record
@@ -16,7 +32,7 @@ export function useAuditPageAccess(
   const firedForRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!pageIdentifier) return;
+    if (!pageIdentifier || !AUDITED_PAGES.has(pageIdentifier)) return;
     if (firedForRef.current === pageIdentifier) return;
 
     firedForRef.current = pageIdentifier;
