@@ -78,6 +78,22 @@ describe("ExerciseFormPanel — campos del template reducido", () => {
     expect(screen.queryByText(/condiciones/i)).not.toBeInTheDocument();
   });
 
+  it("muestra el error encima del formulario, antes de la primera sección", () => {
+    renderPanel(<ExerciseFormPanel panelVisible form={buildFormState({ error: "Falta el objetivo" })} />);
+
+    const alert = screen.getByRole("alert");
+    const firstSection = screen.getByRole("heading", { name: "Clasificación" });
+
+    expect(alert).toHaveTextContent("Falta el objetivo");
+    expect(alert.compareDocumentPosition(firstSection) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("no muestra ningún aviso de error cuando no hay error", () => {
+    renderPanel(<ExerciseFormPanel panelVisible form={buildFormState()} />);
+
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
   it("llama a setField con el tipo elegido al pulsar un botón de Tipo", async () => {
     const setField = vi.fn();
     const { default: userEvent } = await import("@testing-library/user-event");

@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import {
   Box,
   Button,
@@ -34,6 +35,12 @@ export default function ExerciseFormPanel({ panelVisible, form, teamId }: Exerci
     handleRemoveMedia,
   } = form;
 
+  const errorRef = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    if (error) errorRef.current?.scrollIntoView?.({ block: "nearest" });
+  }, [error]);
+
   return (
     <Box className={`${styles.formPanel} ${panelVisible ? styles.formPanelVisible : ""}`}>
       <Box className={styles.panelHeader}>
@@ -43,6 +50,11 @@ export default function ExerciseFormPanel({ panelVisible, form, teamId }: Exerci
       </Box>
 
       <Box className={styles.panelBody}>
+        {error && (
+          <Typography ref={errorRef} role="alert" color="error" className={styles.error}>
+            {error}
+          </Typography>
+        )}
         <Box className={styles.sectionCard} component="section">
           <Typography component="h2" className={styles.sectionTitle}>Clasificación</Typography>
           <Box role="group" aria-labelledby="exercise-tipo-label" className={styles.tipoGroup}>
@@ -199,12 +211,6 @@ export default function ExerciseFormPanel({ panelVisible, form, teamId }: Exerci
           </Box>
 
         </Box>
-
-        {error && (
-          <Typography color="error" className={styles.error}>
-            {error}
-          </Typography>
-        )}
       </Box>
     </Box>
   );
