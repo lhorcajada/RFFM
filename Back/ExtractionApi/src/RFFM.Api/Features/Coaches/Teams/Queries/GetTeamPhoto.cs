@@ -20,7 +20,7 @@ namespace RFFM.Api.Features.Coaches.Teams.Queries
                         var query = new GetTeamPhotoQuery { Url = url };
                         var result = await mediator.Send(query, cancellationToken);
                         return result != null
-                            ? Results.File(result.Content, result.ContentType)
+                            ? CachedFileResult.Create(result.Content, result.ContentType, isPublic: true)
                             : Results.NotFound();
                     })
                 .WithName(nameof(GetTeamPhoto))

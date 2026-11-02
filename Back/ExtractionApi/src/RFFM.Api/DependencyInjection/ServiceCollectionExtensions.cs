@@ -157,7 +157,11 @@ namespace RFFM.Api.DependencyInjection
             else if (!string.IsNullOrWhiteSpace(supabaseUrl) && !string.IsNullOrWhiteSpace(supabaseKey))
             {
                 services.AddSingleton(new Supabase.Client(supabaseUrl, supabaseKey));
-                services.AddScoped<IStorageService, SupabaseStorageService>();
+                services.AddMemoryCache();
+                services.AddScoped<SupabaseStorageService>();
+                services.AddScoped<IStorageService>(sp => new CachingStorageService(
+                    sp.GetRequiredService<SupabaseStorageService>(),
+                    sp.GetRequiredService<Microsoft.Extensions.Caching.Memory.IMemoryCache>()));
             }
             else
             {

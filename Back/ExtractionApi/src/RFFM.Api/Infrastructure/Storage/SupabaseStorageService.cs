@@ -4,6 +4,8 @@ namespace RFFM.Api.Infrastructure.Storage
 {
     public class SupabaseStorageService : IStorageService
     {
+        private const string StorageCacheSeconds = "86400";
+
         private readonly Supabase.Client _supabase;
         private readonly IHttpClientFactory _httpClientFactory;
 
@@ -26,6 +28,7 @@ namespace RFFM.Api.Infrastructure.Storage
                 .Upload(bytes, filePath, new Supabase.Storage.FileOptions
                 {
                     ContentType = file.ContentType,
+                    CacheControl = StorageCacheSeconds,
                     Upsert = true
                 });
 
@@ -41,6 +44,7 @@ namespace RFFM.Api.Infrastructure.Storage
                 .Upload(content, filePath, new Supabase.Storage.FileOptions
                 {
                     ContentType = contentType,
+                    CacheControl = StorageCacheSeconds,
                     Upsert = true
                 });
 

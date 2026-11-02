@@ -24,7 +24,7 @@ namespace RFFM.Api.Features.Infrastructure
                         {
                             var file = await storageService.DownloadAsync(url, cancellationToken);
                             if (file == null) return Results.NotFound();
-                            return Results.File(file.Value.Content, file.Value.ContentType);
+                            return CachedFileResult.Create(file.Value.Content, file.Value.ContentType, isPublic: true);
                         }
 
                         // Non-absolute URL: treat as local storage relative path
@@ -38,7 +38,7 @@ namespace RFFM.Api.Features.Infrastructure
                             // As a fallback, try storageService.DownloadAsync (in case the storage accepts relative keys)
                             var file = await storageService.DownloadAsync(url, cancellationToken);
                             if (file == null) return Results.NotFound();
-                            return Results.File(file.Value.Content, file.Value.ContentType);
+                            return CachedFileResult.Create(file.Value.Content, file.Value.ContentType, isPublic: true);
                         }
 
                         var bytes = await File.ReadAllBytesAsync(fullPath, cancellationToken);

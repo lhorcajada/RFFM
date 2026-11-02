@@ -20,7 +20,7 @@ namespace RFFM.Api.Features.Coaches.Clubs.Queries
                     {
                         var query = new GetClubEmblemQueryApp { ClubId = id };
                         var result = await mediator.Send(query, cancellationToken);
-                        return result != null ? Results.File(result.Content, result.ContentType) : Results.NotFound();
+                        return result != null ? CachedFileResult.Create(result.Content, result.ContentType, isPublic: true) : Results.NotFound();
                     })
                 .WithName(nameof(GetClubEmblem))
                 .WithTags(ClubConstants.ClubFeature)
