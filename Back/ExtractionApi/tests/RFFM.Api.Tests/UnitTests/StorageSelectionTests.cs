@@ -33,7 +33,7 @@ namespace RFFM.Api.Tests.UnitTests
         }
 
         [Fact]
-        public void ProductionUsesSupabaseWhenConfigured()
+        public void ProductionUsesCachedSupabaseWhenConfigured()
         {
             var services = new ServiceCollection();
             var configuration = BuildConfiguration(new Dictionary<string, string?>
@@ -50,7 +50,7 @@ namespace RFFM.Api.Tests.UnitTests
             using var provider = services.BuildServiceProvider();
             var storageService = provider.GetRequiredService<IStorageService>();
 
-            Assert.IsType<SupabaseStorageService>(storageService);
+            Assert.IsType<CachingStorageService>(storageService);
         }
 
         [Fact]
