@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import ConvocationTab from "../ConvocationTab";
 import type { PlayerResponse } from "../../../../services/teamplayerService";
 import type { DeconvokeProposal } from "../../utils/deconvokeProposal";
@@ -136,11 +136,18 @@ describe("ConvocationTab - zonas vacías plegadas", () => {
     onDragOver.mockClear();
     render(tab({ called: ["c1"] }));
     const folded = foldedZone("Disponibles");
+    const row = document.querySelector('[data-player-id="c1"]') as HTMLElement;
+    document.elementFromPoint = vi.fn(() => folded);
 
-    fireEvent.dragOver(folded);
-    fireEvent.drop(folded);
-
+    fireEvent.pointerDown(row, { button: 0, clientX: 5, clientY: 5 });
+    act(() => {
+      window.dispatchEvent(new MouseEvent("pointermove", { clientX: 40, clientY: 40 }));
+    });
     expect(onDragOver).toHaveBeenCalledWith("available");
+    act(() => {
+      window.dispatchEvent(new MouseEvent("pointerup", { clientX: 40, clientY: 40 }));
+    });
+
     expect(onDrop).toHaveBeenCalledWith("available");
   });
 });

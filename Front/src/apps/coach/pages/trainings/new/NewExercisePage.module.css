@@ -794,6 +794,7 @@
 }
 
 .materialCard {
+  touch-action: none;
   width: 66px;
   height: 66px;
   border: 1px solid rgba(77, 157, 224, 0.36);
@@ -1037,6 +1038,7 @@
 }
 
 .materialOnField {
+  touch-action: none;
   position: absolute;
   transform: translate(-50%, -50%);
   z-index: 8;
@@ -1178,6 +1180,7 @@
 }
 
 .spaceTemplateCard {
+  touch-action: none;
   min-width: 116px;
   border: 1px solid rgba(77, 157, 224, 0.36);
   border-radius: 10px;
@@ -1245,6 +1248,7 @@
 }
 
 .spaceShape {
+  touch-action: none;
   position: absolute;
   transform: translate(-50%, -50%);
   z-index: 6;
@@ -1401,6 +1405,7 @@
 }
 
 .chapa {
+  touch-action: none;
   width: 56px;
   height: 56px;
   border-radius: 50%;

@@ -78,10 +78,12 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
     playersById,
     chapaPetoById,
     draggingChapaId,
+    bindChapaDrag,
+    bindPlacedSpaceDrag,
+    bindPlacedMaterialDrag,
+    bindPlacedTextDrag,
     activeChapaMenuId,
     setActiveChapaMenuId,
-    handleChapaDragStart,
-    handleChapaDragEnd,
     handleToggleChapaMenu,
     handleSetChapaPeto,
     handleClearChapaPeto,
@@ -96,8 +98,6 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
     placedSpaces,
     draggingSpaceId,
     resizingSpaceId,
-    handlePlacedSpaceDragStart,
-    handlePlacedSpaceDragEnd,
     handleResizeStart,
     toggleLockPlacedSpace,
     handleManualResize,
@@ -108,8 +108,6 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
     nudgePlacedSpace,
     placedMaterials,
     draggingMaterialId,
-    handlePlacedMaterialDragStart,
-    handlePlacedMaterialDragEnd,
     rotatePlacedMaterial,
     duplicatePlacedMaterial,
     toggleLockPlacedMaterial,
@@ -134,15 +132,11 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
     draggingTextId,
     updatePlacedText,
     removePlacedText,
-    handlePlacedTextDragStart,
-    handlePlacedTextDragEnd,
     handleTextResizeStart,
     duplicatePlacedText,
     rotatePlacedText,
     toggleLockPlacedText,
     handleTextFieldClick,
-    handleFieldDragOver,
-    handleFieldDrop,
     sizeDialog,
     closeSizeDialog,
   } = board;
@@ -246,8 +240,6 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
     <>
     <Box
       className={styles.fullPitch}
-      onDragOver={handleFieldDragOver}
-      onDrop={handleFieldDrop}
       onClick={(e) => {
         setActiveChapaMenuId(null);
         setActiveChapaColorMenuId(null);
@@ -293,9 +285,7 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
                   ? `linear-gradient(165deg, ${petoColor} 0%, ${petoColor} 100%)`
                   : undefined,
               }}
-              draggable={!pos.locked}
-              onDragStart={(e) => handleChapaDragStart(e, playerId)}
-              onDragEnd={(e) => handleChapaDragEnd(e, playerId)}
+              {...bindChapaDrag(playerId, !!pos.locked)}
               onClick={(e) => {
                 setActiveMaterialId(null);
                 setActiveSpaceId(null);
@@ -420,9 +410,7 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
                 transform: "translate(-50%, -50%)",
               }}
               tabIndex={activeSpaceId === space.id ? 0 : -1}
-              draggable={!space.locked}
-              onDragStart={(e) => handlePlacedSpaceDragStart(e, space.id)}
-              onDragEnd={(e) => handlePlacedSpaceDragEnd(e, space.id)}
+              {...bindPlacedSpaceDrag(space.id, !!space.locked)}
               onClick={(e) => {
                 e.stopPropagation();
                 setActiveChapaMenuId(null);
@@ -580,9 +568,7 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
                 width: `${size.width}%`,
                 height: `${size.height}%`,
               }}
-              draggable
-              onDragStart={(e) => handlePlacedMaterialDragStart(e, material.id)}
-              onDragEnd={(e) => handlePlacedMaterialDragEnd(e, material.id)}
+              {...bindPlacedMaterialDrag(material.id)}
               title="Arrastra para mover"
               onClick={(e) => {
                 e.stopPropagation();
@@ -705,6 +691,7 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
                   fontWeight: text.bold ? 700 : 400,
                   fontStyle: text.italic ? "italic" : "normal",
                   color: text.color,
+                  touchAction: "none",
                 }}
               />
             ) : (
@@ -722,9 +709,7 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
                   fontStyle: text.italic ? "italic" : "normal",
                   color: text.color,
                 }}
-                draggable={!text.locked}
-                onDragStart={(e) => handlePlacedTextDragStart(e, text.id)}
-                onDragEnd={(e) => handlePlacedTextDragEnd(e, text.id)}
+                {...bindPlacedTextDrag(text.id, !!text.locked)}
                 onClick={(e) => {
                   e.stopPropagation();
                   setActiveChapaMenuId(null);
