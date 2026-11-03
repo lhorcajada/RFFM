@@ -112,6 +112,7 @@ export interface UseLiveMatchReturn {
   // Pending confirmation
   pendingAction: PendingAction;
   setPendingAction: (action: PendingAction) => void;
+  adjustClock: (deltaMinutes: number) => void;
   // Save state
   isSaving: boolean;
   saveError: string | null;
@@ -798,6 +799,19 @@ export function useLiveMatch(
     setPendingAction(null);
   }, []);
 
+  /** Adelanta (+) o retrasa (−) el reloj en vivo; re-ancla el tiempo real al nuevo valor. */
+  const adjustClock = useCallback((deltaMinutes: number) => {
+    const phase = matchPhaseRef.current;
+    if (phase !== "firstHalf" && phase !== "secondHalf") return;
+    const next = Math.max(
+      0,
+      Math.min(7200, computeCurrentTotalSeconds() + deltaMinutes * 60),
+    );
+    runAnchorEpochRef.current = Date.now();
+    runBaselineSecondsRef.current = next;
+    setTotalSeconds(next);
+  }, [computeCurrentTotalSeconds]);
+
   // ── Persist match participation ───────────────────────────────────────────
 
   async function persistMatchParticipation() {
@@ -1352,6 +1366,7 @@ export function useLiveMatch(
     ratingSnapshots,
     pendingAction,
     setPendingAction,
+    adjustClock,
     isSaving,
     saveError,
     retrySave,

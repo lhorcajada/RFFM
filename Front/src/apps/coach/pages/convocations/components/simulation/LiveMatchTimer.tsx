@@ -22,6 +22,14 @@ interface LiveMatchTimerProps {
   onRequestAction: (action: NonNullable<PendingAction>) => void;
   onConfirmAction: () => void;
   onCancelAction: () => void;
+  onAdjustClock?: (deltaMinutes: number) => void;
+}
+
+const ADJUST_STEPS = [-5, -1, 1, 5] as const;
+
+function adjustLabel(step: number): string {
+  const unit = Math.abs(step) === 1 ? "minuto" : "minutos";
+  return `${step < 0 ? "Retrasar" : "Avanzar"} ${Math.abs(step)} ${unit}`;
 }
 
 function formatTime(minute: number, second: number): string {
@@ -47,7 +55,11 @@ export default function LiveMatchTimer({
   onRequestAction,
   onConfirmAction,
   onCancelAction,
+  onAdjustClock,
 }: LiveMatchTimerProps) {
+  const canAdjustClock =
+    !!onAdjustClock && (matchPhase === "firstHalf" || matchPhase === "secondHalf");
+
   const phaseBadge = (() => {
     if (matchPhase === "preMatch") return "ANTES";
     if (isHalftime) return "DESCANSO";
@@ -70,6 +82,24 @@ export default function LiveMatchTimer({
 
       {/* Clock */}
       <span className={styles.clock}>{formatTime(currentMinute, currentSecond)}</span>
+
+      {/* Manual clock correction (advance / rewind) */}
+      {canAdjustClock && (
+        <div className={styles.adjustGroup}>
+          {ADJUST_STEPS.map((step) => (
+            <button
+              key={step}
+              type="button"
+              className={styles.adjustBtn}
+              aria-label={adjustLabel(step)}
+              title={adjustLabel(step)}
+              onClick={() => onAdjustClock?.(step)}
+            >
+              {step > 0 ? `+${step}` : step}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Phase action button */}
       <div className={styles.actionGroup}>

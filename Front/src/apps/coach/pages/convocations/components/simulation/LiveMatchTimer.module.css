@@ -62,3 +62,27 @@
   color: #34d399;
   letter-spacing: 0.04em;
 }
+
+.adjustGroup {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.adjustBtn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 4px 9px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+
+.adjustBtn:hover {
+  background: rgba(77, 157, 224, 0.15);
+  color: #4d9de0;
+}

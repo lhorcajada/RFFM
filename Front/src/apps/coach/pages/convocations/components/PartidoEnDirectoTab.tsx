@@ -742,6 +742,7 @@ export default function PartidoEnDirectoTab({
           onRequestAction={live.setPendingAction}
           onConfirmAction={live.confirmAction}
           onCancelAction={live.cancelAction}
+          onAdjustClock={live.adjustClock}
         />
         <SubstitutionWindowTracker
           windowsTotal={live.windowsTotal}
