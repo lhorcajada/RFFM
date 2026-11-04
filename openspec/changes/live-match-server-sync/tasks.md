@@ -90,7 +90,7 @@
 
 ## Step 6: Apply live match actions
 
-- [ ] Step 6: Apply live match actions
+- [x] Step 6: Apply live match actions
 
 **Routing**: category=backend · context=large · difficulty=high
 
