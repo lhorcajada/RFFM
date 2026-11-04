@@ -36,7 +36,7 @@
 
 ## Step 3: Team access check and state response mapping
 
-- [ ] Step 3: Team access check and state response mapping
+- [x] Step 3: Team access check and state response mapping
 
 **Routing**: category=backend · context=small · difficulty=low
 
