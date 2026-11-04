@@ -72,7 +72,7 @@
 
 ## Step 5: Read and create live match slices
 
-- [ ] Step 5: Read and create live match slices
+- [x] Step 5: Read and create live match slices
 
 **Routing**: category=backend · context=medium · difficulty=medium
 
