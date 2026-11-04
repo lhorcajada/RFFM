@@ -10,6 +10,63 @@ export type LiveMatchPhase =
   | "secondHalf"
   | "finished";
 
+/** Server-owned clock: elapsed = baseSeconds + (serverNow - referenceUtc) while running */
+export type LiveMatchServerClock = { baseSeconds: number; referenceUtc: string | null };
+
+/** Live match state as returned by the server (REST responses, 409 bodies, MatchUpdated events) */
+export type LiveMatchServerState = {
+  eventId: string;
+  teamId: string;
+  version: number;
+  phase: LiveMatchPhase;
+  clock: LiveMatchServerClock;
+  matchDurationMinutes: number;
+  scoreLocal: number;
+  scoreVisitor: number;
+  formation: string | null;
+  matchData: {
+    startingLineupJson: string | null;
+    playersJson: string | null;
+    substitutionWindowsJson: string | null;
+    ratingSnapshotsJson: string | null;
+    goalsJson: string | null;
+    cardsJson: string | null;
+    formationChangesJson: string | null;
+  };
+  isClosed: boolean;
+  serverNowUtc: string;
+};
+
+export type LiveMatchActionType =
+  | "setLineup"
+  | "setDuration"
+  | "kickOff"
+  | "endHalf"
+  | "startSecondHalf"
+  | "adjustClock"
+  | "goal"
+  | "card"
+  | "substitution"
+  | "formationChange";
+
+export type LiveMatchFinishPlayer = {
+  teamPlayerId: string;
+  minutesPlayed: number;
+  isStarter: boolean;
+  enteredAtMinute: number | null;
+  exitedAtMinute: number | null;
+};
+
+export type LiveMatchActionRequest = {
+  type: LiveMatchActionType;
+  baseVersion: number;
+  payload?: Record<string, unknown>;
+};
+
+export type LiveMatchActionResult =
+  | { conflict: false; state: LiveMatchServerState }
+  | { conflict: true; state: LiveMatchServerState };
+
 /** A goal event recorded during the match */
 export interface GoalEvent {
   id: string;

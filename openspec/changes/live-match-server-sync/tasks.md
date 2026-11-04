@@ -155,7 +155,7 @@
 
 ## Step 10: Frontend types, server clock helper and REST wrappers
 
-- [ ] Step 10: Frontend types, server clock helper and REST wrappers
+- [x] Step 10: Frontend types, server clock helper and REST wrappers
 
 **Routing**: category=frontend-code · context=small · difficulty=low
 

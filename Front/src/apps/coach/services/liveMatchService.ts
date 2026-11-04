@@ -1,6 +1,10 @@
 import client from "../../../core/api/client";
 import type {
+  LiveMatchActionRequest,
+  LiveMatchActionResult,
+  LiveMatchFinishPlayer,
   LiveMatchParticipationPayload,
+  LiveMatchServerState,
   SeasonPlayerStats,
   PlayerMatchRecord,
 } from "../pages/convocations/components/simulation/liveMatch.types";
@@ -175,6 +179,85 @@ export async function getPlayerMatchHistory(
   }
 }
 
+// ─── Server-owned live match (live-match-server-sync) ────────────────────────
+
+type HttpErrorResponse = { status: number | undefined; data: unknown };
+
+// Reads the HTTP response carried by a rejected request without assuming an axios-specific error type.
+function httpErrorResponseOf(error: unknown): HttpErrorResponse | undefined {
+  if (typeof error !== "object" || error === null || !("response" in error)) return undefined;
+  const { response } = error;
+  if (typeof response !== "object" || response === null) return undefined;
+
+  const status = "status" in response && typeof response.status === "number" ? response.status : undefined;
+  const data = "data" in response ? response.data : undefined;
+  return { status, data };
+}
+
+// The 409 body carries the winning state under `currentState`; without it the error is not a conflict.
+function conflictStateOf(error: unknown): LiveMatchServerState | undefined {
+  const response = httpErrorResponseOf(error);
+  if (response?.status !== 409) return undefined;
+
+  const body = response.data;
+  if (typeof body !== "object" || body === null || !("currentState" in body)) return undefined;
+
+  const currentState = body.currentState;
+  if (typeof currentState !== "object" || currentState === null) return undefined;
+  return currentState as LiveMatchServerState;
+}
+
+async function resolveWithConflict(
+  pending: Promise<{ data: LiveMatchServerState }>,
+): Promise<LiveMatchActionResult> {
+  try {
+    const resp = await pending;
+    return { conflict: false, state: resp.data };
+  } catch (error) {
+    const winningState = conflictStateOf(error);
+    if (winningState === undefined) throw error;
+    return { conflict: true, state: winningState };
+  }
+}
+
+export async function getLiveMatch(eventId: string): Promise<LiveMatchServerState | null> {
+  try {
+    const resp = await client.get<LiveMatchServerState>(`/api/events/${eventId}/live-match`);
+    return resp.data;
+  } catch (error) {
+    if (httpErrorResponseOf(error)?.status === 404) return null;
+    throw error;
+  }
+}
+
+export async function createLiveMatch(eventId: string): Promise<LiveMatchServerState> {
+  const resp = await client.post<LiveMatchServerState>(`/api/events/${eventId}/live-match`);
+  return resp.data;
+}
+
+export async function sendLiveMatchAction(
+  eventId: string,
+  request: LiveMatchActionRequest,
+): Promise<LiveMatchActionResult> {
+  return resolveWithConflict(
+    client.post<LiveMatchServerState>(`/api/events/${eventId}/live-match/actions`, request),
+  );
+}
+
+export async function finishLiveMatch(
+  eventId: string,
+  baseVersion: number,
+  players: LiveMatchFinishPlayer[],
+): Promise<LiveMatchActionResult> {
+  return resolveWithConflict(
+    client.post<LiveMatchServerState>(`/api/events/${eventId}/live-match/finish`, { baseVersion, players }),
+  );
+}
+
+export async function deleteLiveMatch(eventId: string): Promise<void> {
+  await client.delete(`/api/events/${eventId}/live-match`);
+}
+
 export default {
   saveLiveMatchBackup,
   loadLiveMatchBackup,
@@ -188,4 +271,9 @@ export default {
   getSeasonPlayerStats,
   getPlayerMatchHistory,
   getEventMinuteLimitSanctions,
+  getLiveMatch,
+  createLiveMatch,
+  sendLiveMatchAction,
+  finishLiveMatch,
+  deleteLiveMatch,
 };
