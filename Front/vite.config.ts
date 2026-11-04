@@ -77,6 +77,13 @@ export default defineConfig(async ({ command, mode }) => {
           // Keep /api prefix so backend routes like /api/catalog/... resolve correctly.
           rewrite: (path: string) => path,
         },
+        // SignalR live-match hub (/hubs/live-match). WebSocket upgrades need ws: true.
+        "/hubs": {
+          target: apiTarget,
+          changeOrigin: true,
+          secure: false,
+          ws: true,
+        },
       },
     },
     // Expose env to Vite via envPrefix or runtime replacement if needed

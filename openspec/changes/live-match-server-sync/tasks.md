@@ -174,7 +174,7 @@
 
 ## Step 11: SignalR client service, dependency and dev proxy
 
-- [ ] Step 11: SignalR client service, dependency and dev proxy
+- [x] Step 11: SignalR client service, dependency and dev proxy
 
 **Routing**: category=frontend-code · context=small · difficulty=medium
 
