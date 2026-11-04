@@ -193,7 +193,7 @@
 
 ## Step 12: Server state hook
 
-- [ ] Step 12: Server state hook
+- [x] Step 12: Server state hook
 
 **Routing**: category=frontend-code · context=medium · difficulty=high
 
