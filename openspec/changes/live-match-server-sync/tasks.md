@@ -106,7 +106,7 @@
 
 ## Step 7: Extract the match participation writer
 
-- [ ] Step 7: Extract the match participation writer
+- [x] Step 7: Extract the match participation writer
 
 **Routing**: category=backend · context=medium · difficulty=high (behavior-preserving refactor of sanction logic)
 
