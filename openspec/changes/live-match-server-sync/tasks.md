@@ -138,7 +138,7 @@
 
 ## Step 9: Delete live match and API version bump
 
-- [ ] Step 9: Delete live match and API version bump
+- [x] Step 9: Delete live match and API version bump
 
 **Routing**: category=backend · context=small · difficulty=medium
 
