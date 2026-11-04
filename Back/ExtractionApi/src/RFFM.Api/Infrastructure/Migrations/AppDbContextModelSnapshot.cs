@@ -931,6 +931,66 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.ToTable("Zonas", "app");
                 });
 
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.LiveMatches.LiveMatchState", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("ClockBaseSeconds")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("ClockReferenceUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("ClosedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Documents")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("MatchDataJson");
+
+                    b.Property<string>("EventId")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Formation")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<int>("MatchDurationMinutes")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Phase")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<int>("ScoreLocal")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ScoreVisitor")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TeamId")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EventId")
+                        .IsUnique();
+
+                    b.ToTable("LiveMatchStates", "app");
+                });
+
             modelBuilder.Entity("RFFM.Api.Domain.Aggregates.SeasonPlans.Macrociclo", b =>
                 {
                     b.Property<string>("Id")

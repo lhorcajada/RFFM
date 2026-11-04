@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using RFFM.Api.Domain.Aggregates.Assistances;
 using RFFM.Api.Domain.Aggregates.GameModels;
+using RFFM.Api.Domain.Aggregates.LiveMatches;
 using RFFM.Api.Domain.Aggregates.SeasonPlans;
 using RFFM.Api.Domain.Aggregates.Technicals;
 using RFFM.Api.Domain.Aggregates.Training;
@@ -110,6 +111,9 @@ namespace RFFM.Api.Infrastructure.Persistence
 
         // Match participation (partido en directo)
         public DbSet<MatchParticipation> MatchParticipations { get; set; }
+
+        // Live match server state (live-match-server-sync)
+        public DbSet<LiveMatchState> LiveMatchStates { get; set; }
 
         // User profile (role + player/team association)
         public DbSet<UserProfile> UserProfiles { get; set; }

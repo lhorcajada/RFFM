@@ -16,7 +16,7 @@
 
 ## Step 2: Persistence, EF configuration and migration
 
-- [ ] Step 2: Persistence, EF configuration and migration
+- [x] Step 2: Persistence, EF configuration and migration
 
 **Routing**: category=data · context=medium · difficulty=medium
 

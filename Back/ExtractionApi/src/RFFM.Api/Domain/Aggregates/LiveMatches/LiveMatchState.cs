@@ -25,6 +25,7 @@ public sealed record LiveMatchApplyResult(bool IsSuccess, string? ErrorCode, str
 
 public sealed class LiveMatchState
 {
+    public Guid Id { get; private set; } = Guid.CreateVersion7();
     private const int MaxMatchDurationMinutes = 200;
     private const string ClosedErrorCode = "LiveMatchClosed";
     private const string PhaseErrorCode = "LiveMatchPhaseNotAllowed";
