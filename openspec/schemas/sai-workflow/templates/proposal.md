@@ -1,0 +1,37 @@
+## Why
+
+<!-- What problem does this solve? Why now? (1-2 sentences) -->
+
+## What Changes
+
+<!-- Bullet list of changes. Mark breaking changes with **BREAKING**. -->
+
+## Capabilities
+
+### New Capabilities
+<!-- Capabilities being introduced. Each becomes specs/<name>/spec.md. Use kebab-case. -->
+- `<name>`: <brief description>
+
+### Modified Capabilities
+<!-- Existing capabilities whose requirements are changing. Leave empty if none. -->
+- `<existing-name>`: <what requirement is changing>
+
+## Impact
+
+<!-- Affected code, APIs, dependencies, systems -->
+
+## Proposal Research Documentation
+
+**Local files**:
+<!-- List every local file consulted during spec-phase codebase research as Markdown bullets (- <path>), one entry per line. Keep any note alongside its path. Preserve the existing empty-list marker. -->
+
+**External URLs**:
+<!-- List every external URL consulted during spec-phase codebase research as Markdown bullets (- <URL>), one entry per line. Keep any note alongside its URL. Preserve the existing empty-list marker. -->
+
+## Request Additional Notes
+
+<!-- Verbatim, non-normative copy of the Ready to Propose block's `**Request Additional Notes**` field (user-agreed context). Copy byte-for-byte; derive no requirements or scenarios from it. Omit this whole section when the block carries no such field. -->
+
+## Additional Notes
+
+<!-- Non-normative facts for the designer / implementer — code that already exists, exact object shapes, and gotchas not expressible as requirements. Do not restate Why, What Changes, Capabilities, Impact, or the research documentation above; omit this section when nothing remains. -->

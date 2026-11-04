@@ -1,0 +1,8 @@
+schema: sai-workflow
+created: 2026-11-04
+approval:
+  specs:
+    approved_at: 2026-11-04
+    notes: ""
+overview:
+  state: current

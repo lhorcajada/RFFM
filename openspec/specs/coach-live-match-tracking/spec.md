@@ -206,8 +206,8 @@ player or change the formation by itself.
 - **THEN** a 9-player formation is applied with all 9 positions occupied
 
 #### Scenario: Current formation survives a reload
-- **WHEN** the page is reloaded mid-match after an expulsion and the coach accepts the recovered match
-- **THEN** the field shows the reduced formation that was in use, not the starting formation
+- **WHEN** the page is reloaded mid-match after an expulsion
+- **THEN** the field shows the reduced formation that was in use, restored from the server state, not the starting formation, and no recovery prompt is shown
 
 ### Requirement: The goalkeeper position is always occupied
 After an expulsion the goalkeeper position of the applied formation SHALL be occupied. If the
@@ -238,16 +238,22 @@ cancellation the card SHALL NOT be recorded and the match SHALL continue unchang
 
 ### Requirement: Match data is saved automatically when the match ends
 The live match tracker SHALL save the match participation data as soon as the match is
-finished, without a save button or a save confirmation. If the save fails, an error SHALL be
-shown together with an action to retry it. Deleting the saved match data and the post-match
-manual edit SHALL remain available.
+finished, without a save button or a save confirmation. For a match with server state, the
+backend SHALL convert the live state into the match participation as part of finishing the
+match, and the frontend SHALL NOT send a separate final save. If finishing fails, an error
+SHALL be shown together with an action to retry it. Deleting the saved match data and the
+post-match manual edit SHALL remain available.
 
 #### Scenario: Ending the match saves it
 - **WHEN** the coach confirms "Finalizar partido"
 - **THEN** the match participation is saved without any further action and the saved-match banner is shown
 
+#### Scenario: Frontend does not post the final participation
+- **WHEN** the coach finishes a match with server state
+- **THEN** the participation is created by the backend and the frontend sends no final match participation save
+
 #### Scenario: Save fails
-- **WHEN** the automatic save fails
+- **WHEN** finishing the match fails
 - **THEN** an error message is shown with a retry action and no data is lost from the screen
 
 #### Scenario: No manual save button
