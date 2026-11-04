@@ -53,7 +53,7 @@
 
 ## Step 4: SignalR hub, broadcaster and hub authentication
 
-- [ ] Step 4: SignalR hub, broadcaster and hub authentication
+- [x] Step 4: SignalR hub, broadcaster and hub authentication
 
 **Routing**: category=backend · context=medium · difficulty=high (token handling interacts with the existing JwtBearer events)
 

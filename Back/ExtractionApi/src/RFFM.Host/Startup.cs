@@ -14,6 +14,8 @@ using Microsoft.AspNetCore.Identity;
 using RFFM.Api.Domain.Resources;
 using RFFM.Api.Infrastructure.Persistence;
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.SignalR;
+using RFFM.Api.Features.Coaches.LiveMatch;
 
 namespace RFFM.Host
 {
@@ -102,6 +104,14 @@ namespace RFFM.Host
                             {
                                 context.Token = null;
                             }
+                            else if (LiveMatchHubAuthentication.AllowsQueryStringToken(context.HttpContext.Request.Path))
+                            {
+                                var accessToken = context.Request.Query["access_token"].FirstOrDefault();
+                                if (!string.IsNullOrEmpty(accessToken))
+                                {
+                                    context.Token = accessToken;
+                                }
+                            }
 
                             return Task.CompletedTask;
                         },
@@ -147,6 +157,9 @@ namespace RFFM.Host
                     };
                 });
             }
+
+            services.AddSignalR();
+            services.AddScoped<ILiveMatchBroadcaster, LiveMatchBroadcaster>();
 
             // Configure CORS to allow requests from Netlify app
             services.AddCors(options =>
@@ -219,6 +232,7 @@ namespace RFFM.Host
                 endpoints.MapFeatures();
                 endpoints.MapHealthChecks();
                 endpoints.MapControllers();
+                endpoints.MapHub<LiveMatchHub>("/hubs/live-match").RequireAuthorization();
             });
         }
     }
