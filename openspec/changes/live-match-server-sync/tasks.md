@@ -122,7 +122,7 @@
 
 ## Step 8: Finish slice converts the live state
 
-- [ ] Step 8: Finish slice converts the live state
+- [x] Step 8: Finish slice converts the live state
 
 **Routing**: category=backend · context=medium · difficulty=high
 
