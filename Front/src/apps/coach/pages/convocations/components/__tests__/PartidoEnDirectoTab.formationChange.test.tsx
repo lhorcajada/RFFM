@@ -78,7 +78,8 @@ vi.mock("../../hooks/useLiveMatch", () => ({
     savedParticipationData: null,
     isDeleting: false,
     deleteParticipation: vi.fn(),
-    backup: null,
+    isOnline: true,
+    serverVersion: null,
     initMatch: vi.fn(),
     confirmAction: vi.fn(),
     cancelAction: vi.fn(),
@@ -95,8 +96,6 @@ vi.mock("../../hooks/useLiveMatch", () => ({
     repositionPlayer: vi.fn(),
     dismissConfirmation: vi.fn(),
     dismissSaveError: vi.fn(),
-    acceptBackup: vi.fn(),
-    discardBackup: vi.fn(),
   })),
 }));
 

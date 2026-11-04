@@ -1,7 +1,5 @@
 // ─── Live Match domain types ──────────────────────────────────────────────────
 
-import type { SimulationPlayerState, SubstitutionWindow } from "./simulation.types";
-
 /** Active phase of a live match */
 export type LiveMatchPhase =
   | "preMatch"
@@ -128,34 +126,6 @@ export interface WindowRatingSnapshot {
 export interface StartingFormation {
   id: string;
   name: string;
-}
-
-/** Full backup saved to localStorage when the user leaves the page */
-export interface LiveMatchBackup {
-  /** Sport-event ID — used as the backup key discriminator */
-  eventId: string;
-  teamId: string;
-  /** ISO timestamp of when the backup was written */
-  savedAt: string;
-  matchPhase: LiveMatchPhase;
-  /** Total elapsed seconds at backup time */
-  totalSeconds: number;
-  half: 1 | 2;
-  isHalftime: boolean;
-  halfDuration: number;
-  slots: Record<number, string | null>;
-  initialSlots: Record<number, string | null>;
-  startingFormation?: StartingFormation | null;
-  /** Formation in use when the backup was written; absent in backups written before it was tracked */
-  currentFormation?: StartingFormation | null;
-  playerStates: Record<string, SimulationPlayerState>;
-  windows: SubstitutionWindow[];
-  goals: GoalEvent[];
-  cards: CardEvent[];
-  formationChanges: FormationChangeEvent[];
-  ratingSnapshots: WindowRatingSnapshot[];
-  scoreLocal: number;
-  scoreVisitor: number;
 }
 
 // ─── Backend payload types ─────────────────────────────────────────────────────

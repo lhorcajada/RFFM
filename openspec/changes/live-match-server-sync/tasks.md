@@ -209,7 +209,7 @@
 
 ## Step 13: Switch useLiveMatch and PartidoEnDirectoTab to server state
 
-- [ ] Step 13: Switch useLiveMatch and PartidoEnDirectoTab to server state
+- [x] Step 13: Switch useLiveMatch and PartidoEnDirectoTab to server state
 
 **Routing**: category=frontend-code · context=large · difficulty=high
 

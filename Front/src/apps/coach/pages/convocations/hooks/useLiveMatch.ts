@@ -5,25 +5,23 @@ import type {
   SubstitutionWindow,
 } from "../components/simulation/simulation.types";
 import type {
-  GoalEvent,
   CardEvent,
   FormationChangeEvent,
-  LiveMatchBackup,
-  LiveMatchPhase,
-  WindowRatingSnapshot,
+  GoalEvent,
+  LiveMatchActionType,
+  LiveMatchFinishPlayer,
   LiveMatchParticipationPayload,
-  PlayerParticipationDto,
+  LiveMatchPhase,
+  LiveMatchServerClock,
+  LiveMatchServerState,
   StartingFormation,
+  WindowRatingSnapshot,
 } from "../components/simulation/liveMatch.types";
 import { MAX_MATCH_DURATION_MINUTES } from "../components/simulation/liveMatch.types";
 import {
-  saveLiveMatchBackup,
-  loadLiveMatchBackup,
-  clearLiveMatchBackup,
-  saveMatchParticipation,
-  getMatchParticipation,
   deleteMatchParticipation,
   getEventMinuteLimitSanctions,
+  getMatchParticipation,
   type MinuteLimitSanction,
 } from "../../../services/liveMatchService";
 import {
@@ -38,19 +36,36 @@ import {
   isExpelledStatus,
   relocateAfterExpulsion,
 } from "../utils/expulsions";
+import { computeElapsedSeconds } from "../utils/liveMatchClock";
+import { useLiveMatchServerState } from "./useLiveMatchServerState";
 
 export const MAX_TOTAL_WINDOWS = 4;
 export const MAX_SECOND_HALF_WINDOWS = 3;
 
+const MAX_CLOCK_SECONDS = 7200;
+const SAVE_ERROR_MESSAGE = "Error al guardar los datos del partido. Inténtalo de nuevo.";
+const ACTION_ERROR_MESSAGE = "No se ha podido guardar la última acción en el servidor. Revisa el partido.";
+const LEGACY_BACKUP_PREFIX = "rffm_live";
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function parseJsonArray<T>(json: string | undefined, fallback: T[]): T[] {
+function parseJsonArray<T>(json: string | null | undefined, fallback: T[]): T[] {
   if (!json) return fallback;
   try {
-    const parsed = JSON.parse(json);
+    const parsed: unknown = JSON.parse(json);
     return Array.isArray(parsed) ? (parsed as T[]) : fallback;
   } catch {
     return fallback;
+  }
+}
+
+function parseJsonRecord<T>(json: string | null | undefined): T | null {
+  if (!json) return null;
+  try {
+    const parsed: unknown = JSON.parse(json);
+    return typeof parsed === "object" && parsed !== null ? (parsed as T) : null;
+  } catch {
+    return null;
   }
 }
 
@@ -61,6 +76,262 @@ function countsTowardQuota(window: SubstitutionWindow): boolean {
 function isInPlay(phase: LiveMatchPhase): boolean {
   return phase === "firstHalf" || phase === "halftime" || phase === "secondHalf";
 }
+
+function showSnackbar(message: string, severity: "error" | "warning"): void {
+  window.dispatchEvent(new CustomEvent("rffm.show_snackbar", { detail: { message, severity } }));
+}
+
+function buildInitialPlayerStates(
+  newSlots: Record<number, string | null>,
+  startMinute = 0,
+): Record<string, SimulationPlayerState> {
+  const states: Record<string, SimulationPlayerState> = {};
+  for (const [slotIdx, pid] of Object.entries(newSlots)) {
+    if (pid) {
+      states[pid] = {
+        playerId: pid,
+        slotIndex: parseInt(slotIdx),
+        minuteEntered: startMinute,
+        accumulatedMinutes: 0,
+        isOnField: true,
+      };
+    }
+  }
+  return states;
+}
+
+/**
+ * Shared leaving/entering diff + player-state remapping logic, used by both
+ * `commitWindow` (substitutions) and `changeFormation` (mid-match tactical
+ * changes) so the accumulated-minutes bookkeeping is not duplicated.
+ */
+function applySlotChange(
+  currentSlots: Record<number, string | null>,
+  newSlots: Record<number, string | null>,
+  prevPlayerStates: Record<string, SimulationPlayerState>,
+  minute: number,
+): {
+  nextPlayerStates: Record<string, SimulationPlayerState>;
+  leaving: string[];
+  entering: string[];
+} {
+  const currentOnField = new Set(Object.values(currentSlots).filter(Boolean) as string[]);
+  const newOnField = new Set(Object.values(newSlots).filter(Boolean) as string[]);
+  const leaving = [...currentOnField].filter((pid) => !newOnField.has(pid));
+  const entering = [...newOnField].filter((pid) => !currentOnField.has(pid));
+
+  const nextPlayerStates = { ...prevPlayerStates };
+  for (const pid of leaving) {
+    const state = nextPlayerStates[pid];
+    if (state) {
+      nextPlayerStates[pid] = {
+        ...state,
+        accumulatedMinutes: state.accumulatedMinutes + Math.max(0, minute - state.minuteEntered),
+        isOnField: false,
+        slotIndex: null,
+      };
+    }
+  }
+  for (const pid of entering) {
+    const entry = Object.entries(newSlots).find(([, p]) => p === pid);
+    const targetSlotIdx = entry ? parseInt(entry[0]) : null;
+    nextPlayerStates[pid] = {
+      playerId: pid,
+      slotIndex: targetSlotIdx,
+      minuteEntered: minute,
+      accumulatedMinutes: nextPlayerStates[pid]?.accumulatedMinutes ?? 0,
+      isOnField: true,
+    };
+  }
+
+  return { nextPlayerStates, leaving, entering };
+}
+
+/** Freezes the minutes of every player still on the field at the given match minute. */
+function freezePlayerStates(
+  states: Record<string, SimulationPlayerState>,
+  minute: number,
+): Record<string, SimulationPlayerState> {
+  const updated: Record<string, SimulationPlayerState> = {};
+  for (const [pid, state] of Object.entries(states)) {
+    updated[pid] = state.isOnField
+      ? {
+          ...state,
+          accumulatedMinutes: state.accumulatedMinutes + Math.max(0, minute - state.minuteEntered),
+          isOnField: false,
+        }
+      : { ...state };
+  }
+  return updated;
+}
+
+/** Chains partial scores from 0-0 over the goals sorted by minute. */
+function chainGoalScores(list: GoalEvent[], isHomeTeam: boolean): GoalEvent[] {
+  const sorted = list
+    .map((g, i) => ({ g, i }))
+    .sort((x, y) => x.g.minute - y.g.minute || x.i - y.i)
+    .map((x) => x.g);
+  let loc = 0;
+  let vis = 0;
+  return sorted.map((g) => {
+    const gLocal = g.isOwnTeam ? isHomeTeam : !isHomeTeam;
+    if (gLocal) loc++;
+    else vis++;
+    return { ...g, scoreAtMoment: { local: loc, visitor: vis } };
+  });
+}
+
+/** Players and minutes played, the payload of the finish action. */
+function finishPlayersOf(m: MatchModel, minute: number): LiveMatchFinishPlayer[] {
+  return Object.entries(m.playerStates).map(([pid, state]) => {
+    const isStarter = Object.values(m.initialSlots).includes(pid);
+    const finalMinutes = state.isOnField
+      ? state.accumulatedMinutes + Math.max(0, minute - state.minuteEntered)
+      : state.accumulatedMinutes;
+    return {
+      teamPlayerId: pid,
+      minutesPlayed: Math.round(finalMinutes),
+      isStarter,
+      enteredAtMinute: isStarter ? 0 : state.minuteEntered,
+      exitedAtMinute: state.isOnField ? null : minute,
+    };
+  });
+}
+
+// ─── Server documents ────────────────────────────────────────────────────────
+
+type ServerDocuments = {
+  startingLineupJson: string;
+  playersJson: string;
+  substitutionWindowsJson: string;
+  ratingSnapshotsJson: string;
+  goalsJson: string;
+  cardsJson: string;
+  formationChangesJson: string;
+};
+
+type StartingLineupDocument = {
+  formationId: string | null;
+  formationName: string | null;
+  slots: Record<number, string | null>;
+};
+
+type PlayersDocument = {
+  slots: Record<number, string | null>;
+  playerStates: Record<string, SimulationPlayerState>;
+};
+
+/** Serialises the local model into the server documents the backend stores as opaque JSON. */
+function serializeDocuments(m: MatchModel): ServerDocuments {
+  return {
+    startingLineupJson: JSON.stringify({
+      formationId: m.startingFormation?.id ?? null,
+      formationName: m.startingFormation?.name ?? null,
+      slots: m.initialSlots,
+    } satisfies StartingLineupDocument),
+    playersJson: JSON.stringify({ slots: m.slots, playerStates: m.playerStates } satisfies PlayersDocument),
+    substitutionWindowsJson: JSON.stringify(m.windows),
+    ratingSnapshotsJson: JSON.stringify(m.ratingSnapshots),
+    goalsJson: JSON.stringify(m.goals),
+    cardsJson: JSON.stringify(m.cards),
+    formationChangesJson: JSON.stringify(m.formationChanges),
+  };
+}
+
+/** Rebuilds the local model from a server state; `previous` keeps values the server has not stored yet. */
+function modelFromServerState(s: LiveMatchServerState, previous: MatchModel): MatchModel {
+  const lineup = parseJsonRecord<StartingLineupDocument>(s.matchData.startingLineupJson);
+  const players = parseJsonRecord<PlayersDocument>(s.matchData.playersJson);
+  const formationChanges = parseJsonArray<FormationChangeEvent>(s.matchData.formationChangesJson, []);
+  const lastChange = formationChanges.at(-1);
+  const startingFormation: StartingFormation | null =
+    lineup?.formationId && lineup.formationName
+      ? { id: lineup.formationId, name: lineup.formationName }
+      : previous.startingFormation;
+
+  return {
+    matchPhase: s.phase,
+    half: s.phase === "secondHalf" ? 2 : s.phase === "finished" ? previous.half : 1,
+    isHalftime: s.phase === "halftime",
+    initialSlots: lineup?.slots ?? previous.initialSlots,
+    startingFormation,
+    currentFormation: lastChange
+      ? { id: lastChange.formationId, name: lastChange.formationName }
+      : startingFormation,
+    slots: players?.slots ?? previous.slots,
+    playerStates: players?.playerStates ?? previous.playerStates,
+    windows: parseJsonArray<SubstitutionWindow>(s.matchData.substitutionWindowsJson, []),
+    ratingSnapshots: parseJsonArray<WindowRatingSnapshot>(s.matchData.ratingSnapshotsJson, []),
+    goals: parseJsonArray<GoalEvent>(s.matchData.goalsJson, []),
+    cards: parseJsonArray<CardEvent>(s.matchData.cardsJson, []),
+    formationChanges,
+    scoreLocal: s.scoreLocal,
+    scoreVisitor: s.scoreVisitor,
+    matchDurationMinutes:
+      previous.matchDurationMinutes ?? (s.phase === "preMatch" ? null : s.matchDurationMinutes),
+  };
+}
+
+function savedParticipationOf(s: LiveMatchServerState, m: MatchModel): LiveMatchParticipationPayload {
+  const minute = Math.floor(s.clock.baseSeconds / 60);
+  const documents = serializeDocuments(m);
+  return {
+    teamId: s.teamId,
+    scoreLocal: s.scoreLocal,
+    scoreVisitor: s.scoreVisitor,
+    matchPhase: "finished",
+    players: finishPlayersOf(m, minute),
+    substitutionWindowsJson: documents.substitutionWindowsJson,
+    ratingSnapshotsJson: documents.ratingSnapshotsJson,
+    goalsJson: documents.goalsJson,
+    cardsJson: documents.cardsJson,
+    formationChangesJson: documents.formationChangesJson,
+    matchDurationMinutes: m.matchDurationMinutes,
+    startingLineupJson: documents.startingLineupJson,
+  };
+}
+
+// ─── Model ───────────────────────────────────────────────────────────────────
+
+type MatchModel = {
+  matchPhase: LiveMatchPhase;
+  half: 1 | 2;
+  isHalftime: boolean;
+  initialSlots: Record<number, string | null>;
+  startingFormation: StartingFormation | null;
+  currentFormation: StartingFormation | null;
+  slots: Record<number, string | null>;
+  playerStates: Record<string, SimulationPlayerState>;
+  windows: SubstitutionWindow[];
+  ratingSnapshots: WindowRatingSnapshot[];
+  goals: GoalEvent[];
+  cards: CardEvent[];
+  formationChanges: FormationChangeEvent[];
+  scoreLocal: number;
+  scoreVisitor: number;
+  matchDurationMinutes: number | null;
+};
+
+const INITIAL_MODEL: MatchModel = {
+  matchPhase: "preMatch",
+  half: 1,
+  isHalftime: false,
+  initialSlots: {},
+  startingFormation: null,
+  currentFormation: null,
+  slots: {},
+  playerStates: {},
+  windows: [],
+  ratingSnapshots: [],
+  goals: [],
+  cards: [],
+  formationChanges: [],
+  scoreLocal: 0,
+  scoreVisitor: 0,
+  matchDurationMinutes: null,
+};
+
+type ServerStep = { type: LiveMatchActionType; payload?: Record<string, unknown> };
 
 // ─── Public interface ────────────────────────────────────────────────────────
 
@@ -116,7 +387,7 @@ export interface UseLiveMatchReturn {
   // Save state
   isSaving: boolean;
   saveError: string | null;
-  /** Retries the automatic end-of-match save after a failure */
+  /** Retries the end-of-match save after a failure */
   retrySave: () => void;
   // Persisted data (when match has been saved before)
   hasSavedData: boolean;
@@ -126,8 +397,12 @@ export interface UseLiveMatchReturn {
   setMatchDuration: (minutes: number) => void;
   isDeleting: boolean;
   deleteParticipation: () => Promise<void>;
-  // Backup
-  backup: LiveMatchBackup | null;
+  // Connection
+  isOnline: boolean;
+  /** "loading" until the first server read settles; "offline" when the hub is down or the read failed */
+  serverStatus: "loading" | "ready" | "offline";
+  /** Version of the server state the screen shows; null before the state is loaded */
+  serverVersion: number | null;
   // Actions
   initMatch: (initialSlots: Record<number, string | null>, startingFormation?: StartingFormation | null) => void;
   confirmAction: () => void;
@@ -174,8 +449,6 @@ export interface UseLiveMatchReturn {
   replaceWindows: (windows: SubstitutionWindow[]) => void;
   dismissConfirmation: () => void;
   dismissSaveError: () => void;
-  acceptBackup: () => void;
-  discardBackup: () => void;
 }
 
 export type PendingAction =
@@ -202,125 +475,93 @@ export function useLiveMatch(
   options: UseLiveMatchOptions = {},
 ): UseLiveMatchReturn {
   const { unlimitedWindows = false, players: playersOption } = options;
-  // ── Phase & timer ────────────────────────────────────────────────────────
-  const [matchPhase, setMatchPhase] = useState<LiveMatchPhase>("preMatch");
-  const [totalSeconds, setTotalSeconds] = useState(0);
-  const [half, setHalf] = useState<1 | 2>(1);
-  const [isHalftime, setIsHalftime] = useState(false);
-  const [halfDuration, setHalfDurationState] = useState(45);
+  const live = useLiveMatchServerState(eventId ?? undefined);
 
-  // ── Field ────────────────────────────────────────────────────────────────
-  const [slots, setSlots] = useState<Record<number, string | null>>({});
-  const [playerStates, setPlayerStates] = useState<Record<string, SimulationPlayerState>>({});
-  const [windows, setWindows] = useState<SubstitutionWindow[]>([]);
+  const liveRef = useRef(live);
+  liveRef.current = live;
+  const serverStateRef = useRef<LiveMatchServerState | null>(null);
+  serverStateRef.current = live.state;
+  const serverOffsetRef = useRef(0);
+  serverOffsetRef.current = live.serverOffsetMs;
+  const eventIdRef = useRef(eventId);
+  eventIdRef.current = eventId;
+  const teamIdRef = useRef(teamId);
+  teamIdRef.current = teamId;
+  const isHomeTeamRef = useRef(isHomeTeam);
+  isHomeTeamRef.current = isHomeTeam;
+  const playersOptionRef = useRef(playersOption);
+  playersOptionRef.current = playersOption;
+
+  // ── Model (displayed) and its synchronous mirror (read by actions) ───────
+  const [model, setModel] = useState<MatchModel>(INITIAL_MODEL);
+  const modelRef = useRef<MatchModel>(INITIAL_MODEL);
+  const commitModel = useCallback((next: MatchModel) => {
+    modelRef.current = next;
+    setModel(next);
+  }, []);
+
+  // ── Clock: server clock reference, re-rendered once per second while running
+  const [totalSeconds, setTotalSeconds] = useState(0);
+  const clockRef = useRef<LiveMatchServerClock>({ baseSeconds: 0, referenceUtc: null });
+
+  // ── Screen-only state ─────────────────────────────────────────────────────
+  const [halfDuration, setHalfDurationState] = useState(45);
+  const halfDurationRef = useRef(45);
+  halfDurationRef.current = halfDuration;
   const [prepareMode, setPrepareMode] = useState(false);
+  const prepareModeRef = useRef(false);
+  prepareModeRef.current = prepareMode;
   const [prepareSlotsPreview, setPrepareSlotsPreview] = useState<Record<number, string | null>>({});
+  const prepareSlotsRef = useRef<Record<number, string | null>>({});
+  prepareSlotsRef.current = prepareSlotsPreview;
   const [lastCommittedWindow, setLastCommittedWindow] = useState<SubstitutionWindow | null>(null);
   const [initialized, setInitialized] = useState(false);
-  const [initialSlotsSnapshot, setInitialSlotsSnapshot] = useState<Record<number, string | null>>({});
-
-  // ── Goals & score ────────────────────────────────────────────────────────
-  const [goals, setGoals] = useState<GoalEvent[]>([]);
-  const [scoreLocal, setScoreLocal] = useState(0);
-  const [scoreVisitor, setScoreVisitor] = useState(0);
-
-  // ── Cards ─────────────────────────────────────────────────────────────────
-  const [cards, setCards] = useState<CardEvent[]>([]);
-
-  // ── Formation changes ────────────────────────────────────────────────────
-  const [formationChanges, setFormationChanges] = useState<FormationChangeEvent[]>([]);
-  const [currentFormation, setCurrentFormation] = useState<StartingFormation | null>(null);
-  const [pendingMinPlayersCard, setPendingMinPlayersCard] = useState<CardEvent | null>(null);
-
-  // ── Rating snapshots ─────────────────────────────────────────────────────
-  const [ratingSnapshots, setRatingSnapshots] = useState<WindowRatingSnapshot[]>([]);
-
-  // ── Pending confirmation dialog ──────────────────────────────────────────
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
-
-  // ── Save state ───────────────────────────────────────────────────────────
+  const [pendingMinPlayersCard, setPendingMinPlayersCard] = useState<CardEvent | null>(null);
+  const pendingMinPlayersCardRef = useRef<CardEvent | null>(null);
+  pendingMinPlayersCardRef.current = pendingMinPlayersCard;
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [pendingAutoSave, setPendingAutoSave] = useState(false);
   const [hasSavedData, setHasSavedData] = useState(false);
   const [savedParticipationData, setSavedParticipationData] = useState<LiveMatchParticipationPayload | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [matchDurationMinutes, setMatchDurationMinutes] = useState<number | null>(null);
-  const matchDurationMinutesRef = useRef<number | null>(null);
-  matchDurationMinutesRef.current = matchDurationMinutes;
-  // ── Backup ───────────────────────────────────────────────────────────────
-  const [backup, setBackup] = useState<LiveMatchBackup | null>(null);
+  const legacyHydratedRef = useRef(false);
 
   // ── Minute-limit sportive sanctions (warn the coach when a cap is reached) ──
   const [minuteLimitSanctions, setMinuteLimitSanctions] = useState<MinuteLimitSanction[]>([]);
   const notifiedMinuteLimitPlayersRef = useRef<Set<string>>(new Set());
-  const playersOptionRef = useRef(playersOption);
-  playersOptionRef.current = playersOption;
 
-  // ── Stable refs ──────────────────────────────────────────────────────────
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const slotsRef = useRef<Record<number, string | null>>({});
-  const playerStatesRef = useRef<Record<string, SimulationPlayerState>>({});
-  const windowsRef = useRef<SubstitutionWindow[]>([]);
-  const prepareSlotsRef = useRef<Record<number, string | null>>({});
-  const prepareModeRef = useRef(false);
-  const initialSlotsRef = useRef<Record<number, string | null>>({});
-  const startingFormationRef = useRef<StartingFormation | null>(null);
-  const currentFormationRef = useRef<StartingFormation | null>(null);
-  const currentMinuteRef = useRef(0);
-  const halfRef = useRef<1 | 2>(1);
-  const isHalftimeRef = useRef(false);
-  const wasRunningRef = useRef(false);
-  const matchPhaseRef = useRef<LiveMatchPhase>("preMatch");
-  const goalsRef = useRef<GoalEvent[]>([]);
-  const scoreLocalRef = useRef(0);
-  const scoreVisitorRef = useRef(0);
-  const cardsRef = useRef<CardEvent[]>([]);
-  const formationChangesRef = useRef<FormationChangeEvent[]>([]);
-  const ratingSnapshotsRef = useRef<WindowRatingSnapshot[]>([]);
-  const halfDurationRef = useRef(45);
-  const totalSecondsRef = useRef(0);
-  const eventIdRef = useRef<string | null>(null);
-  const teamIdRef = useRef(teamId);
-  // Wall-clock anchor for the currently running segment (first/second half).
-  // Elapsed time is always derived from real time (Date.now()) rather than
-  // accumulated tick-by-tick, so it can never drift or "freeze" regardless
-  // of tab throttling, batching, or how long the screen was left unmounted.
-  const runAnchorEpochRef = useRef<number | null>(null);
-  const runBaselineSecondsRef = useRef(0);
-  // Track the latest saved participation data so both call sites (mount effect +
-  // initMatch) can access it synchronously and coordinate hydration
-  const savedParticipationRef = useRef<LiveMatchParticipationPayload | null>(null);
+  // ── Reconciliation bookkeeping ───────────────────────────────────────────
+  // While a chain of actions is in flight, or a finish is awaiting a retry, the local model is
+  // ahead of the server, so server states are not applied over it.
+  const [reconcileTick, setReconcileTick] = useState(0);
+  const inFlightRef = useRef(0);
+  const finishPendingRef = useRef<LiveMatchFinishPlayer[] | null>(null);
+  const hadServerStateRef = useRef(false);
 
-  // Sync refs
-  slotsRef.current = slots;
-  playerStatesRef.current = playerStates;
-  windowsRef.current = windows;
-  prepareSlotsRef.current = prepareSlotsPreview;
-  prepareModeRef.current = prepareMode;
-  halfRef.current = half;
-  isHalftimeRef.current = isHalftime;
-  matchPhaseRef.current = matchPhase;
-  goalsRef.current = goals;
-  scoreLocalRef.current = scoreLocal;
-  scoreVisitorRef.current = scoreVisitor;
-  cardsRef.current = cards;
-  formationChangesRef.current = formationChanges;
-  currentFormationRef.current = currentFormation;
-  ratingSnapshotsRef.current = ratingSnapshots;
-  halfDurationRef.current = halfDuration;
-  totalSecondsRef.current = totalSeconds;
-  eventIdRef.current = eventId;
-  teamIdRef.current = teamId;
-
-  const currentMinute = Math.floor(totalSeconds / 60);
-  const currentSecond = totalSeconds % 60;
-  currentMinuteRef.current = currentMinute;
+  const {
+    matchPhase,
+    half,
+    isHalftime,
+    initialSlots,
+    slots,
+    playerStates,
+    windows,
+    ratingSnapshots,
+    goals,
+    cards,
+    formationChanges,
+    currentFormation,
+    scoreLocal,
+    scoreVisitor,
+    matchDurationMinutes,
+  } = model;
 
   // ── Derived ───────────────────────────────────────────────────────────────
 
-  const isRunning =
-    matchPhase === "firstHalf" || matchPhase === "secondHalf";
+  const currentMinute = Math.floor(totalSeconds / 60);
+  const currentSecond = totalSeconds % 60;
+  const isRunning = matchPhase === "firstHalf" || matchPhase === "secondHalf";
 
   const windowsTotal = windows.filter(countsTowardQuota).length;
   const windowsInSecondHalf = windows.filter((w) => w.half === 2 && countsTowardQuota(w)).length;
@@ -334,8 +575,6 @@ export function useLiveMatch(
       (windowsTotal < MAX_TOTAL_WINDOWS &&
         (half === 1 || windowsInSecondHalf < MAX_SECOND_HALF_WINDOWS)));
 
-  // ── Player minutes ────────────────────────────────────────────────────────
-
   const playerMinutes = useMemo(() => {
     const result: Record<string, number> = {};
     for (const [pid, state] of Object.entries(playerStates)) {
@@ -346,134 +585,132 @@ export function useLiveMatch(
     return result;
   }, [playerStates, currentMinute]);
 
-  // ── Wall-clock elapsed time ───────────────────────────────────────────────
+  // ── Server clock ──────────────────────────────────────────────────────────
 
-  /** Always-accurate elapsed seconds, computed from the real-time anchor. */
-  const computeCurrentTotalSeconds = useCallback((): number => {
-    const running =
-      matchPhaseRef.current === "firstHalf" || matchPhaseRef.current === "secondHalf";
-    if (!running || runAnchorEpochRef.current === null) return totalSecondsRef.current;
-    const elapsedSinceAnchor = Math.floor((Date.now() - runAnchorEpochRef.current) / 1000);
-    return Math.min(7200, runBaselineSecondsRef.current + Math.max(0, elapsedSinceAnchor));
-  }, []);
+  const computeCurrentTotalSeconds = useCallback(
+    (): number =>
+      Math.min(MAX_CLOCK_SECONDS, computeElapsedSeconds(clockRef.current, serverOffsetRef.current, Date.now())),
+    [],
+  );
 
-  // ── Timer interval ────────────────────────────────────────────────────────
-  // The interval only re-renders the clock; the actual value always comes
-  // from computeCurrentTotalSeconds(), never from a simple prev+1 increment.
+  /** Server-time ISO instant for a clock reference, using the offset from the last applied state. */
+  const nowServerIso = useCallback(
+    (): string => new Date(Date.now() + serverOffsetRef.current).toISOString(),
+    [],
+  );
 
   useEffect(() => {
-    if (isRunning) {
-      intervalRef.current = setInterval(() => {
-        setTotalSeconds(computeCurrentTotalSeconds());
-      }, 1000);
-    } else {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-    }
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-    };
+    if (!isRunning) return undefined;
+    const id = setInterval(() => setTotalSeconds(computeCurrentTotalSeconds()), 1000);
+    return () => clearInterval(id);
   }, [isRunning, computeCurrentTotalSeconds]);
 
-  // ── Backup on page leave ──────────────────────────────────────────────────
+  // ── Server reconciliation ─────────────────────────────────────────────────
 
-  const writeBackup = useCallback(() => {
-    const eid = eventIdRef.current;
-    const phase = matchPhaseRef.current;
-    if (!eid || phase === "preMatch" || phase === "finished") return;
+  const resetToPreMatch = useCallback(() => {
+    const m = modelRef.current;
+    clockRef.current = { baseSeconds: 0, referenceUtc: null };
+    setTotalSeconds(0);
+    commitModel({
+      ...m,
+      matchPhase: "preMatch",
+      half: 1,
+      isHalftime: false,
+      slots: { ...m.initialSlots },
+      playerStates: buildInitialPlayerStates(m.initialSlots),
+      windows: [],
+      ratingSnapshots: [],
+      goals: [],
+      cards: [],
+      formationChanges: [],
+      scoreLocal: 0,
+      scoreVisitor: 0,
+      currentFormation: m.startingFormation,
+      matchDurationMinutes: null,
+    });
+    setPrepareMode(false);
+    setPrepareSlotsPreview({});
+    setLastCommittedWindow(null);
+    setPendingMinPlayersCard(null);
+    setHasSavedData(false);
+    setSavedParticipationData(null);
+    setSaveError(null);
+  }, [commitModel]);
 
-    const backupData: LiveMatchBackup = {
-      eventId: eid,
-      teamId: teamIdRef.current,
-      savedAt: new Date().toISOString(),
-      matchPhase: phase,
-      totalSeconds: computeCurrentTotalSeconds(),
-      half: halfRef.current,
-      isHalftime: isHalftimeRef.current,
-      halfDuration: halfDurationRef.current,
-      slots: { ...slotsRef.current },
-      initialSlots: { ...initialSlotsRef.current },
-      startingFormation: startingFormationRef.current,
-      currentFormation: currentFormationRef.current,
-      playerStates: { ...playerStatesRef.current },
-      windows: [...windowsRef.current],
-      goals: [...goalsRef.current],
-      cards: [...cardsRef.current],
-      formationChanges: [...formationChangesRef.current],
-      ratingSnapshots: [...ratingSnapshotsRef.current],
-      scoreLocal: scoreLocalRef.current,
-      scoreVisitor: scoreVisitorRef.current,
-    };
-    saveLiveMatchBackup(eid, backupData);
-  }, [computeCurrentTotalSeconds]);
+  const applyServerState = useCallback(
+    (s: LiveMatchServerState) => {
+      const next = modelFromServerState(s, modelRef.current);
+      commitModel(next);
+      clockRef.current = s.clock;
+      setTotalSeconds(computeCurrentTotalSeconds());
+      setInitialized(true);
+      if (s.phase === "finished") {
+        setHasSavedData(true);
+        setSavedParticipationData(savedParticipationOf(s, next));
+      } else {
+        setHasSavedData(false);
+        setSavedParticipationData(null);
+      }
+    },
+    [commitModel, computeCurrentTotalSeconds],
+  );
 
   useEffect(() => {
-    const handleBeforeUnload = () => writeBackup();
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "hidden") writeBackup();
-    };
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-  }, [writeBackup]);
+    if (inFlightRef.current > 0 || finishPendingRef.current !== null) return;
+    const s = live.state;
+    if (s === null) {
+      if (hadServerStateRef.current) {
+        hadServerStateRef.current = false;
+        resetToPreMatch();
+      }
+      return;
+    }
+    hadServerStateRef.current = true;
+    applyServerState(s);
+  }, [live.state, reconcileTick, applyServerState, resetToPreMatch]);
 
-  // Persist immediately on unmount too — covers in-app (SPA) navigation away
-  // from this screen, which fires neither beforeunload nor visibilitychange.
+  // D10: a legacy localStorage backup is dropped once the event is known to have no server state.
   useEffect(() => {
-    return () => writeBackup();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (!eventId || live.status === "loading" || live.state !== null) return;
+    localStorage.removeItem(`${LEGACY_BACKUP_PREFIX}:${eventId}`);
+  }, [eventId, live.status, live.state]);
 
-  // Persist as soon as a meaningful phase transition happens (start match,
-  // end/start half, end match) instead of waiting for an unload-type event —
-  // this is what makes the start timestamp durable even if the browser/tab
-  // is killed abruptly (common on mobile) before any unload event fires.
-  useEffect(() => {
-    writeBackup();
-  }, [matchPhase, half, isHalftime, writeBackup]);
+  const hydrateFromSavedParticipation = useCallback(
+    (data: LiveMatchParticipationPayload) => {
+      legacyHydratedRef.current = true;
+      commitModel({
+        ...modelRef.current,
+        matchPhase: "finished",
+        isHalftime: false,
+        scoreLocal: data.scoreLocal,
+        scoreVisitor: data.scoreVisitor,
+        goals: parseJsonArray<GoalEvent>(data.goalsJson, []),
+        cards: parseJsonArray<CardEvent>(data.cardsJson, []),
+        windows: parseJsonArray<SubstitutionWindow>(data.substitutionWindowsJson, []),
+        formationChanges: parseJsonArray<FormationChangeEvent>(data.formationChangesJson, []),
+        ratingSnapshots: parseJsonArray<WindowRatingSnapshot>(data.ratingSnapshotsJson, []),
+        matchDurationMinutes: data.matchDurationMinutes ?? null,
+      });
+      setHasSavedData(true);
+      setSavedParticipationData(data);
+    },
+    [commitModel],
+  );
 
-  // Periodic autosave while the clock is running, as a safety net against
-  // any termination that skips beforeunload/visibilitychange entirely.
-  // Safe to run on a plain interval: writeBackup() computes the elapsed
-  // time from the wall-clock anchor at call time, so it is never stale.
-  useEffect(() => {
-    if (!isRunning) return;
-    const AUTOSAVE_INTERVAL_MS = 5000;
-    const id = setInterval(() => writeBackup(), AUTOSAVE_INTERVAL_MS);
-    return () => clearInterval(id);
-  }, [isRunning, writeBackup]);
-
-  // ── Load saved participation on mount (re-entry detection) ─────────────────
-
+  // Legacy read: a finished match saved before server state exists.
   useEffect(() => {
     if (!eventId) return;
     let mounted = true;
-    getMatchParticipation(eventId).then((data) => {
-      if (!mounted) return;
-      if (data && data.matchPhase === "finished") {
-        savedParticipationRef.current = data;
-        setHasSavedData(true);
-        setSavedParticipationData(data);
-        hydrateFromSavedParticipation(data);
-      }
-    }).catch(() => {});
-    return () => { mounted = false; };
-  }, [eventId]);
-  // ── Check for backup on eventId change ───────────────────────────────────
-
-  useEffect(() => {
-    if (!eventId) return;
-    const b = loadLiveMatchBackup<LiveMatchBackup>(eventId);
-    if (b) setBackup(b);
-  }, [eventId]);
+    getMatchParticipation(eventId)
+      .then((data) => {
+        if (!mounted || serverStateRef.current !== null) return;
+        if (data && data.matchPhase === "finished") hydrateFromSavedParticipation(data);
+      })
+      .catch(() => {});
+    return () => {
+      mounted = false;
+    };
+  }, [eventId, hydrateFromSavedParticipation]);
 
   // ── Load active minute-limit sportive sanctions for this event ──────────
   // Fetched once per event (design.md Decisión 9 — no polling, minutes are
@@ -512,246 +749,144 @@ export function useLiveMatch(
       const playerName =
         playersOptionRef.current?.find((p) => p.id === sanction.teamPlayerId)?.displayName ??
         sanction.teamPlayerId;
-      window.dispatchEvent(
-        new CustomEvent("rffm.show_snackbar", {
-          detail: {
-            message: `${playerName} ha alcanzado su límite de minutos por sanción deportiva (${sanction.minutesLimit}'). Debe salir del terreno de juego.`,
-            severity: "warning",
-          },
-        }),
+      showSnackbar(
+        `${playerName} ha alcanzado su límite de minutos por sanción deportiva (${sanction.minutesLimit}'). Debe salir del terreno de juego.`,
+        "warning",
       );
     }
   }, [playerMinutes, minuteLimitSanctions]);
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
+  // ── Server calls ──────────────────────────────────────────────────────────
 
-  function buildInitialPlayerStates(
-    newSlots: Record<number, string | null>,
-    startMinute = 0,
-  ): Record<string, SimulationPlayerState> {
-    const states: Record<string, SimulationPlayerState> = {};
-    for (const [slotIdx, pid] of Object.entries(newSlots)) {
-      if (pid) {
-        states[pid] = {
-          playerId: pid,
-          slotIndex: parseInt(slotIdx),
-          minuteEntered: startMinute,
-          accumulatedMinutes: 0,
-          isOnField: true,
-        };
-      }
+  /** Document-carrying payload for a model-changing action, built from the local model right now. */
+  const modelPayload = (extra?: Record<string, unknown>): Record<string, unknown> => {
+    const m = modelRef.current;
+    return { scoreLocal: m.scoreLocal, scoreVisitor: m.scoreVisitor, documents: serializeDocuments(m), ...extra };
+  };
+
+  /** Sends a model-changing action only when the match is in play; before kick-off and after the end the screen stays local. */
+  const sendIfInPlay = (type: LiveMatchActionType, extra?: Record<string, unknown>) => {
+    if (!isInPlay(modelRef.current.matchPhase)) return;
+    void runServerSteps([{ type, payload: modelPayload(extra) }]);
+  };
+
+  const sendSteps = useCallback(async (steps: ServerStep[]): Promise<boolean> => {
+    for (const step of steps) {
+      const result = await liveRef.current.send(step.type, step.payload);
+      if (!result.ok) return false;
     }
-    return states;
-  }
-
-  /**
-   * Shared leaving/entering diff + player-state remapping logic, used by both
-   * `commitWindow` (substitutions) and `changeFormation` (mid-match tactical
-   * changes) so the accumulated-minutes bookkeeping is not duplicated.
-   */
-  function applySlotChange(
-    currentSlots: Record<number, string | null>,
-    newSlots: Record<number, string | null>,
-    prevPlayerStates: Record<string, SimulationPlayerState>,
-    minute: number,
-  ): {
-    nextPlayerStates: Record<string, SimulationPlayerState>;
-    leaving: string[];
-    entering: string[];
-  } {
-    const currentOnField = new Set(Object.values(currentSlots).filter(Boolean) as string[]);
-    const newOnField = new Set(Object.values(newSlots).filter(Boolean) as string[]);
-    const leaving = [...currentOnField].filter((pid) => !newOnField.has(pid));
-    const entering = [...newOnField].filter((pid) => !currentOnField.has(pid));
-
-    const nextPlayerStates = { ...prevPlayerStates };
-    for (const pid of leaving) {
-      const state = nextPlayerStates[pid];
-      if (state) {
-        nextPlayerStates[pid] = {
-          ...state,
-          accumulatedMinutes:
-            state.accumulatedMinutes + Math.max(0, minute - state.minuteEntered),
-          isOnField: false,
-          slotIndex: null,
-        };
-      }
-    }
-    for (const pid of entering) {
-      const entry = Object.entries(newSlots).find(([, p]) => p === pid);
-      const targetSlotIdx = entry ? parseInt(entry[0]) : null;
-      nextPlayerStates[pid] = {
-        playerId: pid,
-        slotIndex: targetSlotIdx,
-        minuteEntered: minute,
-        accumulatedMinutes: nextPlayerStates[pid]?.accumulatedMinutes ?? 0,
-        isOnField: true,
-      };
-    }
-
-    return { nextPlayerStates, leaving, entering };
-  }
-
-  function restoreFromBackup(b: LiveMatchBackup) {
-    // Compute elapsed seconds since backup was saved
-    const savedAt = new Date(b.savedAt).getTime();
-    const now = Date.now();
-    const elapsedSec = Math.floor((now - savedAt) / 1000);
-    const restoredSeconds = Math.min(7200, b.totalSeconds + elapsedSec);
-
-    // The match only ends when the coach explicitly confirms "Finalizar partido"
-    // (endMatch action) — never auto-finish just because wall-clock time elapsed
-    // while the tab was backgrounded/reloaded.
-    const restoredPhase: LiveMatchPhase = b.matchPhase;
-    const restoredIsRunning = restoredPhase === "firstHalf" || restoredPhase === "secondHalf";
-
-    // Re-anchor the wall-clock timer so it keeps counting forward correctly
-    // from this moment, instead of resuming from a stale accumulated value.
-    runAnchorEpochRef.current = restoredIsRunning ? now : null;
-    runBaselineSecondsRef.current = restoredSeconds;
-
-    initialSlotsRef.current = { ...b.initialSlots };
-    startingFormationRef.current = b.startingFormation ?? null;
-    const lastFormationChange = (b.formationChanges ?? []).at(-1);
-    setCurrentFormation(
-      b.currentFormation ??
-        (lastFormationChange
-          ? { id: lastFormationChange.formationId, name: lastFormationChange.formationName }
-          : (b.startingFormation ?? currentFormationRef.current)),
-    );
-    setInitialSlotsSnapshot({ ...b.initialSlots });
-    setTotalSeconds(restoredSeconds);
-    setHalf(b.half);
-    setIsHalftime(b.isHalftime);
-    setHalfDurationState(b.halfDuration);
-    setSlots({ ...b.slots });
-    setPlayerStates(
-      updatePlayerStatesForElapsedTime(b.playerStates, b.matchPhase, elapsedSec, Math.floor(b.totalSeconds / 60)),
-    );
-    setWindows([...b.windows]);
-    setGoals([...b.goals]);
-    setCards([...(b.cards ?? [])]);
-    setFormationChanges([...(b.formationChanges ?? [])]);
-    setRatingSnapshots([...b.ratingSnapshots]);
-    setScoreLocal(b.scoreLocal);
-    setScoreVisitor(b.scoreVisitor);
-    setPrepareMode(false);
-    setPrepareSlotsPreview({});
-    setLastCommittedWindow(null);
-    setInitialized(true);
-    setMatchPhase(restoredPhase);
-  }
-
-  /** When restoring, add elapsed offline time to isOnField players */
-  function updatePlayerStatesForElapsedTime(
-    states: Record<string, SimulationPlayerState>,
-    phase: LiveMatchPhase,
-    _elapsedSec: number,
-    _baseMinute: number,
-  ): Record<string, SimulationPlayerState> {
-    const wasTimerRunning = phase === "firstHalf" || phase === "secondHalf";
-    if (!wasTimerRunning) return { ...states };
-    const updated: Record<string, SimulationPlayerState> = {};
-    for (const [pid, state] of Object.entries(states)) {
-      updated[pid] = { ...state };
-    }
-    return updated;
-  }
-
-  // ── Hydration from saved participation ────────────────────────────────────
-
-  function hydrateFromSavedParticipation(data: LiveMatchParticipationPayload) {
-    setMatchPhase("finished");
-    setScoreLocal(data.scoreLocal);
-    setScoreVisitor(data.scoreVisitor);
-    setGoals(parseJsonArray<GoalEvent>(data.goalsJson, []));
-    setCards(parseJsonArray<CardEvent>(data.cardsJson, []));
-    setWindows(parseJsonArray<SubstitutionWindow>(data.substitutionWindowsJson, []));
-    setFormationChanges(parseJsonArray<FormationChangeEvent>(data.formationChangesJson, []));
-    setRatingSnapshots(parseJsonArray<WindowRatingSnapshot>(data.ratingSnapshotsJson, []));
-    setMatchDurationMinutes(data.matchDurationMinutes ?? null);
-  }
-
-  // ── initMatch ─────────────────────────────────────────────────────────────
-
-  const initMatch = useCallback((initialSlots: Record<number, string | null>, startingFormation?: StartingFormation | null) => {
-    notifiedMinuteLimitPlayersRef.current = new Set();
-    initialSlotsRef.current = { ...initialSlots };
-    startingFormationRef.current = startingFormation ?? null;
-    setCurrentFormation(startingFormation ?? null);
-    setPendingMinPlayersCard(null);
-    setInitialSlotsSnapshot({ ...initialSlots });
-    runAnchorEpochRef.current = null;
-    runBaselineSecondsRef.current = 0;
-    setTotalSeconds(0);
-    setHalf(1);
-    setIsHalftime(false);
-    setSlots({ ...initialSlots });
-    setPlayerStates(buildInitialPlayerStates(initialSlots));
-    setPrepareMode(false);
-    setPrepareSlotsPreview({});
-    setLastCommittedWindow(null);
-    setInitialized(true);
-    setSaveError(null);
-    if (savedParticipationRef.current) {
-      hydrateFromSavedParticipation(savedParticipationRef.current);
-    } else {
-      setMatchPhase("preMatch");
-      setGoals([]);
-      setCards([]);
-      setWindows([]);
-      setFormationChanges([]);
-      setRatingSnapshots([]);
-      setScoreLocal(0);
-      setScoreVisitor(0);
-      setMatchDurationMinutes(null);
-    }
+    return true;
   }, []);
 
-  // ── End of match ──────────────────────────────────────────────────────────
+  /**
+   * Sends a chain in order; a failure stops the chain and the next server state reconciles the screen.
+   * The live match is created lazily, by the first write, so a screen that only reads (for example a
+   * legacy finished match) never gets a server state of its own.
+   */
+  const runServerSteps = useCallback(
+    async (steps: ServerStep[]): Promise<void> => {
+      inFlightRef.current += 1;
+      try {
+        if (serverStateRef.current === null) await liveRef.current.ensureCreated();
+        await sendSteps(steps);
+      } catch {
+        showSnackbar(ACTION_ERROR_MESSAGE, "error");
+      } finally {
+        inFlightRef.current -= 1;
+        setReconcileTick((tick) => tick + 1);
+      }
+    },
+    [sendSteps],
+  );
 
-  function finishMatch() {
-    const frozenSeconds = computeCurrentTotalSeconds();
-    runAnchorEpochRef.current = null;
-    runBaselineSecondsRef.current = frozenSeconds;
-    setTotalSeconds(frozenSeconds);
-    setMatchPhase("finished");
-    setIsHalftime(false);
+  /** Runs the transitions still needed and then the finish; a failure keeps the screen data and offers a retry. */
+  const runFinish = useCallback(
+    async (steps: ServerStep[], players: LiveMatchFinishPlayer[]): Promise<void> => {
+      finishPendingRef.current = players;
+      inFlightRef.current += 1;
+      setIsSaving(true);
+      setSaveError(null);
+      let saved = false;
+      try {
+        const transitioned = await sendSteps(steps);
+        if (transitioned) saved = (await liveRef.current.finish(players)).ok;
+      } catch {
+        saved = false;
+      } finally {
+        inFlightRef.current -= 1;
+        setIsSaving(false);
+      }
+      if (saved) finishPendingRef.current = null;
+      else setSaveError(SAVE_ERROR_MESSAGE);
+      setReconcileTick((tick) => tick + 1);
+    },
+    [sendSteps],
+  );
+
+  // ── Phase transitions ─────────────────────────────────────────────────────
+
+  const startMatchLocally = () => {
+    const m = modelRef.current;
+    const steps: ServerStep[] = [
+      { type: "setLineup", payload: { formation: m.startingFormation?.name, documents: serializeDocuments(m) } },
+      { type: "kickOff" },
+    ];
+    clockRef.current = { baseSeconds: 0, referenceUtc: nowServerIso() };
+    setTotalSeconds(0);
+    commitModel({
+      ...m,
+      matchPhase: "firstHalf",
+      half: 1,
+      isHalftime: false,
+      playerStates: buildInitialPlayerStates(m.initialSlots, 0),
+    });
+    // A score set before kick-off stays local until the match is in play; one goal action carries it.
+    const started = modelRef.current;
+    if (started.scoreLocal > 0 || started.scoreVisitor > 0) steps.push({ type: "goal", payload: modelPayload() });
+    void runServerSteps(steps);
+  };
+
+  const endFirstHalfLocally = () => {
+    const frozen = computeCurrentTotalSeconds();
+    clockRef.current = { baseSeconds: frozen, referenceUtc: null };
+    setTotalSeconds(frozen);
+    commitModel({ ...modelRef.current, matchPhase: "halftime", isHalftime: true, half: 1 });
+    void runServerSteps([{ type: "endHalf" }]);
+  };
+
+  const startSecondHalfLocally = () => {
+    clockRef.current = { baseSeconds: clockRef.current.baseSeconds, referenceUtc: nowServerIso() };
+    commitModel({ ...modelRef.current, matchPhase: "secondHalf", isHalftime: false, half: 2 });
+    void runServerSteps([{ type: "startSecondHalf" }]);
+  };
+
+  /** Ends the match: freezes the clock, then sends the transitions still missing and the finish. */
+  const finishMatchLocally = (leadingSteps: ServerStep[] = []) => {
+    const m = modelRef.current;
+    const frozen = computeCurrentTotalSeconds();
+    const minute = Math.floor(frozen / 60);
+    const players = finishPlayersOf(m, minute);
+    const transitions: ServerStep[] =
+      m.matchPhase === "firstHalf"
+        ? [{ type: "endHalf" }, { type: "startSecondHalf" }]
+        : m.matchPhase === "halftime"
+          ? [{ type: "startSecondHalf" }]
+          : [];
+
+    clockRef.current = { baseSeconds: frozen, referenceUtc: null };
+    setTotalSeconds(frozen);
+    // Duración real = minuto final del cronómetro (partes + añadido); sin cronómetro, 2 × parte.
+    commitModel({
+      ...m,
+      matchPhase: "finished",
+      isHalftime: false,
+      playerStates: freezePlayerStates(m.playerStates, minute),
+      matchDurationMinutes: Math.floor(frozen / 60) || 2 * halfDurationRef.current,
+    });
     setPrepareMode(false);
     setPrepareSlotsPreview({});
-    // Duración real = minuto final del cronómetro (partes + añadido); sin cronómetro, 2 × parte.
-    setMatchDurationMinutes(Math.floor(frozenSeconds / 60) || 2 * halfDurationRef.current);
-    // Freeze all playerStates: anyone still on field gets their minutes locked
-    setPlayerStates((prev) => {
-      const minute = Math.floor(frozenSeconds / 60);
-      const updated: Record<string, SimulationPlayerState> = {};
-      for (const [pid, state] of Object.entries(prev)) {
-        if (state.isOnField) {
-          updated[pid] = {
-            ...state,
-            accumulatedMinutes:
-              state.accumulatedMinutes + Math.max(0, minute - state.minuteEntered),
-            isOnField: false,
-          };
-        } else {
-          updated[pid] = { ...state };
-        }
-      }
-      return updated;
-    });
-    // Clear the running-match backup immediately so no "ghost" timer
-    // reappears on a future visit.
-    if (eventIdRef.current) clearLiveMatchBackup(eventIdRef.current);
-    // Saved once the final state has been rendered (persistMatchParticipation reads the refs)
-    setPendingAutoSave(true);
-  }
-
-  useEffect(() => {
-    if (!pendingAutoSave) return;
-    setPendingAutoSave(false);
-    void persistMatchParticipation();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingAutoSave]);
+    void runFinish([...leadingSteps, ...transitions], players);
+  };
 
   // ── Confirmation flow ─────────────────────────────────────────────────────
 
@@ -761,121 +896,78 @@ export function useLiveMatch(
 
     switch (action) {
       case "startMatch":
-        runAnchorEpochRef.current = Date.now();
-        runBaselineSecondsRef.current = 0;
-        setMatchPhase("firstHalf");
-        // Re-init player states from minute 0
-        setPlayerStates(buildInitialPlayerStates(initialSlotsRef.current, 0));
+        startMatchLocally();
         break;
-
-      case "endFirstHalf": {
-        // Freeze the wall-clock timer at its current real value
-        const frozenSeconds = computeCurrentTotalSeconds();
-        runAnchorEpochRef.current = null;
-        runBaselineSecondsRef.current = frozenSeconds;
-        setTotalSeconds(frozenSeconds);
-        setMatchPhase("halftime");
-        setIsHalftime(true);
-        setHalf(1); // stay on half 1 until second half starts
+      case "endFirstHalf":
+        endFirstHalfLocally();
         break;
-      }
-
       case "startSecondHalf":
-        runAnchorEpochRef.current = Date.now();
-        runBaselineSecondsRef.current = totalSecondsRef.current;
-        setMatchPhase("secondHalf");
-        setIsHalftime(false);
-        setHalf(2);
+        startSecondHalfLocally();
         break;
-
       case "endMatch":
-        finishMatch();
+        finishMatchLocally();
         break;
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingAction]);
 
   const cancelAction = useCallback(() => {
     setPendingAction(null);
   }, []);
 
-  /** Adelanta (+) o retrasa (−) el reloj en vivo; re-ancla el tiempo real al nuevo valor. */
-  const adjustClock = useCallback((deltaMinutes: number) => {
-    const phase = matchPhaseRef.current;
-    if (phase !== "firstHalf" && phase !== "secondHalf") return;
-    const next = Math.max(
-      0,
-      Math.min(7200, computeCurrentTotalSeconds() + deltaMinutes * 60),
-    );
-    runAnchorEpochRef.current = Date.now();
-    runBaselineSecondsRef.current = next;
-    setTotalSeconds(next);
-  }, [computeCurrentTotalSeconds]);
+  /** Adelanta (+) o retrasa (−) el reloj en vivo; el valor lo fija el servidor al responder. */
+  const adjustClock = useCallback(
+    (deltaMinutes: number) => {
+      if (!isInPlay(modelRef.current.matchPhase) || modelRef.current.matchPhase === "halftime") return;
+      const next = Math.max(0, Math.min(MAX_CLOCK_SECONDS, computeCurrentTotalSeconds() + deltaMinutes * 60));
+      clockRef.current = { baseSeconds: next, referenceUtc: nowServerIso() };
+      setTotalSeconds(next);
+      void runServerSteps([{ type: "adjustClock", payload: { deltaSeconds: deltaMinutes * 60 } }]);
+    },
+    [computeCurrentTotalSeconds, nowServerIso, runServerSteps],
+  );
 
-  // ── Persist match participation ───────────────────────────────────────────
+  // ── Initialization and deletion ───────────────────────────────────────────
 
-  async function persistMatchParticipation() {
-    const eid = eventIdRef.current;
-    if (!eid) return;
-
-    setIsSaving(true);
-    setSaveError(null);
-
-    try {
-      const minute = currentMinuteRef.current;
-      const states = playerStatesRef.current;
-
-      const players: PlayerParticipationDto[] = Object.entries(states).map(([pid, state]) => {
-        const finalMinutes = state.isOnField
-          ? state.accumulatedMinutes + Math.max(0, minute - state.minuteEntered)
-          : state.accumulatedMinutes;
-
-        // Determine if starter (was in initial slots)
-        const isStarter = Object.values(initialSlotsRef.current).includes(pid);
-
-        return {
-          teamPlayerId: pid,
-          minutesPlayed: Math.round(finalMinutes),
-          isStarter,
-          enteredAtMinute: isStarter ? 0 : state.minuteEntered,
-          exitedAtMinute: state.isOnField ? null : minute,
-        };
+  const initMatch = useCallback(
+    (newInitialSlots: Record<number, string | null>, startingFormation?: StartingFormation | null) => {
+      notifiedMinuteLimitPlayersRef.current = new Set();
+      setSaveError(null);
+      const server = serverStateRef.current;
+      // The server is authoritative once the match has started or has been closed.
+      if ((server !== null && server.phase !== "preMatch") || legacyHydratedRef.current) {
+        setInitialized(true);
+        return;
+      }
+      commitModel({
+        ...modelRef.current,
+        matchPhase: "preMatch",
+        half: 1,
+        isHalftime: false,
+        initialSlots: { ...newInitialSlots },
+        startingFormation: startingFormation ?? null,
+        currentFormation: startingFormation ?? null,
+        slots: { ...newInitialSlots },
+        playerStates: buildInitialPlayerStates(newInitialSlots),
+        windows: [],
+        ratingSnapshots: [],
+        goals: [],
+        cards: [],
+        formationChanges: [],
+        scoreLocal: 0,
+        scoreVisitor: 0,
+        matchDurationMinutes: null,
       });
-
-      const payload: LiveMatchParticipationPayload = {
-        teamId: teamIdRef.current,
-        scoreLocal: scoreLocalRef.current,
-        scoreVisitor: scoreVisitorRef.current,
-        matchPhase: "finished",
-        players,
-        substitutionWindowsJson: JSON.stringify(windowsRef.current),
-        ratingSnapshotsJson: JSON.stringify(ratingSnapshotsRef.current),
-        goalsJson: JSON.stringify(goalsRef.current),
-        cardsJson: JSON.stringify(cardsRef.current),
-        formationChangesJson: JSON.stringify(formationChangesRef.current),
-        matchDurationMinutes: matchDurationMinutesRef.current,
-        startingLineupJson: JSON.stringify({
-          formationId: startingFormationRef.current?.id ?? null,
-          formationName: startingFormationRef.current?.name ?? null,
-          slots: initialSlotsRef.current,
-        }),
-      };
-
-      await saveMatchParticipation(eid, payload);
-      clearLiveMatchBackup(eid);
-      setHasSavedData(true);
-      setSavedParticipationData(payload);
-    } catch {
-      setSaveError("Error al guardar los datos del partido. Inténtalo de nuevo.");
-    } finally {
-      setIsSaving(false);
-    }
-  }
-
-  const retrySave = useCallback(() => {
-    void persistMatchParticipation();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+      clockRef.current = { baseSeconds: 0, referenceUtc: null };
+      setTotalSeconds(0);
+      setPendingMinPlayersCard(null);
+      setPrepareMode(false);
+      setPrepareSlotsPreview({});
+      setLastCommittedWindow(null);
+      setInitialized(true);
+    },
+    [commitModel],
+  );
 
   const deleteParticipation = useCallback(async () => {
     const eid = eventIdRef.current;
@@ -883,73 +975,48 @@ export function useLiveMatch(
     if (!eid || !tid) return;
     setIsDeleting(true);
     try {
-      await deleteMatchParticipation(eid, tid);
-      setHasSavedData(false);
-      setSavedParticipationData(null);
-      savedParticipationRef.current = null;
-      clearLiveMatchBackup(eid);
-
-      // Reset the whole live-match state to a fresh pre-match state — same as
-      // if the page had been reloaded with no saved data and no backup.
-      const initialSlots = initialSlotsRef.current;
-      runAnchorEpochRef.current = null;
-      runBaselineSecondsRef.current = 0;
-      setTotalSeconds(0);
-      setHalf(1);
-      setIsHalftime(false);
-      setSlots({ ...initialSlots });
-      setPlayerStates(buildInitialPlayerStates(initialSlots));
-      setPrepareMode(false);
-      setPrepareSlotsPreview({});
-      setLastCommittedWindow(null);
-      setMatchPhase("preMatch");
-      setGoals([]);
-      setCards([]);
-      setWindows([]);
-      setFormationChanges([]);
-      setCurrentFormation(startingFormationRef.current);
-      setPendingMinPlayersCard(null);
-      setRatingSnapshots([]);
-      setScoreLocal(0);
-      setScoreVisitor(0);
-      setMatchDurationMinutes(null);
-      setSaveError(null);
+      if (serverStateRef.current !== null) {
+        await liveRef.current.remove();
+      } else {
+        await deleteMatchParticipation(eid, tid);
+      }
+      resetToPreMatch();
+    } catch {
+      showSnackbar("No se ha podido eliminar el partido. Inténtalo de nuevo.", "error");
     } finally {
       setIsDeleting(false);
     }
-  }, []);
+  }, [resetToPreMatch]);
+
+  const retrySave = useCallback(() => {
+    const players = finishPendingRef.current;
+    if (players) void runFinish([], players);
+  }, [runFinish]);
+
+  const dismissSaveError = useCallback(() => setSaveError(null), []);
 
   // ── Goals ─────────────────────────────────────────────────────────────────
 
-  const commitGoals = (list: GoalEvent[]) => {
-    // Stable sort by minute, then chain partial scores from 0-0.
-    const sorted = list
-      .map((g, i) => ({ g, i }))
-      .sort((x, y) => x.g.minute - y.g.minute || x.i - y.i)
-      .map((x) => x.g);
-    let loc = 0;
-    let vis = 0;
-    const next = sorted.map((g) => {
-      const gLocal = g.isOwnTeam ? isHomeTeam : !isHomeTeam;
-      if (gLocal) loc++;
-      else vis++;
-      return { ...g, scoreAtMoment: { local: loc, visitor: vis } };
-    });
-    goalsRef.current = next;
-    setGoals(next);
-  };
-
-  const applyScoreDelta = (goalIsOwnTeam: boolean, delta: 1 | -1) => {
-    const isLocal = goalIsOwnTeam ? isHomeTeam : !isHomeTeam;
-    if (isLocal) {
-      const v = Math.max(0, scoreLocalRef.current + delta);
-      scoreLocalRef.current = v;
-      setScoreLocal(v);
-    } else {
-      const v = Math.max(0, scoreVisitorRef.current + delta);
-      scoreVisitorRef.current = v;
-      setScoreVisitor(v);
+  /** Writes goals and the score deltas they imply, then sends the goal action when the match is in play. */
+  const writeGoals = (
+    rawGoals: GoalEvent[],
+    scoreChanges: Array<{ isOwnTeam: boolean; delta: 1 | -1 }>,
+  ) => {
+    const m = modelRef.current;
+    let nextLocal = m.scoreLocal;
+    let nextVisitor = m.scoreVisitor;
+    for (const change of scoreChanges) {
+      const isLocal = change.isOwnTeam ? isHomeTeamRef.current : !isHomeTeamRef.current;
+      if (isLocal) nextLocal = Math.max(0, nextLocal + change.delta);
+      else nextVisitor = Math.max(0, nextVisitor + change.delta);
     }
+    commitModel({
+      ...m,
+      goals: chainGoalScores(rawGoals, isHomeTeamRef.current),
+      scoreLocal: nextLocal,
+      scoreVisitor: nextVisitor,
+    });
+    sendIfInPlay("goal");
   };
 
   const addGoal = useCallback(
@@ -964,7 +1031,7 @@ export function useLiveMatch(
     ) => {
       const goal: GoalEvent = {
         id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-        minute: minute ?? currentMinuteRef.current,
+        minute: minute ?? Math.floor(computeCurrentTotalSeconds() / 60),
         scorerId,
         scorerName,
         scorerDorsal,
@@ -973,68 +1040,85 @@ export function useLiveMatch(
         pitchZone,
         bodyPart,
       };
-      commitGoals([...goalsRef.current, goal]);
-      applyScoreDelta(isOwnTeam, 1);
+      writeGoals([...modelRef.current.goals, goal], [{ isOwnTeam, delta: 1 }]);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [isHomeTeam],
+    [],
   );
 
-  const setMatchDuration = useCallback((minutes: number) => {
-    setMatchDurationMinutes(Math.min(MAX_MATCH_DURATION_MINUTES, Math.max(0, Math.round(minutes))));
-  }, []);
+  const setMatchDuration = useCallback(
+    (minutes: number) => {
+      const value = Math.min(MAX_MATCH_DURATION_MINUTES, Math.max(0, Math.round(minutes)));
+      commitModel({ ...modelRef.current, matchDurationMinutes: value });
+      if (modelRef.current.matchPhase === "preMatch" && value >= 1) {
+        void runServerSteps([{ type: "setDuration", payload: { durationMinutes: value } }]);
+      }
+    },
+    [commitModel, runServerSteps],
+  );
 
-  const setScore = useCallback((newScoreLocal: number, newScoreVisitor: number) => {
-    setScoreLocal(Math.max(0, Math.round(newScoreLocal)));
-    setScoreVisitor(Math.max(0, Math.round(newScoreVisitor)));
-  }, []);
+  const setScore = useCallback(
+    (newScoreLocal: number, newScoreVisitor: number) => {
+      commitModel({
+        ...modelRef.current,
+        scoreLocal: Math.max(0, Math.round(newScoreLocal)),
+        scoreVisitor: Math.max(0, Math.round(newScoreVisitor)),
+      });
+      sendIfInPlay("goal");
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [commitModel],
+  );
 
   const removeGoal = useCallback(
     (goalId: string) => {
-      const removed = goalsRef.current.find((g) => g.id === goalId);
+      const removed = modelRef.current.goals.find((g) => g.id === goalId);
       if (!removed) return;
-      commitGoals(goalsRef.current.filter((g) => g.id !== goalId));
-      applyScoreDelta(removed.isOwnTeam, -1);
+      writeGoals(
+        modelRef.current.goals.filter((g) => g.id !== goalId),
+        [{ isOwnTeam: removed.isOwnTeam, delta: -1 }],
+      );
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [isHomeTeam],
+    [],
   );
 
   const updateGoal = useCallback(
     (goalId: string, patch: Partial<Omit<GoalEvent, "id">>) => {
-      const oldGoal = goalsRef.current.find((g) => g.id === goalId);
+      const oldGoal = modelRef.current.goals.find((g) => g.id === goalId);
       if (!oldGoal) return;
       const newGoal = { ...oldGoal, ...patch };
-      commitGoals(goalsRef.current.map((g) => (g.id === goalId ? newGoal : g)));
-      if (oldGoal.isOwnTeam !== newGoal.isOwnTeam) {
-        applyScoreDelta(oldGoal.isOwnTeam, -1);
-        applyScoreDelta(newGoal.isOwnTeam, 1);
-      }
+      const scoreChanges: Array<{ isOwnTeam: boolean; delta: 1 | -1 }> =
+        oldGoal.isOwnTeam !== newGoal.isOwnTeam
+          ? [
+              { isOwnTeam: oldGoal.isOwnTeam, delta: -1 },
+              { isOwnTeam: newGoal.isOwnTeam, delta: 1 },
+            ]
+          : [];
+      writeGoals(
+        modelRef.current.goals.map((g) => (g.id === goalId ? newGoal : g)),
+        scoreChanges,
+      );
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [isHomeTeam],
+    [],
   );
 
   // ── Cards ─────────────────────────────────────────────────────────────────
 
-  const registerCard = (card: CardEvent) => {
-    const next = [...cardsRef.current, card];
-    cardsRef.current = next;
-    setCards(next);
+  const registerCardLocally = (card: CardEvent) => {
+    commitModel({ ...modelRef.current, cards: [...modelRef.current.cards, card] });
   };
 
   /** Takes a sent-off player off the field and applies a formation for the players the team may field. */
-  const sendOff = (playerId: string) => {
-    const allowedPlayers = FULL_TEAM_PLAYERS - getExpelledIds(cardsRef.current).size;
-    const formation = defaultReducedFormation(allowedPlayers, currentFormationRef.current?.name ?? null);
-    const newSlots = relocateAfterExpulsion(
-      slotsRef.current,
-      playerId,
-      FORMATION_POSITIONS[formation.name] ?? [],
-    );
+  const sendOffLocally = (playerId: string) => {
+    const m = modelRef.current;
+    const allowedPlayers = FULL_TEAM_PLAYERS - getExpelledIds(m.cards).size;
+    const formation = defaultReducedFormation(allowedPlayers, m.currentFormation?.name ?? null);
+    const newSlots = relocateAfterExpulsion(m.slots, playerId, FORMATION_POSITIONS[formation.name] ?? []);
     setPrepareMode(false);
     setPrepareSlotsPreview({});
-    applyFormationChange(formation.id, formation.name, newSlots);
+    applyFormationChangeLocally(formation.id, formation.name, newSlots);
   };
 
   const addCard = useCallback(
@@ -1047,12 +1131,11 @@ export function useLiveMatch(
       minute?: number,
       half?: 1 | 2,
     ) => {
-      const cardMinute = minute ?? currentMinuteRef.current;
-      const cardHalf = half ?? halfRef.current;
+      const m = modelRef.current;
       const card: CardEvent = {
         id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-        minute: cardMinute,
-        half: cardHalf,
+        minute: minute ?? Math.floor(computeCurrentTotalSeconds() / 60),
+        half: half ?? m.half,
         cardType,
         teamPlayerId,
         playerName,
@@ -1060,16 +1143,17 @@ export function useLiveMatch(
         rivalDorsal,
       };
 
-      const onFieldIds = Object.values(slotsRef.current).filter(Boolean) as string[];
+      const onFieldIds = Object.values(m.slots).filter(Boolean) as string[];
       const sendsOffOnFieldPlayer =
         !isRivalPlayer &&
         teamPlayerId !== null &&
-        isInPlay(matchPhaseRef.current) &&
+        isInPlay(m.matchPhase) &&
         onFieldIds.includes(teamPlayerId) &&
-        isExpelledStatus(getCardStatus([...cardsRef.current, card], teamPlayerId));
+        isExpelledStatus(getCardStatus([...m.cards, card], teamPlayerId));
 
       if (!sendsOffOnFieldPlayer || teamPlayerId === null) {
-        registerCard(card);
+        registerCardLocally(card);
+        sendIfInPlay("card");
         return;
       }
 
@@ -1079,104 +1163,111 @@ export function useLiveMatch(
         return;
       }
 
-      registerCard(card);
-      sendOff(teamPlayerId);
+      registerCardLocally(card);
+      sendOffLocally(teamPlayerId);
+      sendIfInPlay("card");
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
-
-  const pendingMinPlayersCardRef = useRef<CardEvent | null>(null);
-  pendingMinPlayersCardRef.current = pendingMinPlayersCard;
 
   const confirmMinPlayersEnd = useCallback(() => {
     const card = pendingMinPlayersCardRef.current;
     if (!card?.teamPlayerId) return;
     const expelledId = card.teamPlayerId;
     setPendingMinPlayersCard(null);
-    registerCard(card);
 
+    const m = modelRef.current;
     const newSlots: Record<number, string | null> = {};
-    for (const [slotIdx, pid] of Object.entries(slotsRef.current)) {
+    for (const [slotIdx, pid] of Object.entries(m.slots)) {
       newSlots[parseInt(slotIdx)] = pid === expelledId ? null : pid;
     }
     const { nextPlayerStates } = applySlotChange(
-      slotsRef.current,
+      m.slots,
       newSlots,
-      playerStatesRef.current,
-      currentMinuteRef.current,
+      m.playerStates,
+      Math.floor(computeCurrentTotalSeconds() / 60),
     );
-    slotsRef.current = newSlots;
-    playerStatesRef.current = nextPlayerStates;
-    setSlots(newSlots);
-    setPlayerStates(nextPlayerStates);
-    finishMatch();
+    commitModel({
+      ...m,
+      cards: [...m.cards, card],
+      slots: newSlots,
+      playerStates: nextPlayerStates,
+    });
+    finishMatchLocally([{ type: "card", payload: modelPayload() }]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [commitModel, computeCurrentTotalSeconds]);
 
   const cancelMinPlayersEnd = useCallback(() => {
     setPendingMinPlayersCard(null);
   }, []);
 
-  const removeCard = useCallback((cardId: string) => {
-    setCards((prev) => prev.filter((c) => c.id !== cardId));
-  }, []);
+  const removeCard = useCallback(
+    (cardId: string) => {
+      commitModel({ ...modelRef.current, cards: modelRef.current.cards.filter((c) => c.id !== cardId) });
+      sendIfInPlay("card");
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [commitModel],
+  );
 
-  const updateCard = useCallback((cardId: string, patch: Partial<Omit<CardEvent, "id">>) => {
-    setCards((prev) => {
-      const idx = prev.findIndex((c) => c.id === cardId);
-      if (idx === -1) return prev;
-      const oldCard = prev[idx];
-      const newCard = { ...oldCard, ...patch };
-      return prev.map((c, i) => (i === idx ? newCard : c));
-    });
-  }, []);
+  const updateCard = useCallback(
+    (cardId: string, patch: Partial<Omit<CardEvent, "id">>) => {
+      const m = modelRef.current;
+      const idx = m.cards.findIndex((c) => c.id === cardId);
+      if (idx === -1) return;
+      commitModel({
+        ...m,
+        cards: m.cards.map((c, i) => (i === idx ? { ...c, ...patch } : c)),
+      });
+      sendIfInPlay("card");
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [commitModel],
+  );
 
   // ── Mid-match formation change ───────────────────────────────────────────
 
-  function applyFormationChange(
+  function applyFormationChangeLocally(
     formationId: string,
     formationName: string,
     newSlots: Record<number, string | null>,
   ) {
-      const minute = currentMinuteRef.current;
-      const { nextPlayerStates } = applySlotChange(
-        slotsRef.current,
-        newSlots,
-        playerStatesRef.current,
-        minute,
-      );
-      // Unlike a substitution window, a formation change can also reposition
-      // players who remain on the field into a different slot index.
-      for (const [slotIdxStr, pid] of Object.entries(newSlots)) {
-        if (!pid) continue;
-        const state = nextPlayerStates[pid];
-        if (state?.isOnField) {
-          nextPlayerStates[pid] = { ...state, slotIndex: parseInt(slotIdxStr) };
-        }
+    const m = modelRef.current;
+    const minute = Math.floor(computeCurrentTotalSeconds() / 60);
+    const { nextPlayerStates } = applySlotChange(m.slots, newSlots, m.playerStates, minute);
+    // Unlike a substitution window, a formation change can also reposition
+    // players who remain on the field into a different slot index.
+    for (const [slotIdxStr, pid] of Object.entries(newSlots)) {
+      if (!pid) continue;
+      const state = nextPlayerStates[pid];
+      if (state?.isOnField) {
+        nextPlayerStates[pid] = { ...state, slotIndex: parseInt(slotIdxStr) };
       }
+    }
 
-      const change: FormationChangeEvent = {
-        id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-        minute,
-        half: halfRef.current,
-        formationId,
-        formationName,
-        slotsAfter: { ...newSlots },
-      };
+    const change: FormationChangeEvent = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      minute,
+      half: m.half,
+      formationId,
+      formationName,
+      slotsAfter: { ...newSlots },
+    };
 
-      slotsRef.current = { ...newSlots };
-      playerStatesRef.current = nextPlayerStates;
-      currentFormationRef.current = { id: formationId, name: formationName };
-      setFormationChanges((prev) => [...prev, change]);
-      setCurrentFormation({ id: formationId, name: formationName });
-      setSlots({ ...newSlots });
-      setPlayerStates(nextPlayerStates);
+    commitModel({
+      ...m,
+      slots: { ...newSlots },
+      playerStates: nextPlayerStates,
+      formationChanges: [...m.formationChanges, change],
+      currentFormation: { id: formationId, name: formationName },
+    });
   }
 
   const changeFormation = useCallback(
     (formationId: string, formationName: string, newSlots: Record<number, string | null>) => {
-      applyFormationChange(formationId, formationName, newSlots);
+      applyFormationChangeLocally(formationId, formationName, newSlots);
+      sendIfInPlay("formationChange", { formation: formationId });
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
@@ -1186,7 +1277,7 @@ export function useLiveMatch(
 
   const startPrepare = useCallback(() => {
     setPrepareMode(true);
-    setPrepareSlotsPreview({ ...slotsRef.current });
+    setPrepareSlotsPreview({ ...modelRef.current.slots });
   }, []);
 
   const cancelPrepare = useCallback(() => {
@@ -1197,7 +1288,7 @@ export function useLiveMatch(
   const movePreparePlayer = useCallback(
     (draggedId: string, fromSlotIndex: number | null, targetSlotIndex: number) => {
       // A sent-off player cannot come back onto the field
-      if (getExpelledIds(cardsRef.current).has(draggedId)) return;
+      if (getExpelledIds(modelRef.current.cards).has(draggedId)) return;
       setPrepareSlotsPreview((prev) => {
         const next = { ...prev };
         const currentOccupant = prev[targetSlotIndex] ?? null;
@@ -1211,7 +1302,7 @@ export function useLiveMatch(
     [],
   );
 
-  const movePreparePlayerToBench = useCallback((draggedId: string, fromSlotIndex: number) => {
+  const movePreparePlayerToBench = useCallback((_draggedId: string, fromSlotIndex: number) => {
     setPrepareSlotsPreview((prev) => {
       const next = { ...prev };
       next[fromSlotIndex] = null;
@@ -1219,118 +1310,106 @@ export function useLiveMatch(
     });
   }, []);
 
-  const commitWindow = useCallback((ratingsByPlayerId: Record<string, number | null>) => {
-    const minute = currentMinuteRef.current;
-    const currentSlots = slotsRef.current;
-    const newSlots = prepareSlotsRef.current;
-    const prevWindows = windowsRef.current;
-    const prevPlayerStates = playerStatesRef.current;
+  const commitWindow = useCallback(
+    (ratingsByPlayerId: Record<string, number | null>) => {
+      const m = modelRef.current;
+      const minute = Math.floor(computeCurrentTotalSeconds() / 60);
+      const newSlots = prepareSlotsRef.current;
 
-    const { nextPlayerStates, leaving, entering } = applySlotChange(
-      currentSlots,
-      newSlots,
-      prevPlayerStates,
-      minute,
-    );
+      const { nextPlayerStates, leaving, entering } = applySlotChange(m.slots, newSlots, m.playerStates, minute);
 
-    const swaps: SubstitutionSwap[] = entering.map((inPid, i) => {
-      const entry = Object.entries(newSlots).find(([, pid]) => pid === inPid)!;
-      const targetSlotIdx = parseInt(entry[0]);
-      const outPid = leaving[i] ?? null;
-      return { inPlayerId: inPid, outPlayerId: outPid, slotIndex: targetSlotIdx };
-    });
+      const swaps: SubstitutionSwap[] = entering.map((inPid, i) => {
+        const entry = Object.entries(newSlots).find(([, pid]) => pid === inPid)!;
+        const targetSlotIdx = parseInt(entry[0]);
+        const outPid = leaving[i] ?? null;
+        return { inPlayerId: inPid, outPlayerId: outPid, slotIndex: targetSlotIdx };
+      });
 
-    const currentHalf = halfRef.current;
-    const currentIsHalftime = isHalftimeRef.current;
-    const fillsEmptySlot = !currentIsHalftime && entering.length > 0 && leaving.length === 0;
-    const windowIndex = currentIsHalftime
-      ? 0
-      : prevWindows.filter(countsTowardQuota).length + (fillsEmptySlot ? 0 : 1);
+      const fillsEmptySlot = !m.isHalftime && entering.length > 0 && leaving.length === 0;
+      const windowIndex = m.isHalftime
+        ? 0
+        : m.windows.filter(countsTowardQuota).length + (fillsEmptySlot ? 0 : 1);
 
-    const newWindow: SubstitutionWindow = {
-      windowIndex,
-      minute,
-      half: currentHalf,
-      swaps,
-      slotsAfter: { ...newSlots },
-      ...(currentIsHalftime ? { isHalftime: true } : {}),
-      ...(fillsEmptySlot ? { fillsEmptySlot: true } : {}),
-    };
+      const newWindow: SubstitutionWindow = {
+        windowIndex,
+        minute,
+        half: m.half,
+        swaps,
+        slotsAfter: { ...newSlots },
+        ...(m.isHalftime ? { isHalftime: true } : {}),
+        ...(fillsEmptySlot ? { fillsEmptySlot: true } : {}),
+      };
 
-    // Rating snapshot
-    const snapshot: WindowRatingSnapshot = {
-      windowIndex,
-      minute,
-      ratings: { ...ratingsByPlayerId },
-    };
+      const snapshot: WindowRatingSnapshot = {
+        windowIndex,
+        minute,
+        ratings: { ...ratingsByPlayerId },
+      };
 
-    wasRunningRef.current = matchPhaseRef.current === "firstHalf" || matchPhaseRef.current === "secondHalf";
+      commitModel({
+        ...m,
+        slots: { ...newSlots },
+        playerStates: nextPlayerStates,
+        windows: [...m.windows, newWindow],
+        ratingSnapshots: [...m.ratingSnapshots, snapshot],
+      });
+      setPrepareMode(false);
+      setPrepareSlotsPreview({});
+      setLastCommittedWindow(newWindow);
+      sendIfInPlay("substitution");
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [commitModel, computeCurrentTotalSeconds],
+  );
 
-    setPlayerStates(nextPlayerStates);
-    setSlots({ ...newSlots });
-    setWindows((prev) => [...prev, newWindow]);
-    setRatingSnapshots((prev) => [...prev, snapshot]);
-    setPrepareMode(false);
-    setPrepareSlotsPreview({});
-    setLastCommittedWindow(newWindow);
-  }, []);
+  const repositionPlayer = useCallback(
+    (fromSlotIndex: number, toSlotIndex: number) => {
+      if (fromSlotIndex === toSlotIndex) return;
+      // Only meaningful outside prepare mode — a real substitution (bench involved)
+      // must still go through startPrepare/commitWindow.
+      if (prepareModeRef.current) return;
 
-  const repositionPlayer = useCallback((fromSlotIndex: number, toSlotIndex: number) => {
-    if (fromSlotIndex === toSlotIndex) return;
-    // Only meaningful outside prepare mode — a real substitution (bench involved)
-    // must still go through startPrepare/commitWindow.
-    if (prepareModeRef.current) return;
+      const m = modelRef.current;
+      const fromPlayerId = m.slots[fromSlotIndex] ?? null;
+      const toPlayerId = m.slots[toSlotIndex] ?? null;
+      if (!fromPlayerId && !toPlayerId) return;
 
-    const currentSlots = slotsRef.current;
-    const fromPlayerId = currentSlots[fromSlotIndex] ?? null;
-    const toPlayerId = currentSlots[toSlotIndex] ?? null;
-    if (!fromPlayerId && !toPlayerId) return;
-
-    const newSlots = { ...currentSlots, [fromSlotIndex]: toPlayerId, [toSlotIndex]: fromPlayerId };
-
-    setSlots(newSlots);
-    setPlayerStates((prev) => {
-      const next = { ...prev };
-      if (fromPlayerId && next[fromPlayerId]) {
-        next[fromPlayerId] = { ...next[fromPlayerId], slotIndex: toSlotIndex };
+      const nextPlayerStates = { ...m.playerStates };
+      if (fromPlayerId && nextPlayerStates[fromPlayerId]) {
+        nextPlayerStates[fromPlayerId] = { ...nextPlayerStates[fromPlayerId], slotIndex: toSlotIndex };
       }
-      if (toPlayerId && next[toPlayerId]) {
-        next[toPlayerId] = { ...next[toPlayerId], slotIndex: fromSlotIndex };
+      if (toPlayerId && nextPlayerStates[toPlayerId]) {
+        nextPlayerStates[toPlayerId] = { ...nextPlayerStates[toPlayerId], slotIndex: fromSlotIndex };
       }
-      return next;
-    });
-  }, []);
+      commitModel({
+        ...m,
+        slots: { ...m.slots, [fromSlotIndex]: toPlayerId, [toSlotIndex]: fromPlayerId },
+        playerStates: nextPlayerStates,
+      });
+      sendIfInPlay("substitution");
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [commitModel],
+  );
 
-  const replaceWindows = useCallback((correctedWindows: SubstitutionWindow[]) => {
-    setWindows(correctedWindows);
-  }, []);
+  const replaceWindows = useCallback(
+    (correctedWindows: SubstitutionWindow[]) => {
+      commitModel({ ...modelRef.current, windows: correctedWindows });
+      sendIfInPlay("substitution");
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [commitModel],
+  );
 
   const dismissConfirmation = useCallback(() => {
     setLastCommittedWindow(null);
   }, []);
-
-  // ── Backup accept / discard ───────────────────────────────────────────────
-
-  const acceptBackup = useCallback(() => {
-    if (!backup) return;
-    restoreFromBackup(backup);
-    setBackup(null);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [backup]);
-
-  const discardBackup = useCallback(() => {
-    if (!backup) return;
-    clearLiveMatchBackup(backup.eventId);
-    setBackup(null);
-  }, [backup]);
 
   // ── halfDuration setter ───────────────────────────────────────────────────
 
   const setHalfDuration = useCallback((minutes: number) => {
     setHalfDurationState(minutes);
   }, []);
-
-  const dismissSaveError = useCallback(() => setSaveError(null), []);
 
   return {
     matchPhase,
@@ -1343,7 +1422,7 @@ export function useLiveMatch(
     slots,
     playerStates,
     playerMinutes,
-    initialSlots: initialSlotsSnapshot,
+    initialSlots,
     initialized,
     windows,
     prepareMode,
@@ -1376,7 +1455,9 @@ export function useLiveMatch(
     setMatchDuration,
     isDeleting,
     deleteParticipation,
-    backup,
+    isOnline: live.isOnline,
+    serverStatus: live.status,
+    serverVersion: live.state?.version ?? null,
     initMatch,
     confirmAction,
     cancelAction,
@@ -1396,7 +1477,5 @@ export function useLiveMatch(
     replaceWindows,
     dismissConfirmation,
     dismissSaveError,
-    acceptBackup,
-    discardBackup,
   };
 }

@@ -78,7 +78,8 @@ function baseLiveMatch(overrides: Record<string, unknown> = {}) {
     savedParticipationData: null,
     isDeleting: false,
     deleteParticipation: vi.fn(),
-    backup: null,
+    isOnline: true,
+    serverVersion: null,
     initMatch,
     confirmAction: vi.fn(),
     cancelAction: vi.fn(),
@@ -95,8 +96,6 @@ function baseLiveMatch(overrides: Record<string, unknown> = {}) {
     repositionPlayer: vi.fn(),
     dismissConfirmation: vi.fn(),
     dismissSaveError: vi.fn(),
-    acceptBackup: vi.fn(),
-    discardBackup: vi.fn(),
     ...overrides,
   };
 }

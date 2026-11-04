@@ -1,6 +1,8 @@
+import { step, renderSettledHook } from "./fakeLiveMatchServer";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { act, renderHook } from "@testing-library/react";
 import { useLiveMatch } from "../useLiveMatch";
+import { resetFakeLiveMatchServer } from "./fakeLiveMatchServer";
 
 const getEventMinuteLimitSanctionsMock = vi.fn();
 
@@ -8,13 +10,20 @@ vi.mock("../../../../services/liveMatchService", async () => {
   const actual = await vi.importActual<typeof import("../../../../services/liveMatchService")>(
     "../../../../services/liveMatchService",
   );
+  const fake = await import("./fakeLiveMatchServer");
   return {
     ...actual,
+    ...fake.liveMatchServiceMocks(),
     saveMatchParticipation: vi.fn().mockResolvedValue(undefined),
     getMatchParticipation: vi.fn().mockResolvedValue(null),
     deleteMatchParticipation: vi.fn().mockResolvedValue(undefined),
     getEventMinuteLimitSanctions: (...args: unknown[]) => getEventMinuteLimitSanctionsMock(...args),
   };
+});
+
+vi.mock("../../../../services/liveMatchRealtimeService", async () => {
+  const fake = await import("./fakeLiveMatchServer");
+  return fake.liveMatchRealtimeMocks();
 });
 
 const EVENT_ID = "event-123";
@@ -23,6 +32,7 @@ const TEAM_ID = "team-abc";
 describe("useLiveMatch - aviso de límite de minutos por sanción", () => {
   beforeEach(() => {
     localStorage.clear();
+    resetFakeLiveMatchServer({ eventId: EVENT_ID });
     getEventMinuteLimitSanctionsMock.mockReset();
     vi.useFakeTimers();
   });
@@ -34,7 +44,7 @@ describe("useLiveMatch - aviso de límite de minutos por sanción", () => {
   it("hace fetch de los límites de minutos por sanción del evento al montar", async () => {
     getEventMinuteLimitSanctionsMock.mockResolvedValue([]);
 
-    renderHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
+    await renderSettledHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
 
     await act(async () => {
       await Promise.resolve();
@@ -50,7 +60,7 @@ describe("useLiveMatch - aviso de límite de minutos por sanción", () => {
 
     const dispatchSpy = vi.spyOn(window, "dispatchEvent");
 
-    const { result } = renderHook(() =>
+    const { result } = await renderSettledHook(() =>
       useLiveMatch(EVENT_ID, TEAM_ID, true, {
         players: [{ id: "p1", displayName: "Juan Pérez" }],
       }),
@@ -60,18 +70,18 @@ describe("useLiveMatch - aviso de límite de minutos por sanción", () => {
       await Promise.resolve();
     });
 
-    act(() => {
+    await step(() => {
       result.current.initMatch({ 0: "p1" });
     });
-    act(() => {
+    await step(() => {
       result.current.setPendingAction("startMatch");
     });
-    act(() => {
+    await step(() => {
       result.current.confirmAction();
     });
 
     // Advance past the 1-minute cap
-    act(() => {
+    await step(() => {
       vi.advanceTimersByTime(65_000);
     });
 
@@ -84,7 +94,7 @@ describe("useLiveMatch - aviso de límite de minutos por sanción", () => {
     expect(detail.message).toContain("Juan Pérez");
 
     // Advance further — must not fire again
-    act(() => {
+    await step(() => {
       vi.advanceTimersByTime(30_000);
     });
 
@@ -103,23 +113,23 @@ describe("useLiveMatch - aviso de límite de minutos por sanción", () => {
 
     const dispatchSpy = vi.spyOn(window, "dispatchEvent");
 
-    const { result } = renderHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
+    const { result } = await renderSettledHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
 
     await act(async () => {
       await Promise.resolve();
     });
 
-    act(() => {
+    await step(() => {
       result.current.initMatch({ 0: "p1" });
     });
-    act(() => {
+    await step(() => {
       result.current.setPendingAction("startMatch");
     });
-    act(() => {
+    await step(() => {
       result.current.confirmAction();
     });
 
-    act(() => {
+    await step(() => {
       vi.advanceTimersByTime(5_000);
     });
 

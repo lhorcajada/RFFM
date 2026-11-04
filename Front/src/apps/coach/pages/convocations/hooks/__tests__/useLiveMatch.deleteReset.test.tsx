@@ -1,17 +1,27 @@
+import { step, renderSettledHook } from "./fakeLiveMatchServer";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { act, renderHook } from "@testing-library/react";
 import { useLiveMatch } from "../useLiveMatch";
+import { deleteMatchParticipation } from "../../../../services/liveMatchService";
+import { getFakeLiveMatchServer, resetFakeLiveMatchServer } from "./fakeLiveMatchServer";
 
 vi.mock("../../../../services/liveMatchService", async () => {
   const actual = await vi.importActual<typeof import("../../../../services/liveMatchService")>(
     "../../../../services/liveMatchService",
   );
+  const fake = await import("./fakeLiveMatchServer");
   return {
     ...actual,
+    ...fake.liveMatchServiceMocks(),
     saveMatchParticipation: vi.fn().mockResolvedValue(undefined),
     getMatchParticipation: vi.fn().mockResolvedValue(null),
     deleteMatchParticipation: vi.fn().mockResolvedValue(undefined),
   };
+});
+
+vi.mock("../../../../services/liveMatchRealtimeService", async () => {
+  const fake = await import("./fakeLiveMatchServer");
+  return fake.liveMatchRealtimeMocks();
 });
 
 const EVENT_ID = "event-123";
@@ -21,6 +31,7 @@ const BACKUP_KEY = `rffm_live:${EVENT_ID}`;
 describe("useLiveMatch - reinicio tras eliminar los datos del partido", () => {
   beforeEach(() => {
     localStorage.clear();
+    resetFakeLiveMatchServer({ eventId: EVENT_ID });
     vi.useFakeTimers();
   });
 
@@ -29,30 +40,42 @@ describe("useLiveMatch - reinicio tras eliminar los datos del partido", () => {
   });
 
   it("reinicia el partido a estado inicial (como una recarga de página) al eliminar los datos guardados", async () => {
-    const { result } = renderHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
+    const { result } = await renderSettledHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
 
-    act(() => {
+    await step(() => {
       result.current.initMatch({ 0: "p1", 1: "p2" });
     });
-    act(() => {
+    await step(() => {
       result.current.setPendingAction("startMatch");
     });
-    act(() => {
+    await step(() => {
       result.current.confirmAction();
     });
-    act(() => {
+    await step(() => {
       result.current.addGoal("p1", "Player One", 9, true, null, null, 10);
     });
-    act(() => {
+    await step(() => {
       result.current.addCard("p2", "Player Two", false, null, "yellow", 20, 1);
     });
-    act(() => {
+    await step(() => {
       vi.advanceTimersByTime(5000);
     });
-    act(() => {
+    await step(() => {
+      result.current.setPendingAction("endFirstHalf");
+    });
+    await step(() => {
+      result.current.confirmAction();
+    });
+    await step(() => {
+      result.current.setPendingAction("startSecondHalf");
+    });
+    await step(() => {
+      result.current.confirmAction();
+    });
+    await step(() => {
       result.current.setPendingAction("endMatch");
     });
-    act(() => {
+    await step(() => {
       result.current.confirmAction();
     });
 
@@ -79,5 +102,26 @@ describe("useLiveMatch - reinicio tras eliminar los datos del partido", () => {
 
     // No stale backup left behind either
     expect(localStorage.getItem(BACKUP_KEY)).toBeNull();
+  });
+
+  it("al eliminar un partido con estado en el servidor llama a deleteLiveMatch y no al borrado legado", async () => {
+    const server = getFakeLiveMatchServer();
+    const { result } = await renderSettledHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
+    await step(() => {
+      result.current.initMatch({ 0: "p1" });
+    });
+    await step(() => {
+      result.current.setPendingAction("startMatch");
+    });
+    await step(() => {
+      result.current.confirmAction();
+    });
+
+    await act(async () => {
+      await result.current.deleteParticipation();
+    });
+
+    expect(server.deleteLiveMatch).toHaveBeenCalledWith(EVENT_ID);
+    expect(deleteMatchParticipation).not.toHaveBeenCalled();
   });
 });

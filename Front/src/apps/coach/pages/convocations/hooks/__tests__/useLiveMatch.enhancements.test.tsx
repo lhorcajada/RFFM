@@ -1,30 +1,43 @@
+import { step, renderSettledHook } from "./fakeLiveMatchServer";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, renderHook } from "@testing-library/react";
 import { useLiveMatch, MAX_TOTAL_WINDOWS, MAX_SECOND_HALF_WINDOWS } from "../useLiveMatch";
+import { getFakeLiveMatchServer, resetFakeLiveMatchServer } from "./fakeLiveMatchServer";
 
 vi.mock("../../../../services/liveMatchService", async () => {
   const actual = await vi.importActual<typeof import("../../../../services/liveMatchService")>(
     "../../../../services/liveMatchService",
   );
+  const fake = await import("./fakeLiveMatchServer");
   return {
     ...actual,
+    ...fake.liveMatchServiceMocks(),
     saveMatchParticipation: vi.fn().mockResolvedValue(undefined),
     getMatchParticipation: vi.fn().mockResolvedValue(null),
     deleteMatchParticipation: vi.fn().mockResolvedValue(undefined),
   };
 });
 
+vi.mock("../../../../services/liveMatchRealtimeService", async () => {
+  const fake = await import("./fakeLiveMatchServer");
+  return fake.liveMatchRealtimeMocks();
+});
+
 const EVENT_ID = "event-123";
 const TEAM_ID = "team-abc";
 
-function startMatch(result: { current: ReturnType<typeof useLiveMatch> }, slots: Record<number, string | null>) {
-  act(() => {
+beforeEach(() => {
+  resetFakeLiveMatchServer({ eventId: EVENT_ID });
+});
+
+async function startMatch(result: { current: ReturnType<typeof useLiveMatch> }, slots: Record<number, string | null>) {
+  await step(() => {
     result.current.initMatch(slots);
   });
-  act(() => {
+  await step(() => {
     result.current.setPendingAction("startMatch");
   });
-  act(() => {
+  await step(() => {
     result.current.confirmAction();
   });
 }
@@ -34,18 +47,18 @@ describe("useLiveMatch - unlimited substitution windows (friendlies)", () => {
     localStorage.clear();
   });
 
-  it("keeps canOpenWindow true past the normal caps when unlimitedWindows is true", () => {
-    const { result } = renderHook(() =>
+  it("keeps canOpenWindow true past the normal caps when unlimitedWindows is true", async () => {
+    const { result } = await renderSettledHook(() =>
       useLiveMatch(EVENT_ID, TEAM_ID, true, { unlimitedWindows: true }),
     );
-    startMatch(result, { 0: "p1" });
+    await startMatch(result, { 0: "p1" });
 
     // Simulate having already opened MAX_TOTAL_WINDOWS windows by committing them
     for (let i = 0; i < MAX_TOTAL_WINDOWS + 2; i++) {
-      act(() => {
+      await step(() => {
         result.current.startPrepare();
       });
-      act(() => {
+      await step(() => {
         result.current.commitWindow({});
       });
     }
@@ -54,15 +67,15 @@ describe("useLiveMatch - unlimited substitution windows (friendlies)", () => {
     expect(result.current.canOpenWindow).toBe(true);
   });
 
-  it("keeps the existing quota behavior unchanged when unlimitedWindows is false/default", () => {
-    const { result } = renderHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
-    startMatch(result, { 0: "p1" });
+  it("keeps the existing quota behavior unchanged when unlimitedWindows is false/default", async () => {
+    const { result } = await renderSettledHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
+    await startMatch(result, { 0: "p1" });
 
     for (let i = 0; i < MAX_TOTAL_WINDOWS; i++) {
-      act(() => {
+      await step(() => {
         result.current.startPrepare();
       });
-      act(() => {
+      await step(() => {
         result.current.commitWindow({});
       });
     }
@@ -77,11 +90,11 @@ describe("useLiveMatch - cards", () => {
     localStorage.clear();
   });
 
-  it("addCard/removeCard update the cards state", () => {
-    const { result } = renderHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
-    startMatch(result, { 0: "p1" });
+  it("addCard/removeCard update the cards state", async () => {
+    const { result } = await renderSettledHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
+    await startMatch(result, { 0: "p1" });
 
-    act(() => {
+    await step(() => {
       result.current.addCard("p1", "Jugador Uno", false, null, "yellow");
     });
 
@@ -95,17 +108,17 @@ describe("useLiveMatch - cards", () => {
     });
 
     const cardId = result.current.cards[0].id;
-    act(() => {
+    await step(() => {
       result.current.removeCard(cardId);
     });
     expect(result.current.cards).toHaveLength(0);
   });
 
-  it("records a rival card with a free-text dorsal", () => {
-    const { result } = renderHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
-    startMatch(result, { 0: "p1" });
+  it("records a rival card with a free-text dorsal", async () => {
+    const { result } = await renderSettledHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
+    await startMatch(result, { 0: "p1" });
 
-    act(() => {
+    await step(() => {
       result.current.addCard(null, null, true, 4, "red");
     });
 
@@ -117,24 +130,37 @@ describe("useLiveMatch - cards", () => {
     });
   });
 
-  it("includes cardsJson matching the recorded cards when persisting participation", async () => {
+  it("stores cardsJson matching the recorded cards on the server when the match is closed", async () => {
     const { saveMatchParticipation } = await import("../../../../services/liveMatchService");
-    const { result } = renderHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
-    startMatch(result, { 0: "p1" });
+    const server = getFakeLiveMatchServer();
+    const { result } = await renderSettledHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
+    await startMatch(result, { 0: "p1" });
 
-    act(() => {
+    await step(() => {
       result.current.addCard("p1", "Jugador Uno", false, null, "yellow");
     });
-    act(() => {
+    await step(() => {
+      result.current.setPendingAction("endFirstHalf");
+    });
+    await step(() => {
+      result.current.confirmAction();
+    });
+    await step(() => {
+      result.current.setPendingAction("startSecondHalf");
+    });
+    await step(() => {
+      result.current.confirmAction();
+    });
+    await step(() => {
       result.current.setPendingAction("endMatch");
     });
     await act(async () => {
       result.current.confirmAction();
     });
 
-    expect(saveMatchParticipation).toHaveBeenCalled();
-    const payload = (saveMatchParticipation as ReturnType<typeof vi.fn>).mock.calls[0][1];
-    const parsedCards = JSON.parse(payload.cardsJson);
+    expect(server.finishLiveMatch).toHaveBeenCalledTimes(1);
+    expect(saveMatchParticipation).not.toHaveBeenCalled();
+    const parsedCards = JSON.parse(server.state?.matchData.cardsJson ?? "[]");
     expect(parsedCards).toHaveLength(1);
     expect(parsedCards[0].teamPlayerId).toBe("p1");
   });
@@ -145,11 +171,11 @@ describe("useLiveMatch - goal pitch zone and body part", () => {
     localStorage.clear();
   });
 
-  it("stores pitchZone and bodyPart on the resulting GoalEvent", () => {
-    const { result } = renderHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
-    startMatch(result, { 0: "p1" });
+  it("stores pitchZone and bodyPart on the resulting GoalEvent", async () => {
+    const { result } = await renderSettledHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
+    await startMatch(result, { 0: "p1" });
 
-    act(() => {
+    await step(() => {
       result.current.addGoal("p1", "Jugador Uno", 9, true, { col: 2, row: 7 }, "head");
     });
 
@@ -157,11 +183,11 @@ describe("useLiveMatch - goal pitch zone and body part", () => {
     expect(result.current.goals[0].bodyPart).toBe("head");
   });
 
-  it("defaults pitchZone/bodyPart to null when omitted (regression for existing calls)", () => {
-    const { result } = renderHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
-    startMatch(result, { 0: "p1" });
+  it("defaults pitchZone/bodyPart to null when omitted (regression for existing calls)", async () => {
+    const { result } = await renderSettledHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
+    await startMatch(result, { 0: "p1" });
 
-    act(() => {
+    await step(() => {
       result.current.addGoal(null, null, null, false, null, null);
     });
 
@@ -175,11 +201,11 @@ describe("useLiveMatch - mid-match formation change", () => {
     localStorage.clear();
   });
 
-  it("appends a FormationChangeEvent and updates slots/playerStates", () => {
-    const { result } = renderHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
-    startMatch(result, { 0: "p1", 1: "p2" });
+  it("appends a FormationChangeEvent and updates slots/playerStates", async () => {
+    const { result } = await renderSettledHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
+    await startMatch(result, { 0: "p1", 1: "p2" });
 
-    act(() => {
+    await step(() => {
       result.current.changeFormation("f2", "4-3-3", { 0: "p1", 1: null, 2: "p2" });
     });
 
@@ -200,11 +226,11 @@ describe("useLiveMatch - free field repositioning (no substitution window)", () 
     localStorage.clear();
   });
 
-  it("swaps two on-field players' slots without going through prepareMode", () => {
-    const { result } = renderHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
-    startMatch(result, { 0: "p1", 1: "p2" });
+  it("swaps two on-field players' slots without going through prepareMode", async () => {
+    const { result } = await renderSettledHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
+    await startMatch(result, { 0: "p1", 1: "p2" });
 
-    act(() => {
+    await step(() => {
       result.current.repositionPlayer(0, 1);
     });
 
@@ -217,11 +243,11 @@ describe("useLiveMatch - free field repositioning (no substitution window)", () 
     expect(result.current.windows).toHaveLength(0);
   });
 
-  it("moving into an empty slot just relocates the player", () => {
-    const { result } = renderHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
-    startMatch(result, { 0: "p1" });
+  it("moving into an empty slot just relocates the player", async () => {
+    const { result } = await renderSettledHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
+    await startMatch(result, { 0: "p1" });
 
-    act(() => {
+    await step(() => {
       result.current.repositionPlayer(0, 3);
     });
 
@@ -229,14 +255,14 @@ describe("useLiveMatch - free field repositioning (no substitution window)", () 
     expect(result.current.playerStates.p1.slotIndex).toBe(3);
   });
 
-  it("is a no-op while a substitution window is being prepared", () => {
-    const { result } = renderHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
-    startMatch(result, { 0: "p1", 1: "p2" });
+  it("is a no-op while a substitution window is being prepared", async () => {
+    const { result } = await renderSettledHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
+    await startMatch(result, { 0: "p1", 1: "p2" });
 
-    act(() => {
+    await step(() => {
       result.current.startPrepare();
     });
-    act(() => {
+    await step(() => {
       result.current.repositionPlayer(0, 1);
     });
 
@@ -250,33 +276,33 @@ describe("useLiveMatch - addGoal/addCard with explicit minute/half", () => {
     localStorage.clear();
   });
 
-  it("addGoal uses currentMinute by default", () => {
-    const { result } = renderHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
-    startMatch(result, { 0: "p1" });
+  it("addGoal uses currentMinute by default", async () => {
+    const { result } = await renderSettledHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
+    await startMatch(result, { 0: "p1" });
 
-    act(() => {
+    await step(() => {
       result.current.addGoal("p1", "Jugador Uno", 9, true);
     });
 
     expect(result.current.goals[0].minute).toBe(0);
   });
 
-  it("addGoal respects an explicit minute parameter", () => {
-    const { result } = renderHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
-    startMatch(result, { 0: "p1" });
+  it("addGoal respects an explicit minute parameter", async () => {
+    const { result } = await renderSettledHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
+    await startMatch(result, { 0: "p1" });
 
-    act(() => {
+    await step(() => {
       result.current.addGoal("p1", "Jugador Uno", 9, true, null, null, 45);
     });
 
     expect(result.current.goals[0].minute).toBe(45);
   });
 
-  it("addCard uses currentMinute and currentHalf by default", () => {
-    const { result } = renderHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
-    startMatch(result, { 0: "p1" });
+  it("addCard uses currentMinute and currentHalf by default", async () => {
+    const { result } = await renderSettledHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
+    await startMatch(result, { 0: "p1" });
 
-    act(() => {
+    await step(() => {
       result.current.addCard("p1", "Jugador Uno", false, null, "yellow");
     });
 
@@ -284,11 +310,11 @@ describe("useLiveMatch - addGoal/addCard with explicit minute/half", () => {
     expect(result.current.cards[0].half).toBe(1);
   });
 
-  it("addCard respects explicit minute and half parameters", () => {
-    const { result } = renderHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
-    startMatch(result, { 0: "p1" });
+  it("addCard respects explicit minute and half parameters", async () => {
+    const { result } = await renderSettledHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
+    await startMatch(result, { 0: "p1" });
 
-    act(() => {
+    await step(() => {
       result.current.addCard("p1", "Jugador Uno", false, null, "yellow", 20, 2);
     });
 
@@ -302,15 +328,15 @@ describe("useLiveMatch - updateGoal", () => {
     localStorage.clear();
   });
 
-  it("updateGoal replaces goal fields and recomputes scoreAtMoment for all goals", () => {
-    const { result } = renderHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
-    startMatch(result, { 0: "p1", 1: "p2" });
+  it("updateGoal replaces goal fields and recomputes scoreAtMoment for all goals", async () => {
+    const { result } = await renderSettledHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
+    await startMatch(result, { 0: "p1", 1: "p2" });
 
     // Add two goals for own team
-    act(() => {
+    await step(() => {
       result.current.addGoal("p1", "Player One", 9, true);
     });
-    act(() => {
+    await step(() => {
       result.current.addGoal("p2", "Player Two", 10, true);
     });
 
@@ -322,7 +348,7 @@ describe("useLiveMatch - updateGoal", () => {
     const goalId = result.current.goals[0].id;
 
     // Change first goal to be for rival team
-    act(() => {
+    await step(() => {
       result.current.updateGoal(goalId, {
         scorerId: null,
         scorerName: "Rival",
@@ -341,17 +367,17 @@ describe("useLiveMatch - updateGoal", () => {
     expect(result.current.goals[1].scoreAtMoment).toEqual({ local: 1, visitor: 1 });
   });
 
-  it("updateGoal patches partial fields", () => {
-    const { result } = renderHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
-    startMatch(result, { 0: "p1" });
+  it("updateGoal patches partial fields", async () => {
+    const { result } = await renderSettledHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
+    await startMatch(result, { 0: "p1" });
 
-    act(() => {
+    await step(() => {
       result.current.addGoal("p1", "Player One", 9, true, { col: 1, row: 2 }, "head");
     });
 
     const goalId = result.current.goals[0].id;
 
-    act(() => {
+    await step(() => {
       result.current.updateGoal(goalId, {
         bodyPart: "foot",
       });
@@ -368,17 +394,17 @@ describe("useLiveMatch - updateCard", () => {
     localStorage.clear();
   });
 
-  it("updateCard patches card fields", () => {
-    const { result } = renderHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
-    startMatch(result, { 0: "p1" });
+  it("updateCard patches card fields", async () => {
+    const { result } = await renderSettledHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
+    await startMatch(result, { 0: "p1" });
 
-    act(() => {
+    await step(() => {
       result.current.addCard("p1", "Player One", false, null, "yellow");
     });
 
     const cardId = result.current.cards[0].id;
 
-    act(() => {
+    await step(() => {
       result.current.updateCard(cardId, {
         cardType: "red",
         minute: 45,
@@ -445,7 +471,7 @@ describe("useLiveMatch - reopening a saved finished match (race-safe hydration)"
     // Wait for the fetch to settle before rendering (simulating that it has already resolved)
     await new Promise((resolve) => setTimeout(resolve, 0));
 
-    const { result } = renderHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
+    const { result } = await renderSettledHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
 
     // Manually call initMatch as the component would
     await act(async () => {
@@ -500,7 +526,7 @@ describe("useLiveMatch - reopening a saved finished match (race-safe hydration)"
         }),
     );
 
-    const { result } = renderHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
+    const { result } = await renderSettledHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
 
     // Call initMatch first (resets state to preMatch)
     await act(async () => {
@@ -531,17 +557,17 @@ describe("useLiveMatch - corrección manual de ventanas de cambios", () => {
     localStorage.clear();
   });
 
-  it("sustituye las ventanas registradas por las corregidas", () => {
-    const { result } = renderHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
-    startMatch(result, { 0: "p1" });
-    act(() => {
+  it("sustituye las ventanas registradas por las corregidas", async () => {
+    const { result } = await renderSettledHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
+    await startMatch(result, { 0: "p1" });
+    await step(() => {
       result.current.startPrepare();
     });
-    act(() => {
+    await step(() => {
       result.current.commitWindow({});
     });
 
-    act(() => {
+    await step(() => {
       result.current.replaceWindows([]);
     });
 

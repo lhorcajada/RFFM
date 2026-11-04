@@ -37,7 +37,6 @@ import { useLiveMatch } from "../hooks/useLiveMatch";
 import LiveMatchTimer from "./simulation/LiveMatchTimer";
 import LiveMatchScoreboard from "./simulation/LiveMatchScoreboard";
 import GoalTimeline from "./simulation/GoalTimeline";
-import LiveMatchRecoveryDialog from "./simulation/LiveMatchRecoveryDialog";
 import LiveMatchManualEditDialog, { type ManualEditFinalValues } from "./simulation/LiveMatchManualEditDialog";
 import LiveMatchEventButtons from "./simulation/LiveMatchEventButtons";
 import SimulationField from "./simulation/SimulationField";
@@ -498,21 +497,10 @@ export default function PartidoEnDirectoTab({
       </div>
     );
   }
-  // The recovery dialog must also show in the guard states below: if the
-  // lineup fails to load (e.g. flaky tablet connection) the saved match would
-  // otherwise be unrecoverable.
-  const backupDialog = live.backup && (
-    <LiveMatchRecoveryDialog
-      backup={live.backup}
-      onAccept={live.acceptBackup}
-      onDiscard={live.discardBackup}
-    />
-  );
   if (loadError) {
     return (
       <div className={simStyles.center}>
         <EmptyState description="Error cargando los datos. Inténtalo de nuevo." />
-        {backupDialog}
       </div>
     );
   }
@@ -520,7 +508,6 @@ export default function PartidoEnDirectoTab({
     return (
       <div className={simStyles.center}>
         <EmptyState description="Guarda primero la alineación en la pestaña 'Alineación' para poder iniciar el partido." />
-        {backupDialog}
       </div>
     );
   }
@@ -687,7 +674,11 @@ export default function PartidoEnDirectoTab({
 
   return (
     <div className={styles.root}>
-      {backupDialog}
+      {!live.isOnline && live.serverStatus !== "loading" && (
+        <Alert severity="warning">
+          Sin conexión con el servidor. Las acciones no se guardan hasta que vuelva la conexión.
+        </Alert>
+      )}
 
       {/* Scoreboard + formation + players popup — always rendered, so nothing
           shifts when the match starts */}

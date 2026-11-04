@@ -9,35 +9,6 @@ import type {
   PlayerMatchRecord,
 } from "../pages/convocations/components/simulation/liveMatch.types";
 
-const BACKUP_PREFIX = "rffm_live" as const;
-
-// ─── localStorage backup helpers ─────────────────────────────────────────────
-
-function backupKey(eventId: string): string {
-  return `${BACKUP_PREFIX}:${eventId}`;
-}
-
-export function saveLiveMatchBackup(eventId: string, data: object): void {
-  try {
-    localStorage.setItem(backupKey(eventId), JSON.stringify(data));
-  } catch {
-    // Ignore quota errors
-  }
-}
-
-export function loadLiveMatchBackup<T>(eventId: string): T | null {
-  try {
-    const raw = localStorage.getItem(backupKey(eventId));
-    return raw ? (JSON.parse(raw) as T) : null;
-  } catch {
-    return null;
-  }
-}
-
-export function clearLiveMatchBackup(eventId: string): void {
-  localStorage.removeItem(backupKey(eventId));
-}
-
 // ─── API calls ────────────────────────────────────────────────────────────────
 
 /**
@@ -259,9 +230,6 @@ export async function deleteLiveMatch(eventId: string): Promise<void> {
 }
 
 export default {
-  saveLiveMatchBackup,
-  loadLiveMatchBackup,
-  clearLiveMatchBackup,
   saveMatchParticipation,
   getMatchParticipation,
   getSeasonPlayerMinutes,

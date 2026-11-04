@@ -1,31 +1,63 @@
+import { step, renderSettledHook, waitForAsync } from "./fakeLiveMatchServer";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { useLiveMatch } from "../useLiveMatch";
+import type { LiveMatchServerState } from "../../components/simulation/liveMatch.types";
+import { getFakeLiveMatchServer, resetFakeLiveMatchServer } from "./fakeLiveMatchServer";
 
 vi.mock("../../../../services/liveMatchService", async () => {
   const actual = await vi.importActual<typeof import("../../../../services/liveMatchService")>(
     "../../../../services/liveMatchService",
   );
+  const fake = await import("./fakeLiveMatchServer");
   return {
     ...actual,
+    ...fake.liveMatchServiceMocks(),
     saveMatchParticipation: vi.fn().mockResolvedValue(undefined),
     getMatchParticipation: vi.fn().mockResolvedValue(null),
     deleteMatchParticipation: vi.fn().mockResolvedValue(undefined),
   };
 });
 
+vi.mock("../../../../services/liveMatchRealtimeService", async () => {
+  const fake = await import("./fakeLiveMatchServer");
+  return fake.liveMatchRealtimeMocks();
+});
+
 const EVENT_ID = "event-123";
 const TEAM_ID = "team-abc";
 const BACKUP_KEY = `rffm_live:${EVENT_ID}`;
 
-function readBackup(): Record<string, unknown> | null {
-  const raw = localStorage.getItem(BACKUP_KEY);
-  return raw ? JSON.parse(raw) : null;
+function serverState(partial: Partial<LiveMatchServerState>): LiveMatchServerState {
+  return {
+    eventId: EVENT_ID,
+    teamId: TEAM_ID,
+    version: 3,
+    phase: "firstHalf",
+    clock: { baseSeconds: 0, referenceUtc: new Date().toISOString() },
+    matchDurationMinutes: 90,
+    scoreLocal: 0,
+    scoreVisitor: 0,
+    formation: "4-4-2",
+    matchData: {
+      startingLineupJson: null,
+      playersJson: null,
+      substitutionWindowsJson: null,
+      ratingSnapshotsJson: null,
+      goalsJson: null,
+      cardsJson: null,
+      formationChangesJson: null,
+    },
+    isClosed: false,
+    serverNowUtc: new Date().toISOString(),
+    ...partial,
+  };
 }
 
-describe("useLiveMatch - persistencia del cronómetro en localStorage", () => {
+describe("useLiveMatch - cronómetro y estado en el servidor", () => {
   beforeEach(() => {
     localStorage.clear();
+    resetFakeLiveMatchServer({ eventId: EVENT_ID });
     vi.useFakeTimers();
   });
 
@@ -33,167 +65,147 @@ describe("useLiveMatch - persistencia del cronómetro en localStorage", () => {
     vi.useRealTimers();
   });
 
-  it("guarda un timestamp real de inicio en localStorage al confirmar el inicio del partido", () => {
-    const { result } = renderHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
+  it("al confirmar el inicio el servidor pasa a la primera parte y no se escribe copia en localStorage", async () => {
+    const { result } = await renderSettledHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
 
-    act(() => {
+    await step(() => {
       result.current.initMatch({ 0: "p1", 1: "p2" });
     });
-    act(() => {
+    await step(() => {
       result.current.setPendingAction("startMatch");
     });
-    act(() => {
+    await step(() => {
       result.current.confirmAction();
     });
 
-    const backup = readBackup();
-    expect(backup).not.toBeNull();
-    expect(backup?.matchPhase).toBe("firstHalf");
-    expect(backup?.teamId).toBe(TEAM_ID);
-    expect(typeof backup?.savedAt).toBe("string");
-    // savedAt must be a real, parseable timestamp close to "now"
-    const savedAtMs = new Date(backup?.savedAt as string).getTime();
-    expect(Math.abs(Date.now() - savedAtMs)).toBeLessThan(1000);
+    expect(getFakeLiveMatchServer().state?.phase).toBe("firstHalf");
+    expect(localStorage.getItem(BACKUP_KEY)).toBeNull();
   });
 
-  it("sigue persistiendo el avance del cronómetro mientras el partido está en curso, sin depender de beforeunload", () => {
-    const { result } = renderHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
+  it("el cronómetro avanza con el reloj del servidor sin depender de beforeunload", async () => {
+    const { result } = await renderSettledHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
 
-    act(() => {
+    await step(() => {
       result.current.initMatch({ 0: "p1" });
     });
-    act(() => {
+    await step(() => {
       result.current.setPendingAction("startMatch");
     });
-    act(() => {
+    await step(() => {
       result.current.confirmAction();
     });
 
-    // Advance real running time without firing beforeunload/visibilitychange
-    act(() => {
+    await step(() => {
       vi.advanceTimersByTime(12000);
     });
 
-    const backup = readBackup();
-    expect(backup).not.toBeNull();
-    expect((backup?.totalSeconds as number)).toBeGreaterThanOrEqual(10);
+    expect(result.current.currentMinute * 60 + result.current.currentSecond).toBeGreaterThanOrEqual(10);
+    expect(getFakeLiveMatchServer().state?.clock.referenceUtc).not.toBeNull();
   });
 
-  it("recalcula el tiempo transcurrido a partir del timestamp guardado en vez de reiniciar a cero", () => {
-    const savedAt = new Date(Date.now() - 65_000).toISOString(); // 65s ago
-    localStorage.setItem(
-      BACKUP_KEY,
-      JSON.stringify({
-        eventId: EVENT_ID,
-        teamId: TEAM_ID,
-        savedAt,
-        matchPhase: "firstHalf",
-        totalSeconds: 100,
-        half: 1,
-        isHalftime: false,
-        halfDuration: 45,
-        slots: { 0: "p1" },
-        initialSlots: { 0: "p1" },
-        playerStates: {
-          p1: { playerId: "p1", slotIndex: 0, minuteEntered: 0, accumulatedMinutes: 0, isOnField: true },
-        },
-        windows: [],
-        goals: [],
-        ratingSnapshots: [],
-        scoreLocal: 0,
-        scoreVisitor: 0,
+  it("recalcula el tiempo transcurrido desde la referencia del servidor al volver a la pantalla", async () => {
+    getFakeLiveMatchServer().setServerState(
+      serverState({
+        clock: { baseSeconds: 100, referenceUtc: new Date(Date.now() - 65_000).toISOString() },
+        phase: "firstHalf",
       }),
     );
 
-    const { result } = renderHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
+    const { result } = await renderSettledHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
 
-    expect(result.current.backup).not.toBeNull();
-
-    act(() => {
-      result.current.acceptBackup();
-    });
-
+    await waitForAsync(() => expect(result.current.matchPhase).toBe("firstHalf"));
     // 100s stored + ~65s elapsed = ~165s => 2min 45s, never back to 0
     const totalSeconds = result.current.currentMinute * 60 + result.current.currentSecond;
     expect(totalSeconds).toBeGreaterThanOrEqual(160);
-    expect(result.current.matchPhase).toBe("firstHalf");
   });
 
-  it("persiste el estado al desmontar el componente aunque no se dispare beforeunload/visibilitychange (navegación interna de la SPA)", () => {
-    const { result, unmount } = renderHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
+  it("al desmontar la pantalla el partido sigue en el servidor sin copia local", async () => {
+    const { result, unmount } = await renderSettledHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
 
-    act(() => {
+    await step(() => {
       result.current.initMatch({ 0: "p1" });
     });
-    act(() => {
+    await step(() => {
       result.current.setPendingAction("startMatch");
     });
-    act(() => {
+    await step(() => {
       result.current.confirmAction();
     });
-    act(() => {
+    await step(() => {
       vi.advanceTimersByTime(3000);
     });
 
     unmount();
 
-    const backup = readBackup();
-    expect(backup).not.toBeNull();
-    expect(backup?.matchPhase).toBe("firstHalf");
+    expect(getFakeLiveMatchServer().state?.phase).toBe("firstHalf");
+    expect(localStorage.getItem(BACKUP_KEY)).toBeNull();
   });
 
-  it("limpia el estado persistido cuando el usuario finaliza el partido manualmente (sin dejar un timer fantasma)", () => {
-    const { result } = renderHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
+  it("al finalizar manualmente el servidor cierra el partido y no queda copia local", async () => {
+    const { result } = await renderSettledHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
 
-    act(() => {
+    await step(() => {
       result.current.initMatch({ 0: "p1" });
     });
-    act(() => {
+    await step(() => {
       result.current.setPendingAction("startMatch");
     });
-    act(() => {
+    await step(() => {
       result.current.confirmAction();
     });
-    expect(readBackup()).not.toBeNull();
+    expect(getFakeLiveMatchServer().state?.phase).toBe("firstHalf");
 
-    act(() => {
+    await step(() => {
+      result.current.setPendingAction("endFirstHalf");
+    });
+    await step(() => {
+      result.current.confirmAction();
+    });
+    await step(() => {
+      result.current.setPendingAction("startSecondHalf");
+    });
+    await step(() => {
+      result.current.confirmAction();
+    });
+    await step(() => {
       result.current.setPendingAction("endMatch");
     });
-    act(() => {
+    await step(() => {
       result.current.confirmAction();
     });
 
-    expect(readBackup()).toBeNull();
+    expect(getFakeLiveMatchServer().state?.phase).toBe("finished");
+    expect(localStorage.getItem(BACKUP_KEY)).toBeNull();
   });
 
-  it("no detiene el cronómetro automáticamente al llegar a la duración configurada del partido", () => {
-    const { result } = renderHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
+  it("no detiene el cronómetro automáticamente al llegar a la duración configurada del partido", async () => {
+    const { result } = await renderSettledHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
 
-    act(() => {
+    await step(() => {
       result.current.initMatch({ 0: "p1" });
       result.current.setHalfDuration(1); // 1-minute halves for a fast test
     });
-    act(() => {
+    await step(() => {
       result.current.setPendingAction("startMatch");
     });
-    act(() => {
+    await step(() => {
       result.current.confirmAction();
     });
-    act(() => {
+    await step(() => {
       result.current.setPendingAction("endFirstHalf");
     });
-    act(() => {
+    await step(() => {
       result.current.confirmAction();
     });
-    act(() => {
+    await step(() => {
       result.current.setPendingAction("startSecondHalf");
     });
-    act(() => {
+    await step(() => {
       result.current.confirmAction();
     });
 
     // Advance past the configured 2x1min = 120s duration
-    act(() => {
+    await step(() => {
       vi.advanceTimersByTime(130_000);
     });
 
@@ -201,48 +213,24 @@ describe("useLiveMatch - persistencia del cronómetro en localStorage", () => {
     expect(result.current.currentMinute * 60 + result.current.currentSecond).toBeGreaterThanOrEqual(130);
   });
 
-  it("no fuerza el fin del partido al restaurar un backup cuya 2ª parte ya superó la duración configurada (pestaña en segundo plano)", () => {
-    // Backup saved during the 2nd half, well before the configured duration was reached,
-    // but the device was backgrounded long enough that wall-clock time now exceeds it.
-    const savedAt = new Date(Date.now() - 40 * 60 * 1000).toISOString(); // 40 min ago
-    localStorage.setItem(
-      BACKUP_KEY,
-      JSON.stringify({
-        eventId: EVENT_ID,
-        teamId: TEAM_ID,
-        savedAt,
-        matchPhase: "secondHalf",
-        totalSeconds: 50 * 60, // 50 min already elapsed when saved
-        half: 2,
-        isHalftime: false,
-        halfDuration: 45, // 2 x 45min = 90min => 50 + 40 = 90min, at/over the limit
-        slots: { 0: "p1" },
-        initialSlots: { 0: "p1" },
-        playerStates: {
-          p1: { playerId: "p1", slotIndex: 0, minuteEntered: 0, accumulatedMinutes: 0, isOnField: true },
-        },
-        windows: [],
-        goals: [],
-        ratingSnapshots: [],
-        scoreLocal: 0,
-        scoreVisitor: 0,
+  it("al recuperar una segunda parte que ya superó la duración configurada no fuerza su fin y el reloj sigue corriendo", async () => {
+    // Server state of a second half that started 40 minutes ago (device was backgrounded).
+    getFakeLiveMatchServer().setServerState(
+      serverState({
+        phase: "secondHalf",
+        version: 9,
+        clock: { baseSeconds: 50 * 60, referenceUtc: new Date(Date.now() - 40 * 60 * 1000).toISOString() },
+        matchDurationMinutes: 90,
       }),
     );
 
-    const { result } = renderHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
+    const { result } = await renderSettledHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
 
-    expect(result.current.backup).not.toBeNull();
-
-    act(() => {
-      result.current.acceptBackup();
-    });
+    await waitForAsync(() => expect(result.current.matchPhase).toBe("secondHalf"));
 
     // The match must remain in progress — only the coach can end it explicitly.
-    expect(result.current.matchPhase).toBe("secondHalf");
-
-    // The clock must keep running from where it was restored.
     const totalSecondsBefore = result.current.currentMinute * 60 + result.current.currentSecond;
-    act(() => {
+    await step(() => {
       vi.advanceTimersByTime(5000);
     });
     const totalSecondsAfter = result.current.currentMinute * 60 + result.current.currentSecond;
