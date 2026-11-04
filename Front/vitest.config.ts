@@ -10,6 +10,8 @@ export default defineConfig({
     pool: "vmThreads",
     // VM contexts leak memory; recycle a worker once it grows past this to keep RAM bounded.
     vmMemoryLimit: "800MB",
+    // Cap parallel workers locally (each jsdom + MUI worker can reach ~800MB); CI keeps the default.
+    maxWorkers: process.env.CI ? undefined : 4,
     setupFiles: path.resolve(__dirname, "src/test/setupTests.ts"),
     exclude: ["node_modules", "dist", "playwright-*.js", "e2e/**"],
     testTimeout: 30000,
