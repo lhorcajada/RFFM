@@ -293,4 +293,137 @@ describe("QuinielaWallets", () => {
       snackbars.stop();
     });
   });
+
+  describe("jugadores asociados y buscador", () => {
+    const jose = { id: "tp-jose", name: "José Pérez" };
+    const lucia = { id: "tp-lucia", name: "Lucía Pérez" };
+    const ana = { id: "tp-ana", name: "Ana Lopez" };
+    const otro = { id: "tp-otro", name: "Otro Niño" };
+
+    const listWithPlayers: QuinielaWalletSummary[] = [
+      { userId: "u-jose", userName: "José Pérez", role: "Player", balance: 0, associatedPlayers: [jose] },
+      { userId: "u-marta", userName: "Marta", role: "FamilyPlayer", balance: 12.5, associatedPlayers: [jose, lucia, ana] },
+      { userId: "u-pedro", userName: "Pedro", role: "FamilyPlayer", balance: 0, associatedPlayers: [jose] },
+      { userId: "u-rosa", userName: "Rosa", role: "FamilyPlayer", balance: 0, associatedPlayers: [otro] },
+      { userId: "u-luis", userName: "Luis Mora", role: "Coach", balance: 1.5, associatedPlayers: [] },
+      { userId: "u-carla", userName: "Carla Ruiz", role: "FamilyPlayer", balance: 0, associatedPlayers: [] },
+    ];
+
+    const searchBox = () => screen.getByRole("textbox", { name: "Buscar por jugador o familiar" });
+    const playersAreaOf = (card: HTMLElement) => within(card).getByRole("list", { name: /jugadores/i });
+    const type = (text: string) => fireEvent.change(searchBox(), { target: { value: text } });
+
+    beforeEach(() => {
+      getQuinielaWallets.mockResolvedValue(listWithPlayers);
+    });
+
+    it("muestra en la tarjeta de un familiar con un jugador el nombre de ese jugador", async () => {
+      renderPage();
+      await screen.findByText("Pedro");
+
+      expect(within(playersAreaOf(cardOf("Pedro"))).getByText("José Pérez")).toBeInTheDocument();
+    });
+
+    it("muestra los tres jugadores de un familiar dentro de una sola tarjeta y su nombre una sola vez en la lista", async () => {
+      renderPage();
+      await screen.findByText("Marta");
+
+      const area = playersAreaOf(cardOf("Marta"));
+      expect(within(area).getByText("José Pérez")).toBeInTheDocument();
+      expect(within(area).getByText("Lucía Pérez")).toBeInTheDocument();
+      expect(within(area).getByText("Ana Lopez")).toBeInTheDocument();
+      expect(screen.getAllByText("Marta")).toHaveLength(1);
+    });
+
+    it("muestra el propio jugador en la tarjeta de una fila de jugador", async () => {
+      renderPage();
+      await screen.findByText("Pedro");
+
+      const playerCard = screen.getAllByTestId("wallet-card").find((card) => within(card).queryByText("Jugador") !== null);
+      expect(within(playersAreaOf(playerCard as HTMLElement)).getByText("José Pérez")).toBeInTheDocument();
+    });
+
+    it("no muestra área de jugadores en la tarjeta del entrenador ni en un familiar sin jugadores", async () => {
+      renderPage();
+      await screen.findByText("Carla Ruiz");
+
+      for (const name of ["Luis Mora", "Carla Ruiz"]) {
+        const card = cardOf(name);
+        expect(within(card).queryByRole("list", { name: /jugadores/i })).not.toBeInTheDocument();
+        expect(within(card).getByText(name)).toBeInTheDocument();
+      }
+      expect(within(cardOf("Luis Mora")).getByText("Entrenador")).toBeInTheDocument();
+      expect(within(cardOf("Carla Ruiz")).getByText(/0,00\s€/)).toBeInTheDocument();
+    });
+
+    it("filtra por el jugador escrito sin distinguir mayúsculas, acentos ni espacios", async () => {
+      renderPage();
+      await screen.findByText("Marta");
+
+      type("  jOSE   perez ");
+
+      expect(screen.getAllByTestId("wallet-card")).toHaveLength(3);
+      expect(screen.getByText("Marta")).toBeInTheDocument();
+      expect(screen.getByText("Pedro")).toBeInTheDocument();
+      expect(screen.queryByText("Rosa")).not.toBeInTheDocument();
+      expect(screen.queryByText("Luis Mora")).not.toBeInTheDocument();
+      expect(screen.queryByText("Carla Ruiz")).not.toBeInTheDocument();
+    });
+
+    it("al buscar un familiar muestra todos sus jugadores", async () => {
+      renderPage();
+      await screen.findByText("Marta");
+
+      type("marta");
+
+      expect(screen.getAllByTestId("wallet-card")).toHaveLength(1);
+      const area = playersAreaOf(cardOf("Marta"));
+      expect(within(area).getByText("José Pérez")).toBeInTheDocument();
+      expect(within(area).getByText("Lucía Pérez")).toBeInTheDocument();
+      expect(within(area).getByText("Ana Lopez")).toBeInTheDocument();
+    });
+
+    it("muestra todas las tarjetas al dejar el buscador vacío o con solo espacios", async () => {
+      renderPage();
+      await screen.findByText("Marta");
+
+      type("marta");
+      expect(screen.getAllByTestId("wallet-card")).toHaveLength(1);
+      type("");
+      expect(screen.getAllByTestId("wallet-card")).toHaveLength(6);
+      type("   ");
+      expect(screen.getAllByTestId("wallet-card")).toHaveLength(6);
+    });
+
+    it("muestra no se encontraron resultados, y no el mensaje de equipo sin participantes, si ninguna fila coincide", async () => {
+      renderPage();
+      await screen.findByText("Marta");
+
+      type("zzz");
+
+      expect(await screen.findByText("No se encontraron resultados")).toBeInTheDocument();
+      expect(screen.queryByText("No hay participantes en el equipo")).not.toBeInTheDocument();
+    });
+
+    it("muestra no hay participantes antes y después de escribir si el equipo no tiene participantes", async () => {
+      getQuinielaWallets.mockResolvedValue([]);
+      renderPage();
+      expect(await screen.findByText("No hay participantes en el equipo")).toBeInTheDocument();
+
+      type("zzz");
+
+      expect(screen.getByText("No hay participantes en el equipo")).toBeInTheDocument();
+      expect(screen.queryByText("No se encontraron resultados")).not.toBeInTheDocument();
+    });
+
+    it("no vuelve a llamar a la API al escribir en el buscador", async () => {
+      renderPage();
+      await screen.findByText("Marta");
+
+      type("jose");
+      type("pe");
+
+      expect(getQuinielaWallets).toHaveBeenCalledTimes(1);
+    });
+  });
 });

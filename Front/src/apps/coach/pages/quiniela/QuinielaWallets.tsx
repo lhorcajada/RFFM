@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
-import { Box, Button, CircularProgress, Stack } from "@mui/material";
+import { Box, Button, CircularProgress, InputAdornment, Stack, TextField } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import SearchIcon from "@mui/icons-material/Search";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ConfirmDialog from "../../../../shared/components/ui/ConfirmDialog/ConfirmDialog";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
@@ -21,6 +22,7 @@ import { apiErrorMessage, formatMoney, initialsOf, roleLabel } from "./quinielaH
 import WalletAmountDialog from "./components/WalletAmountDialog";
 import type { WalletAmountMode, WalletAmountSubmit } from "./components/WalletAmountDialog";
 import WalletMovementsDialog from "./components/WalletMovementsDialog";
+import { filterWallets } from "./walletSearch";
 import styles from "./QuinielaWallets.module.css";
 
 type LoadState = "loading" | "ready" | "forbidden" | "error";
@@ -49,6 +51,8 @@ export default function QuinielaWallets() {
   const [processing, setProcessing] = useState(false);
   const [creditPrizesOpen, setCreditPrizesOpen] = useState(false);
   const [movementsUser, setMovementsUser] = useState<QuinielaWalletSummary | null>(null);
+  const [searchText, setSearchText] = useState("");
+  const visibleWallets = useMemo(() => filterWallets(wallets, searchText), [wallets, searchText]);
 
   const load = useCallback(async (id: string) => {
     setState("loading");
@@ -145,33 +149,66 @@ export default function QuinielaWallets() {
       );
     }
     if (state === "error") return <EmptyState title="No se pudieron cargar los monederos" />;
-    if (wallets.length === 0) return <EmptyState title="No hay participantes en el equipo" />;
     return (
-      <ul className={styles.list}>
-        {wallets.map((wallet) => (
-          <li key={wallet.userId} className={styles.card} data-testid="wallet-card">
-            <div className={styles.head}>
-              <span className={styles.avatar} aria-hidden="true">{initialsOf(wallet.userName)}</span>
-              <div className={styles.who}>
-                <strong className={styles.name}>{wallet.userName}</strong>
-                <span className={styles.role}>{roleLabel(wallet.role)}</span>
-              </div>
-              <strong className={styles.balance}>{formatMoney(wallet.balance)}</strong>
-            </div>
-            <div className={styles.actions}>
-              <button type="button" className={styles.primary} onClick={() => setAmountTarget({ user: wallet, mode: "topUp" })}>
-                Recargar
-              </button>
-              <button type="button" className={styles.secondary} onClick={() => setAmountTarget({ user: wallet, mode: "adjust" })}>
-                Restar saldo
-              </button>
-              <button type="button" className={styles.secondary} onClick={() => setMovementsUser(wallet)}>
-                Movimientos
-              </button>
-            </div>
-          </li>
-        ))}
-      </ul>
+      <>
+        <TextField
+          label="Buscar por jugador o familiar"
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+          size="small"
+          fullWidth
+          className={styles.search}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon fontSize="small" />
+              </InputAdornment>
+            ),
+          }}
+        />
+        {wallets.length === 0 && <EmptyState title="No hay participantes en el equipo" />}
+        {wallets.length > 0 && visibleWallets.length === 0 && <EmptyState title="No se encontraron resultados" />}
+        {visibleWallets.length > 0 && (
+          <ul className={styles.list}>
+            {visibleWallets.map((wallet) => {
+              const playersLabelId = `wallet-players-${wallet.userId}`;
+              return (
+                <li key={wallet.userId} className={styles.card} data-testid="wallet-card">
+                  <div className={styles.head}>
+                    <span className={styles.avatar} aria-hidden="true">{initialsOf(wallet.userName)}</span>
+                    <div className={styles.who}>
+                      <strong className={styles.name}>{wallet.userName}</strong>
+                      <span className={styles.role}>{roleLabel(wallet.role)}</span>
+                    </div>
+                    <strong className={styles.balance}>{formatMoney(wallet.balance)}</strong>
+                  </div>
+                  {wallet.associatedPlayers.length > 0 && (
+                    <div className={styles.players}>
+                      <span id={playersLabelId} className={styles.playersLabel}>Jugadores asociados</span>
+                      <ul className={styles.playerList} aria-labelledby={playersLabelId}>
+                        {wallet.associatedPlayers.map((player) => (
+                          <li key={player.id} className={styles.player}>{player.name}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  <div className={styles.actions}>
+                    <button type="button" className={styles.primary} onClick={() => setAmountTarget({ user: wallet, mode: "topUp" })}>
+                      Recargar
+                    </button>
+                    <button type="button" className={styles.secondary} onClick={() => setAmountTarget({ user: wallet, mode: "adjust" })}>
+                      Restar saldo
+                    </button>
+                    <button type="button" className={styles.secondary} onClick={() => setMovementsUser(wallet)}>
+                      Movimientos
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </>
     );
   };
 

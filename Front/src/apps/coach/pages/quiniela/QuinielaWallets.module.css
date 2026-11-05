@@ -71,6 +71,43 @@
   font-size: 1.375rem;
 }
 
+.search {
+  min-width: 0;
+  margin-bottom: 12px;
+}
+
+.players {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.playersLabel {
+  color: var(--rffm-muted, #a59f9f);
+  font-size: 0.8125rem;
+}
+
+.playerList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+}
+
+.player {
+  max-width: 100%;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: var(--rffm-text, #f0f0f0);
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+
 .actions {
   display: flex;
   flex-wrap: wrap;
