@@ -9,7 +9,7 @@ import {
   MenuItem,
   Select,
 } from "@mui/material";
-import { useEffect, useState, type DragEvent, type MouseEvent } from "react";
+import { useEffect, useState, type MouseEvent, type PointerEvent } from "react";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CloseIcon from "@mui/icons-material/Close";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -17,6 +17,7 @@ import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import PlaylistAddCheckIcon from "@mui/icons-material/PlaylistAddCheck";
 import EmptyState from "../../../../../shared/components/ui/EmptyState/EmptyState";
+import { usePointerDrag } from "../../../../../shared/hooks/usePointerDrag";
 import type { ExcuseType } from "../../../services/excuseTypeService";
 import type { PlayerResponse } from "../../../services/teamplayerService";
 import type { PlayerRating } from "../../../types/playerRating";
@@ -173,6 +174,26 @@ export default function ConvocationTab({
   recoveringIds,
 }: Props) {
   const [showProposal, setShowProposal] = useState(false);
+
+  const zoneAtPoint = (clientX: number, clientY: number): DropZone | null => {
+    const el = document.elementFromPoint?.(clientX, clientY);
+    return (el?.closest("[data-drop-zone]")?.getAttribute("data-drop-zone") as DropZone | null) ?? null;
+  };
+
+  const { bindDrag } = usePointerDrag<string>({
+    touchHoldMs: 250,
+    onStart: (playerId) => onDragStart(playerId),
+    onMove: (_playerId, clientX, clientY) => {
+      const zone = zoneAtPoint(clientX, clientY);
+      if (zone) onDragOver(zone);
+      else onDragLeave();
+    },
+    onDrop: (_playerId, clientX, clientY) => {
+      const zone = zoneAtPoint(clientX, clientY);
+      if (zone) onDrop(zone);
+    },
+    onEnd: () => onDragEnd(),
+  });
   const [applyingProposal, setApplyingProposal] = useState(false);
   const [collapsedZones, setCollapsedZones] = useState<Partial<Record<DropZone, boolean>>>({});
   const zones = isLeagueMatch ? [...LEAGUE_ONLY_ZONES, ...COMMON_ZONES] : COMMON_ZONES;
@@ -365,7 +386,7 @@ export default function ConvocationTab({
 
   const stopDrag = {
     onMouseDown: (e: MouseEvent) => e.stopPropagation(),
-    onDragStart: (e: DragEvent) => e.stopPropagation(),
+    onPointerDown: (e: PointerEvent) => e.stopPropagation(),
   };
 
   function renderPlayerActions(playerId: string, zone: DropZone, displayName: string) {
@@ -436,10 +457,9 @@ export default function ConvocationTab({
     return (
       <div
         key={playerId}
-        draggable
+        data-player-id={playerId}
+        {...bindDrag(playerId)}
         className={`${styles.draggableCard} ${mgmtDragPlayer === playerId ? styles.draggableCardDragging : ""}`}
-        onDragStart={() => onDragStart(playerId)}
-        onDragEnd={onDragEnd}
       >
         <ConvocationPlayerRow
           displayName={displayName}
@@ -633,15 +653,7 @@ export default function ConvocationTab({
               aria-expanded={false}
               className={`${styles.emptyZone} ${styles[headerClass]} ${mgmtDragOver === zone ? styles.dropColumnOver : ""}`}
               onClick={() => toggleEmptyZone(zone)}
-              onDragOver={(e) => {
-                e.preventDefault();
-                onDragOver(zone);
-              }}
-              onDragLeave={onDragLeave}
-              onDrop={(e) => {
-                e.preventDefault();
-                onDrop(zone);
-              }}
+              data-drop-zone={zone}
             >
               <ExpandMoreIcon fontSize="small" className={styles.dropColumnChevron} />
               {label}{" "}
@@ -660,15 +672,7 @@ export default function ConvocationTab({
               key={zone}
               aria-label={label}
               className={`${styles.dropColumn} ${mgmtDragOver === zone ? styles.dropColumnOver : ""}`}
-              onDragOver={(e) => {
-                e.preventDefault();
-                onDragOver(zone);
-              }}
-              onDragLeave={onDragLeave}
-              onDrop={(e) => {
-                e.preventDefault();
-                onDrop(zone);
-              }}
+              data-drop-zone={zone}
             >
               <button
                 type="button"

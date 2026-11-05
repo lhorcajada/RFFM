@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type React from "react";
 import teamplayerService, { type PlayerResponse } from "../../../../services/teamplayerService";
+import { usePointerDrag } from "../../../../../../shared/hooks/usePointerDrag";
 import { comparePlayersByPosition } from "../helpers/playerOrder";
 import { FIELD_WIDTH_METERS, HALF_FIELD_LENGTH_METERS, SPACE_COLORS, anonymousChapaOptions, DEFAULT_LINE_WIDTH, DEFAULT_TEXT_STYLE } from "../constants";
 import { getMaterialSizePercent, isMaterialKind, getChapaSizePercent } from "../helpers/materialHelpers";
@@ -35,6 +36,16 @@ import type {
 import { isChapaNameHidden, type TacticalBoardSnapshot } from "../types";
 
 const MIN_SPACE_SCALE = 0.2;
+
+export type FieldDrop = { clientX: number; clientY: number; data: Record<string, string> };
+
+type BoardDragKind = "chapa" | "space" | "material" | "text";
+
+type BoardDrag = {
+  data: Record<string, string>;
+  dragging?: { kind: BoardDragKind; id: string };
+  removable?: { kind: BoardDragKind; id: string };
+};
 
 export type SizeDialogState = {
   title: string;
@@ -930,20 +941,6 @@ export function useTacticalBoard(
     }));
   };
 
-  const handleChapaDragStart = (e: React.DragEvent<HTMLElement>, playerId: string) => {
-    e.dataTransfer.setData("text/chapa-player-id", playerId);
-    e.dataTransfer.effectAllowed = "move";
-    setDraggingChapaId(playerId);
-  };
-
-  const handleRosterChapaDragStart = (e: React.DragEvent<HTMLElement>, playerId: string) => {
-    e.dataTransfer.setData("text/chapa-roster-player-id", playerId);
-    e.dataTransfer.effectAllowed = "copyMove";
-    setDraggingChapaId(playerId);
-  };
-
-  const handleRosterChapaDragEnd = () => setDraggingChapaId(null);
-
   const placeRosterChapaAtClientPoint = (playerId: string, clientX: number, clientY: number) => {
     if (!(playerId in placedChapas)) {
       placeChapaAtClientPoint(playerId, clientX, clientY);
@@ -955,24 +952,6 @@ export function useTacticalBoard(
     const chapaId = `${playerId}-${suffix}`;
     placeChapaAtClientPoint(chapaId, clientX, clientY);
     setPlacedChapas((prev) => ({ ...prev, [chapaId]: { ...prev[chapaId], playerId } }));
-  };
-
-  const handleAnonymousChapaDragStart = (e: React.DragEvent<HTMLElement>, option: PetoOption) => {
-    e.dataTransfer.setData("text/chapa-anonymous-key", option.key);
-    e.dataTransfer.setData("text/chapa-anonymous-color", option.color);
-    e.dataTransfer.effectAllowed = "move";
-    setDraggingChapaId(`anon-${option.key}`);
-  };
-
-  const handleChapaDragEnd = (e: React.DragEvent<HTMLElement>, playerId: string) => {
-    setDraggingChapaId(null);
-    if (halfPitchRef.current && playerId in placedChapas) {
-      const rect = halfPitchRef.current.getBoundingClientRect();
-      const outside = isOutsideFullPitch(rect, e.clientX, e.clientY);
-      if (outside) {
-        removePlacedChapa(playerId);
-      }
-    }
   };
 
   const removePlacedChapa = (playerId: string) => {
@@ -1083,19 +1062,13 @@ export function useTacticalBoard(
 
   // ─── Space drag handlers ──────────────────────────────────────────────────
 
-  const handleSpaceTemplateDragStart = (e: React.DragEvent<HTMLElement>, kind: SpaceKind) => {
-    e.dataTransfer.setData("text/space-template-kind", kind);
-    e.dataTransfer.effectAllowed = "move";
-  };
-
-  const handlePlacedSpaceDragStart = (e: React.DragEvent<HTMLElement>, spaceId: string) => {
+  const grabPlacedSpace = (
+    e: { clientX: number; clientY: number; currentTarget: Element },
+    spaceId: string,
+  ) => {
     const space = placedSpaces.find((item) => item.id === spaceId);
-    if (!space || space.locked) {
-      e.preventDefault();
-      return;
-    }
     const pitch = halfPitchRef.current;
-    if (!pitch) return;
+    if (!space || space.locked || !pitch) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const pitchRect = pitch.getBoundingClientRect();
     const elementCenterX = rect.left + rect.width / 2;
@@ -1107,41 +1080,9 @@ export function useTacticalBoard(
       x: ((e.clientX - elementCenterX) / pitchRect.width) * 100,
       y: ((e.clientY - elementCenterY) / pitchRect.height) * 100,
     };
-    e.dataTransfer.setData("text/space-instance-id", spaceId);
-    e.dataTransfer.effectAllowed = "move";
-    setDraggingSpaceId(spaceId);
-  };
-
-  const handleSpaceDragEnd = () => {
-    spaceDragOffsetRef.current = null;
-    setDraggingSpaceId(null);
-  };
-
-  const handlePlacedSpaceDragEnd = (e: React.DragEvent<HTMLElement>, spaceId: string) => {
-    spaceDragOffsetRef.current = null;
-    setDraggingSpaceId(null);
-    if (halfPitchRef.current) {
-      const rect = halfPitchRef.current.getBoundingClientRect();
-      const outside = isOutsideFullPitch(rect, e.clientX, e.clientY);
-      if (outside) removePlacedSpace(spaceId);
-    }
   };
 
   // ─── Material drag handlers ───────────────────────────────────────────────
-
-  const handleMaterialTemplateDragStart = (
-    e: React.DragEvent<HTMLElement>,
-    kind: MaterialKind,
-  ) => {
-    e.dataTransfer.setData("text/material-template-kind", kind);
-    e.dataTransfer.effectAllowed = "move";
-  };
-
-  const handlePlacedMaterialDragStart = (e: React.DragEvent<HTMLElement>, materialId: string) => {
-    e.dataTransfer.setData("text/material-instance-id", materialId);
-    e.dataTransfer.effectAllowed = "move";
-    setDraggingMaterialId(materialId);
-  };
 
   const [materialResizeSession, setMaterialResizeSession] = useState<
     | {
@@ -1373,83 +1314,67 @@ export function useTacticalBoard(
     };
   }, [chapaResizeSession]);
 
-  const handleMaterialDragEnd = () => setDraggingMaterialId(null);
-
-  const handlePlacedMaterialDragEnd = (e: React.DragEvent<HTMLElement>, materialId: string) => {
-    setDraggingMaterialId(null);
-    if (halfPitchRef.current) {
-      const rect = halfPitchRef.current.getBoundingClientRect();
-      const outside = isOutsideFullPitch(rect, e.clientX, e.clientY);
-      if (outside) removePlacedMaterial(materialId);
-    }
-  };
-
   // ─── Field drop handler ───────────────────────────────────────────────────
 
-  const handleFieldDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-  };
+  const handleFieldDrop = (drop: FieldDrop) => {
+    const { clientX, clientY, data } = drop;
 
-  const handleFieldDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-
-    const materialTemplateKind = e.dataTransfer.getData("text/material-template-kind");
+    const materialTemplateKind = (data["text/material-template-kind"] ?? "");
     if (materialTemplateKind && isMaterialKind(materialTemplateKind)) {
-      createMaterialAtPoint(materialTemplateKind, e.clientX, e.clientY);
+      createMaterialAtPoint(materialTemplateKind, clientX, clientY);
       setDraggingMaterialId(null);
       return;
     }
 
-    const materialId = e.dataTransfer.getData("text/material-instance-id");
+    const materialId = (data["text/material-instance-id"] ?? "");
     if (materialId) {
-      movePlacedMaterial(materialId, e.clientX, e.clientY);
+      movePlacedMaterial(materialId, clientX, clientY);
       setDraggingMaterialId(null);
       return;
     }
 
-    const templateKind = e.dataTransfer.getData("text/space-template-kind");
+    const templateKind = (data["text/space-template-kind"] ?? "");
     if (templateKind && isSpaceKind(templateKind)) {
-      createSpaceAtPoint(templateKind, e.clientX, e.clientY);
+      createSpaceAtPoint(templateKind, clientX, clientY);
       setDraggingSpaceId(null);
       return;
     }
 
-    const spaceId = e.dataTransfer.getData("text/space-instance-id");
+    const spaceId = (data["text/space-instance-id"] ?? "");
     if (spaceId) {
-      movePlacedSpace(spaceId, e.clientX, e.clientY);
+      movePlacedSpace(spaceId, clientX, clientY);
       spaceDragOffsetRef.current = null;
       setDraggingSpaceId(null);
       return;
     }
 
-    const textId = e.dataTransfer.getData("text/text-instance-id");
+    const textId = (data["text/text-instance-id"] ?? "");
     if (textId) {
-      movePlacedText(textId, e.clientX, e.clientY);
+      movePlacedText(textId, clientX, clientY);
       setDraggingTextId(null);
       return;
     }
 
-    const rosterPlayerId = e.dataTransfer.getData("text/chapa-roster-player-id");
+    const rosterPlayerId = (data["text/chapa-roster-player-id"] ?? "");
     if (rosterPlayerId) {
-      placeRosterChapaAtClientPoint(rosterPlayerId, e.clientX, e.clientY);
+      placeRosterChapaAtClientPoint(rosterPlayerId, clientX, clientY);
       setDraggingChapaId(null);
       return;
     }
 
-    const playerId = e.dataTransfer.getData("text/chapa-player-id");
+    const playerId = (data["text/chapa-player-id"] ?? "");
     if (playerId) {
       const isAnonymous = placedChapas[playerId]?.anonymous === true;
-      placeChapaAtClientPoint(playerId, e.clientX, e.clientY, isAnonymous);
+      placeChapaAtClientPoint(playerId, clientX, clientY, isAnonymous);
       setDraggingChapaId(null);
       return;
     }
 
-    const anonymousColor = e.dataTransfer.getData("text/chapa-anonymous-color");
+    const anonymousColor = (data["text/chapa-anonymous-color"] ?? "");
     if (!anonymousColor) return;
-    const anonymousKey = e.dataTransfer.getData("text/chapa-anonymous-key") || anonymousColor;
+    const anonymousKey = (data["text/chapa-anonymous-key"] ?? "") || anonymousColor;
     const anonymousId = makeAnonymousChapaId(anonymousKey);
-    placeChapaAtClientPoint(anonymousId, e.clientX, e.clientY, true);
+    placeChapaAtClientPoint(anonymousId, clientX, clientY, true);
     setChapaPetoById((prev) => ({ ...prev, [anonymousId]: anonymousColor }));
     setDraggingChapaId(null);
   };
@@ -1702,26 +1627,6 @@ export function useTacticalBoard(
     };
   }, [textResizeSession]);
 
-  const handlePlacedTextDragStart = (e: React.DragEvent<HTMLElement>, textId: string) => {
-    const text = placedTexts.find((t) => t.id === textId);
-    if (!text || text.locked) {
-      e.preventDefault();
-      return;
-    }
-    e.dataTransfer.setData("text/text-instance-id", textId);
-    e.dataTransfer.effectAllowed = "move";
-    setDraggingTextId(textId);
-  };
-
-  const handlePlacedTextDragEnd = (e: React.DragEvent<HTMLElement>, textId: string) => {
-    setDraggingTextId(null);
-    if (halfPitchRef.current && !placedTexts.find((t) => t.id === textId)?.locked) {
-      const rect = halfPitchRef.current.getBoundingClientRect();
-      const outside = isOutsideFullPitch(rect, e.clientX, e.clientY);
-      if (outside) removePlacedText(textId);
-    }
-  };
-
   const handleTextFieldClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!showTexts || editingTextId) return;
     createTextAtPoint(e.clientX, e.clientY);
@@ -1741,6 +1646,110 @@ export function useTacticalBoard(
     () => [...players].sort(comparePlayersByPosition),
     [players],
   );
+
+
+  // ─── Pointer drag (replaces native HTML5 drag&drop) ───────────────────────
+
+  const clearDragging = () => {
+    spaceDragOffsetRef.current = null;
+    setDraggingChapaId(null);
+    setDraggingSpaceId(null);
+    setDraggingMaterialId(null);
+    setDraggingTextId(null);
+  };
+
+  const removeDraggedInstance = (kind: BoardDragKind, id: string) => {
+    if (kind === "chapa" && id in placedChapas) removePlacedChapa(id);
+    if (kind === "space") removePlacedSpace(id);
+    if (kind === "material") removePlacedMaterial(id);
+    if (kind === "text") removePlacedText(id);
+  };
+
+  const { bindDrag } = usePointerDrag<BoardDrag>({
+    onStart: ({ dragging }) => {
+      if (!dragging) return;
+      if (dragging.kind === "chapa") setDraggingChapaId(dragging.id);
+      if (dragging.kind === "space") setDraggingSpaceId(dragging.id);
+      if (dragging.kind === "material") setDraggingMaterialId(dragging.id);
+      if (dragging.kind === "text") setDraggingTextId(dragging.id);
+    },
+    onDrop: ({ data, removable }, clientX, clientY) => {
+      const pitch = halfPitchRef.current;
+      if (!pitch) return;
+      if (isOutsideFullPitch(pitch.getBoundingClientRect(), clientX, clientY)) {
+        if (removable) removeDraggedInstance(removable.kind, removable.id);
+        return;
+      }
+      handleFieldDrop({ clientX, clientY, data });
+    },
+    onEnd: clearDragging,
+  });
+
+  const bindChapaDrag = (playerId: string, locked: boolean) =>
+    bindDrag(
+      {
+        data: { "text/chapa-player-id": playerId },
+        dragging: { kind: "chapa", id: playerId },
+        removable: { kind: "chapa", id: playerId },
+      },
+      { disabled: locked },
+    );
+
+  const bindRosterChapaDrag = (playerId: string | undefined) =>
+    bindDrag(
+      {
+        data: { "text/chapa-roster-player-id": playerId ?? "" },
+        dragging: { kind: "chapa", id: playerId ?? "" },
+      },
+      { disabled: !playerId },
+    );
+
+  const bindAnonymousChapaDrag = (option: PetoOption) =>
+    bindDrag({
+      data: { "text/chapa-anonymous-key": option.key, "text/chapa-anonymous-color": option.color },
+      dragging: { kind: "chapa", id: `anon-${option.key}` },
+    });
+
+  const bindSpaceTemplateDrag = (kind: SpaceKind) =>
+    bindDrag({ data: { "text/space-template-kind": kind } });
+
+  const bindPlacedSpaceDrag = (spaceId: string, locked: boolean) => {
+    const binding = bindDrag(
+      {
+        data: { "text/space-instance-id": spaceId },
+        dragging: { kind: "space", id: spaceId },
+        removable: { kind: "space", id: spaceId },
+      },
+      { disabled: locked },
+    );
+    return {
+      ...binding,
+      onPointerDown: (e: React.PointerEvent<HTMLElement>) => {
+        grabPlacedSpace(e, spaceId);
+        binding.onPointerDown(e);
+      },
+    };
+  };
+
+  const bindMaterialTemplateDrag = (kind: MaterialKind) =>
+    bindDrag({ data: { "text/material-template-kind": kind } });
+
+  const bindPlacedMaterialDrag = (materialId: string) =>
+    bindDrag({
+      data: { "text/material-instance-id": materialId },
+      dragging: { kind: "material", id: materialId },
+      removable: { kind: "material", id: materialId },
+    });
+
+  const bindPlacedTextDrag = (textId: string, locked: boolean) =>
+    bindDrag(
+      {
+        data: { "text/text-instance-id": textId },
+        dragging: { kind: "text", id: textId },
+        removable: { kind: "text", id: textId },
+      },
+      { disabled: locked },
+    );
 
   return {
     // Visibility
@@ -1767,11 +1776,6 @@ export function useTacticalBoard(
     playersById,
     availablePlayersForStrip,
     anonymousChapaOptions,
-    handleChapaDragStart,
-    handleRosterChapaDragStart,
-    handleRosterChapaDragEnd,
-    handleAnonymousChapaDragStart,
-    handleChapaDragEnd,
     handleToggleChapaMenu,
     handleSetChapaPeto,
     handleClearChapaPeto,
@@ -1790,10 +1794,6 @@ export function useTacticalBoard(
     placedSpaces,
     draggingSpaceId,
     resizingSpaceId: resizeSession?.spaceId ?? null,
-    handleSpaceTemplateDragStart,
-    handleSpaceDragEnd,
-    handlePlacedSpaceDragStart,
-    handlePlacedSpaceDragEnd,
     handleResizeStart,
     toggleLockPlacedSpace,
     handleManualResize,
@@ -1805,10 +1805,6 @@ export function useTacticalBoard(
     // Materials
     placedMaterials,
     draggingMaterialId,
-    handleMaterialTemplateDragStart,
-    handleMaterialDragEnd,
-    handlePlacedMaterialDragStart,
-    handlePlacedMaterialDragEnd,
     rotatePlacedMaterial,
     duplicatePlacedMaterial,
     toggleLockPlacedMaterial,
@@ -1853,12 +1849,19 @@ export function useTacticalBoard(
     toggleLockPlacedText,
     rotatePlacedText,
     handleTextResizeStart,
-    handlePlacedTextDragStart,
-    handlePlacedTextDragEnd,
     handleTextFieldClick,
     // Field events
-    handleFieldDragOver,
     handleFieldDrop,
+    // Pointer drag bindings
+    grabPlacedSpace,
+    bindChapaDrag,
+    bindRosterChapaDrag,
+    bindAnonymousChapaDrag,
+    bindSpaceTemplateDrag,
+    bindPlacedSpaceDrag,
+    bindMaterialTemplateDrag,
+    bindPlacedMaterialDrag,
+    bindPlacedTextDrag,
   };
 }
 

@@ -20,7 +20,7 @@ const spaceIconClassMap: Record<SpaceKind, keyof typeof styles> = {
 };
 
 export default function SpacesStrip({ board }: SpacesStripProps) {
-  const { handleSpaceTemplateDragStart, handleSpaceDragEnd } = board;
+  const { bindSpaceTemplateDrag } = board;
 
   return (
     <Box className={styles.spacesStrip}>
@@ -28,9 +28,7 @@ export default function SpacesStrip({ board }: SpacesStripProps) {
         <Box
           key={template.kind}
           className={styles.spaceTemplateCard}
-          draggable
-          onDragStart={(e) => handleSpaceTemplateDragStart(e, template.kind)}
-          onDragEnd={handleSpaceDragEnd}
+          {...bindSpaceTemplateDrag(template.kind)}
           title="Arrastra al campo"
         >
           <Box

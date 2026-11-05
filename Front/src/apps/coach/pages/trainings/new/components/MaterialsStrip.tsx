@@ -8,7 +8,7 @@ interface MaterialsStripProps {
 }
 
 export default function MaterialsStrip({ board }: MaterialsStripProps) {
-  const { handleMaterialTemplateDragStart, handleMaterialDragEnd } = board;
+  const { bindMaterialTemplateDrag } = board;
 
   return (
     <Box className={styles.materialsStrip}>
@@ -18,9 +18,7 @@ export default function MaterialsStrip({ board }: MaterialsStripProps) {
           className={styles.materialCard}
           title={material.label}
           aria-label={material.label}
-          draggable
-          onDragStart={(e) => handleMaterialTemplateDragStart(e, material.key)}
-          onDragEnd={handleMaterialDragEnd}
+          {...bindMaterialTemplateDrag(material.key)}
         >
           {material.key === "setas" ? (
             <Box className={styles.materialSetaIcon}>

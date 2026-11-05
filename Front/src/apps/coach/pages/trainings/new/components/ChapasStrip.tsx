@@ -13,9 +13,8 @@ export default function ChapasStrip({ board }: ChapasStripProps) {
     chapasError,
     availablePlayersForStrip,
     anonymousChapaOptions,
-    handleRosterChapaDragStart,
-    handleRosterChapaDragEnd,
-    handleAnonymousChapaDragStart,
+    bindRosterChapaDrag,
+    bindAnonymousChapaDrag,
     hideChapaNames,
     toggleHideChapaNames,
   } = board;
@@ -52,12 +51,7 @@ export default function ChapasStrip({ board }: ChapasStripProps) {
                     <Box
                       key={player.id ?? `${alias}-${idx}`}
                       className={styles.chapa}
-                      draggable={!!player.id}
-                      onDragStart={(e) => {
-                        if (!player.id) return;
-                        handleRosterChapaDragStart(e, player.id);
-                      }}
-                      onDragEnd={handleRosterChapaDragEnd}
+                      {...bindRosterChapaDrag(player.id)}
                       title="Arrastra al campo"
                     >
                       <span className={styles.chapaDorsal}>{dorsal}</span>
@@ -78,8 +72,7 @@ export default function ChapasStrip({ board }: ChapasStripProps) {
             <Box
               key={option.key}
               className={styles.chapa}
-              draggable
-              onDragStart={(e) => handleAnonymousChapaDragStart(e, option)}
+              {...bindAnonymousChapaDrag(option)}
               title={`Chapa anónima ${option.label}`}
               style={{ background: `radial-gradient(circle at 34% 28%, rgba(255, 255, 255, 0.42), transparent 34%), linear-gradient(160deg, ${option.color} 0%, ${option.color} 100%)` }}
             />

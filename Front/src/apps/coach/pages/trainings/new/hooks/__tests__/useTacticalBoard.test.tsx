@@ -29,12 +29,7 @@ function makePitchElement() {
 }
 
 function makeDropEvent(data: Record<string, string>, clientX: number, clientY: number) {
-  return {
-    preventDefault: () => {},
-    clientX,
-    clientY,
-    dataTransfer: { getData: (key: string) => data[key] ?? "" },
-  } as unknown as React.DragEvent<HTMLDivElement>;
+  return { clientX, clientY, data };
 }
 
 function makeMouseEvent(clientX: number, clientY: number) {
@@ -188,43 +183,6 @@ describe("useTacticalBoard - varias chapas del mismo jugador", () => {
     });
     expect(chapasOfPlayer(result.current.placedChapas, "p1")).toHaveLength(2);
   });
-
-  it("al soltar fuera del campo una chapa arrastrada desde la tira no borra las ya colocadas", () => {
-    const result = setup();
-    act(() => {
-      result.current.handleFieldDrop(makeDropEvent({ "text/chapa-roster-player-id": "p1" }, 20, 30));
-    });
-    act(() => {
-      result.current.handleRosterChapaDragEnd();
-    });
-    expect(chapasOfPlayer(result.current.placedChapas, "p1")).toHaveLength(1);
-  });
-
-  it("el campo acepta el soltado de una chapa arrastrada desde la tira", () => {
-    const result = setup();
-    const dataTransfer = { setData: () => {}, effectAllowed: "", dropEffect: "" };
-    act(() => {
-      result.current.handleRosterChapaDragStart(
-        { dataTransfer } as unknown as React.DragEvent<HTMLElement>,
-        "p1",
-      );
-    });
-    result.current.handleFieldDragOver({
-      preventDefault: () => {},
-      dataTransfer,
-    } as unknown as React.DragEvent<HTMLDivElement>);
-
-    const allowedByEffect: Record<string, string[]> = {
-      copy: ["copy"],
-      move: ["move"],
-      link: ["link"],
-      copyMove: ["copy", "move"],
-      copyLink: ["copy", "link"],
-      linkMove: ["link", "move"],
-      all: ["copy", "move", "link"],
-    };
-    expect(allowedByEffect[dataTransfer.effectAllowed] ?? []).toContain(dataTransfer.dropEffect);
-  });
 });
 
 describe("useTacticalBoard - mostrar u ocultar el nombre de la chapa", () => {
@@ -317,20 +275,18 @@ describe("useTacticalBoard - mostrar u ocultar el nombre de la chapa", () => {
   });
 });
 
-function makeSpaceDragStartEvent(
+function makeSpaceGrabEvent(
   clientX: number,
   clientY: number,
   elementRect: Pick<DOMRect, "left" | "top" | "width" | "height">,
 ) {
   return {
-    preventDefault: () => {},
     clientX,
     clientY,
     currentTarget: {
       getBoundingClientRect: () => ({ ...elementRect, right: 0, bottom: 0, x: 0, y: 0, toJSON: () => ({}) }),
-    },
-    dataTransfer: { setData: () => {}, effectAllowed: "" },
-  } as unknown as React.DragEvent<HTMLElement>;
+    } as unknown as Element,
+  };
 }
 
 describe("useTacticalBoard - space drag repositioning", () => {
@@ -353,8 +309,8 @@ describe("useTacticalBoard - space drag repositioning", () => {
     // (50, 50), so its top-left is at (45, 45); grabbing at (53, 53) is 3px
     // right/down of its center).
     act(() => {
-      result.current.handlePlacedSpaceDragStart(
-        makeSpaceDragStartEvent(53, 53, { left: 45, top: 45, width: 10, height: 10 }),
+      result.current.grabPlacedSpace(
+        makeSpaceGrabEvent(53, 53, { left: 45, top: 45, width: 10, height: 10 }),
         spaceId,
       );
     });
@@ -444,23 +400,6 @@ describe("useTacticalBoard - both halves of the F11 pitch", () => {
       result.current.handleDrawMouseUp();
     });
     expect(result.current.placedLines[0]).toMatchObject({ x1: -60, y1: 20, x2: 20, y2: 20 });
-  });
-
-  it("no elimina una chapa al soltarla sobre la mitad izquierda, pero sí fuera del campo", () => {
-    const result = setup();
-    act(() => {
-      result.current.handleFieldDrop(makeDropEvent({ "text/chapa-player-id": "p1" }, -40, 30));
-    });
-
-    act(() => {
-      result.current.handleChapaDragEnd(makeDropEvent({}, -40, 30) as unknown as React.DragEvent<HTMLElement>, "p1");
-    });
-    expect(result.current.placedChapas["p1"]).toBeDefined();
-
-    act(() => {
-      result.current.handleChapaDragEnd(makeDropEvent({}, -150, 30) as unknown as React.DragEvent<HTMLElement>, "p1");
-    });
-    expect(result.current.placedChapas["p1"]).toBeUndefined();
   });
 });
 

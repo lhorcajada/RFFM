@@ -1,6 +1,6 @@
 import type React from "react";
 import { act, render, renderHook, fireEvent } from "@testing-library/react";
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import TacticalField from "../TacticalField";
 import { useTacticalBoard } from "../../hooks/useTacticalBoard";
 import teamplayerService from "../../../../../services/teamplayerService";
@@ -288,12 +288,7 @@ describe("TacticalField - nombre de la chapa", () => {
     const halfPitchRef = { current: makePitchElement() } as React.RefObject<HTMLDivElement>;
     const hook = renderHook(() => useTacticalBoard(halfPitchRef, ""));
     act(() => {
-      hook.result.current.handleFieldDrop({
-        preventDefault: () => {},
-        clientX: 20,
-        clientY: 30,
-        dataTransfer: { getData: (key: string) => dropData[key] ?? "" },
-      } as unknown as React.DragEvent<HTMLDivElement>);
+      hook.result.current.handleFieldDrop({ clientX: 20, clientY: 30, data: dropData });
     });
     const view = render(<TacticalField halfPitchRef={halfPitchRef} board={hook.result.current} />);
     const chapaId = Object.keys(hook.result.current.placedChapas)[0];
@@ -341,32 +336,82 @@ describe("TacticalField - nombre de la chapa", () => {
   });
 });
 
-describe("TacticalField - both halves of the F11 pitch", () => {
+describe("TacticalField - arrastre con pointer events", () => {
   beforeEach(() => {
     vi.mocked(teamplayerService.getPlayersByTeam).mockReset();
     vi.mocked(teamplayerService.getPlayersByTeam).mockResolvedValue([]);
   });
 
-  it("acepta soltar elementos sobre la mitad izquierda del campo (fuera de la mitad derecha)", () => {
+  afterEach(async () => {
+    // let the hook release its one-shot click blocker before the next test
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
+
+  function renderFieldWithChapa() {
     const halfPitchRef = { current: makePitchElement() } as React.RefObject<HTMLDivElement>;
-    const { result: boardResult } = renderHook(() => useTacticalBoard(halfPitchRef, ""));
-
-    const { container } = render(
-      <TacticalField halfPitchRef={halfPitchRef} board={boardResult.current} />,
-    );
-
-    const leftHalf = container.querySelector('[data-testid="pitch-left-half"]');
-    expect(leftHalf).not.toBeNull();
-
-    // jsdom doesn't propagate clientX on drag events; the negative-x mapping
-    // itself is covered in useTacticalBoard.test.tsx.
+    const hook = renderHook(() => useTacticalBoard(halfPitchRef, ""));
     act(() => {
-      fireEvent.drop(leftHalf!, {
-        dataTransfer: { getData: (key: string) => (key === "text/material-template-kind" ? "conos" : "") },
+      hook.result.current.handleFieldDrop({
+        clientX: 20,
+        clientY: 30,
+        data: { "text/chapa-player-id": "p1" },
       });
     });
+    const view = render(<TacticalField halfPitchRef={halfPitchRef} board={hook.result.current} />);
+    vi.spyOn(halfPitchRef.current!, "getBoundingClientRect").mockReturnValue({
+      left: 0, top: 0, right: 100, bottom: 100, width: 100, height: 100, x: 0, y: 0, toJSON: () => ({}),
+    } as DOMRect);
+    const chapa = view.container.querySelector('[title="1 - J1"]') as HTMLElement;
+    return { hook, chapa };
+  }
 
-    expect(boardResult.current.placedMaterials).toHaveLength(1);
+  const pointer = (type: string, x: number, y: number) =>
+    act(() => {
+      window.dispatchEvent(new MouseEvent(type, { clientX: x, clientY: y, bubbles: true }));
+    });
+
+  it("recoloca la chapa en el punto donde se suelta dentro del campo", () => {
+    const { hook, chapa } = renderFieldWithChapa();
+    fireEvent.pointerDown(chapa, { button: 0, clientX: 20, clientY: 30 });
+    pointer("pointermove", 50, 60);
+    pointer("pointerup", 60, 70);
+    expect(hook.result.current.placedChapas["p1"]).toMatchObject({ x: 60, y: 70 });
+    expect(hook.result.current.draggingChapaId).toBeNull();
+  });
+
+  it("no elimina la chapa al soltarla sobre la mitad izquierda del campo", () => {
+    const { hook, chapa } = renderFieldWithChapa();
+    fireEvent.pointerDown(chapa, { button: 0, clientX: 20, clientY: 30 });
+    pointer("pointermove", -20, 30);
+    pointer("pointerup", -40, 30);
+    expect(hook.result.current.placedChapas["p1"]).toMatchObject({ x: -40, y: 30 });
+  });
+
+  it("elimina la chapa al soltarla fuera del campo", () => {
+    const { hook, chapa } = renderFieldWithChapa();
+    fireEvent.pointerDown(chapa, { button: 0, clientX: 20, clientY: 30 });
+    pointer("pointermove", 300, 300);
+    pointer("pointerup", 500, 500);
+    expect(hook.result.current.placedChapas["p1"]).toBeUndefined();
+  });
+
+  it("Escape cancela el arrastre y deja la chapa donde estaba", () => {
+    const { hook, chapa } = renderFieldWithChapa();
+    fireEvent.pointerDown(chapa, { button: 0, clientX: 20, clientY: 30 });
+    pointer("pointermove", 500, 500);
+    fireEvent.keyDown(window, { key: "Escape" });
+    pointer("pointerup", 500, 500);
+    expect(hook.result.current.placedChapas["p1"]).toMatchObject({ x: 20, y: 30 });
+    expect(hook.result.current.draggingChapaId).toBeNull();
+  });
+
+  it("pointercancel no deja el arrastre colgado", () => {
+    const { hook, chapa } = renderFieldWithChapa();
+    fireEvent.pointerDown(chapa, { button: 0, clientX: 20, clientY: 30 });
+    pointer("pointermove", 500, 500);
+    pointer("pointercancel", 0, 0);
+    expect(hook.result.current.placedChapas["p1"]).toMatchObject({ x: 20, y: 30 });
+    expect(document.querySelector("[data-pointer-drag-ghost]")).toBeNull();
   });
 });
 
