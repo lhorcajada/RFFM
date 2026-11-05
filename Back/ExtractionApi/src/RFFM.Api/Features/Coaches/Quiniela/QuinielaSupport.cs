@@ -33,7 +33,10 @@ namespace RFFM.Api.Features.Coaches.Quiniela
     public record QuinielaWalletDto(
         string UserId, string UserName, string Role, decimal Balance, int TotalMovements, IReadOnlyList<QuinielaWalletMovementDto> Movements);
 
-    public record QuinielaWalletSummaryDto(string UserId, string UserName, string Role, decimal Balance);
+    public record QuinielaAssociatedPlayerDto(Guid Id, string Name);
+
+    public record QuinielaWalletSummaryDto(
+        string UserId, string UserName, string Role, decimal Balance, IReadOnlyList<QuinielaAssociatedPlayerDto> AssociatedPlayers);
 
     public record QuinielaWalletOperationDto(string UserId, decimal Balance, QuinielaWalletMovementDto Movement);
 

@@ -357,5 +357,29 @@ namespace RFFM.Api.Tests.IntegrationTests
             Assert.Equal(HttpStatusCode.Conflict, adjust.StatusCode);
             Assert.Equal(ErrorCodes.QuinielaWalletInsufficientBalance, await ProblemCodeAsync(adjust));
         }
+
+        [Fact]
+        public async Task Wallets_ReturnAssociatedPlayersAsAnArrayOnEveryRow()
+        {
+            var (seed, baseUrl) = await SeedAsync("w3");
+            await using (var setup = fixture.CreateDbContext())
+            {
+                var ana = await SeedTeamPlayerAsync(setup, seed, "Ana", "Lopez");
+                await LinkFamilyAsync(setup, seed.FamilyId, ana);
+            }
+            var (host, client) = await StartHostAsync();
+            using var _ = host;
+
+            var response = await client.SendAsync(Request(HttpMethod.Get, $"{baseUrl}/wallets", seed.CoachId));
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var rows = await response.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
+            Assert.Equal(System.Text.Json.JsonValueKind.Array, rows.ValueKind);
+            foreach (var row in rows.EnumerateArray())
+                Assert.Equal(System.Text.Json.JsonValueKind.Array, row.GetProperty("associatedPlayers").ValueKind);
+            var family = rows.EnumerateArray().Single(r => r.GetProperty("userId").GetString() == seed.FamilyId);
+            var names = family.GetProperty("associatedPlayers").EnumerateArray().Select(p => p.GetProperty("name").GetString()).ToArray();
+            Assert.Equal(new[] { "Ana Lopez" }, names);
+        }
     }
 }

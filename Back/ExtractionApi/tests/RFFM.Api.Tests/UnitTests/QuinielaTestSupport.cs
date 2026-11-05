@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using Moq;
 using RFFM.Api.Domain.Aggregates.UserClubs;
 using RFFM.Api.Domain.Entities.Competitions;
+using RFFM.Api.Domain.Entities.Players;
+using RFFM.Api.Domain.Entities.TeamPlayers;
 using RFFM.Api.Domain.Entities.Federation.Results;
 using RFFM.Api.Domain.Entities.Seasons;
 using RFFM.Api.Domain.Entities.Teams;
@@ -157,6 +159,51 @@ namespace RFFM.Api.Tests.UnitTests
             db.QuinielaTickets.Add(ticket);
             await db.SaveChangesAsync();
             return ticket;
+        }
+
+        /// <summary>Crea un jugador y su ficha de equipo en el equipo de <paramref name="seed"/>; devuelve el id de la ficha.</summary>
+        public static async Task<Guid> SeedTeamPlayerAsync(AppDbContext db, QuinielaSeed seed, string name, string lastName)
+        {
+            var team = await db.Teams.AsNoTracking().SingleAsync(t => t.Id == seed.TeamId);
+            var player = Player.Create(new PlayerModelBase
+            {
+                Name = name,
+                LastName = lastName,
+                Alias = $"quiniela-{Guid.NewGuid():N}",
+                ClubId = team.ClubId
+            });
+            db.Players.Add(player);
+            await db.SaveChangesAsync();
+
+            var teamPlayer = TeamPlayer.Create(new TeamPlayerModel
+            {
+                PlayerId = player.Id,
+                TeamId = seed.TeamId,
+                SeasonId = team.SeasonId,
+                JoinedDate = DateTime.UtcNow,
+                Dorsal = null,
+                FamilyMembers = new List<FamilyModel>()
+            });
+            db.TeamPlayers.Add(teamPlayer);
+            await db.SaveChangesAsync();
+            return Guid.Parse(teamPlayer.Id);
+        }
+
+        /// <summary>Vincula a un usuario familiar con una ficha de jugador (una fila de familiar por jugador).</summary>
+        public static async Task LinkFamilyAsync(AppDbContext db, string familyUserId, Guid teamPlayerId)
+        {
+            var familyMember = TeamPlayerFamilyMember.Create(teamPlayerId.ToString(), "Madre", "Lopez", null, null, null, "Mother");
+            familyMember.LinkAccount(familyUserId);
+            db.TeamPlayerFamilyMembers.Add(familyMember);
+            await db.SaveChangesAsync();
+        }
+
+        /// <summary>Vincula el usuario Jugador del equipo con su ficha de jugador (<see cref="UserTeam.LinkPlayer"/>).</summary>
+        public static async Task LinkPlayerUserAsync(AppDbContext db, QuinielaSeed seed, string playerUserId, Guid teamPlayerId)
+        {
+            var userTeam = await db.UserTeams.SingleAsync(ut => ut.ApplicationUserId == playerUserId && ut.TeamId == seed.TeamId);
+            userTeam.LinkPlayer(teamPlayerId.ToString());
+            await db.SaveChangesAsync();
         }
     }
 }
