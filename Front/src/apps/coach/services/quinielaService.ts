@@ -211,11 +211,14 @@ export type QuinielaWallet = {
   movements: QuinielaWalletMovement[];
 };
 
+export type QuinielaAssociatedPlayer = { id: string; name: string };
+
 export type QuinielaWalletSummary = {
   userId: string;
   userName: string;
   role: string;
   balance: number;
+  associatedPlayers: QuinielaAssociatedPlayer[];
 };
 
 export type QuinielaWalletOperation = {

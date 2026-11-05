@@ -40,9 +40,9 @@ vi.mock("../../../services/quinielaService", () => ({
 import QuinielaWallets from "../QuinielaWallets";
 
 const wallets: QuinielaWalletSummary[] = [
-  { userId: "u1", userName: "Carla Ruiz", role: "FamilyPlayer", balance: 3 },
-  { userId: "u2", userName: "Pablo Gil", role: "Player", balance: 0 },
-  { userId: "u3", userName: "Luis Mora", role: "Coach", balance: 1.5 },
+  { userId: "u1", userName: "Carla Ruiz", role: "FamilyPlayer", balance: 3, associatedPlayers: [] },
+  { userId: "u2", userName: "Pablo Gil", role: "Player", balance: 0, associatedPlayers: [] },
+  { userId: "u3", userName: "Luis Mora", role: "Coach", balance: 1.5, associatedPlayers: [] },
 ];
 
 function operation(userId: string, balance: number) {
