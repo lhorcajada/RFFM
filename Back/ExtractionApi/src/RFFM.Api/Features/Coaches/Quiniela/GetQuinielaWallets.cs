@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Common;
 using RFFM.Api.Domain.Aggregates.UserClubs;
+using RFFM.Api.Domain.Entities.Teams;
 using RFFM.Api.Domain.Services;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Infrastructure.Persistence;
@@ -36,7 +37,7 @@ namespace RFFM.Api.Features.Coaches.Quiniela
         public class Handler(AppDbContext db, ICurrentUserService currentUser, IdentityDbContext? identityDb = null)
             : IRequestHandler<Query, IReadOnlyList<QuinielaWalletSummaryDto>>
         {
-            private sealed record PlayerLink(string UserId, string TeamPlayerId, string? Name, string? LastName);
+            private sealed record PlayerLink(string UserId, string TeamPlayerId, string? Name, string? LastName, bool HasLeft);
 
             public async ValueTask<IReadOnlyList<QuinielaWalletSummaryDto>> Handle(Query request, CancellationToken cancellationToken)
             {
@@ -52,8 +53,9 @@ namespace RFFM.Api.Features.Coaches.Quiniela
                     .Where(w => w.TeamId == request.TeamId && userIds.Contains(w.ApplicationUserId))
                     .ToDictionaryAsync(w => w.ApplicationUserId, w => w.Balance, cancellationToken);
                 var participants = await QuinielaSupport.LoadParticipantsAsync(db, request.TeamId, userIds, cancellationToken, identityDb);
-                var familyPlayers = await LoadFamilyPlayersAsync(request.TeamId, userIds, cancellationToken);
-                var linkedPlayers = await LoadLinkedPlayersAsync(request.TeamId, userIds, cancellationToken);
+                var usersWithPending = await LoadUsersWithPendingAsync(request.TeamId, balances, cancellationToken);
+                var familyPlayers = await LoadFamilyPlayersAsync(request.TeamId, userIds, usersWithPending, cancellationToken);
+                var linkedPlayers = await LoadLinkedPlayersAsync(request.TeamId, userIds, usersWithPending, cancellationToken);
 
                 return userIds
                     .Select(id => new QuinielaWalletSummaryDto(
@@ -63,27 +65,40 @@ namespace RFFM.Api.Features.Coaches.Quiniela
                     .ToList();
             }
 
+            private async Task<HashSet<string>> LoadUsersWithPendingAsync(
+                string teamId, IReadOnlyDictionary<string, decimal> balances, CancellationToken ct)
+            {
+                var unpaidTicketUsers = await (
+                        from t in db.QuinielaTickets.AsNoTracking()
+                        join j in db.QuinielaJornadas.AsNoTracking() on t.JornadaId equals j.Id
+                        where j.TeamId == teamId && t.PaymentStatus == QuinielaPaymentStatus.Pending
+                        select t.ApplicationUserId)
+                    .Distinct()
+                    .ToListAsync(ct);
+                return balances.Where(b => b.Value != 0m).Select(b => b.Key).Concat(unpaidTicketUsers).ToHashSet();
+            }
+
             private async Task<Dictionary<string, List<QuinielaAssociatedPlayerDto>>> LoadFamilyPlayersAsync(
-                string teamId, IReadOnlyCollection<string> userIds, CancellationToken ct)
+                string teamId, IReadOnlyCollection<string> userIds, IReadOnlySet<string> usersWithPending, CancellationToken ct)
             {
                 var links = await db.TeamPlayerFamilyMembers.AsNoTracking()
                     .Where(f => f.LinkedUserId != null && userIds.Contains(f.LinkedUserId) && f.TeamPlayer.TeamId == teamId)
-                    .Select(f => new PlayerLink(f.LinkedUserId!, f.TeamPlayerId, f.TeamPlayer.Player.Name, f.TeamPlayer.Player.LastName))
+                    .Select(f => new PlayerLink(f.LinkedUserId!, f.TeamPlayerId, f.TeamPlayer.Player.Name, f.TeamPlayer.Player.LastName, f.TeamPlayer.LeftDate != null))
                     .ToListAsync(ct);
-                return GroupAssociatedPlayers(links);
+                return GroupAssociatedPlayers(links.Where(l => !l.HasLeft || usersWithPending.Contains(l.UserId)));
             }
 
             private async Task<Dictionary<string, List<QuinielaAssociatedPlayerDto>>> LoadLinkedPlayersAsync(
-                string teamId, IReadOnlyCollection<string> userIds, CancellationToken ct)
+                string teamId, IReadOnlyCollection<string> userIds, IReadOnlySet<string> usersWithPending, CancellationToken ct)
             {
                 var links = await (
                         from ut in db.UserTeams.AsNoTracking()
                         join tp in db.TeamPlayers.AsNoTracking() on ut.LinkedTeamPlayerId equals tp.Id
                         where ut.TeamId == teamId && tp.TeamId == teamId && ut.RoleId == Membership.Player.Id
                               && userIds.Contains(ut.ApplicationUserId)
-                        select new PlayerLink(ut.ApplicationUserId, tp.Id, tp.Player.Name, tp.Player.LastName))
+                        select new PlayerLink(ut.ApplicationUserId, tp.Id, tp.Player.Name, tp.Player.LastName, tp.LeftDate != null))
                     .ToListAsync(ct);
-                return GroupAssociatedPlayers(links);
+                return GroupAssociatedPlayers(links.Where(l => !l.HasLeft || usersWithPending.Contains(l.UserId)));
             }
 
             private static Dictionary<string, List<QuinielaAssociatedPlayerDto>> GroupAssociatedPlayers(IEnumerable<PlayerLink> links) =>

@@ -189,6 +189,14 @@ namespace RFFM.Api.Tests.UnitTests
             return Guid.Parse(teamPlayer.Id);
         }
 
+        /// <summary>Da de baja la ficha de jugador (fecha de baja = fecha de alta).</summary>
+        public static async Task MarkTeamPlayerLeftAsync(AppDbContext db, Guid teamPlayerId)
+        {
+            var teamPlayer = await db.TeamPlayers.SingleAsync(tp => tp.Id == teamPlayerId.ToString());
+            teamPlayer.SetLeftDate(teamPlayer.JoinedDate);
+            await db.SaveChangesAsync();
+        }
+
         /// <summary>Vincula a un usuario familiar con una ficha de jugador (una fila de familiar por jugador).</summary>
         public static async Task LinkFamilyAsync(AppDbContext db, string familyUserId, Guid teamPlayerId)
         {

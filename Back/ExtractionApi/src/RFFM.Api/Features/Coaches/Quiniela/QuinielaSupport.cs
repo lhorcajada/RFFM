@@ -362,6 +362,12 @@ namespace RFFM.Api.Features.Coaches.Quiniela
 
         public sealed record Participant(string Name, string Role);
 
+        private static int RolePrecedence(int roleId)
+        {
+            var index = Array.FindIndex(ParticipantRoles, m => m.Id == roleId);
+            return index < 0 ? ParticipantRoles.Length : index;
+        }
+
         /// <summary>Nombre (datos personales) y rol en el equipo de cada usuario con boleto.</summary>
         public static async Task<Dictionary<string, Participant>> LoadParticipantsAsync(
             AppDbContext db, string teamId, IReadOnlyCollection<string> userIds, CancellationToken ct,
@@ -395,7 +401,7 @@ namespace RFFM.Api.Features.Coaches.Quiniela
                 {
                     var name = names.FirstOrDefault(n => n.ApplicationUserId == id);
                     var familyName = familyNames.FirstOrDefault(f => f.UserId == id);
-                    var role = roles.FirstOrDefault(r => r.ApplicationUserId == id);
+                    var role = roles.Where(r => r.ApplicationUserId == id).OrderBy(r => RolePrecedence(r.RoleId)).FirstOrDefault();
                     var fullName = name is not null
                         ? $"{name.FirstName} {name.LastName}".Trim()
                         : familyName is not null && $"{familyName.Name} {familyName.LastName}".Trim() is { Length: > 0 } familyFullName

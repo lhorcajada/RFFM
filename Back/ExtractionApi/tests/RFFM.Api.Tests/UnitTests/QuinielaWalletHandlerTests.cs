@@ -467,6 +467,121 @@ namespace RFFM.Api.Tests.UnitTests
         }
 
         [Fact]
+        public async Task List_UserWithCoachAndFamilyRoles_ShowsTheCoachRoleWithNoPlayers()
+        {
+            var seed = await SeedTeamAsync(fixture);
+            await using (var setup = fixture.CreateDbContext())
+            {
+                var ana = await SeedTeamPlayerAsync(setup, seed, "Ana", "Lopez");
+                await LinkFamilyAsync(setup, seed.FamilyId, ana);
+                setup.UserTeams.Add(new UserTeam(seed.FamilyId, seed.TeamId, Membership.Coach.Id));
+                await setup.SaveChangesAsync();
+            }
+            await using var db = fixture.CreateDbContext();
+
+            var rows = await List(db, seed.CoachId).Handle(new GetQuinielaWallets.Query(seed.TeamId), CancellationToken.None);
+
+            var row = RowOf(rows, seed.FamilyId);
+            Assert.Equal(Membership.Coach.Key, row.Role);
+            Assert.Empty(row.AssociatedPlayers);
+        }
+
+        [Fact]
+        public async Task List_PlayerRowLinkedToATeamPlayerOfAnotherTeam_HasAnEmptyList()
+        {
+            var seed = await SeedTeamAsync(fixture);
+            var otherSeed = await SeedTeamAsync(fixture);
+            await using (var setup = fixture.CreateDbContext())
+            {
+                var foreign = await SeedTeamPlayerAsync(setup, otherSeed, "Eva", "Ruiz");
+                await LinkPlayerUserAsync(setup, seed, seed.PlayerId, foreign);
+            }
+            await using var db = fixture.CreateDbContext();
+
+            var rows = await List(db, seed.CoachId).Handle(new GetQuinielaWallets.Query(seed.TeamId), CancellationToken.None);
+
+            Assert.Empty(RowOf(rows, seed.PlayerId).AssociatedPlayers);
+        }
+
+        [Fact]
+        public async Task List_PlayerRowAlsoLinkedAsFamilyMember_ListsOnlyItsOwnPlayer()
+        {
+            var seed = await SeedTeamAsync(fixture);
+            Guid ana;
+            await using (var setup = fixture.CreateDbContext())
+            {
+                ana = await SeedTeamPlayerAsync(setup, seed, "Ana", "Lopez");
+                var bea = await SeedTeamPlayerAsync(setup, seed, "Bea", "Sanz");
+                await LinkPlayerUserAsync(setup, seed, seed.PlayerId, ana);
+                await LinkFamilyAsync(setup, seed.PlayerId, bea);
+            }
+            await using var db = fixture.CreateDbContext();
+
+            var rows = await List(db, seed.CoachId).Handle(new GetQuinielaWallets.Query(seed.TeamId), CancellationToken.None);
+
+            Assert.Equal(new[] { ana }, RowOf(rows, seed.PlayerId).AssociatedPlayers.Select(p => p.Id).ToArray());
+        }
+
+        private async Task<(QuinielaSeed Seed, Guid Active, Guid Departed)> SeedFamilyWithADepartedPlayerAsync()
+        {
+            var seed = await SeedTeamAsync(fixture);
+            await using var setup = fixture.CreateDbContext();
+            var active = await SeedTeamPlayerAsync(setup, seed, "Ana", "Lopez");
+            var departed = await SeedTeamPlayerAsync(setup, seed, "Bea", "Sanz");
+            await LinkFamilyAsync(setup, seed.FamilyId, active);
+            await LinkFamilyAsync(setup, seed.FamilyId, departed);
+            await MarkTeamPlayerLeftAsync(setup, departed);
+            return (seed, active, departed);
+        }
+
+        private async Task<string[]> FamilyPlayerNamesAsync(QuinielaSeed seed)
+        {
+            await using var db = fixture.CreateDbContext();
+            var rows = await List(db, seed.CoachId).Handle(new GetQuinielaWallets.Query(seed.TeamId), CancellationToken.None);
+            return NamesOf(RowOf(rows, seed.FamilyId));
+        }
+
+        [Fact]
+        public async Task List_DepartedPlayerWithNothingPending_IsNotListed()
+        {
+            var (seed, _, _) = await SeedFamilyWithADepartedPlayerAsync();
+            await QuinielaWalletTestSupport.SeedWalletAsync(fixture, seed.TeamId, seed.FamilyId, 0m);
+
+            Assert.Equal(new[] { "Ana Lopez" }, await FamilyPlayerNamesAsync(seed));
+        }
+
+        [Fact]
+        public async Task List_DepartedPlayerWhenTheUserHasBalance_IsStillListed()
+        {
+            var (seed, _, _) = await SeedFamilyWithADepartedPlayerAsync();
+            await QuinielaWalletTestSupport.SeedWalletAsync(fixture, seed.TeamId, seed.FamilyId, 5m);
+
+            Assert.Equal(new[] { "Ana Lopez", "Bea Sanz" }, await FamilyPlayerNamesAsync(seed));
+        }
+
+        [Fact]
+        public async Task List_DepartedPlayerWhenTheUserHasAnUnpaidTicket_IsStillListed()
+        {
+            var (seed, _, _) = await SeedFamilyWithADepartedPlayerAsync();
+            var roundId = await SeedRoundAsync(fixture, seed.GroupCode, 1, StandardMatches("p"));
+            var jornada = await SeedJornadaAsync(fixture, seed.TeamId, roundId);
+            await SeedTicketAsync(fixture, jornada.Id, seed.FamilyId, "p", QuinielaSign.Home, QuinielaSign.Home, QuinielaSign.Home);
+
+            Assert.Equal(new[] { "Ana Lopez", "Bea Sanz" }, await FamilyPlayerNamesAsync(seed));
+        }
+
+        [Fact]
+        public async Task List_DepartedPlayerWhenTheUserOnlyHasPaidTickets_IsNotListed()
+        {
+            var (seed, _, _) = await SeedFamilyWithADepartedPlayerAsync();
+            var roundId = await SeedRoundAsync(fixture, seed.GroupCode, 1, StandardMatches("q"));
+            var jornada = await SeedJornadaAsync(fixture, seed.TeamId, roundId);
+            await SeedTicketAsync(fixture, jornada.Id, seed.FamilyId, "q", QuinielaSign.Home, QuinielaSign.Home, QuinielaSign.Home, paid: true);
+
+            Assert.Equal(new[] { "Ana Lopez" }, await FamilyPlayerNamesAsync(seed));
+        }
+
+        [Fact]
         public async Task List_PlayerWithEmptyLastName_HasNoTrailingSpaceInItsName()
         {
             var seed = await SeedTeamAsync(fixture);
