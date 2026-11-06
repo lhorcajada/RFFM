@@ -24,12 +24,22 @@ describe("normalizeSearchText", () => {
     expect(normalizeSearchText("José Pérez")).toBe("jose perez");
   });
 
+  it("mantiene la ñ como letra distinta de la n", () => {
+    expect(normalizeSearchText("Núñez")).toBe("nuñez");
+  });
+
   it("devuelve cadena vacía si el texto solo tiene espacios", () => {
     expect(normalizeSearchText("   ")).toBe("");
   });
 });
 
 describe("filterWallets", () => {
+  it("no hace coincidir la n con la ñ en ninguna dirección", () => {
+    expect(namesOf(filterWallets(rows, "nino"))).toEqual([]);
+    expect(namesOf(filterWallets(rows, "niño"))).toEqual(["Rosa"]);
+    expect(namesOf(filterWallets(rows, "Ñ"))).toEqual(["Rosa"]);
+  });
+
   it("encuentra las filas por el nombre de un jugador asociado, sin distinguir mayúsculas, acentos ni espacios", () => {
     const result = filterWallets(rows, "  jOSE   perez ");
 

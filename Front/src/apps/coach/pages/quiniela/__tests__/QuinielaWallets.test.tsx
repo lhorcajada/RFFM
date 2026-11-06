@@ -339,8 +339,7 @@ describe("QuinielaWallets", () => {
       renderPage();
       await screen.findByText("Pedro");
 
-      const playerCard = screen.getAllByTestId("wallet-card").find((card) => within(card).queryByText("Jugador") !== null);
-      expect(within(playersAreaOf(playerCard as HTMLElement)).getByText("José Pérez")).toBeInTheDocument();
+      expect(within(playersAreaOf(cardOf("Pedro"))).getByText("José Pérez")).toBeInTheDocument();
     });
 
     it("no muestra área de jugadores en la tarjeta del entrenador ni en un familiar sin jugadores", async () => {
@@ -403,6 +402,25 @@ describe("QuinielaWallets", () => {
 
       expect(await screen.findByText("No se encontraron resultados")).toBeInTheDocument();
       expect(screen.queryByText("No hay participantes en el equipo")).not.toBeInTheDocument();
+    });
+
+    it("anuncia el número de resultados al filtrar y el mensaje de sin resultados", async () => {
+      renderPage();
+      await screen.findByText("Marta");
+      expect(screen.getByRole("status")).toBeEmptyDOMElement();
+
+      type("jose perez");
+      expect(screen.getByRole("status")).toHaveTextContent("3 resultados");
+
+      type("marta");
+      expect(screen.getByRole("status")).toHaveTextContent("1 resultado");
+      expect(screen.getByRole("status")).not.toHaveTextContent("1 resultados");
+
+      type("zzz");
+      expect(screen.getByRole("status")).toHaveTextContent("0 resultados");
+
+      type("  ");
+      expect(screen.getByRole("status")).toBeEmptyDOMElement();
     });
 
     it("muestra no hay participantes antes y después de escribir si el equipo no tiene participantes", async () => {

@@ -53,6 +53,12 @@ export default function QuinielaWallets() {
   const [movementsUser, setMovementsUser] = useState<QuinielaWalletSummary | null>(null);
   const [searchText, setSearchText] = useState("");
   const visibleWallets = useMemo(() => filterWallets(wallets, searchText), [wallets, searchText]);
+  const isSearching = searchText.trim() !== "" && wallets.length > 0;
+  const searchAnnouncement = !isSearching
+    ? ""
+    : visibleWallets.length === 0
+      ? "0 resultados"
+      : `${visibleWallets.length} ${visibleWallets.length === 1 ? "resultado" : "resultados"}`;
 
   const load = useCallback(async (id: string) => {
     setState("loading");
@@ -166,6 +172,7 @@ export default function QuinielaWallets() {
             ),
           }}
         />
+        <div role="status" className={styles.visuallyHidden}>{searchAnnouncement}</div>
         {wallets.length === 0 && <EmptyState title="No hay participantes en el equipo" />}
         {wallets.length > 0 && visibleWallets.length === 0 && <EmptyState title="No se encontraron resultados" />}
         {visibleWallets.length > 0 && (

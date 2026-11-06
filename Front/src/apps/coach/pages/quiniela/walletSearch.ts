@@ -1,10 +1,17 @@
 import type { QuinielaWalletSummary } from "../../services/quinielaService";
 
+const COMBINING_MARKS = /\p{M}/gu;
+
+function stripAccents(text: string): string {
+  return text.normalize("NFD").replace(COMBINING_MARKS, "");
+}
+
 export function normalizeSearchText(text: string): string {
   return text
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
     .toLowerCase()
+    .split("ñ")
+    .map(stripAccents)
+    .join("ñ")
     .replace(/\s+/g, " ")
     .trim();
 }
