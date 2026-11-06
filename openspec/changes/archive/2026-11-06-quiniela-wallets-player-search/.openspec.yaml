@@ -1,0 +1,10 @@
+schema: sai-workflow
+created: 2026-11-05
+approval:
+  specs:
+    approved_at: 2026-11-05
+    notes: ""
+overview:
+  state: failed
+  failure_kind: envelope-contract-violation
+  failure_details: "Recovery re-dispatch of the overview generator again returned prose instead of the closed five-field envelope (missing fields: status, changed_files, validation, failure_details, failure_kind). change-overview.md still lacks the **Interfaces** field label in the Interfaces blocks of Step 1, Step 2 and Step 3 (change-overview.md lines 141, 180, 214); the generator only reviewed the existing file and translated the label 'Alternatives considered'."
