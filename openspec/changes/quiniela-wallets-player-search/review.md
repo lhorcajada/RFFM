@@ -49,7 +49,7 @@ None.
 - **Problem:** The Player-row tests cover a linked player and a missing link only. No test covers a Player user whose `LinkedTeamPlayerId` points to a team player of another team (the `tp.TeamId == teamId` filter at `GetQuinielaWallets.cs:82`), or a Player user who is also linked as a family member of another player (family links must be ignored for Player rows, `GetQuinielaWallets.cs:103-106`). A regression in either filter would pass the suite.
 - **Suggested fix:** Add two handler tests: a Player user linked to another team's team player gets an empty list; a Player user who also has a family link to a second player gets only their own player.
 
-#### L2 — `Guid.Parse` on a string team player id can turn bad data into a 500
+#### L2 — `Guid.Parse` on a string team player id can turn bad data into a 500 (EXCLUDED: team player ids are app-generated GUIDs and design Decision 4 fixes Guid; a non-GUID id is not a reachable state)
 - **Location:** `Back/ExtractionApi/src/RFFM.Api/Features/Coaches/Quiniela/GetQuinielaWallets.cs:93`
 - **Problem:** `TeamPlayer.Id` is a `string` (`BaseEntity.cs:8`), and `Guid.Parse(l.TeamPlayerId)` throws `FormatException` for any non-GUID id, failing the whole list. Every other quiniela DTO in `QuinielaSupport.cs` exposes ids as strings, and the front type declares `id: string`. Design Decision 4 chose `Guid`, so the type itself is settled; the risk is the throwing parse.
 - **Suggested fix:** Keep `Guid` and use `Guid.TryParse`, skipping or logging unparsable ids; or confirm all `TeamPlayer` ids are GUID strings and leave as is.
