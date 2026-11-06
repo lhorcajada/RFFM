@@ -139,7 +139,7 @@ npm test -- <archivo o patrón>        # subconjunto
 ### 4.6 Suite completa: una sola vez, al final
 - Durante el desarrollo ejecutar **solo los tests del área afectada** (archivo o directorio:
   `npx vitest run <ruta>` / `npm test -- <patrón>`), tanto para el Red como para el Green.
-- La **suite completa** (`npx vitest run --maxWorkers=2` en `Front/`, `npm test` en `Mobile/`)
+- La **suite completa** (`npx vitest run --maxWorkers=4` en `Front/`, `npm test` en `Mobile/`)
   y `npm run build` se ejecutan **una única vez, cuando se ha terminado toda la modificación**
   (todos los bloques de la change), no al cerrar cada bloque ni cada subagente.
 - Los subagentes no lanzan la suite completa salvo que se les pida explícitamente.
