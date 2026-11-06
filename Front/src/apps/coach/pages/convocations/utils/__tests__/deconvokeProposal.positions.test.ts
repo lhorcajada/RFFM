@@ -213,7 +213,7 @@ describe("buildDeconvokeProposal con posiciones", () => {
     expect(proposal.selectedIds).toEqual(["mc1"]);
     const gk = proposal.players.find((p) => p.playerId === "gk")!;
     expect(gk.factors.find((f) => f.key === "goalkeeperAlwaysCalled")?.label).toBe(
-      "Portero: siempre convocado salvo lesión o sanción",
+      "Portero: siempre convocado salvo lesión, sanción o no disponibilidad",
     );
   });
 });

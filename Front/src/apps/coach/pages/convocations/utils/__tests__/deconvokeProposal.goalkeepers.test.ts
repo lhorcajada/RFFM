@@ -64,7 +64,7 @@ describe("buildDeconvokeProposal — los porteros siempre van convocados", () =>
 
     const gk = proposal.players.find((p) => p.playerId === "gk1")!;
     expect(gk.factors.find((f) => f.key === "goalkeeperAlwaysCalled")?.label).toBe(
-      "Portero: siempre convocado salvo lesión o sanción",
+      "Portero: siempre convocado salvo lesión, sanción o no disponibilidad",
     );
   });
 
@@ -109,12 +109,15 @@ describe("buildDeconvokeProposal — los porteros siempre van convocados", () =>
     expect(proposal.selectedIds).toEqual(["gk2"]);
   });
 
-  it("no propone al portero desconvocado por un motivo que no es lesión ni sanción", () => {
+  it("propone al portero no disponible por cualquier motivo, no solo lesión o sanción", () => {
     const proposal = buildDeconvokeProposal(
       input(team(), 30, { matchUnavailable: unavailable("gk2", 3, "Enfermedad") }),
     );
 
-    expect(proposal.selectedIds).toEqual([]);
+    const gk = proposal.players.find((p) => p.playerId === "gk2")!;
+    expect(proposal.selectedIds).toEqual(["gk2"]);
+    expect(gk.forced).toBe(true);
+    expect(gk.locked).toBe(false);
   });
 });
 

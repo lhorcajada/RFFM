@@ -16,7 +16,7 @@ import {
   type RequirementKey,
 } from "./positionRequirements";
 import { isInjuryAbsence } from "./injuryRecovery";
-import { INJURY_EXCUSE_ID, SANCTION_EXCUSE_ID, type MatchUnavailability } from "./matchUnavailability";
+import type { MatchUnavailability } from "./matchUnavailability";
 
 type RivalResult = "win" | "draw" | "loss";
 
@@ -501,17 +501,14 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
 
       const unavailability = matchUnavailable?.get(playerId);
       const isGoalkeeper = positionPlayers.get(playerId)?.role === "goalkeeper";
-      const goalkeeperMayMiss =
-        p.isInjured === true ||
-        unavailability?.excuseTypeId === INJURY_EXCUSE_ID ||
-        unavailability?.excuseTypeId === SANCTION_EXCUSE_ID;
+      const goalkeeperMayMiss = p.isInjured === true || unavailability !== undefined;
       const locked = isGoalkeeper && !goalkeeperMayMiss;
 
       if (locked) {
         forced = false;
         factors.push({
           key: "goalkeeperAlwaysCalled",
-          label: "Portero: siempre convocado salvo lesión o sanción",
+          label: "Portero: siempre convocado salvo lesión, sanción o no disponibilidad",
           value: 1,
           impact: 0,
         });
@@ -621,6 +618,8 @@ export function formatProposalFactorValue(factor: ProposalFactor): string {
     case "recentRecovery":
     case "recoveryProtection":
       return `${nf0(n)} días`;
+    case "recentDeconvocation":
+      return n === 1 ? "hace 1 jornada" : `hace ${nf0(n)} jornadas`;
     default:
       return Number.isInteger(n) ? new Intl.NumberFormat("es-ES").format(n) : nf2(n);
   }

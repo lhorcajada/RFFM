@@ -8,6 +8,7 @@ import * as injuredRuleMod from './injuredRule';
 import * as weeklyTrainingRuleMod from './weeklyTrainingRule';
 import * as recentRecoveryRuleMod from './recentRecoveryRule';
 import * as goalsRuleMod from './goalsRule';
+import * as recentDeconvocationRuleMod from './recentDeconvocationRule';
 
 type NamedRule = { name: string; fn: (ctx: RuleContext, prev: Record<string, RuleResult>) => RuleResult };
 
@@ -21,6 +22,7 @@ const RULES: NamedRule[] = [
   { name: 'injured', fn: (injuredRuleMod as any).default ?? (injuredRuleMod as any) },
   { name: 'weeklyTraining', fn: (weeklyTrainingRuleMod as any).default ?? (weeklyTrainingRuleMod as any) },
   { name: 'recentRecovery', fn: (recentRecoveryRuleMod as any).default ?? (recentRecoveryRuleMod as any) },
+  { name: 'recentDeconvocation', fn: (recentDeconvocationRuleMod as any).default ?? (recentDeconvocationRuleMod as any) },
 ];
 
 export function runRules(ctx: RuleContext): RuleResult[] {
