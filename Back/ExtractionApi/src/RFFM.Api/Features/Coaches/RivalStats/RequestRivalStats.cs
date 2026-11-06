@@ -94,7 +94,6 @@ namespace RFFM.Api.Features.Coaches.RivalStats
                 if (existing != null)
                     return await HandleExistingAsync(existing, request, now, cancellationToken);
 
-                EnsureBackgroundEnabled();
                 var created = LeagueSquadStatsReport.Create(league.SeasonId,
                     RffmSeasons.Previous(rffmOptions.Value, league.SeasonId), league.CompetitionCode, league.GroupCode, now);
                 created.Subscribe(request.UserId, request.TeamId);
@@ -130,18 +129,11 @@ namespace RFFM.Api.Features.Coaches.RivalStats
                 if (isReadyToView || !report.CanRefresh(now, MinRefreshInterval))
                     return RivalStatsStatusResponse.From(report, MinRefreshInterval);
 
-                EnsureBackgroundEnabled();
                 report.RequestRefresh(now);
                 report.Subscribe(request.UserId, request.TeamId);
                 await db.SaveChangesAsync(cancellationToken);
                 await queue.EnqueueAsync(report.Id, cancellationToken);
                 return RivalStatsStatusResponse.From(report, MinRefreshInterval);
-            }
-
-            private void EnsureBackgroundEnabled()
-            {
-                if (!rffmOptions.Value.BackgroundEnabled)
-                    throw new ConflictException("La consulta a la federación está desactivada.", ErrorCodes.FederationSyncDisabled);
             }
 
             private Task<LeagueSquadStatsReport?> FindAsync(RivalStatsLeague league, CancellationToken cancellationToken) =>

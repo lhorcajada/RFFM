@@ -181,10 +181,10 @@ namespace RFFM.Api.DependencyInjection
             services.AddScoped<ISquadCandidateFinder, SquadCandidateFinder>();
             services.AddScoped<ISquadHistoryGenerator, SquadHistoryGenerator>();
             services.AddSingleton<ISquadHistoryQueue, SquadHistoryQueue>();
-            if (rffmBackgroundEnabled) services.AddHostedService<SquadHistoryWorker>();
+            services.AddHostedService<SquadHistoryWorker>();
             services.AddScoped<ILeagueSquadStatsGenerator, LeagueSquadStatsGenerator>();
             services.AddSingleton<ILeagueSquadStatsQueue, LeagueSquadStatsQueue>();
-            if (rffmBackgroundEnabled) services.AddHostedService<LeagueSquadStatsWorker>();
+            services.AddHostedService<LeagueSquadStatsWorker>();
             services.AddScoped<ILeagueSquadStatsScheduleService, LeagueSquadStatsScheduleService>();
             if (rffmBackgroundEnabled) services.AddHostedService<LeagueSquadStatsScheduler>();
             services.AddScoped<RivalSimulationInputLoader>();

@@ -146,15 +146,15 @@ namespace RFFM.Api.Tests.IntegrationTests
         }
 
         [Fact]
-        public async Task Solicitar_con_la_consulta_a_la_federacion_desactivada_lanza_conflicto_y_no_encola()
+        public async Task Solicitar_con_los_procesos_en_segundo_plano_apagados_encola_igualmente_la_peticion_manual()
         {
             var teamId = await SeedTeamAsync();
 
-            var exception = await Assert.ThrowsAsync<ConflictException>(
-                () => RequestAsync(teamId, refresh: false, Now, backgroundEnabled: false));
+            var result = await RequestAsync(teamId, refresh: false, Now, backgroundEnabled: false);
 
-            Assert.Equal(ErrorCodes.FederationSyncDisabled, exception.Code);
-            Assert.Empty(_queue.Enqueued);
+            var report = await LoadReportAsync();
+            Assert.Equal("Pending", result.Status);
+            Assert.Equal(new[] { report.Id }, _queue.Enqueued);
         }
 
         [Fact]

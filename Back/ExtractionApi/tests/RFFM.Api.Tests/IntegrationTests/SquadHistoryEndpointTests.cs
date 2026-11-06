@@ -90,7 +90,7 @@ namespace RFFM.Api.Tests.IntegrationTests
                             npgsql => npgsql.MigrationsHistoryTable("__EFMigrationsHistory", "federation")));
                         services.AddMediator(o => { o.ServiceLifetime = ServiceLifetime.Scoped; });
                         services.AddSingleton<ISquadHistoryQueue>(queue);
-                        services.Configure<RFFM.Api.Infrastructure.Options.RffmOptions>(o => o.BackgroundEnabled = true);
+                        services.Configure<RFFM.Api.Infrastructure.Options.RffmOptions>(o => o.BackgroundEnabled = false);
                     })
                     .Configure(app =>
                     {
