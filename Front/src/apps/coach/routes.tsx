@@ -49,6 +49,7 @@ const TeamRules = lazy(() => import("./pages/team-rules/TeamRules"));
 const TeamRulesEdit = lazy(() => import("./pages/team-rules/TeamRulesEdit"));
 const TeamUsers = lazy(() => import("./pages/team-users/TeamUsers"));
 const Sanctions = lazy(() => import("./pages/sanctions/Sanctions"));
+const Transactions = lazy(() => import("./pages/transactions/Transactions"));
 const Lottery = lazy(() => import("./pages/lottery/Lottery"));
 const Quiniela = lazy(() => import("./pages/quiniela/Quiniela"));
 const QuinielaPool = lazy(() => import("./pages/quiniela/QuinielaPool"));
@@ -416,6 +417,14 @@ function CoachRoutesContent() {
               element={
                 <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.Sanctions}>
                   <Sanctions />
+                </RequireFeaturePermission>
+              }
+            />
+            <Route
+              path="transactions"
+              element={
+                <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.Sanctions}>
+                  <Transactions />
                 </RequireFeaturePermission>
               }
             />

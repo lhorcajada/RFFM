@@ -1,0 +1,48 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 18px;
+  border-radius: 10px;
+  background: var(--rffm-card-bg, #1c1c30);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.typeLabel {
+  display: block;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--rffm-muted, #a59f9f);
+}
+
+.personName {
+  font-weight: 600;
+  color: var(--rffm-text, #f0f0f0);
+}
+
+.description {
+  color: var(--rffm-muted, #a59f9f);
+  overflow-wrap: anywhere;
+}
+
+.amounts {
+  font-size: 0.9rem;
+  color: var(--rffm-muted, #a59f9f);
+  row-gap: 4px;
+}
+
+.fieldLabel {
+  font-weight: 600;
+  color: var(--rffm-text, #f0f0f0);
+}
+
+.pendingAmount {
+  font-weight: 600;
+  color: var(--rffm-primary, #ff8a3d);
+}
+
+.date {
+  font-size: 0.85rem;
+  color: var(--rffm-muted, #a59f9f);
+}
