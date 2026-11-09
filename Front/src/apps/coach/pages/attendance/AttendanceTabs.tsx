@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
 import { Box, Button, Checkbox, Tabs, Tab } from "@mui/material";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
@@ -18,9 +17,9 @@ import assistanceTypeService, { AssistanceType } from "../../services/assistance
 import { coachAuthService } from "../../services/authService";
 import { getMyProfile } from "../../services/coachApi";
 import styles from "./AttendanceTabs.module.css";
-import defaultAvatar from "../../../../assets/avatar.svg";
 import NotConvokedList from "./components/NotConvokedList";
 import ConvocationCard from "./components/ConvocationCard";
+import AttendanceCard from "./components/AttendanceCard";
 import DeconvokeDialog from "./components/DeconvokeDialog";
 import CollapsibleGroup from "./components/CollapsibleGroup";
 import PositionGroupedList from "./components/PositionGroupedList";
@@ -48,6 +47,12 @@ type Props = {
 };
 
 type GroupKey = "waiting" | "availabilityPending" | "available" | "pending" | "accepted" | "desconvocados";
+
+// Seeded AssistanceTypes ids.
+const ATTENDS_ID = 1;
+const ABSENT_WITH_EXCUSE_ID = 2;
+const ABSENT_WITHOUT_EXCUSE_ID = 3;
+const LATE_ID = 4;
 
 // Matches RFFM.Api.Domain.Aggregates.Assistances.ExcuseTypes' "Decisión técnica" entry (id 7).
 const TECHNICAL_DECISION_EXCUSE_TYPE_ID = 7;
@@ -687,6 +692,111 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isLeagueM
     );
   };
 
+  const handleChangeAttendance = async (
+    conv: ConvocationItem,
+    assistanceTypeId: number | null,
+    excuseTypeId: number | null
+  ) => {
+    try {
+      await assistanceTypeService.updateConvocationAssistance(eventId, conv.id, assistanceTypeId, excuseTypeId);
+      const conv2 = await convocationService.getConvocations(eventId);
+      setConvocations(conv2);
+    } catch (err: any) {
+      alert(err?.message ?? "Error al actualizar asistencia");
+    }
+  };
+
+  const handleAllAttend = async (targets: ConvocationItem[]) => {
+    setSettingAllAttends(true);
+    try {
+      await Promise.all(
+        targets.map((c) => assistanceTypeService.updateConvocationAssistance(eventId, c.id, ATTENDS_ID, null))
+      );
+      setConvocations(await convocationService.getConvocations(eventId));
+    } catch (err: any) {
+      alert(err?.message ?? "Error al actualizar asistencia");
+    } finally {
+      setSettingAllAttends(false);
+    }
+  };
+
+  const renderAttendanceTab = () => {
+    const withAttendance = convocations.filter((c) => c.status === acceptedStatusId && c.player);
+    const attend = withAttendance.filter((c) => c.assistanceTypeId === ATTENDS_ID || c.assistanceTypeId === LATE_ID);
+    const absent = withAttendance.filter(
+      (c) => c.assistanceTypeId === ABSENT_WITH_EXCUSE_ID || c.assistanceTypeId === ABSENT_WITHOUT_EXCUSE_ID
+    );
+    const unmarked = withAttendance.filter((c) => !c.assistanceTypeId);
+
+    if (loading) return <Box className={styles.page}>Cargando...</Box>;
+    if (withAttendance.length === 0) {
+      return (
+        <Box className={styles.page}>
+          <EmptyState title="Asistencia" description="No hay jugadores aceptados todavía." />
+        </Box>
+      );
+    }
+
+    const groups: { title: string; items: ConvocationItem[]; colorClassName: string; bulk?: boolean }[] = [
+      { title: "Asisten", items: attend, colorClassName: styles.listGroupHeaderGreen },
+      { title: "No asisten", items: absent, colorClassName: styles.listGroupHeaderRed },
+      { title: "Sin indicar", items: unmarked, colorClassName: styles.listGroupHeaderGray, bulk: true },
+    ];
+    const notAttending = withAttendance.filter((c) => c.assistanceTypeId !== ATTENDS_ID);
+
+    return (
+      <div className={styles.topStack}>
+        <ConvocationSummary
+          total={withAttendance.length}
+          accepted={attend.length}
+          pending={unmarked.length}
+          declined={absent.length}
+          labels={{ total: "Aceptados", accepted: "Asisten", pending: "Sin indicar", declined: "No asisten" }}
+          ariaLabel="Resumen de la asistencia"
+        />
+        <div className={styles.convocatedGroups}>
+          {groups
+            .filter((g) => g.items.length > 0)
+            .map((g) => (
+              <div key={g.title}>
+                <div className={`${styles.listGroupHeader} ${g.colorClassName}`}>
+                  <div className={styles.listGroupTitle}>
+                    <span>{g.title}</span>
+                    <span className={styles.listGroupCount}>{g.items.length}</span>
+                  </div>
+                  {canEdit && g.bulk && notAttending.length > 0 && (
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      disabled={settingAllAttends}
+                      onClick={() => handleAllAttend(notAttending)}
+                    >
+                      Todos asisten
+                    </Button>
+                  )}
+                </div>
+                <PositionGroupedList
+                  items={g.items}
+                  getPosition={(c) => c.player?.position}
+                  renderItem={(c) => (
+                    <AttendanceCard
+                      key={c.id}
+                      conv={c}
+                      photoSrc={photoOf(c.player)}
+                      assistanceTypes={assistanceTypes}
+                      excuseTypes={excuseTypes}
+                      canEdit={canEdit}
+                      onChange={handleChangeAttendance}
+                    />
+                  )}
+                />
+              </div>
+            ))}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div>
       <Tabs value={tab} onChange={(_, v) => setTab(v)}>
@@ -951,208 +1061,7 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isLeagueM
         </Box>
       )}
 
-      {tab === 1 && !isPlayerOrFamily && (
-        <Box className={styles.page}>
-          <div style={{ width: "100%" }}>
-            <div className={`${styles.listGroupHeader} ${styles.listGroupHeaderBlue}`} style={{ marginBottom: 8 }}>
-              <span>Asistencia</span>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                {canEdit && !isPlayerOrFamily && (() => {
-                  const acceptedId = statuses.find((s) => s.name === "Accepted")?.id;
-                  const notAttending = convocations.filter(
-                    (c) => c.status === acceptedId && c.assistanceTypeId !== 1
-                  );
-                  if (notAttending.length === 0) return null;
-                  return (
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      disabled={settingAllAttends}
-                      onClick={async () => {
-                        setSettingAllAttends(true);
-                        try {
-                          await Promise.all(
-                            notAttending.map((c) =>
-                              assistanceTypeService.updateConvocationAssistance(eventId, c.id, 1, null)
-                            )
-                          );
-                          const conv = await convocationService.getConvocations(eventId);
-                          setConvocations(conv);
-                        } catch (err: any) {
-                          alert(err?.message ?? "Error al actualizar asistencia");
-                        } finally {
-                          setSettingAllAttends(false);
-                        }
-                      }}
-                    >
-                      Todos asisten
-                    </Button>
-                  );
-                })()}
-              </div>
-            </div>
-            {(() => {
-              const acceptedId = statuses.find((s) => s.name === "Accepted")?.id;
-              const withAttendance = convocations.filter((c) => c.status === acceptedId);
-              if (withAttendance.length === 0) {
-                return <EmptyState title="Asistencia" description="No hay jugadores aceptados todavía." />;
-              }
-              // ids 1 (Asiste) y 4 (Llega tarde) = asisten; 2 y 3 = no asisten; null = sin indicar
-              const attend = withAttendance.filter((c) => c.assistanceTypeId === 1 || c.assistanceTypeId === 4);
-              const absent = withAttendance.filter((c) => c.assistanceTypeId === 2 || c.assistanceTypeId === 3);
-              const pending = withAttendance.filter((c) => !c.assistanceTypeId);
-
-              const renderCard = (c: typeof withAttendance[0]) => {
-                const assistColorClass = (id: number | null | undefined) => {
-                  if (id === 1) return styles.optionBtnGreen;
-                  if (id === 2) return styles.optionBtnOrange;
-                  if (id === 3) return styles.optionBtnRed;
-                  if (id === 4) return styles.optionBtnBlue;
-                  return styles.optionBtnGray;
-                };
-                const NO_EXCUSA_ID = 2;
-                const p = c.player as any;
-                const displayName = p?.alias || ((p?.name ?? "") + " " + (p?.lastName ?? "")).trim() || "Jugador";
-                const dorsalValue =
-                  typeof p?.dorsal === "number" ? p.dorsal : p?.dorsal ? Number(p.dorsal) : null;
-                const hasDorsal =
-                  typeof dorsalValue === "number" && Number.isFinite(dorsalValue);
-                const rawPhotoSrc =
-                  playerPhotos[String(c.player?.id ?? "")] ??
-                  playerPhotos[String(c.player?.urlPhoto ?? "")] ??
-                  null;
-                const photo = rawPhotoSrc ?? defaultAvatar;
-                const stripeClass =
-                  c.assistanceTypeId === 1 || c.assistanceTypeId === 4
-                    ? styles.cromoStatusStripeAttends
-                    : c.assistanceTypeId === 2 || c.assistanceTypeId === 3
-                    ? styles.cromoStatusStripeAbsent
-                    : styles.cromoStatusStripePending;
-
-                return (
-                  <div key={c.id} className={styles.cardWrap}>
-                    <div className={styles.cromoCard}>
-                      {c.player?.id ? (
-                        <Link to={`/coach/player/${c.player.id}`} className={styles.cromoPhotoLink}>
-                          <div className={styles.cromoPhotoArea}>
-                            <img src={photo} alt={displayName} className={photo === defaultAvatar ? styles.cromoPhotoAvatar : styles.cromoPhoto} />
-                            <div className={styles.cromoGradient} />
-                            {hasDorsal && <div className={styles.cromoDorsalBadge}>{dorsalValue}</div>}
-                            <div className={`${styles.cromoStatusStripe} ${stripeClass}`} />
-                          </div>
-                        </Link>
-                      ) : (
-                        <div className={styles.cromoPhotoArea}>
-                          <img src={photo} alt={displayName} className={photo === defaultAvatar ? styles.cromoPhotoAvatar : styles.cromoPhoto} />
-                          <div className={styles.cromoGradient} />
-                          {hasDorsal && <div className={styles.cromoDorsalBadge}>{dorsalValue}</div>}
-                          <div className={`${styles.cromoStatusStripe} ${stripeClass}`} />
-                        </div>
-                      )}
-                      <div className={styles.cromoBody}>
-                        <div className={styles.cromoAccentLine} />
-                        <div className={styles.cromoName}>{displayName}</div>
-                        {p?.position && <div className={styles.cromoPosition}>{p.position}</div>}
-                        <div className={styles.cromoActions}>
-                          <div className={styles.optionGroup}>
-                            <button
-                              disabled={!canEdit}
-                              className={`${styles.optionBtn} ${styles.optionBtnGray}${!c.assistanceTypeId ? " " + styles.optionBtnActive : ""}`}
-                              onClick={async () => {
-                                try {
-                                  await assistanceTypeService.updateConvocationAssistance(eventId, c.id, null, null);
-                                  const conv = await convocationService.getConvocations(eventId);
-                                  setConvocations(conv);
-                                } catch (err: any) { alert(err?.message ?? "Error"); }
-                              }}
-                            >Sin indicar</button>
-                            {assistanceTypes.map((a) => (
-                              <button
-                                key={a.id}
-                                disabled={!canEdit}
-                                className={`${styles.optionBtn} ${assistColorClass(a.id)}${c.assistanceTypeId === a.id ? " " + styles.optionBtnActive : ""}`}
-                                onClick={async () => {
-                                  try {
-                                    await assistanceTypeService.updateConvocationAssistance(eventId, c.id, a.id, null);
-                                    const conv = await convocationService.getConvocations(eventId);
-                                    setConvocations(conv);
-                                  } catch (err: any) { alert(err?.message ?? "Error al actualizar asistencia"); }
-                                }}
-                              >{a.name}</button>
-                            ))}
-                          </div>
-                          {c.assistanceTypeId === NO_EXCUSA_ID && excuseTypes.length > 0 && (
-                            <div className={styles.optionGroupSub}>
-                              {excuseTypes.map((ex) => (
-                                <button
-                                  key={ex.id}
-                                  disabled={!canEdit}
-                                  className={`${styles.optionBtn} ${styles.optionSubBtn} ${styles.optionBtnPurple}${c.excuseTypeId === ex.id ? " " + styles.optionBtnActive : ""}`}
-                                  onClick={async () => {
-                                    try {
-                                      await assistanceTypeService.updateConvocationAssistance(eventId, c.id, NO_EXCUSA_ID, ex.id);
-                                      const conv = await convocationService.getConvocations(eventId);
-                                      setConvocations(conv);
-                                    } catch (err: any) { alert(err?.message ?? "Error al guardar excusa"); }
-                                  }}
-                                >{ex.name}</button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              };
-
-              return (
-                <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 24 }}>
-                  {attend.length > 0 && (
-                    <div>
-                      <div className={`${styles.listGroupHeader} ${styles.listGroupHeaderGreen}`}>
-                        <div className={styles.listGroupTitle}>
-                          <span>Asisten</span>
-                          <span className={styles.listGroupCount}>{attend.length}</span>
-                        </div>
-                      </div>
-                      <div className={styles.convocatedList}>
-                        {attend.map(renderCard)}
-                      </div>
-                    </div>
-                  )}
-                  {absent.length > 0 && (
-                    <div>
-                      <div className={`${styles.listGroupHeader} ${styles.listGroupHeaderRed}`}>
-                        <div className={styles.listGroupTitle}>
-                          <span>No asisten</span>
-                          <span className={styles.listGroupCount}>{absent.length}</span>
-                        </div>
-                      </div>
-                      <div className={styles.convocatedList}>
-                        {absent.map(renderCard)}
-                      </div>
-                    </div>
-                  )}
-                  {pending.length > 0 && (
-                    <div>
-                      <div className={`${styles.listGroupHeader} ${styles.listGroupHeaderGray}`}>
-                        <div className={styles.listGroupTitle}>
-                          <span>Sin indicar</span>
-                          <span className={styles.listGroupCount}>{pending.length}</span>
-                        </div>
-                      </div>
-                      <div className={styles.convocatedList}>
-                        {pending.map(renderCard)}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
-          </div>
-        </Box>
-      )}
+      {tab === 1 && !isPlayerOrFamily && renderAttendanceTab()}
 
       <DeconvokeDialog
         open={deconvokeDialog.open}
