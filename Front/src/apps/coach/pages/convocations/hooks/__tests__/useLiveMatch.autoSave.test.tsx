@@ -105,6 +105,82 @@ describe("useLiveMatch - cierre del partido en el servidor", () => {
     expect(result.current.hasSavedData).toBe(false);
   });
 
+  it("si el servidor rechaza el cierre con un motivo, el error lo muestra junto al código HTTP", async () => {
+    const server = getFakeLiveMatchServer();
+    server.finishLiveMatch.mockRejectedValueOnce({
+      response: { status: 400, data: { detail: "Solo se puede finalizar el partido durante la segunda parte." } },
+    });
+    const { result } = await renderSettledHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
+
+    await playAndEndMatch(result);
+
+    await waitFor(() =>
+      expect(result.current.saveError).toBe(
+        "Error al guardar los datos del partido. Inténtalo de nuevo. (400: Solo se puede finalizar el partido durante la segunda parte.)",
+      ),
+    );
+  });
+
+  it("si el servidor falla sin motivo, el error muestra solo el código HTTP", async () => {
+    const server = getFakeLiveMatchServer();
+    server.finishLiveMatch.mockRejectedValueOnce({ response: { status: 500, data: {} } });
+    const { result } = await renderSettledHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
+
+    await playAndEndMatch(result);
+
+    await waitFor(() =>
+      expect(result.current.saveError).toBe("Error al guardar los datos del partido. Inténtalo de nuevo. (500)"),
+    );
+  });
+
+  it("si el servidor no llegó a crear el partido durante el juego, al finalizar lo reconstruye y lo guarda", async () => {
+    const server = getFakeLiveMatchServer();
+    const realCreate = server.createLiveMatch.getMockImplementation()!;
+    server.createLiveMatch.mockRejectedValue(new Error("offline"));
+    const { result } = await renderSettledHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
+
+    await step(() => {
+      result.current.initMatch({ 0: "p0", 1: "p1" }, { id: "f1", name: "4-4-2" });
+    });
+    await step(() => {
+      result.current.setPendingAction("startMatch");
+    });
+    await step(() => {
+      result.current.confirmAction();
+    });
+    await step(() => {
+      result.current.addGoal("p1", "P1", 9, true);
+    });
+    await step(() => {
+      result.current.setPendingAction("endFirstHalf");
+    });
+    await step(() => {
+      result.current.confirmAction();
+    });
+    await step(() => {
+      result.current.setPendingAction("startSecondHalf");
+    });
+    await step(() => {
+      result.current.confirmAction();
+    });
+    expect(server.state).toBeNull();
+
+    server.createLiveMatch.mockImplementation(realCreate);
+    await step(() => {
+      result.current.setPendingAction("endMatch");
+    });
+    await step(() => {
+      result.current.confirmAction();
+    });
+
+    await waitFor(() => expect(result.current.hasSavedData).toBe(true));
+    expect(result.current.saveError).toBeNull();
+    expect(server.state?.phase).toBe("finished");
+    expect(server.state?.scoreLocal).toBe(1);
+    expect(server.state?.matchData.goalsJson).not.toBeNull();
+    expect(server.state?.matchData.startingLineupJson).not.toBeNull();
+  });
+
   it("reintentar tras un fallo vuelve a enviar el cierre al servidor", async () => {
     const server = getFakeLiveMatchServer();
     server.finishLiveMatch.mockRejectedValueOnce(new Error("network"));

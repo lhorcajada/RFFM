@@ -47,6 +47,15 @@ const SAVE_ERROR_MESSAGE = "Error al guardar los datos del partido. Inténtalo d
 const ACTION_ERROR_MESSAGE = "No se ha podido guardar la última acción en el servidor. Revisa el partido.";
 const LEGACY_BACKUP_PREFIX = "rffm_live";
 
+/** Appends the HTTP status and the server's reason, when the failure carries them, to the save error. */
+function describeSaveFailure(error: unknown): string {
+  const response = (error as { response?: { status?: unknown; data?: { detail?: unknown } } } | null)?.response;
+  const status = typeof response?.status === "number" ? response.status : null;
+  if (status === null) return SAVE_ERROR_MESSAGE;
+  const detail = typeof response?.data?.detail === "string" ? response.data.detail.trim() : "";
+  return `${SAVE_ERROR_MESSAGE} (${status}${detail ? `: ${detail}` : ""})`;
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function parseJsonArray<T>(json: string | null | undefined, fallback: T[]): T[] {
@@ -799,7 +808,33 @@ export function useLiveMatch(
     [sendSteps],
   );
 
-  /** Runs the transitions still needed and then the finish; a failure keeps the screen data and offers a retry. */
+  /**
+   * Steps that bring a server match in the given phase up to the second half, carrying the screen's
+   * documents so that the finish stores the real lineup, goals, cards and substitutions.
+   */
+  const stepsToSecondHalf = (phase: LiveMatchPhase): ServerStep[] => {
+    const m = modelRef.current;
+    const endAndResume: ServerStep[] = [{ type: "endHalf" }, { type: "startSecondHalf" }];
+    if (phase === "halftime") return [{ type: "startSecondHalf" }];
+    if (phase === "firstHalf") return endAndResume;
+    if (phase !== "preMatch") return [];
+    const duration = m.matchDurationMinutes;
+    return [
+      ...(duration !== null && duration > 0 ? [{ type: "setDuration", payload: { durationMinutes: duration } } as ServerStep] : []),
+      { type: "setLineup", payload: { formation: m.startingFormation?.name, documents: serializeDocuments(m) } },
+      { type: "kickOff" },
+      { type: "goal", payload: modelPayload() },
+      { type: "card", payload: modelPayload() },
+      { type: "substitution", payload: modelPayload() },
+      { type: "formationChange", payload: modelPayload() },
+      ...endAndResume,
+    ];
+  };
+
+  /**
+   * Runs the transitions still needed and then the finish; a failure keeps the screen data and offers a retry.
+   * When the server has no match yet (or is behind the screen, e.g. a retry), it is created and caught up first.
+   */
   const runFinish = useCallback(
     async (steps: ServerStep[], players: LiveMatchFinishPlayer[]): Promise<void> => {
       finishPendingRef.current = players;
@@ -807,17 +842,24 @@ export function useLiveMatch(
       setIsSaving(true);
       setSaveError(null);
       let saved = false;
+      let failureMessage = SAVE_ERROR_MESSAGE;
       try {
-        const transitioned = await sendSteps(steps);
+        const serverMissing = serverStateRef.current === null;
+        const serverPhase: LiveMatchPhase = serverStateRef.current?.phase ?? "preMatch";
+        if (serverMissing) await liveRef.current.ensureCreated();
+        const serverIsBehind = serverPhase === "preMatch" || (steps.length === 0 && serverPhase !== "secondHalf");
+        const stepsToSend = serverIsBehind ? stepsToSecondHalf(serverPhase) : steps;
+        const transitioned = await sendSteps(stepsToSend);
         if (transitioned) saved = (await liveRef.current.finish(players)).ok;
-      } catch {
+      } catch (error) {
         saved = false;
+        failureMessage = describeSaveFailure(error);
       } finally {
         inFlightRef.current -= 1;
         setIsSaving(false);
       }
       if (saved) finishPendingRef.current = null;
-      else setSaveError(SAVE_ERROR_MESSAGE);
+      else setSaveError(failureMessage);
       setReconcileTick((tick) => tick + 1);
     },
     [sendSteps],
