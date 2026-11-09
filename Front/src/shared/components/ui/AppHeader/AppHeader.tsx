@@ -126,8 +126,8 @@ export default function AppHeader({ title, hideIndicators }: AppHeaderProps) {
   const handleOpenTeamFund = () => {
     navigate(
       teamFund.teamId
-        ? `/coach/sanctions?teamId=${teamFund.teamId}`
-        : "/coach/sanctions"
+        ? `/coach/transactions?teamId=${teamFund.teamId}`
+        : "/coach/transactions"
     );
   };
 

@@ -73,13 +73,14 @@ describe("AppHeader — team fund balance icon", () => {
     expect(screen.queryByRole("button", { name: /€/i })).not.toBeInTheDocument();
   });
 
-  it("navigates to the sanctions screen, scoped to the team, when the fund icon is clicked", async () => {
+  it("opens the team transactions page, scoped to the team, when the fund icon is clicked", async () => {
     const { default: userEvent } = await import("@testing-library/user-event");
     teamFundMock = { visible: true, balance: 80, teamId: "team-7" };
 
     renderHeader();
     await userEvent.click(screen.getByRole("button", { name: /80 €/i }));
 
-    expect(navigateMock).toHaveBeenCalledWith("/coach/sanctions?teamId=team-7");
+    expect(navigateMock).toHaveBeenCalledWith("/coach/transactions?teamId=team-7");
+    expect(navigateMock).not.toHaveBeenCalledWith(expect.stringContaining("/coach/sanctions"));
   });
 });
