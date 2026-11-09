@@ -10,6 +10,7 @@ const TEAM_NAV_ROUTES = [
   "/coach/convocations",
   "/coach/results",
   "/coach/classification",
+  "/coach/scorers",
   "/coach/rival-stats",
   "/coach/rivals",
   "/coach/game-model",

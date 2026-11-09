@@ -87,6 +87,7 @@ export function buildTeamSections({
         { key: "convocations", label: "Calendario", to: team("/coach/convocations"), icon: CalendarMonthOutlinedIcon, visible: canSeeCompetition },
         { key: "results", label: "Resultados", to: team("/coach/results"), icon: ScoreboardOutlinedIcon, visible: canSeeCompetition },
         { key: "classification", label: "Clasificación", to: team("/coach/classification"), icon: EmojiEventsOutlinedIcon, visible: canSeeCompetition },
+        { key: "scorers", label: "Goleadores", to: team("/coach/scorers"), icon: SportsSoccerOutlinedIcon, visible: canSeeCompetition },
         { key: "rival-stats", label: "Estadísticas de rivales", to: team("/coach/rival-stats"), icon: QueryStatsOutlinedIcon, visible: canSeeCompetition },
         { key: "rivals", label: "Rivales", to: "/coach/rivals", icon: ShieldOutlinedIcon, visible: hasFeatureAccess(COACH_FEATURE_ROUTES.Rivals) },
         { key: "game-model", label: "Modelo de Juego", to: team("/coach/game-model"), icon: SchemaOutlinedIcon, visible: hasFeatureAccess(COACH_FEATURE_ROUTES.GameModel) },

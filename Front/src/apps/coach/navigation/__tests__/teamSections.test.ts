@@ -80,6 +80,7 @@ describe("buildTeamSections — rutas", () => {
     expect(findItem("Clasificación", { teamId: "team-1" })?.to).toBe(
       "/coach/classification?teamId=team-1",
     );
+    expect(findItem("Goleadores", { teamId: "team-1" })?.to).toBe("/coach/scorers?teamId=team-1");
     expect(findItem("Estadísticas de rivales", { teamId: "team-1" })?.to).toBe(
       "/coach/rival-stats?teamId=team-1",
     );
@@ -209,7 +210,7 @@ describe("buildTeamSections — Juegos", () => {
 
   it("ya no deja nada de la quiniela en Competición ni usa los nombres antiguos", () => {
     const competition = build().find((group) => group.title === "Competición")?.items.map((item) => item.label) ?? [];
-    expect(competition).toEqual(["Calendario", "Resultados", "Clasificación", "Estadísticas de rivales", "Rivales", "Modelo de Juego"]);
+    expect(competition).toEqual(["Calendario", "Resultados", "Clasificación", "Goleadores", "Estadísticas de rivales", "Rivales", "Modelo de Juego"]);
     expect(labels()).not.toContain("Quiniela");
     expect(labels()).not.toContain("Histórico de quinielas");
   });

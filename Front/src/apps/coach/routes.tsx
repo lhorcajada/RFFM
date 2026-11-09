@@ -61,6 +61,7 @@ const RivalStats = lazy(() => import("./pages/rivalStats/RivalStats"));
 const RivalSimulation = lazy(() => import("./pages/rivalStats/simulation/RivalSimulation"));
 const MatchReport = lazy(() => import("./pages/matchReport/MatchReport"));
 const Classification = lazy(() => import("./pages/classification/Classification"));
+const Scorers = lazy(() => import("./pages/scorers/Scorers"));
 const SeasonAccess = lazy(() => import("./pages/season-access/SeasonAccess"));
 const PrepareTests = lazy(() => import("./pages/season-access/prepare/PrepareTestsPage"));
 const PlayerDetail = lazy(() => import("./pages/player/PlayerDetail"));
@@ -275,6 +276,14 @@ function CoachRoutesContent() {
               element={
                 <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.Convocations}>
                   <Classification />
+                </RequireFeaturePermission>
+              }
+            />
+            <Route
+              path="scorers"
+              element={
+                <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.Convocations}>
+                  <Scorers />
                 </RequireFeaturePermission>
               }
             />

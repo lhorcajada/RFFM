@@ -12,6 +12,7 @@ describe("isTeamNavRoute", () => {
     "/coach/convocations/match",
     "/coach/results",
     "/coach/classification",
+    "/coach/scorers",
     "/coach/rival-stats/simulation",
     "/coach/rivals",
     "/coach/news/123",

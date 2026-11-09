@@ -1,0 +1,83 @@
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 4px 16px;
+  border-radius: 16px;
+  border: 1px solid var(--rffm-results-border, #12233d);
+  background: var(--rffm-results-surface, #0a1628);
+  color: var(--rffm-results-text, #f0f8ff);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--rffm-results-border, #12233d);
+}
+
+.row:last-child {
+  border-bottom: 0;
+}
+
+.rank {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  background: var(--rffm-results-border, #12233d);
+}
+
+.leader {
+  background: #ff8a1f;
+  color: #1a1005;
+}
+
+.who {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.player {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.team {
+  font-size: 0.8rem;
+  color: var(--rffm-results-muted, #9fb3cc);
+}
+
+.goals {
+  flex: 0 0 auto;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #ff8a1f;
+}
+
+.note {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--rffm-results-muted, #9fb3cc);
+}
