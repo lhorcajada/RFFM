@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Domain;
 using RFFM.Api.Domain.Entities;
 using RFFM.Api.Domain.Entities.Teams;
@@ -47,7 +49,8 @@ namespace RFFM.Api.Tests.IntegrationTests
         {
             await using var db = _fixture.CreateDbContext();
             await using var fed = _fixture.CreateFederationDbContext();
-            var handler = new GetTeamTransactionsFeature.Handler(db, fed, User(userId));
+            await using var identityDb = _fixture.CreateIdentityDbContext();
+            var handler = new GetTeamTransactionsFeature.Handler(db, fed, User(userId), identityDb);
             return await handler.Handle(new TeamTransactionsQuery(teamId, status, type), CancellationToken.None);
         }
 
@@ -99,17 +102,168 @@ namespace RFFM.Api.Tests.IntegrationTests
             });
         }
 
+        private async Task LinkUserToTeamPlayerAsync(string teamId, string userId, Guid teamPlayerId)
+        {
+            await using var db = _fixture.CreateDbContext();
+            var userTeam = await db.UserTeams.SingleAsync(ut => ut.TeamId == teamId && ut.ApplicationUserId == userId);
+            userTeam.LinkPlayer(teamPlayerId.ToString());
+            await db.SaveChangesAsync();
+        }
+
         [Fact]
-        public async Task Handle_PlayerOfTheTeam_ReadsTheTeamTransactions()
+        public async Task Handle_PlayerOfTheTeam_ReadsOnlyTheirOwnPlayerSanctions()
         {
             var seed = await SeedTeamAsync(_fixture);
-            var teamPlayerId = await TeamPlayerAsync(seed);
-            await SaveAsync(db => db.TeamPlayerSanctions.Add(Sanction(teamPlayerId, Utc(3, 1), fine: 100m)));
+            var own = await TeamPlayerAsync(seed, "Ana", "Lopez");
+            var other = await TeamPlayerAsync(seed, "Bea", "Ruiz");
+            await LinkUserToTeamPlayerAsync(seed.TeamId, seed.PlayerId, own);
+            await SaveAsync(db =>
+            {
+                db.TeamPlayerSanctions.Add(Sanction(own, Utc(3, 1), fine: 100m));
+                db.TeamPlayerSanctions.Add(Sanction(other, Utc(3, 2), fine: 50m));
+                return 0;
+            });
 
             var rows = await HandleAsync(seed.TeamId, seed.PlayerId);
 
-            Assert.Single(rows);
-            Assert.Equal("Sanction", rows[0].Type);
+            var row = Assert.Single(rows);
+            Assert.Equal("Sanction", row.Type);
+            Assert.Equal("Ana Lopez", row.PersonName);
+        }
+
+        [Fact]
+        public async Task Handle_PlayerWithoutLinkedPlayer_ReadsNoSanctionsOrLotteryBooks()
+        {
+            var seed = await SeedTeamAsync(_fixture);
+            var other = await TeamPlayerAsync(seed);
+            await SaveAsync(db => db.TeamPlayerSanctions.Add(Sanction(other, Utc(3, 1), fine: 100m)));
+
+            var rows = await HandleAsync(seed.TeamId, seed.PlayerId);
+
+            Assert.Empty(rows);
+        }
+
+        [Fact]
+        public async Task Handle_PlayerOfTheTeam_ReadsOnlyTheirOwnLotteryBooks()
+        {
+            var seed = await SeedTeamAsync(_fixture);
+            var own = await TeamPlayerAsync(seed, "Ana", "Lopez");
+            var other = await TeamPlayerAsync(seed, "Bea", "Ruiz");
+            await LinkUserToTeamPlayerAsync(seed.TeamId, seed.PlayerId, own);
+            await SaveAsync(db =>
+            {
+                var campaign = Campaign(seed.TeamId);
+                campaign.DeliverBook(own.ToString(), 1, 1, new DateOnly(2026, 2, 20));
+                campaign.DeliverBook(other.ToString(), 2, 11, new DateOnly(2026, 2, 21));
+                db.LotteryCampaigns.Add(campaign);
+                return 0;
+            });
+
+            var rows = await HandleAsync(seed.TeamId, seed.PlayerId);
+
+            Assert.Equal("Ana Lopez", Assert.Single(rows).PersonName);
+        }
+
+        [Fact]
+        public async Task Handle_PlayerOfTheTeam_ReadsOnlyTheirOwnQuinielaAndWalletTransactions()
+        {
+            var seed = await SeedTeamAsync(_fixture);
+            var suffix = Suffix();
+            var jornada = await JornadaAsync(seed, suffix);
+            await SaveAsync(db =>
+            {
+                db.QuinielaTickets.Add(NewTicket(jornada.Id, seed.PlayerId, suffix));
+                db.QuinielaTickets.Add(NewTicket(jornada.Id, seed.FamilyId, suffix + "x"));
+                var ownWallet = QuinielaWallet.Create(seed.TeamId, seed.PlayerId);
+                var otherWallet = QuinielaWallet.Create(seed.TeamId, seed.FamilyId);
+                db.QuinielaWallets.Add(ownWallet);
+                db.QuinielaWallets.Add(otherWallet);
+                db.QuinielaWalletMovements.Add(ownWallet.TopUp(5m, seed.PlayerId, "Recarga", Utc(3, 2)));
+                db.QuinielaWalletMovements.Add(otherWallet.TopUp(7m, seed.FamilyId, "Recarga", Utc(3, 2)));
+                return 0;
+            });
+
+            var rows = await HandleAsync(seed.TeamId, seed.PlayerId);
+
+            Assert.Equal(2, rows.Count);
+            Assert.Contains(rows, r => r.Type == "Quiniela");
+            Assert.Contains(rows, r => r.Type == "WalletTopUp" && r.Amount == 5m);
+        }
+
+        [Fact]
+        public async Task Handle_PlayerOfTheTeam_DoesNotReadFundMovements()
+        {
+            var seed = await SeedTeamAsync(_fixture);
+            await SaveAsync(db => db.TeamFundMovements.Add(
+                TeamFundMovement.Create(seed.TeamId, 12m, TeamFundMovementSource.QuinielaFund, occurredAt: Utc(3, 1), description: "Fondo")));
+
+            var rows = await HandleAsync(seed.TeamId, seed.PlayerId);
+
+            Assert.Empty(rows);
+        }
+
+        [Fact]
+        public async Task Handle_FamilyPlayerOfTheTeam_ReadsOnlyTheLinkedPlayerSanctions()
+        {
+            var seed = await SeedTeamAsync(_fixture);
+            var linked = await TeamPlayerAsync(seed, "Ana", "Lopez");
+            var other = await TeamPlayerAsync(seed, "Bea", "Ruiz");
+            await LinkUserToTeamPlayerAsync(seed.TeamId, seed.FamilyId, linked);
+            await SaveAsync(db =>
+            {
+                db.TeamPlayerSanctions.Add(Sanction(linked, Utc(3, 1), fine: 100m));
+                db.TeamPlayerSanctions.Add(Sanction(other, Utc(3, 2), fine: 50m));
+                return 0;
+            });
+
+            var rows = await HandleAsync(seed.TeamId, seed.FamilyId);
+
+            Assert.Equal("Ana Lopez", Assert.Single(rows).PersonName);
+        }
+
+        [Fact]
+        public async Task Handle_CoachOfTheTeam_ReadsEveryPlayerSanction()
+        {
+            var seed = await SeedTeamAsync(_fixture);
+            var first = await TeamPlayerAsync(seed, "Ana", "Lopez");
+            var second = await TeamPlayerAsync(seed, "Bea", "Ruiz");
+            await SaveAsync(db =>
+            {
+                db.TeamPlayerSanctions.Add(Sanction(first, Utc(3, 1), fine: 100m));
+                db.TeamPlayerSanctions.Add(Sanction(second, Utc(3, 2), fine: 50m));
+                return 0;
+            });
+
+            var rows = await HandleAsync(seed.TeamId, seed.CoachId);
+
+            Assert.Equal(2, rows.Count);
+        }
+
+        [Fact]
+        public async Task Handle_ParticipantWithoutPersonalData_IsListedByUsername()
+        {
+            var seed = await SeedTeamAsync(_fixture);
+            var suffix = Suffix();
+            var userId = $"username-user-{suffix}";
+            var userName = $"jugador{suffix}";
+            await using (var identityDb = _fixture.CreateIdentityDbContext())
+            {
+                identityDb.Users.Add(new IdentityUser
+                {
+                    Id = userId,
+                    UserName = userName,
+                    NormalizedUserName = userName.ToUpperInvariant(),
+                    Email = $"{userName}@test.com",
+                    NormalizedEmail = $"{userName}@TEST.COM".ToUpperInvariant()
+                });
+                await identityDb.SaveChangesAsync();
+            }
+            var jornada = await JornadaAsync(seed, suffix);
+            await SaveAsync(db => db.QuinielaTickets.Add(NewTicket(jornada.Id, userId, suffix)));
+
+            var rows = await HandleAsync(seed.TeamId, seed.CoachId);
+
+            Assert.Equal(userName, Assert.Single(rows).PersonName);
         }
 
         [Fact]
@@ -351,6 +505,26 @@ namespace RFFM.Api.Tests.IntegrationTests
         }
 
         [Fact]
+        public async Task Handle_PaidQuinielaTicketWithoutPaidAt_FallsBackToPaymentDeadline()
+        {
+            var seed = await SeedTeamAsync(_fixture);
+            var suffix = Suffix();
+            var jornada = await JornadaAsync(seed, suffix);
+            await SeedTicketAsync(_fixture, jornada.Id, seed.PlayerId, suffix, QuinielaSign.Home, QuinielaSign.Draw, QuinielaSign.Away, paid: true);
+            await using (var db = _fixture.CreateDbContext())
+            {
+                await db.QuinielaTickets.Where(t => t.JornadaId == jornada.Id)
+                    .ExecuteUpdateAsync(s => s.SetProperty(t => t.PaidAt, (DateTime?)null));
+            }
+
+            var rows = await HandleAsync(seed.TeamId, seed.CoachId);
+
+            var row = Assert.Single(rows);
+            Assert.Equal("Paid", row.Status);
+            Assert.Equal<DateTime?>(QuinielaSchedule.PaymentDeadlineUtc(new DateOnly(2026, 11, 7)), row.Date);
+        }
+
+        [Fact]
         public async Task Handle_UnpaidQuinielaTicket_UsesPaymentDeadlineAsDate()
         {
             var seed = await SeedTeamAsync(_fixture);
@@ -450,6 +624,7 @@ namespace RFFM.Api.Tests.IntegrationTests
         public async Task Handle_TicketPaidFromWallet_IsListedAsTicketAndAsWalletCharge()
         {
             var seed = await SeedTeamAsync(_fixture);
+            await SaveAsync(db => db.UserPersonalData.Add(UserPersonalData.Create(seed.PlayerId, "Marta", "Ruiz", null, null)));
             var jornada = await JornadaAsync(seed, Suffix());
             await SeedWalletChargeAsync(seed, jornada, Suffix());
 
@@ -461,6 +636,7 @@ namespace RFFM.Api.Tests.IntegrationTests
             Assert.Equal("Paid", chargeRow.Status);
             Assert.Equal(jornada.Price, chargeRow.Amount);
             Assert.Equal<DateTime?>(Utc(3, 3), chargeRow.Date);
+            Assert.Equal("Marta Ruiz", chargeRow.PersonName);
         }
 
         [Fact]

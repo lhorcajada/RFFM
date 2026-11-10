@@ -39,6 +39,9 @@ namespace RFFM.Api.Features.Coaches.Teams.Queries
                 .WithName(nameof(GetTeamTransactions))
                 .WithTags(TeamConstants.TeamFeature)
                 .Produces<IReadOnlyList<TeamTransactionDto>>()
+                .ProducesValidationProblem()
+                .ProducesProblem(StatusCodes.Status401Unauthorized)
+                .ProducesProblem(StatusCodes.Status403Forbidden)
                 .RequireAuthorization();
         }
 
@@ -67,7 +70,7 @@ namespace RFFM.Api.Features.Coaches.Teams.Queries
             string Id, string Type, string? PersonName, decimal Amount, decimal? PendingAmount, DateTime? Date,
             string Description, string Status);
 
-        public class Handler(AppDbContext db, FederationDbContext fed, ICurrentUserService currentUser)
+        public class Handler(AppDbContext db, FederationDbContext fed, ICurrentUserService currentUser, IdentityDbContext identityDb)
             : IRequestHandler<TeamTransactionsQuery, IReadOnlyList<TeamTransactionDto>>
         {
             private sealed record Row(
@@ -86,28 +89,38 @@ namespace RFFM.Api.Features.Coaches.Teams.Queries
                 await QuinielaSupport.RequireRoleAsync(db, currentUser, request.TeamId, QuinielaSupport.ParticipantRoles, cancellationToken);
 
                 var teamId = request.TeamId;
+                var userId = currentUser.UserId!;
+                var seesWholeTeam = await QuinielaSupport.IsCoachAsync(db, userId, teamId, cancellationToken);
+                var ownTeamPlayerIds = seesWholeTeam
+                    ? null
+                    : await LoadOwnTeamPlayerIdsAsync(teamId, userId, cancellationToken);
+                var ownUserId = seesWholeTeam ? null : userId;
+
                 var rows = new List<Row>();
                 if (IsRequested(request.Type, TransactionType.Sanction))
-                    rows.AddRange(await LoadSanctionsAsync(teamId, cancellationToken));
+                    rows.AddRange(await LoadSanctionsAsync(teamId, ownTeamPlayerIds, cancellationToken));
                 if (IsRequested(request.Type, TransactionType.Lottery))
-                    rows.AddRange(await LoadLotteryBooksAsync(teamId, cancellationToken));
+                    rows.AddRange(await LoadLotteryBooksAsync(teamId, ownTeamPlayerIds, cancellationToken));
 
                 var tickets = new List<TicketSource>();
                 if (IsRequested(request.Type, TransactionType.Quiniela))
                 {
-                    tickets = await LoadTicketsAsync(teamId, cancellationToken);
-                    rows.AddRange(await LoadFundMovementsAsync(teamId, cancellationToken));
+                    tickets = await LoadTicketsAsync(teamId, ownUserId, cancellationToken);
+                    if (seesWholeTeam)
+                        rows.AddRange(await LoadFundMovementsAsync(teamId, cancellationToken));
                 }
 
                 var walletMovements = new List<WalletSource>();
                 var wantsWallet = IsRequested(request.Type, TransactionType.WalletTopUp) || IsRequested(request.Type, TransactionType.WalletCharge);
                 if (wantsWallet)
-                    walletMovements = await LoadWalletMovementsAsync(teamId, cancellationToken);
+                    walletMovements = await LoadWalletMovementsAsync(teamId, ownUserId, cancellationToken);
 
-                var participants = await QuinielaSupport.LoadParticipantsAsync(db, teamId,
-                    tickets.Select(t => t.UserId).Concat(walletMovements.Select(m => m.UserId)).ToList(), cancellationToken);
+                var participantUserIds = tickets.Select(t => t.UserId).Concat(walletMovements.Select(m => m.UserId)).ToList();
+                var participants = participantUserIds.Count == 0
+                    ? new Dictionary<string, QuinielaSupport.Participant>()
+                    : await QuinielaSupport.LoadParticipantsAsync(db, teamId, participantUserIds, cancellationToken, identityDb);
                 var unpaidRoundIds = tickets
-                    .Where(t => t.PaymentStatus == QuinielaPaymentStatus.Pending)
+                    .Where(t => t.PaymentStatus == QuinielaPaymentStatus.Pending || t.PaidAt is null)
                     .Select(t => t.RffmRoundId)
                     .Distinct()
                     .ToList();
@@ -130,10 +143,24 @@ namespace RFFM.Api.Features.Coaches.Teams.Queries
 
             private static bool IsRequested(TransactionType? filter, TransactionType type) => filter is null || filter == type;
 
-            private async Task<List<Row>> LoadSanctionsAsync(string teamId, CancellationToken ct)
+            private async Task<List<string>> LoadOwnTeamPlayerIdsAsync(string teamId, string userId, CancellationToken ct)
+            {
+                var linked = await db.UserTeams.AsNoTracking()
+                    .Where(ut => ut.TeamId == teamId && ut.ApplicationUserId == userId && ut.LinkedTeamPlayerId != null)
+                    .Select(ut => ut.LinkedTeamPlayerId!)
+                    .ToListAsync(ct);
+                var asFamily = await db.TeamPlayerFamilyMembers.AsNoTracking()
+                    .Where(f => f.LinkedUserId == userId && f.TeamPlayer.TeamId == teamId)
+                    .Select(f => f.TeamPlayerId)
+                    .ToListAsync(ct);
+                return linked.Concat(asFamily).Distinct().ToList();
+            }
+
+            private async Task<List<Row>> LoadSanctionsAsync(string teamId, IReadOnlyCollection<string>? teamPlayerIds, CancellationToken ct)
             {
                 var sanctions = await db.TeamPlayerSanctions.AsNoTracking()
-                    .Where(s => s.TeamPlayer.TeamId == teamId && s.Fine > 0)
+                    .Where(s => s.TeamPlayer.TeamId == teamId && s.Fine > 0
+                                && (teamPlayerIds == null || teamPlayerIds.Contains(s.TeamPlayerId)))
                     .Select(s => new
                     {
                         s.Id, s.StartDate, s.Fine, s.AmountPaid, s.Description, s.SanctionType,
@@ -153,13 +180,13 @@ namespace RFFM.Api.Features.Coaches.Teams.Queries
                 }).ToList();
             }
 
-            private async Task<List<Row>> LoadLotteryBooksAsync(string teamId, CancellationToken ct)
+            private async Task<List<Row>> LoadLotteryBooksAsync(string teamId, IReadOnlyCollection<string>? teamPlayerIds, CancellationToken ct)
             {
                 var books = await (
                         from book in db.LotteryBooks.AsNoTracking()
                         join campaign in db.LotteryCampaigns.AsNoTracking() on book.LotteryCampaignId equals campaign.Id
                         join teamPlayer in db.TeamPlayers.AsNoTracking() on book.TeamPlayerId equals teamPlayer.Id
-                        where campaign.TeamId == teamId
+                        where campaign.TeamId == teamId && (teamPlayerIds == null || teamPlayerIds.Contains(book.TeamPlayerId))
                         select new
                         {
                             book.Id, book.DeliveredOn, book.ReturnedOn, book.AmountReturned,
@@ -178,11 +205,11 @@ namespace RFFM.Api.Features.Coaches.Teams.Queries
                 }).ToList();
             }
 
-            private async Task<List<TicketSource>> LoadTicketsAsync(string teamId, CancellationToken ct) =>
+            private async Task<List<TicketSource>> LoadTicketsAsync(string teamId, string? ownUserId, CancellationToken ct) =>
                 await (
                         from ticket in db.QuinielaTickets.AsNoTracking()
                         join jornada in db.QuinielaJornadas.AsNoTracking() on ticket.JornadaId equals jornada.Id
-                        where jornada.TeamId == teamId
+                        where jornada.TeamId == teamId && (ownUserId == null || ticket.ApplicationUserId == ownUserId)
                         select new TicketSource(ticket.Id, ticket.ApplicationUserId, jornada.Price, ticket.PaymentStatus,
                             ticket.PaidAt, jornada.RffmRoundId))
                     .ToListAsync(ct);
@@ -199,11 +226,11 @@ namespace RFFM.Api.Features.Coaches.Teams.Queries
                     m.OccurredAt, Describe(m.Description, TransactionType.Quiniela), TransactionStatus.Paid)).ToList();
             }
 
-            private async Task<List<WalletSource>> LoadWalletMovementsAsync(string teamId, CancellationToken ct) =>
+            private async Task<List<WalletSource>> LoadWalletMovementsAsync(string teamId, string? ownUserId, CancellationToken ct) =>
                 await (
                         from movement in db.QuinielaWalletMovements.AsNoTracking()
                         join wallet in db.QuinielaWallets.AsNoTracking() on movement.WalletId equals wallet.Id
-                        where wallet.TeamId == teamId
+                        where wallet.TeamId == teamId && (ownUserId == null || wallet.ApplicationUserId == ownUserId)
                               && (movement.Type == QuinielaWalletMovementType.TopUp || movement.Type == QuinielaWalletMovementType.TicketCharge)
                         select new WalletSource(movement.Id, wallet.ApplicationUserId, movement.Amount, movement.Type,
                             movement.OccurredAt, movement.Description))
@@ -227,7 +254,7 @@ namespace RFFM.Api.Features.Coaches.Teams.Queries
                 var paid = ticket.PaymentStatus == QuinielaPaymentStatus.Paid;
                 return new Row($"quiniela:{ticket.Id}", TransactionType.Quiniela, participants[ticket.UserId].Name, ticket.Price,
                     paid ? null : ticket.Price,
-                    paid ? ticket.PaidAt : deadlines.GetValueOrDefault(ticket.RffmRoundId),
+                    (paid ? ticket.PaidAt : null) ?? deadlines.GetValueOrDefault(ticket.RffmRoundId),
                     Describe(null, TransactionType.Quiniela),
                     paid ? TransactionStatus.Paid : TransactionStatus.Pending);
             }
