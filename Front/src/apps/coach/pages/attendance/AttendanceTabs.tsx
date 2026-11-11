@@ -692,6 +692,15 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isLeagueM
     );
   };
 
+  const notifyAttendanceError = (err: unknown) => {
+    const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+    window.dispatchEvent(
+      new CustomEvent("rffm.show_snackbar", {
+        detail: { message: detail || "Error al actualizar asistencia", severity: "error" },
+      })
+    );
+  };
+
   const handleChangeAttendance = async (
     conv: ConvocationItem,
     assistanceTypeId: number | null,
@@ -701,20 +710,22 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isLeagueM
       await assistanceTypeService.updateConvocationAssistance(eventId, conv.id, assistanceTypeId, excuseTypeId);
       const conv2 = await convocationService.getConvocations(eventId);
       setConvocations(conv2);
-    } catch (err: any) {
-      alert(err?.message ?? "Error al actualizar asistencia");
+    } catch (err: unknown) {
+      notifyAttendanceError(err);
     }
   };
 
   const handleAllAttend = async (targets: ConvocationItem[]) => {
     setSettingAllAttends(true);
     try {
-      await Promise.all(
-        targets.map((c) => assistanceTypeService.updateConvocationAssistance(eventId, c.id, ATTENDS_ID, null))
+      await assistanceTypeService.updateConvocationsAssistanceBulk(
+        eventId,
+        targets.map((c) => c.id),
+        ATTENDS_ID
       );
       setConvocations(await convocationService.getConvocations(eventId));
-    } catch (err: any) {
-      alert(err?.message ?? "Error al actualizar asistencia");
+    } catch (err: unknown) {
+      notifyAttendanceError(err);
     } finally {
       setSettingAllAttends(false);
     }

@@ -45,6 +45,7 @@ vi.mock("../../../services/excuseTypeService", () => ({
 }));
 
 const updateConvocationAssistanceMock = vi.fn();
+const updateConvocationsAssistanceBulkMock = vi.fn();
 vi.mock("../../../services/assistanceTypeService", () => ({
   default: {
     getAssistanceTypes: vi.fn().mockResolvedValue([
@@ -55,6 +56,8 @@ vi.mock("../../../services/assistanceTypeService", () => ({
     ]),
     updateConvocationAssistance: (...args: unknown[]) =>
       updateConvocationAssistanceMock(...args),
+    updateConvocationsAssistanceBulk: (...args: unknown[]) =>
+      updateConvocationsAssistanceBulkMock(...args),
   },
 }));
 
@@ -115,9 +118,13 @@ describe("AttendanceTabs - pestaña Asistencia", () => {
   });
 
   it("'Todos asisten' marca como asiste a quien no asiste aún", async () => {
-    updateConvocationAssistanceMock.mockResolvedValue(undefined);
+    updateConvocationsAssistanceBulkMock.mockResolvedValue(undefined);
     await userEvent.click(await screen.findByRole("button", { name: /todos asisten/i }));
-    await waitFor(() => expect(updateConvocationAssistanceMock).toHaveBeenCalledTimes(3));
-    expect(updateConvocationAssistanceMock).toHaveBeenCalledWith("event-1", "2", 1, null);
+    await waitFor(() => expect(updateConvocationsAssistanceBulkMock).toHaveBeenCalledTimes(1));
+    const [eventId, ids, typeId] = updateConvocationsAssistanceBulkMock.mock.calls[0];
+    expect(eventId).toBe("event-1");
+    expect(ids).toHaveLength(3);
+    expect(ids).toContain("2");
+    expect(typeId).toBe(1);
   });
 });

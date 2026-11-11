@@ -25,4 +25,12 @@ export async function updateConvocationAssistance(
   );
 }
 
-export default { getAssistanceTypes, updateConvocationAssistance };
+export async function updateConvocationsAssistanceBulk(
+  eventId: string,
+  convocationIds: string[],
+  assistanceTypeId: number
+): Promise<void> {
+  await client.put(`/api/events/${eventId}/convocations/assistance`, { convocationIds, assistanceTypeId });
+}
+
+export default { getAssistanceTypes, updateConvocationAssistance, updateConvocationsAssistanceBulk };
