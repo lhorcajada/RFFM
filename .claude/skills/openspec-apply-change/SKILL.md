@@ -76,16 +76,34 @@ Implement tasks from an OpenSpec change.
    - Mark task complete in the tasks file: `- [ ]` → `- [x]`
    - Continue to next task
 
+   **Test execution policy (applies to every task and to any verification task in `tasks.md`):**
+   - Run **only the tests affected by the changes**, never the full suite:
+     - Front: `npx vitest run <path>`
+     - Mobile: `npm test -- <pattern>`
+     - Back: `dotnet test --filter "<FullyQualifiedName~Feature>"` (or the specific test project)
+   - If a task says "run the full suite" / "all tests", run the affected tests instead and leave the full-suite decision to step 7.
+   - Do NOT run `npm run test`, `npx vitest run` without a path, `npm test` without a pattern, or a bare `dotnet test` on your own.
+   - Instruct any subagent (e.g. `openspec-implementer`) with the same policy.
+
    **Pause if:**
    - Task is unclear → ask for clarification
    - Implementation reveals a design issue → suggest updating artifacts
    - Error or blocker encountered → report and wait for guidance
    - User interrupts
 
-7. **On completion or pause, show status**
+7. **Offer the full test suite (only once, when all tasks are done)**
+
+   After the last task, use the **AskUserQuestion tool** to ask: "¿Quieres ejecutar toda la suite de tests?" with options:
+   - "No, solo los afectados (Recommended)" — skip it
+   - "Sí, ejecutar la suite completa" — `npx vitest run --maxWorkers=4` (Front), `npm test` (Mobile) and/or `dotnet test` (Back), per the stacks touched
+
+   Never run the full suite without an affirmative answer. If paused before completion, do not ask.
+
+8. **On completion or pause, show status**
 
    Display:
    - Tasks completed this session
+   - Tests run (affected only, or full suite if the user chose it)
    - Overall progress: "N/M tasks complete"
    - If all done: suggest archive
    - If paused: explain why and wait for guidance

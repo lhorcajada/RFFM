@@ -25,8 +25,9 @@ If any of these are missing, stop and report what you need.
    - If the task maps to one or more top-level items in OpenSpec `tasks.md`, mark those `- [ ]` → `- [x]` too (only when the corresponding work is genuinely complete and verified).
    - Mark your TodoWrite item complete and move to the next.
 4. **Verify continuously.** `implement.md` has a **Verification** section with exact commands. Run them as you complete groups of tasks and again at the end. Typical commands (run from the right working directory):
-   - Backend (`Back/ExtractionApi/`): `dotnet build`; then tests if present.
-   - Frontend (`Front/`): `npm run build`; then `npm run test` / `npx playwright test` if relevant.
+   - Backend (`Back/ExtractionApi/`): `dotnet build`; then only the affected tests (`dotnet test --filter "<FullyQualifiedName~Feature>"`).
+   - Frontend (`Front/`): `npm run build`; then only the affected tests (`npx vitest run <path>`); Playwright only if relevant.
+   - **Never run the full suite** (`npm run test`, bare `dotnet test`, `npm test` without a pattern), even if `implement.md` says so; run the affected tests instead and mention it in the report. The orchestrator asks the user whether to run the full suite.
    Fix any errors **you introduced** before continuing. Do not mark a task complete if its verification fails.
 5. **Conventions fallback.** If `implement.md` is thin on conventions, consult `.github/instructions/copilot-instructions.md` for the relevant stack (Frontend or Backend section). Mirror the nearest sibling file's patterns. Never invent new conventions.
 6. **Pause if blocked.** Stop and report if:
