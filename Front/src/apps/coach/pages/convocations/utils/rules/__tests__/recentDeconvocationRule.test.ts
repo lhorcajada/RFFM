@@ -20,11 +20,9 @@ function ctx(cells: Array<GridCell | undefined>): RuleContext {
 
 describe("recentDeconvocationRule", () => {
   it.each([
-    [1, 25],
-    [2, 20],
-    [3, 15],
-    [4, 10],
-    [5, 5],
+    [1, 15],
+    [2, 10],
+    [3, 5],
   ])("desconvocado hace %i jornada(s) da %i puntos", (jornadasAgo, points) => {
     const cells = Array.from({ length: 6 }, (_, i) => (i === jornadasAgo - 1 ? DECONVOKED : CALLED));
 
@@ -35,8 +33,8 @@ describe("recentDeconvocationRule", () => {
     expect(result.forced).toBeUndefined();
   });
 
-  it("no da puntos si la última desconvocatoria fue hace más de 5 jornadas", () => {
-    const cells = [CALLED, CALLED, CALLED, CALLED, CALLED, DECONVOKED];
+  it.each([4, 5, 6])("no da puntos si la última desconvocatoria fue hace %i jornadas", (jornadasAgo) => {
+    const cells = Array.from({ length: 7 }, (_, i) => (i === jornadasAgo - 1 ? DECONVOKED : CALLED));
 
     expect(recentDeconvocationRule(ctx(cells), {})).toEqual({ factors: [], delta: 0 });
   });
@@ -48,13 +46,13 @@ describe("recentDeconvocationRule", () => {
   it("usa la desconvocatoria más reciente si hay varias", () => {
     const result = recentDeconvocationRule(ctx([CALLED, CALLED, DECONVOKED, CALLED, DECONVOKED]), {});
 
-    expect(result.delta).toBe(15);
+    expect(result.delta).toBe(5);
   });
 
   it.each([
     ["lesión", INJURED],
     ["no disponible", UNAVAILABLE],
   ])("cuenta también la desconvocatoria por %s", (_name, cell) => {
-    expect(recentDeconvocationRule(ctx([cell]), {}).delta).toBe(25);
+    expect(recentDeconvocationRule(ctx([cell]), {}).delta).toBe(15);
   });
 });

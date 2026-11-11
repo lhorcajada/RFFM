@@ -3,7 +3,7 @@ import type { Rule, RuleResult, RuleContext } from "./types";
 const NOT_CALLED_NAMES = new Set(["Deconvoke", "No disponible"]);
 
 /** Puntos de protección según las jornadas transcurridas desde la última desconvocatoria (1 = la anterior). */
-const RECENT_DECONVOCATION_POINTS = [25, 20, 15, 10, 5] as const;
+const RECENT_DECONVOCATION_POINTS = [15, 10, 5] as const;
 
 const recentDeconvocationRule: Rule = (ctx: RuleContext, _prev: Record<string, RuleResult>): RuleResult => {
   const { seasonColumns, enrichedGrid, playerId } = ctx;
