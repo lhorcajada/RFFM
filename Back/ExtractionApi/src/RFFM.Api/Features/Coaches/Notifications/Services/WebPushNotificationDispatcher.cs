@@ -319,7 +319,7 @@ namespace RFFM.Api.Features.Coaches.Notifications.Services
             }
             catch (Exception ex)
             {
-                _logger?.LogWarning(ex, "Failed to dispatch rival-stats web push");
+                _logger?.LogWarning(ex, "Failed to dispatch match-forecast web push");
             }
         }
 

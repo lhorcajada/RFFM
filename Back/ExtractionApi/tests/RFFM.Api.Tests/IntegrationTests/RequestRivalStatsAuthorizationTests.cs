@@ -73,9 +73,12 @@ namespace RFFM.Api.Tests.IntegrationTests
                     new Claim(ClaimTypes.Name, "test-user"),
                     new Claim(ClaimTypes.NameIdentifier, "test-user-id"),
                 };
+                var claimType = Request.Headers.TryGetValue("X-Test-Claim-Type", out var claimHeader) && claimHeader == "roles"
+                    ? "roles"
+                    : ClaimTypes.Role;
                 foreach (var role in roles.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
                 {
-                    claims.Add(new Claim(ClaimTypes.Role, role));
+                    claims.Add(new Claim(claimType, role));
                 }
 
                 var identity = new ClaimsIdentity(claims, SchemeName);
@@ -125,7 +128,7 @@ namespace RFFM.Api.Tests.IntegrationTests
         private static RivalStatsStatusResponse PendingReport() => new(
             LeagueSquadStatsStatus.Pending.Name, 0, 0, 0, null, null, null);
 
-        private static HttpRequestMessage PostRequest(string? role)
+        private static HttpRequestMessage PostRequest(string? role, string? claimType = null)
         {
             var request = new HttpRequestMessage(HttpMethod.Post, Route)
             {
@@ -136,7 +139,22 @@ namespace RFFM.Api.Tests.IntegrationTests
                 request.Headers.Add("X-Test-Role", role);
             }
 
+            if (claimType is not null)
+            {
+                request.Headers.Add("X-Test-Claim-Type", claimType);
+            }
+
             return request;
+        }
+
+        private static async Task AssertForbiddenProblemAsync(HttpResponseMessage response)
+        {
+            Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+            using var problem = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+            Assert.Equal(403, problem.RootElement.GetProperty("status").GetInt32());
+            Assert.Equal("Solo un entrenador puede generar o actualizar el pronóstico de partidos",
+                problem.RootElement.GetProperty("title").GetString());
+            Assert.Equal(ErrorCodes.MatchForecastRequestForbidden, problem.RootElement.GetProperty("code").GetString());
         }
 
         [Theory]
@@ -149,24 +167,43 @@ namespace RFFM.Api.Tests.IntegrationTests
 
             var response = await client.SendAsync(PostRequest(role));
 
-            Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
-            using var problem = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-            Assert.Equal(403, problem.RootElement.GetProperty("status").GetInt32());
-            Assert.Equal("Solo un entrenador puede generar o actualizar el pronóstico de partidos",
-                problem.RootElement.GetProperty("title").GetString());
-            Assert.Equal(ErrorCodes.MatchForecastRequestForbidden, problem.RootElement.GetProperty("code").GetString());
+            await AssertForbiddenProblemAsync(response);
             Assert.Empty(sent);
         }
 
         [Fact]
-        public async Task RequestForecast_WithAdministratorWithoutCoachRole_ReturnsForbiddenWithoutCallingMediator()
+        public async Task RequestForecast_WithAdministratorWithoutCoachRole_ReturnsForbiddenProblemWithoutCallingMediator()
         {
             var (host, client, sent) = await StartHostAsync(PendingReport());
             using var _ = host;
 
             var response = await client.SendAsync(PostRequest("Administrator"));
 
-            Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+            await AssertForbiddenProblemAsync(response);
+            Assert.Empty(sent);
+        }
+
+        [Fact]
+        public async Task RequestForecast_WithCoachRoleInRolesClaim_SendsOneCommand()
+        {
+            var (host, client, sent) = await StartHostAsync(PendingReport());
+            using var _ = host;
+
+            var response = await client.SendAsync(PostRequest("Coach", claimType: "roles"));
+
+            Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
+            Assert.Single(sent);
+        }
+
+        [Fact]
+        public async Task RequestForecast_WithPlayerRoleInRolesClaim_ReturnsForbiddenProblemWithoutCallingMediator()
+        {
+            var (host, client, sent) = await StartHostAsync(PendingReport());
+            using var _ = host;
+
+            var response = await client.SendAsync(PostRequest("Player", claimType: "roles"));
+
+            await AssertForbiddenProblemAsync(response);
             Assert.Empty(sent);
         }
 

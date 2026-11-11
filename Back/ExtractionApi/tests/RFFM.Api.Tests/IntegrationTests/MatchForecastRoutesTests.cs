@@ -129,6 +129,7 @@ namespace RFFM.Api.Tests.IntegrationTests
         [InlineData("GET", "/api/teams/{0}/match-forecast/simulation")]
         [InlineData("GET", "/api/teams/{0}/match-forecast/simulation/rounds")]
         [InlineData("PUT", "/api/teams/{0}/match-forecast/simulation/rounds")]
+        [InlineData("GET", "/api/teams/{0}/match-forecast/teams/E1")]
         public async Task MatchForecastRoute_IsRouted(string method, string pathTemplate)
         {
             var (host, client) = await StartHostAsync();
@@ -139,6 +140,7 @@ namespace RFFM.Api.Tests.IntegrationTests
             var response = await client.SendAsync(request);
 
             Assert.NotEqual(HttpStatusCode.NotFound, response.StatusCode);
+            Assert.NotEqual(HttpStatusCode.MethodNotAllowed, response.StatusCode);
         }
 
         [Theory]
@@ -146,6 +148,7 @@ namespace RFFM.Api.Tests.IntegrationTests
         [InlineData("GET", "/api/teams/{0}/rival-stats/simulation")]
         [InlineData("GET", "/api/teams/{0}/rival-stats/simulation/rounds")]
         [InlineData("PUT", "/api/teams/{0}/rival-stats/simulation/rounds")]
+        [InlineData("GET", "/api/teams/{0}/rival-stats/teams/E1")]
         public async Task RivalStatsRoute_IsNoLongerServed(string method, string pathTemplate)
         {
             var (host, client) = await StartHostAsync();
