@@ -54,7 +54,7 @@ None.
 - **Problem:** The endpoint repeats the claim filter inline: `httpContext.User.Claims.Where(c => c.Type == "roles" || c.Type == ClaimTypes.Role)`. `CurrentUserService.Roles` (`Infrastructure/Services/CurrentUserService.cs:27-32`) already implements that filter. The design names `UpdateTeamPlayer.cs` as the precedent, and it injects `ICurrentUserService currentUser` and checks `currentUser.Roles`. If the claim mapping ever changes, two copies have to be updated.
 - **Suggested fix:** Inject `ICurrentUserService currentUser` into the lambda and use `currentUser.Roles.Any(r => string.Equals(r, AppRoles.Coach.Name, StringComparison.OrdinalIgnoreCase))`, matching `UpdateTeamPlayer.cs:39`.
 
-#### L4 — «Crear pronóstico» query-string preservation is untested
+#### L4 — «Crear pronóstico» query-string preservation is untested (FIXED)
 - **Location:** `Front/src/apps/coach/pages/matchForecast/__tests__/MatchForecast.test.tsx:157-161`
 - **Problem:** The spec scenario «Botón de la simulación» requires that «Crear pronóstico» opens `/coach/match-forecast/simulation` "conservando la query string". The code forwards `search` (`MatchForecast.tsx:207`), but the test renders with no query string and asserts `href` `"/coach/match-forecast/simulation"`, so dropping `search` would still pass.
 - **Suggested fix:** Render the page at `/coach/match-forecast?teamId=team-1` (the `MemoryRouter` `initialEntries`) and assert `href` `"/coach/match-forecast/simulation?teamId=team-1"`.

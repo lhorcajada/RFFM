@@ -160,6 +160,19 @@ describe("RivalStats", () => {
     expect(screen.getByRole("link", { name: /crear pronóstico/i })).toHaveAttribute("href", "/coach/match-forecast/simulation");
   });
 
+  it("conserva el equipo de la URL al abrir «Crear pronóstico»", () => {
+    render(
+      <MemoryRouter initialEntries={["/coach/match-forecast?teamId=team-1"]}>
+        <MatchForecast />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole("link", { name: /crear pronóstico/i })).toHaveAttribute(
+      "href",
+      "/coach/match-forecast/simulation?teamId=team-1",
+    );
+  });
+
   it("no ofrece la simulación si el equipo no tiene competición", () => {
     mockUseTeamAndClub.mockReturnValue({ team: { ...team, rffmCompetitionId: null, rffmGroupId: null }, loading: false });
 
