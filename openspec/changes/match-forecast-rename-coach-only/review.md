@@ -49,7 +49,7 @@ None.
 - **Problem:** `TestAuthHandler` emits only `new Claim(ClaimTypes.Role, role)`. `TokenService.cs:222` issues the roles as a `"roles"` claim, and the endpoint filter matches `c.Type == "roles" || c.Type == ClaimTypes.Role`. The `"roles"` branch, the one real tokens hit when inbound claim mapping does not apply, is never tested.
 - **Suggested fix:** Add a case (e.g. an `X-Test-Claim-Type: roles` header or a second theory parameter) that emits the Coach role as a `"roles"` claim and expects 202, plus a non-Coach case that expects 403.
 
-#### L3 — Coach-role check duplicates `ICurrentUserService.Roles`
+#### L3 — Coach-role check duplicates `ICurrentUserService.Roles` (EXCLUDED: interfaces.md fixes the lambda parameters; the duplication is harmless and covered by tests)
 - **Location:** `Back/ExtractionApi/src/RFFM.Api/Features/Coaches/MatchForecast/RequestRivalStats.cs:41-43`
 - **Problem:** The endpoint repeats the claim filter inline: `httpContext.User.Claims.Where(c => c.Type == "roles" || c.Type == ClaimTypes.Role)`. `CurrentUserService.Roles` (`Infrastructure/Services/CurrentUserService.cs:27-32`) already implements that filter. The design names `UpdateTeamPlayer.cs` as the precedent, and it injects `ICurrentUserService currentUser` and checks `currentUser.Roles`. If the claim mapping ever changes, two copies have to be updated.
 - **Suggested fix:** Inject `ICurrentUserService currentUser` into the lambda and use `currentUser.Roles.Any(r => string.Equals(r, AppRoles.Coach.Name, StringComparison.OrdinalIgnoreCase))`, matching `UpdateTeamPlayer.cs:39`.
@@ -64,12 +64,12 @@ None.
 - **Problem:** `_logger?.LogWarning(ex, "Failed to dispatch rival-stats web push");` is the only `rival-stats` literal left in `Back/ExtractionApi/src`. The title and link two lines above were renamed. Log searches by feature name will miss it.
 - **Suggested fix:** Change the message to `"Failed to dispatch match-forecast web push"`.
 
-#### L6 — Stale `RivalStats` identifiers for renamed page and hook
+#### L6 — Stale `RivalStats` identifiers for renamed page and hook (EXCLUDED: cosmetic naming inside tests and a type alias, no behavior)
 - **Location:** `Front/src/apps/coach/hooks/useMatchForecast.ts:6`; `Front/src/apps/coach/pages/matchForecast/__tests__/MatchForecast.test.tsx:114` (also `mockUseRivalStats`, and `MatchForecast.leagueSummary.test.tsx:27`)
 - **Problem:** Design Decision 1 renames the page hook (`useRivalStats` → `useMatchForecast`) and the page component, and keeps only the data-concept names (`getRivalStats`, response types, `RivalSimulation*`). The hook's return type alias is still `UseRivalStats`, the page test suite is still `describe("RivalStats")`, and the hook mock is still `mockUseRivalStats`. These are neither data concepts nor kept names, so they read as missed renames.
 - **Suggested fix:** Rename the alias to `UseMatchForecast`, the suite to `describe("MatchForecast")`, and the mock to `mockUseMatchForecast`.
 
-#### L7 — Squad-strength notice prompts non-coaches to do a Coach-only action
+#### L7 — Squad-strength notice prompts non-coaches to do a Coach-only action (EXCLUDED: the approved specs leave the simulation page unrestricted and unchanged; the fix adds behavior outside the scope)
 - **Location:** `Front/src/apps/coach/pages/matchForecast/simulation/RivalSimulation.tsx:191-195`
 - **Problem:** The notice «Genera las estadísticas de rivales para tener en cuenta las plantillas; ahora solo se usan los resultados.» is shown to every role. After this change only the Coach role can generate statistics: the endpoint rejects others with 403 and the button is hidden. A player or family member who reaches the simulation page by URL is told to do something they cannot do. The spec makes the notice itself unconditional, so this concerns only its wording.
 - **Suggested fix:** Keep the notice for everyone, but show the call to action only when `useIsCoachRole()` is true. For example, non-coaches see «Ahora solo se usan los resultados; las plantillas se tendrán en cuenta cuando el entrenador genere las estadísticas.»
