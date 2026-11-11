@@ -238,6 +238,7 @@ export default function ConvocationMatchDetail() {
   }, [match]);
 
   const squadIds = useMemo(() => convocation.players.map((p) => p.id), [convocation.players]);
+  const alreadyOutIds = useMemo(() => new Set(convocation.mgmtNotCalled), [convocation.mgmtNotCalled]);
   const matchUnavailable = useMemo(
     () => buildMatchUnavailability(convocation.mgmtNotCalled, convocation.mgmtExcuseMap, convocation.excuseTypes),
     [convocation.mgmtNotCalled, convocation.mgmtExcuseMap, convocation.excuseTypes],
@@ -255,6 +256,7 @@ export default function ConvocationMatchDetail() {
   const proposal = useConvocationProposal({
     players: convocation.players,
     squadIds,
+    alreadyOutIds,
     ratings: convocation.mgmtRatings,
     playerStreaks,
     playerTechnicalTotals,

@@ -12,6 +12,8 @@ type UseConvocationProposalInput = {
   players: PlayerResponse[];
   /** Whole squad: the proposal picks who to leave out from every player, not only those already called. */
   squadIds: string[];
+  /** Players already deconvoked, whatever the reason: they are not proposed and do not count as available. */
+  alreadyOutIds?: ReadonlySet<string>;
   ratings: Record<string, PlayerRating>;
   playerStreaks: Map<string, number>;
   playerTechnicalTotals: Map<string, number>;
@@ -36,6 +38,7 @@ export function useConvocationProposal(input: UseConvocationProposalInput): Deco
   const {
     players,
     squadIds,
+    alreadyOutIds,
     ratings,
     playerStreaks,
     playerTechnicalTotals,
@@ -60,6 +63,7 @@ export function useConvocationProposal(input: UseConvocationProposalInput): Deco
       buildDeconvokeProposal({
         players,
         calledIds: squadIds,
+        alreadyOutIds,
         ratings,
         streaks: playerStreaks,
         technicalTotals: playerTechnicalTotals,
@@ -82,6 +86,7 @@ export function useConvocationProposal(input: UseConvocationProposalInput): Deco
     [
       players,
       squadIds,
+      alreadyOutIds,
       ratings,
       playerStreaks,
       playerTechnicalTotals,

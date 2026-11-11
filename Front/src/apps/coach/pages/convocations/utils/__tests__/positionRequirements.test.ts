@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   evaluateRequirements,
   formatShortfall,
+  protectionReason,
   roleFromDemarcationId,
   roleFromPositionName,
   toPositionPlayer,
@@ -19,14 +20,13 @@ function times(n: number, role: PositionRole, possibleRoles: PositionRole[] = []
   return Array.from({ length: n }, () => pp(role, possibleRoles));
 }
 
-// 1 POR, 2 LAT, 3 DFC, 3 MC, 1 MCO, 4 banda, 2 DC → todos los mínimos cumplidos.
+// 1 POR, 2 LAT, 3 DFC, 3 MC, 4 banda, 2 DC → todos los mínimos cumplidos.
 function fullSquad(): PositionPlayer[] {
   return [
     ...times(1, "goalkeeper"),
     ...times(2, "fullBack"),
     ...times(3, "centreBack"),
     ...times(3, "centralMid"),
-    ...times(1, "attackingMid"),
     ...times(4, "wide"),
     ...times(2, "forward"),
   ];
@@ -56,7 +56,7 @@ describe("roleFromDemarcationId", () => {
     [5, "centreBack"],
     [6, "centralMid"],
     [7, "centralMid"],
-    [8, "attackingMid"],
+    [8, "centralMid"],
     [9, "wide"],
     [10, "wide"],
     [11, "forward"],
@@ -77,11 +77,11 @@ describe("roleFromPositionName", () => {
     ["Líbero", "centreBack"],
     ["extremo derecho", "wide"],
     ["Mediocampista Izquierdo", "wide"],
-    ["Mediocampista ofensivo", "attackingMid"],
+    ["Mediocampista ofensivo", "centralMid"],
     ["Medio Centro Defensivo", "centralMid"],
     ["Segundo Delantero", "forward"],
     ["Carrilero", "fullBack"],
-    ["Mediapunta", "attackingMid"],
+    ["Mediapunta", "centralMid"],
     ["Pivote", "centralMid"],
   ])("«%s» es del rol %s", (name, role) => {
     expect(roleFromPositionName(name)).toBe(role);
@@ -104,7 +104,7 @@ describe("toPositionPlayer", () => {
       possibleDemarcationIds: [6, 8, 11],
     });
     expect(player.role).toBe("centralMid");
-    expect(player.possibleRoles).toEqual(["centralMid", "attackingMid", "forward"]);
+    expect(player.possibleRoles).toEqual(["centralMid", "forward"]);
   });
 
   it("si no hay id usa el nombre de la posición", () => {
@@ -157,10 +157,10 @@ describe("evaluateRequirements", () => {
     expect(shortfallTexts(without(fullSquad(), "forward"))).toEqual(["Cobertura de delantero: quedan 1 de 2"]);
   });
 
-  it("un mediapunta que puede jugar de delantero completa la cobertura de delantero", () => {
+  it("un medio centro que puede jugar de delantero completa la cobertura de delantero", () => {
     const squad = [
-      ...without(without(fullSquad(), "forward"), "attackingMid"),
-      pp("attackingMid", ["attackingMid", "forward"]),
+      ...without(fullSquad(), "forward"),
+      pp("centralMid", ["centralMid", "forward"]),
     ];
     expect(shortfallTexts(squad)).toEqual([]);
   });
@@ -180,5 +180,51 @@ describe("evaluateRequirements", () => {
   it("el déficit suma lo que falta en cada requisito", () => {
     const squad = without(without(fullSquad(), "centreBack", 2), "goalkeeper");
     expect(evaluateRequirements(squad).deficit).toBe(3);
+  });
+});
+
+describe("medios centro", () => {
+  it("el mediocampista ofensivo cuenta como medio centro", () => {
+    const squad = [
+      ...without(fullSquad(), "centralMid", 2),
+      toPositionPlayer({ id: "o1", position: "Mediocampista ofensivo", activePositionId: 8 }),
+      toPositionPlayer({ id: "o2", position: "Mediocampista ofensivo", activePositionId: 8 }),
+    ];
+
+    expect(shortfallTexts(squad)).toEqual([]);
+    expect(evaluateRequirements(squad).available.get("centralMid")).toBe(3);
+  });
+
+  it("el mediocampista derecho cuenta como banda y no como medio centro", () => {
+    const squad = [
+      ...without(fullSquad(), "centralMid"),
+      toPositionPlayer({ id: "m1", position: "Mediocampista Derecho", activePositionId: 10 }),
+    ];
+
+    expect(shortfallTexts(squad)).toEqual(["Medios centro: quedan 2 de 3"]);
+  });
+});
+
+describe("protectionReason", () => {
+  it("indica cuántos disponibles quedan de los que exige el mínimo", () => {
+    expect(protectionReason("centralMid", 3)).toBe("Protegido: quedan 3 de 3 medios centro disponibles");
+  });
+
+  it("usa el mínimo de cada posición", () => {
+    expect(protectionReason("fullBack", 2)).toBe("Protegido: quedan 2 de 2 laterales disponibles");
+  });
+
+  it("mantiene el texto de cobertura de banda y de delantero", () => {
+    expect(protectionReason("wideCover", 4)).toBe("Protegido: cobertura de banda");
+    expect(protectionReason("forwardCover", 2)).toBe("Protegido: cobertura de delantero");
+  });
+});
+
+describe("evaluateRequirements available", () => {
+  it("expone los disponibles por exigencia", () => {
+    const result = evaluateRequirements(fullSquad());
+
+    expect(result.available.get("centralMid")).toBe(3);
+    expect(result.available.get("wideCover")).toBe(4);
   });
 });

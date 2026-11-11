@@ -5,7 +5,6 @@ export type PositionRole =
   | "fullBack"
   | "centreBack"
   | "centralMid"
-  | "attackingMid"
   | "wide"
   | "forward";
 
@@ -32,6 +31,8 @@ export type RequirementsEvaluation = {
   specialistDeficit: number;
   /** Players counted through a possible (non-active) demarcation, by the role they cover. */
   coverAssignments: Map<string, PositionRole>;
+  /** Players available for each requirement, cover included. */
+  available: Map<RequirementKey, number>;
 };
 
 export const ROLE_MINIMUMS: Record<PositionRole, number> = {
@@ -39,7 +40,6 @@ export const ROLE_MINIMUMS: Record<PositionRole, number> = {
   fullBack: 2,
   centreBack: 3,
   centralMid: 3,
-  attackingMid: 1,
   wide: 3,
   forward: 1,
 };
@@ -52,7 +52,6 @@ const ROLE_ORDER: PositionRole[] = [
   "fullBack",
   "centreBack",
   "centralMid",
-  "attackingMid",
   "wide",
   "forward",
 ];
@@ -62,7 +61,6 @@ const REQUIREMENT_LABELS: Record<RequirementKey, string> = {
   fullBack: "Laterales",
   centreBack: "Centrales",
   centralMid: "Medios centro",
-  attackingMid: "Mediapuntas",
   wide: "Bandas",
   wideCover: "Cobertura de banda",
   forward: "Delanteros",
@@ -74,20 +72,12 @@ const ROLE_LABELS: Record<PositionRole, string> = {
   fullBack: "Lateral",
   centreBack: "Central",
   centralMid: "Medio centro",
-  attackingMid: "Mediapunta",
   wide: "Banda",
   forward: "Delantero",
 };
 
-const PROTECTION_REASONS: Record<RequirementKey, string> = {
-  goalkeeper: `mínimo de ${ROLE_MINIMUMS.goalkeeper} portero`,
-  fullBack: `mínimo de ${ROLE_MINIMUMS.fullBack} laterales`,
-  centreBack: `mínimo de ${ROLE_MINIMUMS.centreBack} centrales`,
-  centralMid: `mínimo de ${ROLE_MINIMUMS.centralMid} medios centro`,
-  attackingMid: `mínimo de ${ROLE_MINIMUMS.attackingMid} mediapunta`,
-  wide: `mínimo de ${ROLE_MINIMUMS.wide} de banda`,
+const COVER_PROTECTION_REASONS: Partial<Record<RequirementKey, string>> = {
   wideCover: "cobertura de banda",
-  forward: `mínimo de ${ROLE_MINIMUMS.forward} delantero`,
   forwardCover: "cobertura de delantero",
 };
 
@@ -100,7 +90,7 @@ const ROLE_BY_DEMARCATION_ID: Record<number, PositionRole> = {
   5: "centreBack",
   6: "centralMid",
   7: "centralMid",
-  8: "attackingMid",
+  8: "centralMid",
   9: "wide",
   10: "wide",
   11: "forward",
@@ -117,7 +107,7 @@ const ROLE_BY_CATALOG_NAME: Record<string, PositionRole> = {
   "libero": "centreBack",
   "medio centro": "centralMid",
   "medio centro defensivo": "centralMid",
-  "mediocampista ofensivo": "attackingMid",
+  "mediocampista ofensivo": "centralMid",
   "mediocampista izquierdo": "wide",
   "mediocampista derecho": "wide",
   "delantero centro": "forward",
@@ -148,7 +138,7 @@ export function roleFromPositionName(name: string | null | undefined): PositionR
   if (p.includes("portero") || p.includes("keeper") || p.includes("arquero")) return "goalkeeper";
   if (p.includes("lateral") || p.includes("carrilero")) return "fullBack";
   if (p.includes("central") || p.includes("libero") || p.includes("stopper") || p.includes("defensa")) return "centreBack";
-  if (p.includes("mediapunta") || p.includes("ofensivo") || p.includes("enganche")) return "attackingMid";
+  if (p.includes("mediapunta") || p.includes("ofensivo") || p.includes("enganche")) return "centralMid";
   if (p.includes("extremo") || p.includes("banda") || p.includes("izquierdo") || p.includes("derecho")) return "wide";
   if (p.includes("delantero") || p.includes("punta") || p.includes("ariete")) return "forward";
   if (p.includes("medio") || p.includes("pivote") || p.includes("centrocampista")) return "centralMid";
@@ -171,8 +161,11 @@ export function roleLabel(role: PositionRole | null): string {
   return role ? ROLE_LABELS[role] : "Sin posición";
 }
 
-export function protectionReason(requirement: RequirementKey): string {
-  return `Protegido: ${PROTECTION_REASONS[requirement]}`;
+export function protectionReason(requirement: RequirementKey, remaining: number): string {
+  const cover = COVER_PROTECTION_REASONS[requirement];
+  if (cover) return `Protegido: ${cover}`;
+  const required = requiredCount(requirement);
+  return `Protegido: quedan ${remaining} de ${required} ${REQUIREMENT_LABELS[requirement].toLowerCase()} disponibles`;
 }
 
 export function requiredCount(requirement: RequirementKey): number {
@@ -235,7 +228,7 @@ export function evaluateRequirements(players: PositionPlayer[]): RequirementsEva
 
   // Keep cover warnings right after their role.
   const order: RequirementKey[] = [
-    "goalkeeper", "fullBack", "centreBack", "centralMid", "attackingMid",
+    "goalkeeper", "fullBack", "centreBack", "centralMid",
     "wide", "wideCover", "forward", "forwardCover",
   ];
   const shortfalls = order
@@ -259,5 +252,6 @@ export function evaluateRequirements(players: PositionPlayer[]): RequirementsEva
     specialistShortfalls,
     specialistDeficit: sumGaps(specialistShortfalls),
     coverAssignments,
+    available: new Map(checks.map((c) => [c.requirement, c.remaining])),
   };
 }

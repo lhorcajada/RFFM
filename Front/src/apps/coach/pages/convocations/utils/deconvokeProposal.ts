@@ -8,7 +8,6 @@ import { runRules } from "./rules";
 import {
   evaluateRequirements,
   protectionReason,
-  requiredCount,
   toPositionPlayer,
   type PositionPlayer,
   type PositionRole,
@@ -86,6 +85,8 @@ export type BuildProposalInput = {
   gridStartsCountMap?: Map<string, number>;
   /** Players not available for this match (playerId → reason): always deconvoked. */
   matchUnavailable?: Map<string, MatchUnavailability>;
+  /** Players already deconvoked, whatever the reason: out of the squad the proposal works on. */
+  alreadyOutIds?: ReadonlySet<string>;
 };
 
 // "Trainings" include the friendlies the player was called to.
@@ -111,6 +112,8 @@ export type DeconvocationSelection = {
   selectedIds: string[];
   /** Candidates kept called because removing them would break a position minimum. */
   protectedBy: Map<string, RequirementKey>;
+  /** Players still available for the requirement that protects each candidate. */
+  protectedRemaining: Map<string, number>;
   shortfalls: PositionShortfall[];
 };
 
@@ -135,6 +138,7 @@ export function selectDeconvocations(
 ): DeconvocationSelection {
   const selected = new Set(ordered.filter((c) => c.forced && !c.locked).map((c) => c.playerId));
   const protectedBy = new Map<string, RequirementKey>();
+  const protectedRemaining = new Map<string, number>();
   const positionOf = (id: string): PositionPlayer =>
     positionPlayers.get(id) ?? { id, role: null, possibleRoles: [] };
   const evaluateWithout = (excludedId?: string) =>
@@ -157,7 +161,10 @@ export function selectDeconvocations(
       const requirement =
         firstWorsenedRequirement(before.shortfalls, after.shortfalls) ??
         firstWorsenedRequirement(before.specialistShortfalls, after.specialistShortfalls);
-      if (requirement) protectedBy.set(candidate.playerId, requirement);
+      if (requirement) {
+        protectedBy.set(candidate.playerId, requirement);
+        protectedRemaining.set(candidate.playerId, before.available.get(requirement) ?? 0);
+      }
       continue;
     }
     selected.add(candidate.playerId);
@@ -181,11 +188,13 @@ export function selectDeconvocations(
     if (!best) break;
     selected.add(best.playerId);
     protectedBy.delete(best.playerId);
+    protectedRemaining.delete(best.playerId);
   }
 
   return {
     selectedIds: ordered.filter((c) => selected.has(c.playerId)).map((c) => c.playerId),
     protectedBy,
+    protectedRemaining,
     shortfalls: evaluateWithout().shortfalls,
   };
 }
@@ -305,7 +314,7 @@ function findPreviousRivalResult(
 export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProposal {
   const {
     players,
-    calledIds,
+    calledIds: squadIds,
     ratings,
     streaks,
     technicalTotals,
@@ -324,7 +333,10 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
     maxCalledPlayers = 18,
     gridStartsCountMap,
     matchUnavailable,
+    alreadyOutIds,
   } = input;
+
+  const calledIds = alreadyOutIds ? squadIds.filter((id) => !alreadyOutIds.has(id)) : squadIds;
 
   const previousRivalResult = findPreviousRivalResult(
     seasonEvents,
@@ -556,7 +568,7 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
   const forcedCount = proposals.filter((p) => p.forced).length;
   const targetCount = Math.max(forcedCount, calledIds.length - maxCalledPlayers, 0);
 
-  const { selectedIds, protectedBy, shortfalls } = selectDeconvocations(
+  const { selectedIds, protectedBy, protectedRemaining, shortfalls } = selectDeconvocations(
     proposals,
     positionPlayers,
     targetCount,
@@ -565,13 +577,14 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
 
   const playersWithSelection = proposals.map((p) => {
     const requirement = protectedBy.get(p.playerId);
+    const remaining = protectedRemaining.get(p.playerId) ?? 0;
     const factors = requirement
       ? [
           ...p.factors,
           {
             key: "positionProtection",
-            label: protectionReason(requirement),
-            value: requiredCount(requirement),
+            label: protectionReason(requirement, remaining),
+            value: remaining,
             impact: 0,
           },
         ]
