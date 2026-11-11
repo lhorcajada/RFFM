@@ -52,11 +52,11 @@ describe("buildTeamSections — grupos", () => {
     ]);
   });
 
-  it("coloca Calendario, Resultados, Clasificación y Estadísticas de rivales en Competición", () => {
+  it("coloca Calendario, Resultados, Clasificación y Pronóstico de partidos en Competición", () => {
     expect(groupOf("Calendario")).toBe("Competición");
     expect(groupOf("Resultados")).toBe("Competición");
     expect(groupOf("Clasificación")).toBe("Competición");
-    expect(groupOf("Estadísticas de rivales")).toBe("Competición");
+    expect(groupOf("Pronóstico de partidos")).toBe("Competición");
   });
 
   it("omite un grupo cuando ninguna de sus entradas es visible", () => {
@@ -81,8 +81,8 @@ describe("buildTeamSections — rutas", () => {
       "/coach/classification?teamId=team-1",
     );
     expect(findItem("Goleadores", { teamId: "team-1" })?.to).toBe("/coach/scorers?teamId=team-1");
-    expect(findItem("Estadísticas de rivales", { teamId: "team-1" })?.to).toBe(
-      "/coach/rival-stats?teamId=team-1",
+    expect(findItem("Pronóstico de partidos", { teamId: "team-1" })?.to).toBe(
+      "/coach/match-forecast?teamId=team-1",
     );
     expect(findItem("Gestión de usuarios", { teamId: "team-1" })?.to).toBe(
       "/coach/team-users?teamId=team-1",
@@ -179,14 +179,14 @@ describe("buildTeamSections — permisos", () => {
     expect(labels({ hasFeatureAccess: () => false })).toContain("Notificaciones");
   });
 
-  it("oculta Resultados, Clasificación y Estadísticas de rivales sin acceso al calendario", () => {
+  it("oculta Resultados, Clasificación y Pronóstico de partidos sin acceso al calendario", () => {
     const visible = labels({
       hasFeatureAccess: (route) => route !== COACH_FEATURE_ROUTES.Convocations,
     });
 
     expect(visible).not.toContain("Resultados");
     expect(visible).not.toContain("Clasificación");
-    expect(visible).not.toContain("Estadísticas de rivales");
+    expect(visible).not.toContain("Pronóstico de partidos");
   });
 });
 
@@ -210,7 +210,7 @@ describe("buildTeamSections — Juegos", () => {
 
   it("ya no deja nada de la quiniela en Competición ni usa los nombres antiguos", () => {
     const competition = build().find((group) => group.title === "Competición")?.items.map((item) => item.label) ?? [];
-    expect(competition).toEqual(["Calendario", "Resultados", "Clasificación", "Goleadores", "Estadísticas de rivales", "Rivales", "Modelo de Juego"]);
+    expect(competition).toEqual(["Calendario", "Resultados", "Clasificación", "Goleadores", "Pronóstico de partidos", "Rivales", "Modelo de Juego"]);
     expect(labels()).not.toContain("Quiniela");
     expect(labels()).not.toContain("Histórico de quinielas");
   });

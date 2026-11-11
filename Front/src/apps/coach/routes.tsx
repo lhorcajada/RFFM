@@ -4,6 +4,7 @@ import { CircularProgress, Box } from "@mui/material";
 import { useLayoutEffect } from "react";
 import { CoachAuthProvider, CoachAuthGuard } from "./context/CoachAuthContext";
 import { RequireFeaturePermission } from "./components/RequireFeaturePermission";
+import RedirectKeepingSearch from "./components/RedirectKeepingSearch";
 import { COACH_FEATURE_ROUTES } from "./constants/featureRoutes";
 import { useWebPushForegroundBridge } from "./hooks/useWebPushForegroundBridge";
 import Clubs from "./pages/clubs/clubs";
@@ -58,8 +59,8 @@ const MyWallet = lazy(() => import("./pages/quiniela/MyWallet"));
 const QuinielaWallets = lazy(() => import("./pages/quiniela/QuinielaWallets"));
 const Rivals = lazy(() => import("./pages/rivals/Rivals"));
 const Results = lazy(() => import("./pages/results/Results"));
-const RivalStats = lazy(() => import("./pages/rivalStats/RivalStats"));
-const RivalSimulation = lazy(() => import("./pages/rivalStats/simulation/RivalSimulation"));
+const MatchForecast = lazy(() => import("./pages/matchForecast/MatchForecast"));
+const RivalSimulation = lazy(() => import("./pages/matchForecast/simulation/RivalSimulation"));
 const MatchReport = lazy(() => import("./pages/matchReport/MatchReport"));
 const Classification = lazy(() => import("./pages/classification/Classification"));
 const Scorers = lazy(() => import("./pages/scorers/Scorers"));
@@ -249,20 +250,25 @@ function CoachRoutesContent() {
               }
             />
             <Route
-              path="rival-stats"
+              path="match-forecast"
               element={
                 <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.Convocations}>
-                  <RivalStats />
+                  <MatchForecast />
                 </RequireFeaturePermission>
               }
             />
             <Route
-              path="rival-stats/simulation"
+              path="match-forecast/simulation"
               element={
                 <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.Convocations}>
                   <RivalSimulation />
                 </RequireFeaturePermission>
               }
+            />
+            <Route path="rival-stats" element={<RedirectKeepingSearch to="/coach/match-forecast" />} />
+            <Route
+              path="rival-stats/simulation"
+              element={<RedirectKeepingSearch to="/coach/match-forecast/simulation" />}
             />
             <Route
               path="match-report"

@@ -10,6 +10,9 @@ Domain language of FutbolBase, the football team management platform. Terms are 
 **Monedero**: "The balance of the quiniela of one user in one team (`QuinielaWallet`), with a ledger of movements."
 *Avoid*: hucha (the team fund piggy bank is a different concept), cartera
 
+**Rol Coach**: "The role of a user who is a coach (entrenador), distinct from the Administrator role."
+*Avoid*: administrador (es otro rol)
+
 ## Relationships
 
 - A **Monedero** belongs to one user and one team

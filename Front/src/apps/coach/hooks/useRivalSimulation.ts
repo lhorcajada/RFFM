@@ -5,7 +5,7 @@ import {
   syncRivalSimulationRounds,
   type RivalSimulation,
   type RivalSimulationHistory,
-} from "../services/rivalStatsService";
+} from "../services/matchForecastService";
 
 type UseRivalSimulation = {
   simulation: RivalSimulation | null;

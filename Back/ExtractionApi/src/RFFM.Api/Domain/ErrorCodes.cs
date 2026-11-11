@@ -139,6 +139,10 @@ namespace RFFM.Api.Domain
         // their own linked TeamPlayer.
         public const string TeamPlayerEditForbidden = "TeamPlayerEditForbidden";
 
+        // Pronóstico de partidos (Features/Coaches/MatchForecast/RequestRivalStats.cs) - openspec change
+        // match-forecast-rename-coach-only: only the Coach role may request the forecast.
+        public const string MatchForecastRequestForbidden = "MatchForecastRequestForbidden";
+
         // Family members (Features/Coaches/Players/Commands/CreateFamilyMember.cs,
         // DeleteFamilyMember.cs) - openspec change player-family-members-crud.
         public const string TeamPlayerNotFound = "TeamPlayerNotFound";
