@@ -173,6 +173,8 @@ export interface SeasonPlayerStats {
   teamPlayerId: string;
   totalMinutes: number;
   totalGoals: number;
+  /** Goals scored in league matches only (excludes friendlies and tournaments). */
+  leagueGoals: number;
   totalStarts: number;
   totalMatches: number;
 }

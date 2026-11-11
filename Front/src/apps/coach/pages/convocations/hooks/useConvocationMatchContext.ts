@@ -215,7 +215,8 @@ export function useConvocationMatchContext(
                   }
                   return {
                     teamPlayerId: p.id,
-                    totalGoals: goals ?? 0,
+                    totalGoals: 0,
+                    leagueGoals: goals ?? 0,
                     totalMinutes: 0,
                     totalStarts: 0,
                     totalMatches: 0,
@@ -227,7 +228,7 @@ export function useConvocationMatchContext(
                   const fedPid = player?.playerId ?? null;
                   if (fedPid && goalsByPid.has(String(fedPid))) {
                     const g = goalsByPid.get(String(fedPid));
-                    return { ...s, totalGoals: g };
+                    return { ...s, leagueGoals: g };
                   }
                   if (player) {
                     const full = findInRoster(player.id, player.playerId);
@@ -241,7 +242,7 @@ export function useConvocationMatchContext(
                       if (!nc) continue;
                       if (goalsByName.has(nc)) {
                         const g = goalsByName.get(nc);
-                        return { ...s, totalGoals: g };
+                        return { ...s, leagueGoals: g };
                       }
                       const found = goles.find((g) => {
                         const gn = normalize(g.playerName ?? "");
@@ -249,7 +250,7 @@ export function useConvocationMatchContext(
                       });
                       if (found) {
                         const score = Number(found.scores ?? 0);
-                        return { ...s, totalGoals: score };
+                        return { ...s, leagueGoals: score };
                       }
                     }
                   }
