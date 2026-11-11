@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using RFFM.Api.FeatureModules;
+using RFFM.Api.Features.Coaches.SportEvents.Queries;
 using RFFM.Api.Infrastructure.Persistence;
 using System.Text.Json;
 
@@ -44,7 +45,15 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
             int TotalMinutes,
             int TotalGoals,
             int TotalStarts,
-            int TotalMatches);
+            int TotalMatches,
+            int LeagueGoals);
+
+        public record ParticipationRow(
+            string TeamPlayerId,
+            int MinutesPlayed,
+            bool IsStarter,
+            string? GoalsJson,
+            bool IsLeague);
 
         // ─── Handler ──────────────────────────────────────────────────────────
 
@@ -58,33 +67,52 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                 SeasonPlayerStatsQuery request,
                 CancellationToken cancellationToken = default)
             {
+                var leagueEventTypeId = SportEventsConstants.MatchEventTypeId;
+                var leagueEventIds = await _db.SportEvents
+                    .AsNoTracking()
+                    .Where(se => se.TeamId == request.TeamId && se.EventTypeId == leagueEventTypeId)
+                    .Select(se => se.Id)
+                    .ToListAsync(cancellationToken);
+                var leagueEventIdSet = leagueEventIds.ToHashSet();
+
                 var participations = await _db.MatchParticipations
                     .AsNoTracking()
                     .Where(mp => mp.TeamId == request.TeamId && mp.MatchPhase == "finished")
+                    .Select(mp => new { mp.EventId, mp.TeamPlayerId, mp.MinutesPlayed, mp.IsStarter, mp.GoalsJson })
                     .ToListAsync(cancellationToken);
 
-                // Group by player and aggregate
-                var grouped = participations
+                var rows = participations
+                    .Select(mp => new ParticipationRow(
+                        mp.TeamPlayerId,
+                        mp.MinutesPlayed,
+                        mp.IsStarter,
+                        mp.GoalsJson,
+                        leagueEventIdSet.Contains(mp.EventId)))
+                    .ToList();
+
+                return Calculator.Calculate(rows);
+            }
+        }
+
+        // ─── Pure aggregation (unit-tested without a database) ────────────────
+
+        public static class Calculator
+        {
+            public static List<PlayerSeasonStatsDto> Calculate(IReadOnlyList<ParticipationRow> participations) =>
+                participations
                     .GroupBy(mp => mp.TeamPlayerId)
                     .Select(g =>
                     {
                         var teamPlayerId = g.Key;
-                        var totalMinutes = g.Sum(mp => mp.MinutesPlayed);
-                        var totalStarts = g.Count(mp => mp.IsStarter);
-                        var totalMatches = g.Count();
-                        var totalGoals = g.Sum(mp => CountGoalsForPlayer(mp.GoalsJson, teamPlayerId));
-
                         return new PlayerSeasonStatsDto(
                             teamPlayerId,
-                            totalMinutes,
-                            totalGoals,
-                            totalStarts,
-                            totalMatches);
+                            g.Sum(mp => mp.MinutesPlayed),
+                            g.Sum(mp => CountGoalsForPlayer(mp.GoalsJson, teamPlayerId)),
+                            g.Count(mp => mp.IsStarter),
+                            g.Count(),
+                            g.Where(mp => mp.IsLeague).Sum(mp => CountGoalsForPlayer(mp.GoalsJson, teamPlayerId)));
                     })
                     .ToList();
-
-                return grouped;
-            }
 
             /// <summary>
             /// Parses GoalsJson to count goals where scorerId == teamPlayerId and isOwnTeam == true.
