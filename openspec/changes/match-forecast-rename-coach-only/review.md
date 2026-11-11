@@ -2,6 +2,19 @@
 
 **Reviewed:** `main` ec435a8b..cb330ffd · 2026-11-11
 
+<!-- sai-inherent-risk:start -->
+## Inherent Risk
+
+Merge-base: `796d393524494b6b2c6f89f870bf347c77e78a32` | Code fingerprint: `ee5f6aafd8b68beb435a86ae46517ff3baf3e24f94c169bece60a5d1fd012ac3`
+
+| Rating | Level | Justification |
+|--------|-------|---------------|
+| Security | medium | The POST endpoint gains a role gate over exposed API routes, `Back/ExtractionApi/src/RFFM.Api/Features/Coaches/MatchForecast/RequestRivalStats.cs:42`. |
+| Reversibility | medium | The web version is bumped in a dependency manifest and public routes are renamed, with redirects for the old URL, `Front/package.json:3`. |
+| Critical sections | medium | The change touches an access gate for a coach-only action, `Back/ExtractionApi/src/RFFM.Api/Features/Coaches/MatchForecast/RequestRivalStats.cs:45`. |
+| Blast radius | high | 60 files and 942 changed lines, with six API routes and the coach routing renamed, `Front/src/apps/coach/routes.tsx:253`. |
+<!-- sai-inherent-risk:end -->
+
 ## Security Surface Triage
 
 - **Surface touched:** Yes — `POST /api/teams/{teamId}/match-forecast/requests` gains a role-based authorization check (`RequestRivalStats.cs`), all six API routes change, and new frontend redirects are added (`RedirectKeepingSearch.tsx`, `routes.tsx`).
