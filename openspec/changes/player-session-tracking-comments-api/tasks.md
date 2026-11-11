@@ -25,7 +25,7 @@
 - [x] Red: autorización de los dos endpoints nuevos y contrato de permisos.
 - [x] Green: `GetTrackingComments.cs`, `CreateTrackingComment.cs`, `SaveSessionEvaluation`, `GetSessionEvaluation` y `GetPlayerSessionEvaluations` (D3).
 - [x] Subir la versión minor de la API.
-- **Verify**: `dotnet test` (PowerShell, salida dentro del repo).
+- **Verify**: `dotnet test --filter "FullyQualifiedName~TrackingComment|FullyQualifiedName~SessionEvaluation"` (PowerShell, salida dentro del repo); solo tests afectados.
 
 ## 4. Cierre
 

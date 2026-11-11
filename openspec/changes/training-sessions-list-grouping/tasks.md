@@ -18,7 +18,7 @@
 - [x] Red: `Trainings.sessionsSeasonFilter.test.tsx` (temporada por defecto, cambio de temporada) y actualizar el test de orden.
 - [x] Green: `SessionsList` + CSS Module y selector de temporada en `Trainings.tsx` (D5, D6).
 - [x] Subir la versión minor de la web.
-- **Verify**: `npm run build` + `npx vitest run --maxWorkers=2`.
+- **Verify**: `npm run build` + `npx vitest run` sobre `SessionsList` y `Trainings.sessionsSeasonFilter` (solo tests afectados).
 
 ## 4. Cierre
 
