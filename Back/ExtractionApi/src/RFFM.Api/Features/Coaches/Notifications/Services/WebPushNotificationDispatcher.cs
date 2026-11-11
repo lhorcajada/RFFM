@@ -306,7 +306,7 @@ namespace RFFM.Api.Features.Coaches.Notifications.Services
             try
             {
                 var type = succeeded ? "RivalStatsReady" : "RivalStatsFailed";
-                var title = succeeded ? "Estadísticas de rivales listas" : "No se pudieron generar las estadísticas de rivales";
+                var title = succeeded ? "Pronóstico de partidos listo" : "No se pudo generar el pronóstico de partidos";
                 var body = succeeded
                     ? "Ya puedes consultar las estadísticas de las plantillas de tu liga."
                     : "Ha fallado la generación de las estadísticas de tu liga. Inténtalo de nuevo.";
@@ -314,7 +314,7 @@ namespace RFFM.Api.Features.Coaches.Notifications.Services
                 foreach (var team in recipients.GroupBy(r => r.TeamId))
                 {
                     var userIds = team.Select(r => r.UserId).Distinct().ToList();
-                    await DispatchToUsersAsync(userIds, type, title, body, $"/coach/rival-stats?teamId={Uri.EscapeDataString(team.Key)}", ct);
+                    await DispatchToUsersAsync(userIds, type, title, body, $"/coach/match-forecast?teamId={Uri.EscapeDataString(team.Key)}", ct);
                 }
             }
             catch (Exception ex)

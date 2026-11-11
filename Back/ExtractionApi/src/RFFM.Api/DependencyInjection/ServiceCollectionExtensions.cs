@@ -13,7 +13,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
 using RFFM.Api.Common.Behaviors;
 using RFFM.Api.Domain.Services;
-using RFFM.Api.Features.Coaches.RivalStats.Services;
+using RFFM.Api.Features.Coaches.MatchForecast.Services;
 using RFFM.Api.Infrastructure.Services;
 using RFFM.Api.Features.Federation.Competitions.Services;
 using RFFM.Api.Features.Federation.Clubs.Services;
@@ -71,7 +71,7 @@ namespace RFFM.Api.DependencyInjection
             // FluentValidation validators for the PushNotifications feature (same manual
             // registration requirement as News above — no assembly-wide validator scan).
             services.AddScoped<FluentValidation.IValidator<RFFM.Api.Features.Federation.SquadHistory.RequestSquadHistory.RequestSquadHistoryCommand>, RFFM.Api.Features.Federation.SquadHistory.RequestSquadHistory.Validator>();
-            services.AddScoped<FluentValidation.IValidator<RFFM.Api.Features.Coaches.RivalStats.RequestRivalStats.RequestRivalStatsCommand>, RFFM.Api.Features.Coaches.RivalStats.RequestRivalStats.Validator>();
+            services.AddScoped<FluentValidation.IValidator<RFFM.Api.Features.Coaches.MatchForecast.RequestRivalStats.RequestRivalStatsCommand>, RFFM.Api.Features.Coaches.MatchForecast.RequestRivalStats.Validator>();
             services.AddScoped<FluentValidation.IValidator<RFFM.Api.Features.Mobile.PushNotifications.RegisterPushToken.RegisterPushTokenCommand>,RFFM.Api.Features.Mobile.PushNotifications.RegisterPushToken.Validator>();
             services.AddScoped<FluentValidation.IValidator<RFFM.Api.Features.Mobile.PushNotifications.UnregisterPushToken.UnregisterPushTokenCommand>, RFFM.Api.Features.Mobile.PushNotifications.UnregisterPushToken.Validator>();
             services.AddScoped<FluentValidation.IValidator<RFFM.Api.Features.Mobile.PushNotifications.UpdatePushPreferences.UpdatePushPreferencesCommand>, RFFM.Api.Features.Mobile.PushNotifications.UpdatePushPreferences.Validator>();

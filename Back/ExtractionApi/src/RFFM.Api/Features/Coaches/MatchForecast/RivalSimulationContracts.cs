@@ -1,6 +1,6 @@
 using RFFM.Api.Domain.Services.MatchSimulation;
 
-namespace RFFM.Api.Features.Coaches.RivalStats
+namespace RFFM.Api.Features.Coaches.MatchForecast
 {
     public record MatchPredictionResponse(int Round, DateOnly? Date,
         string LocalTeamCode, string LocalTeamName, string? LocalShieldUrl,

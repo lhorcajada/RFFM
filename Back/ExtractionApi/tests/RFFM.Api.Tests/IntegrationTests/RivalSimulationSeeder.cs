@@ -7,7 +7,7 @@ using RFFM.Api.Domain.Aggregates.UserClubs;
 using RFFM.Api.Domain.Entities.Competitions;
 using RFFM.Api.Domain.Entities.Federation.Results;
 using RFFM.Api.Domain.Models;
-using RFFM.Api.Features.Coaches.RivalStats;
+using RFFM.Api.Features.Coaches.MatchForecast;
 using RFFM.Api.Tests.Fixtures;
 
 namespace RFFM.Api.Tests.IntegrationTests

@@ -8,21 +8,21 @@ using Microsoft.Extensions.Options;
 using RFFM.Api.Common;
 using RFFM.Api.Domain.Entities;
 using RFFM.Api.FeatureModules;
-using RFFM.Api.Features.Coaches.RivalStats.Services;
+using RFFM.Api.Features.Coaches.MatchForecast.Services;
 using RFFM.Api.Infrastructure.Options;
 using RFFM.Api.Infrastructure.Persistence;
 
-namespace RFFM.Api.Features.Coaches.RivalStats
+namespace RFFM.Api.Features.Coaches.MatchForecast
 {
     /// <summary>
-    /// PUT /api/teams/{teamId}/rival-stats/simulation/rounds — guarda y congela las simulaciones por jornada de
+    /// PUT /api/teams/{teamId}/match-forecast/simulation/rounds — guarda y congela las simulaciones por jornada de
     /// la liga del equipo (design.md D4). Idempotente: las congeladas no cambian.
     /// </summary>
     public class SyncRivalSimulationRounds : IFeatureModule
     {
         public void AddRoutes(IEndpointRouteBuilder app)
         {
-            app.MapPut("/api/teams/{teamId}/rival-stats/simulation/rounds",
+            app.MapPut("/api/teams/{teamId}/match-forecast/simulation/rounds",
                     async (string teamId, IMediator mediator, CancellationToken cancellationToken) =>
                     {
                         await mediator.Send(new SyncRivalSimulationRoundsCommand(teamId), cancellationToken);

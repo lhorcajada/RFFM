@@ -4,7 +4,7 @@ using RFFM.Api.Domain.Entities.Federation.Results;
 using RFFM.Api.Domain.Services.MatchSimulation;
 using RFFM.Api.Infrastructure.Persistence;
 
-namespace RFFM.Api.Features.Coaches.RivalStats.Services
+namespace RFFM.Api.Features.Coaches.MatchForecast.Services
 {
     /// <summary>
     /// Guarda la simulación previa a cada jornada de la liga: se recalcula mientras la jornada no ha empezado

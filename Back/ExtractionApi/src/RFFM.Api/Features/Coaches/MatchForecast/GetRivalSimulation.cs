@@ -8,14 +8,14 @@ using RFFM.Api.Common;
 using RFFM.Api.Domain.Entities;
 using RFFM.Api.Domain.Services.MatchSimulation;
 using RFFM.Api.FeatureModules;
-using RFFM.Api.Features.Coaches.RivalStats.Services;
+using RFFM.Api.Features.Coaches.MatchForecast.Services;
 using RFFM.Api.Infrastructure.Options;
 using RFFM.Api.Infrastructure.Persistence;
 
-namespace RFFM.Api.Features.Coaches.RivalStats
+namespace RFFM.Api.Features.Coaches.MatchForecast
 {
     /// <summary>
-    /// GET /api/teams/{teamId}/rival-stats/simulation — predicción de los partidos pendientes de la liga del
+    /// GET /api/teams/{teamId}/match-forecast/simulation — predicción de los partidos pendientes de la liga del
     /// equipo y clasificación proyectada (design.md D6).
     /// IRequest (no IQueryApp): cambia con cada sincronización de resultados y no debe cachearse.
     /// </summary>
@@ -23,7 +23,7 @@ namespace RFFM.Api.Features.Coaches.RivalStats
     {
         public void AddRoutes(IEndpointRouteBuilder app)
         {
-            app.MapGet("/api/teams/{teamId}/rival-stats/simulation",
+            app.MapGet("/api/teams/{teamId}/match-forecast/simulation",
                     async (string teamId, IMediator mediator, CancellationToken cancellationToken) =>
                     {
                         var result = await mediator.Send(new RivalSimulationQuery(teamId), cancellationToken);

@@ -9,7 +9,7 @@ using RFFM.Api.Features.Federation.Seasons.Services;
 using RFFM.Api.Infrastructure.Options;
 using RFFM.Api.Infrastructure.Persistence;
 
-namespace RFFM.Api.Features.Coaches.RivalStats.Services
+namespace RFFM.Api.Features.Coaches.MatchForecast.Services
 {
     public record RivalSimulationData(SimulationInput Input, IReadOnlyDictionary<string, SimTeam> Teams, bool UsesSquadStrength);
 

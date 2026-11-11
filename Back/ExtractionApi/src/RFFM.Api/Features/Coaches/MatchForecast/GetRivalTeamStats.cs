@@ -15,17 +15,17 @@ using RFFM.Api.Features.Federation.Seasons.Services;
 using RFFM.Api.Infrastructure.Options;
 using RFFM.Api.Infrastructure.Persistence;
 
-namespace RFFM.Api.Features.Coaches.RivalStats
+namespace RFFM.Api.Features.Coaches.MatchForecast
 {
     /// <summary>
-    /// GET /api/teams/{teamId}/rival-stats/teams/{teamCode} — jugadores de un equipo de la liga con sus
+    /// GET /api/teams/{teamId}/match-forecast/teams/{teamCode} — jugadores de un equipo de la liga con sus
     /// estadísticas de la temporada actual y de la anterior.
     /// </summary>
     public class GetRivalTeamStats : IFeatureModule
     {
         public void AddRoutes(IEndpointRouteBuilder app)
         {
-            app.MapGet("/api/teams/{teamId}/rival-stats/teams/{teamCode}",
+            app.MapGet("/api/teams/{teamId}/match-forecast/teams/{teamCode}",
                     async (string teamId, string teamCode, IMediator mediator, CancellationToken cancellationToken) =>
                     {
                         var result = await mediator.Send(new RivalTeamStatsQuery(teamId, teamCode), cancellationToken);

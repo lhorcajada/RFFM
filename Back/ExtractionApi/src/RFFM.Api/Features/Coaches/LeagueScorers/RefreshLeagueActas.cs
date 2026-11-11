@@ -10,7 +10,7 @@ using Microsoft.Extensions.Options;
 using RFFM.Api.Common;
 using RFFM.Api.Domain.Entities;
 using RFFM.Api.FeatureModules;
-using RFFM.Api.Features.Coaches.RivalStats;
+using RFFM.Api.Features.Coaches.MatchForecast;
 using RFFM.Api.Features.Federation.Teams.Services;
 using RFFM.Api.Infrastructure.Options;
 using RFFM.Api.Infrastructure.Persistence;

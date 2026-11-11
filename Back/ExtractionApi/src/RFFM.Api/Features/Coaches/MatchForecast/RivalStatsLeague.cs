@@ -3,7 +3,7 @@ using RFFM.Api.Domain;
 using RFFM.Api.Infrastructure.Options;
 using RFFM.Api.Infrastructure.Persistence;
 
-namespace RFFM.Api.Features.Coaches.RivalStats
+namespace RFFM.Api.Features.Coaches.MatchForecast
 {
     public static class RivalStatsConstants
     {

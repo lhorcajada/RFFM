@@ -32,7 +32,7 @@ describe("rivalStatsService — simulación", () => {
 
     const result = await getRivalSimulation("team 1");
 
-    expect(client.get).toHaveBeenCalledWith("/api/teams/team%201/rival-stats/simulation");
+    expect(client.get).toHaveBeenCalledWith("/api/teams/team%201/match-forecast/simulation");
     expect(result).toEqual(simulation);
   });
 
@@ -47,7 +47,7 @@ describe("rivalStatsService — simulación", () => {
 
     await syncRivalSimulationRounds("team 1");
 
-    expect(client.put).toHaveBeenCalledWith("/api/teams/team%201/rival-stats/simulation/rounds");
+    expect(client.put).toHaveBeenCalledWith("/api/teams/team%201/match-forecast/simulation/rounds");
   });
 
   it("pide el historial de simulaciones por jornada", async () => {
@@ -56,7 +56,7 @@ describe("rivalStatsService — simulación", () => {
 
     const result = await getRivalSimulationHistory("team-1");
 
-    expect(client.get).toHaveBeenCalledWith("/api/teams/team-1/rival-stats/simulation/rounds");
+    expect(client.get).toHaveBeenCalledWith("/api/teams/team-1/match-forecast/simulation/rounds");
     expect(result).toEqual(history);
   });
 });

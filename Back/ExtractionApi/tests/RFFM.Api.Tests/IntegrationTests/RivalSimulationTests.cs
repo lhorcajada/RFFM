@@ -11,7 +11,7 @@ using RFFM.Api.Domain.Entities.Competitions;
 using RFFM.Api.Domain.Entities.Federation.LeagueSquadStats;
 using RFFM.Api.Domain.Entities.Federation.Results;
 using RFFM.Api.Domain.Models;
-using RFFM.Api.Features.Coaches.RivalStats;
+using RFFM.Api.Features.Coaches.MatchForecast;
 using RFFM.Api.Features.Federation.Competitions.Models;
 using RFFM.Api.Features.Federation.LeagueSquadStats.Services;
 using RFFM.Api.Features.Federation.MatchResults.Services;

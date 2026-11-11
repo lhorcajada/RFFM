@@ -17,7 +17,7 @@ using RFFM.Api.Features.Federation.Seasons.Services;
 using RFFM.Api.Infrastructure.Options;
 using RFFM.Api.Infrastructure.Persistence;
 
-namespace RFFM.Api.Features.Coaches.RivalStats
+namespace RFFM.Api.Features.Coaches.MatchForecast
 {
     public record RivalStatsStatusResponse(string Status, int TotalPlayers, int ProcessedPlayers, int FailedPlayers,
         DateTime? CompletedAt, DateTime? NextRefreshAllowedAt, string? ErrorMessage)
@@ -28,17 +28,26 @@ namespace RFFM.Api.Features.Coaches.RivalStats
     }
 
     /// <summary>
-    /// POST /api/teams/{teamId}/rival-stats/requests — pide generar (o actualizar) las estadísticas de las
+    /// POST /api/teams/{teamId}/match-forecast/requests — pide generar (o actualizar) las estadísticas de las
     /// plantillas de la liga del equipo. 202 si queda en curso; 200 si ya están listas y no se actualizan.
     /// </summary>
     public class RequestRivalStats : IFeatureModule
     {
         public void AddRoutes(IEndpointRouteBuilder app)
         {
-            app.MapPost("/api/teams/{teamId}/rival-stats/requests",
+            app.MapPost("/api/teams/{teamId}/match-forecast/requests",
                     async (string teamId, RequestRivalStatsBody body, IMediator mediator, HttpContext httpContext,
                         CancellationToken cancellationToken) =>
                     {
+                        var isCoach = httpContext.User.Claims
+                            .Where(c => c.Type == "roles" || c.Type == ClaimTypes.Role)
+                            .Any(c => string.Equals(c.Value, AppRoles.Coach.Name, StringComparison.OrdinalIgnoreCase));
+                        if (!isCoach)
+                            return Results.Problem(
+                                statusCode: StatusCodes.Status403Forbidden,
+                                title: "Solo un entrenador puede generar o actualizar el pronóstico de partidos",
+                                extensions: new Dictionary<string, object?> { ["code"] = ErrorCodes.MatchForecastRequestForbidden });
+
                         var userId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value
                                      ?? throw new UnauthorizedAccessException("Usuario no autenticado");
 
@@ -53,6 +62,7 @@ namespace RFFM.Api.Features.Coaches.RivalStats
                 .Produces<RivalStatsStatusResponse>(StatusCodes.Status200OK)
                 .Produces<RivalStatsStatusResponse>(StatusCodes.Status202Accepted)
                 .Produces<ProblemDetails>(StatusCodes.Status400BadRequest)
+                .Produces<ProblemDetails>(StatusCodes.Status403Forbidden)
                 .Produces<ProblemDetails>(StatusCodes.Status404NotFound)
                 .Produces<ProblemDetails>(StatusCodes.Status409Conflict)
                 .RequireAuthorization();

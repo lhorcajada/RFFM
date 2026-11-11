@@ -126,7 +126,7 @@ export type RivalSimulationHistory = {
 };
 
 function basePath(teamId: string): string {
-  return `/api/teams/${encodeURIComponent(teamId)}/rival-stats`;
+  return `/api/teams/${encodeURIComponent(teamId)}/match-forecast`;
 }
 
 /** Estado de las estadísticas de la liga del equipo; null si todavía no se han generado. */

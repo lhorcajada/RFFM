@@ -667,9 +667,9 @@ namespace RFFM.Api.Tests.UnitTests
 
             var userIds = recipients.Select(r => r.UserId).ToList();
             var notifications = await db.Notifications.Where(n => userIds.Contains(n.UserId)).ToListAsync();
-            Assert.All(notifications, n => Assert.Equal(("RivalStatsReady", "Estadísticas de rivales listas"), (n.Type, n.Title)));
-            Assert.Equal("/coach/rival-stats?teamId=team%201", notifications.Single(n => n.UserId == recipients[0].UserId).DeepLinkPath);
-            Assert.Equal("/coach/rival-stats?teamId=team-2", notifications.Single(n => n.UserId == recipients[1].UserId).DeepLinkPath);
+            Assert.All(notifications, n => Assert.Equal(("RivalStatsReady", "Pronóstico de partidos listo"), (n.Type, n.Title)));
+            Assert.Equal("/coach/match-forecast?teamId=team%201", notifications.Single(n => n.UserId == recipients[0].UserId).DeepLinkPath);
+            Assert.Equal("/coach/match-forecast?teamId=team-2", notifications.Single(n => n.UserId == recipients[1].UserId).DeepLinkPath);
         }
 
         [Fact]
@@ -682,7 +682,7 @@ namespace RFFM.Api.Tests.UnitTests
             await dispatcher.DispatchRivalStatsFinishedAsync(new[] { new RivalStatsRecipient(userId, "team-1") }, succeeded: false, CancellationToken.None);
 
             var notification = await db.Notifications.SingleAsync(n => n.UserId == userId);
-            Assert.Equal(("RivalStatsFailed", "No se pudieron generar las estadísticas de rivales"), (notification.Type, notification.Title));
+            Assert.Equal(("RivalStatsFailed", "No se pudo generar el pronóstico de partidos"), (notification.Type, notification.Title));
         }
 
         [Fact]
