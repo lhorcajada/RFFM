@@ -47,7 +47,7 @@
 
 ## Step 2: Coach-only controls on the page and «Crear pronóstico» button text
 
-- [ ] Step 2: Coach-only controls on the page and «Crear pronóstico» button text
+- [x] Step 2: Coach-only controls on the page and «Crear pronóstico» button text
 
 **Routing**: category=frontend-ui · context=medium · difficulty=medium (four controls to gate and two page tests to adapt)
 

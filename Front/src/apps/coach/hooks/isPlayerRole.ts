@@ -10,3 +10,7 @@ export function computeIsPlayerRole(roles: string[]): boolean {
     !roles.includes("Coach")
   );
 }
+
+export function computeIsCoachRole(roles: string[]): boolean {
+  return roles.some((role) => role.toLowerCase() === "coach");
+}

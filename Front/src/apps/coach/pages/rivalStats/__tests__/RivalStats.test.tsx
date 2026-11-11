@@ -53,6 +53,13 @@ vi.mock("../../../services/rivalStatsService", () => ({
   getRivalTeamStats: vi.fn(),
 }));
 
+const mockGetRoles = vi.fn();
+vi.mock("../../../services/authService", () => ({
+  coachAuthService: {
+    getRoles: () => mockGetRoles(),
+  },
+}));
+
 import RivalStats from "../RivalStats";
 import { getRivalTeamStats, type RivalStats as RivalStatsType } from "../../../services/rivalStatsService";
 
@@ -107,6 +114,7 @@ function renderPage() {
 describe("RivalStats", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockGetRoles.mockReturnValue(["Coach"]);
     mockUseTeamAndClub.mockReturnValue({ team, loading: false });
     mockHasFeatureAccess.mockReturnValue(true);
     mockUseRivalStats.mockReturnValue(hookState());
@@ -148,7 +156,7 @@ describe("RivalStats", () => {
   it("ofrece abrir la simulación de la liga", () => {
     renderPage();
 
-    expect(screen.getByRole("link", { name: /simulación/i })).toHaveAttribute("href", "/coach/rival-stats/simulation");
+    expect(screen.getByRole("link", { name: /crear pronóstico/i })).toHaveAttribute("href", "/coach/rival-stats/simulation");
   });
 
   it("no ofrece la simulación si el equipo no tiene competición", () => {
@@ -156,7 +164,68 @@ describe("RivalStats", () => {
 
     renderPage();
 
-    expect(screen.queryByRole("link", { name: /simulación/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /crear pronóstico/i })).not.toBeInTheDocument();
+  });
+
+  it("con rol Coach ofrece «Crear pronóstico» y «Actualizar», y ya no muestra «Simulación»", () => {
+    renderPage();
+
+    expect(screen.getByRole("link", { name: "Crear pronóstico" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Actualizar" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Simulación" })).not.toBeInTheDocument();
+  });
+
+  it.each([["Player"], ["FamilyMember"], ["Administrator"]])(
+    "con el rol %s no ofrece «Crear pronóstico» ni «Actualizar», pero sí los equipos de la liga",
+    (role) => {
+      mockGetRoles.mockReturnValue([role]);
+
+      renderPage();
+
+      expect(screen.queryByRole("link", { name: "Crear pronóstico" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Actualizar" })).not.toBeInTheDocument();
+      expect(screen.getByText("UD Rival")).toBeInTheDocument();
+    },
+  );
+
+  it("sin estadísticas y sin rol Coach no ofrece «Generar estadísticas»", () => {
+    mockGetRoles.mockReturnValue(["Player"]);
+    mockUseRivalStats.mockReturnValue(hookState({ stats: null }));
+
+    renderPage();
+
+    expect(screen.getByText(/todavía no se han generado/i)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Generar estadísticas" })).not.toBeInTheDocument();
+  });
+
+  it("sin estadísticas y con rol Coach ofrece «Generar estadísticas»", () => {
+    mockUseRivalStats.mockReturnValue(hookState({ stats: null }));
+
+    renderPage();
+
+    expect(screen.getByRole("button", { name: "Generar estadísticas" })).toBeInTheDocument();
+  });
+
+  it("si la generación falló y no tiene rol Coach avisa sin ofrecer «Reintentar»", () => {
+    mockGetRoles.mockReturnValue(["Player"]);
+    mockUseRivalStats.mockReturnValue(
+      hookState({ stats: stats({ status: "Failed", errorMessage: "No se pudieron obtener los equipos del grupo." }) }),
+    );
+
+    renderPage();
+
+    expect(screen.getByText("No se pudieron obtener los equipos del grupo.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Reintentar" })).not.toBeInTheDocument();
+  });
+
+  it("si la generación falló y tiene rol Coach ofrece «Reintentar»", () => {
+    mockUseRivalStats.mockReturnValue(
+      hookState({ stats: stats({ status: "Failed", errorMessage: "No se pudieron obtener los equipos del grupo." }) }),
+    );
+
+    renderPage();
+
+    expect(screen.getByRole("button", { name: "Reintentar" })).toBeInTheDocument();
   });
 
   it("carga las estadísticas del equipo seleccionado", () => {

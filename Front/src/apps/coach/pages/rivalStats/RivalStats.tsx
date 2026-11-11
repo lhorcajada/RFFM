@@ -8,6 +8,7 @@ import ContentLayout from "../../../../shared/components/ui/ContentLayout/Conten
 import EmptyState from "../../../../shared/components/ui/EmptyState/EmptyState";
 import { useAuditPageAccess } from "../../../../shared/hooks/useAuditPageAccess";
 import TeamCompetitionMissing from "../../components/TeamCompetitionMissing/TeamCompetitionMissing";
+import useIsCoachRole from "../../hooks/useIsCoachRole";
 import useRivalStats from "../../hooks/useRivalStats";
 import useTeamAndClub from "../../hooks/useTeamAndClub.tsx";
 import useTeamDashboardBack from "../../hooks/useTeamDashboardBack";
@@ -40,6 +41,7 @@ export default function RivalStats() {
   const goToTeamDashboard = useTeamDashboardBack();
   const { search } = useLocation();
   const { team, teamTitleNode, loading: teamLoading } = useTeamAndClub();
+  const isCoach = useIsCoachRole();
 
   const hasCompetition = Boolean(team?.rffmCompetitionId && team?.rffmGroupId);
   const { stats, loading, error, requesting, generate, refresh } = useRivalStats(
@@ -84,9 +86,11 @@ export default function RivalStats() {
           <Alert
             severity="error"
             action={
-              <Button color="inherit" size="small" onClick={() => run(refresh)} disabled={requesting}>
-                Reintentar
-              </Button>
+              isCoach ? (
+                <Button color="inherit" size="small" onClick={() => run(refresh)} disabled={requesting}>
+                  Reintentar
+                </Button>
+              ) : undefined
             }
           >
             {current.errorMessage || "No se han podido generar las estadísticas."}
@@ -113,15 +117,17 @@ export default function RivalStats() {
                 </span>
               )}
             </div>
-            <Button
-              variant="outlined"
-              startIcon={<RefreshIcon />}
-              onClick={() => run(refresh)}
-              disabled={requesting || mustWaitToRefresh}
-              className={styles.refresh}
-            >
-              Actualizar
-            </Button>
+            {isCoach && (
+              <Button
+                variant="outlined"
+                startIcon={<RefreshIcon />}
+                onClick={() => run(refresh)}
+                disabled={requesting || mustWaitToRefresh}
+                className={styles.refresh}
+              >
+                Actualizar
+              </Button>
+            )}
           </div>
         )}
 
@@ -177,9 +183,11 @@ export default function RivalStats() {
       return (
         <div className={styles.emptyState}>
           <EmptyState description="Todavía no se han generado las estadísticas de las plantillas de tu liga. La primera vez tarda entre 10 y 15 minutos." />
-          <Button variant="contained" onClick={() => run(generate)} disabled={requesting}>
-            Generar estadísticas
-          </Button>
+          {isCoach && (
+            <Button variant="contained" onClick={() => run(generate)} disabled={requesting}>
+              Generar estadísticas
+            </Button>
+          )}
         </div>
       );
     }
@@ -193,7 +201,7 @@ export default function RivalStats() {
         subtitle={teamTitleNode}
         actionBar={
           <Stack direction="row" spacing={1} alignItems="center">
-            {hasCompetition && (
+            {hasCompetition && isCoach && (
               <Button
                 component={Link}
                 to={{ pathname: "/coach/rival-stats/simulation", search }}
@@ -201,7 +209,7 @@ export default function RivalStats() {
                 variant="contained"
                 size="small"
               >
-                Simulación
+                Crear pronóstico
               </Button>
             )}
             <Button startIcon={<ArrowBackIcon />} onClick={() => goToTeamDashboard()} variant="outlined" size="small">

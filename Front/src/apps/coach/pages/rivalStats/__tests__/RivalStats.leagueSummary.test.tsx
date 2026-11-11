@@ -33,6 +33,13 @@ vi.mock("../../../services/rivalStatsService", () => ({
   getRivalTeamStats: vi.fn(),
 }));
 
+const mockGetRoles = vi.fn();
+vi.mock("../../../services/authService", () => ({
+  coachAuthService: {
+    getRoles: () => mockGetRoles(),
+  },
+}));
+
 import RivalStats from "../RivalStats";
 import type { RivalStats as RivalStatsType } from "../../../services/rivalStatsService";
 
@@ -86,6 +93,7 @@ function hookState(current: RivalStatsType) {
 describe("RivalStats resumen de la liga", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockGetRoles.mockReturnValue(["Coach"]);
     mockUseTeamAndClub.mockReturnValue({ team, loading: false });
   });
 
