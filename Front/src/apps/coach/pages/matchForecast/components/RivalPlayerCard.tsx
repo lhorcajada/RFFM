@@ -1,6 +1,6 @@
 import { Paper, Typography } from "@mui/material";
 import PlayerSeasonStats from "../../../../../shared/components/ui/PlayerSeasonStats/PlayerSeasonStats";
-import type { RivalPlayer } from "../../../services/rivalStatsService";
+import type { RivalPlayer } from "../../../services/matchForecastService";
 import styles from "./RivalPlayerCard.module.css";
 
 export default function RivalPlayerCard({ player }: { player: RivalPlayer }) {

@@ -12,7 +12,7 @@ import {
   syncRivalSimulationRounds,
   type RivalSimulation,
   type RivalSimulationHistory,
-} from "../rivalStatsService";
+} from "../matchForecastService";
 
 const simulation: RivalSimulation = {
   playedMatches: 10,
@@ -24,7 +24,7 @@ const simulation: RivalSimulation = {
   standings: [],
 };
 
-describe("rivalStatsService — simulación", () => {
+describe("matchForecastService — simulación", () => {
   beforeEach(() => vi.resetAllMocks());
 
   it("pide la simulación de la liga del equipo", async () => {

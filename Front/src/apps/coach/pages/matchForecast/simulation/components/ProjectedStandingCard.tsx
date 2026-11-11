@@ -1,5 +1,5 @@
 import { Avatar, Box, Chip, Paper } from "@mui/material";
-import type { ProjectedStanding } from "../../../../services/rivalStatsService";
+import type { ProjectedStanding } from "../../../../services/matchForecastService";
 import { formatDecimal, formatPercent } from "../simulationFormat";
 import styles from "./ProjectedStandingCard.module.css";
 

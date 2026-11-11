@@ -45,11 +45,11 @@ vi.mock("../../../../../shared/hooks/usePermissions", () => ({
 }));
 
 const mockUseRivalStats = vi.fn();
-vi.mock("../../../hooks/useRivalStats", () => ({
+vi.mock("../../../hooks/useMatchForecast", () => ({
   default: (teamId?: string) => mockUseRivalStats(teamId),
 }));
 
-vi.mock("../../../services/rivalStatsService", () => ({
+vi.mock("../../../services/matchForecastService", () => ({
   getRivalTeamStats: vi.fn(),
 }));
 
@@ -60,8 +60,8 @@ vi.mock("../../../services/authService", () => ({
   },
 }));
 
-import RivalStats from "../RivalStats";
-import { getRivalTeamStats, type RivalStats as RivalStatsType } from "../../../services/rivalStatsService";
+import MatchForecast from "../MatchForecast";
+import { getRivalTeamStats, type RivalStats as RivalStatsType } from "../../../services/matchForecastService";
 
 const team = {
   id: "team-1",
@@ -106,7 +106,7 @@ function hookState(overrides: Record<string, unknown> = {}) {
 function renderPage() {
   return render(
     <MemoryRouter>
-      <RivalStats />
+      <MatchForecast />
     </MemoryRouter>,
   );
 }
@@ -150,13 +150,14 @@ describe("RivalStats", () => {
   it("muestra el título de la página", () => {
     renderPage();
 
-    expect(screen.getByRole("heading", { name: "Estadísticas de rivales" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Pronóstico de partidos" })).toBeInTheDocument();
+    expect(screen.queryByText("Estadísticas de rivales")).not.toBeInTheDocument();
   });
 
   it("ofrece abrir la simulación de la liga", () => {
     renderPage();
 
-    expect(screen.getByRole("link", { name: /crear pronóstico/i })).toHaveAttribute("href", "/coach/rival-stats/simulation");
+    expect(screen.getByRole("link", { name: /crear pronóstico/i })).toHaveAttribute("href", "/coach/match-forecast/simulation");
   });
 
   it("no ofrece la simulación si el equipo no tiene competición", () => {

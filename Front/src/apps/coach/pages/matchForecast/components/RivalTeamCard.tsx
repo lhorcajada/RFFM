@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Alert, Avatar, Chip, CircularProgress, Collapse, Paper } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { getRivalTeamStats, type RivalPlayer, type RivalTeamSummary } from "../../../services/rivalStatsService";
+import { getRivalTeamStats, type RivalPlayer, type RivalTeamSummary } from "../../../services/matchForecastService";
 import RivalPlayerCard from "./RivalPlayerCard";
 import styles from "./RivalTeamCard.module.css";
 

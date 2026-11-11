@@ -9,12 +9,12 @@ import EmptyState from "../../../../shared/components/ui/EmptyState/EmptyState";
 import { useAuditPageAccess } from "../../../../shared/hooks/useAuditPageAccess";
 import TeamCompetitionMissing from "../../components/TeamCompetitionMissing/TeamCompetitionMissing";
 import useIsCoachRole from "../../hooks/useIsCoachRole";
-import useRivalStats from "../../hooks/useRivalStats";
+import useMatchForecast from "../../hooks/useMatchForecast";
 import useTeamAndClub from "../../hooks/useTeamAndClub.tsx";
 import useTeamDashboardBack from "../../hooks/useTeamDashboardBack";
-import type { RivalStats as RivalStatsData } from "../../services/rivalStatsService";
+import type { RivalStats as RivalStatsData } from "../../services/matchForecastService";
 import RivalTeamCard from "./components/RivalTeamCard";
-import styles from "./RivalStats.module.css";
+import styles from "./MatchForecast.module.css";
 
 function formatDateTime(raw: string | null): string {
   if (!raw) return "";
@@ -36,7 +36,7 @@ function failedPlayersLabel(count: number): string {
     : `No se pudo obtener la ficha de ${count} jugadores; se conservan sus datos anteriores.`;
 }
 
-export default function RivalStats() {
+export default function MatchForecast() {
   useAuditPageAccess("RivalStats");
   const goToTeamDashboard = useTeamDashboardBack();
   const { search } = useLocation();
@@ -44,7 +44,7 @@ export default function RivalStats() {
   const isCoach = useIsCoachRole();
 
   const hasCompetition = Boolean(team?.rffmCompetitionId && team?.rffmGroupId);
-  const { stats, loading, error, requesting, generate, refresh } = useRivalStats(
+  const { stats, loading, error, requesting, generate, refresh } = useMatchForecast(
     hasCompetition ? team?.id : undefined,
   );
 
@@ -197,14 +197,14 @@ export default function RivalStats() {
   return (
     <BaseLayout hideFooterMenu>
       <ContentLayout
-        title="Estadísticas de rivales"
+        title="Pronóstico de partidos"
         subtitle={teamTitleNode}
         actionBar={
           <Stack direction="row" spacing={1} alignItems="center">
             {hasCompetition && isCoach && (
               <Button
                 component={Link}
-                to={{ pathname: "/coach/rival-stats/simulation", search }}
+                to={{ pathname: "/coach/match-forecast/simulation", search }}
                 startIcon={<InsightsIcon />}
                 variant="contained"
                 size="small"

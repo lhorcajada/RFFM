@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const getRivalSimulationMock = vi.fn();
 const getRivalSimulationHistoryMock = vi.fn();
 const syncRivalSimulationRoundsMock = vi.fn();
-vi.mock("../../services/rivalStatsService", () => ({
+vi.mock("../../services/matchForecastService", () => ({
   getRivalSimulation: (...args: unknown[]) => getRivalSimulationMock(...args),
   getRivalSimulationHistory: (...args: unknown[]) => getRivalSimulationHistoryMock(...args),
   syncRivalSimulationRounds: (...args: unknown[]) => syncRivalSimulationRoundsMock(...args),

@@ -25,11 +25,11 @@ vi.mock("../../../hooks/useTeamAndClub.tsx", () => ({
 }));
 
 const mockUseRivalStats = vi.fn();
-vi.mock("../../../hooks/useRivalStats", () => ({
+vi.mock("../../../hooks/useMatchForecast", () => ({
   default: (teamId?: string) => mockUseRivalStats(teamId),
 }));
 
-vi.mock("../../../services/rivalStatsService", () => ({
+vi.mock("../../../services/matchForecastService", () => ({
   getRivalTeamStats: vi.fn(),
 }));
 
@@ -40,8 +40,8 @@ vi.mock("../../../services/authService", () => ({
   },
 }));
 
-import RivalStats from "../RivalStats";
-import type { RivalStats as RivalStatsType } from "../../../services/rivalStatsService";
+import MatchForecast from "../MatchForecast";
+import type { RivalStats as RivalStatsType } from "../../../services/matchForecastService";
 
 const team = {
   id: "team-1",
@@ -74,7 +74,7 @@ function stats(overrides: Partial<RivalStatsType> = {}): RivalStatsType {
 function renderPage() {
   return render(
     <MemoryRouter>
-      <RivalStats />
+      <MatchForecast />
     </MemoryRouter>,
   );
 }

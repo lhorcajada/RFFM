@@ -1,13 +1,13 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("../../services/rivalStatsService", () => ({
+vi.mock("../../services/matchForecastService", () => ({
   getRivalStats: vi.fn(),
   requestRivalStats: vi.fn(),
 }));
 
-import useRivalStats from "../useRivalStats";
-import { getRivalStats, requestRivalStats, type RivalStats } from "../../services/rivalStatsService";
+import useMatchForecast from "../useMatchForecast";
+import { getRivalStats, requestRivalStats, type RivalStats } from "../../services/matchForecastService";
 
 const POLL_MS = 20;
 
@@ -26,7 +26,7 @@ function stats(overrides: Partial<RivalStats> = {}): RivalStats {
   };
 }
 
-describe("useRivalStats", () => {
+describe("useMatchForecast", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -34,7 +34,7 @@ describe("useRivalStats", () => {
   it("sin informe generado devuelve stats nulo y deja de cargar", async () => {
     vi.mocked(getRivalStats).mockResolvedValue(null);
 
-    const { result } = renderHook(() => useRivalStats("team-1", POLL_MS));
+    const { result } = renderHook(() => useMatchForecast("team-1", POLL_MS));
 
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.stats).toBeNull();
@@ -42,7 +42,7 @@ describe("useRivalStats", () => {
   });
 
   it("no consulta nada mientras no haya equipo", async () => {
-    const { result } = renderHook(() => useRivalStats(undefined, POLL_MS));
+    const { result } = renderHook(() => useMatchForecast(undefined, POLL_MS));
 
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(getRivalStats).not.toHaveBeenCalled();
@@ -54,7 +54,7 @@ describe("useRivalStats", () => {
       .mockResolvedValueOnce(stats({ status: "Running", processedPlayers: 2 }))
       .mockResolvedValue(stats({ status: "Completed" }));
 
-    const { result } = renderHook(() => useRivalStats("team-1", POLL_MS));
+    const { result } = renderHook(() => useMatchForecast("team-1", POLL_MS));
 
     await waitFor(() => expect(result.current.stats?.status).toBe("Completed"));
     expect(getRivalStats).toHaveBeenCalledTimes(3);
@@ -63,7 +63,7 @@ describe("useRivalStats", () => {
   it("con el informe completado no sigue consultando", async () => {
     vi.mocked(getRivalStats).mockResolvedValue(stats());
 
-    const { result } = renderHook(() => useRivalStats("team-1", POLL_MS));
+    const { result } = renderHook(() => useMatchForecast("team-1", POLL_MS));
 
     await waitFor(() => expect(result.current.stats?.status).toBe("Completed"));
     await new Promise((resolve) => setTimeout(resolve, POLL_MS * 4));
@@ -73,7 +73,7 @@ describe("useRivalStats", () => {
   it("generate pide las estadísticas sin actualizar y recarga el estado", async () => {
     vi.mocked(getRivalStats).mockResolvedValueOnce(null).mockResolvedValue(stats({ status: "Pending" }));
     vi.mocked(requestRivalStats).mockResolvedValue(stats({ status: "Pending" }));
-    const { result } = renderHook(() => useRivalStats("team-1", 60_000));
+    const { result } = renderHook(() => useMatchForecast("team-1", 60_000));
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     await act(async () => {
@@ -87,7 +87,7 @@ describe("useRivalStats", () => {
   it("refresh pide actualizar las estadísticas", async () => {
     vi.mocked(getRivalStats).mockResolvedValue(stats());
     vi.mocked(requestRivalStats).mockResolvedValue(stats({ status: "Pending" }));
-    const { result } = renderHook(() => useRivalStats("team-1", 60_000));
+    const { result } = renderHook(() => useMatchForecast("team-1", 60_000));
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     await act(async () => {
@@ -100,7 +100,7 @@ describe("useRivalStats", () => {
   it("si la carga falla lo indica", async () => {
     vi.mocked(getRivalStats).mockRejectedValue(new Error("boom"));
 
-    const { result } = renderHook(() => useRivalStats("team-1", POLL_MS));
+    const { result } = renderHook(() => useMatchForecast("team-1", POLL_MS));
 
     await waitFor(() => expect(result.current.error).toBe(true));
     expect(result.current.loading).toBe(false);

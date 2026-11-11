@@ -70,7 +70,7 @@
 
 ## Step 3: Frontend rename to `matchForecast`, redirects of the old routes and web version bump
 
-- [ ] Step 3: Frontend rename to `matchForecast`, redirects of the old routes and web version bump
+- [x] Step 3: Frontend rename to `matchForecast`, redirects of the old routes and web version bump
 
 **Routing**: category=frontend-code · context=large · difficulty=medium (many moves; import paths and mock paths must follow)
 

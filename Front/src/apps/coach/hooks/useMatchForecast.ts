@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { getRivalStats, requestRivalStats, type RivalStats } from "../services/rivalStatsService";
+import { getRivalStats, requestRivalStats, type RivalStats } from "../services/matchForecastService";
 
 const DEFAULT_POLL_MS = 5000;
 
@@ -18,7 +18,7 @@ function isInProgress(stats: RivalStats | null): boolean {
 }
 
 /** Estadísticas de la liga del equipo; mientras se generan vuelve a consultarlas periódicamente. */
-export default function useRivalStats(teamId: string | undefined, pollMs: number = DEFAULT_POLL_MS): UseRivalStats {
+export default function useMatchForecast(teamId: string | undefined, pollMs: number = DEFAULT_POLL_MS): UseRivalStats {
   const [stats, setStats] = useState<RivalStats | null>(null);
   const [loading, setLoading] = useState(Boolean(teamId));
   const [error, setError] = useState(false);

@@ -30,7 +30,7 @@ import type {
   RoundMatch,
   RoundSimulation,
   RoundStatus,
-} from "../../../services/rivalStatsService";
+} from "../../../services/matchForecastService";
 import MatchPredictionCard from "./components/MatchPredictionCard";
 import ProjectedStandingCard from "./components/ProjectedStandingCard";
 import { formatPercent } from "./simulationFormat";
@@ -283,7 +283,7 @@ export default function RivalSimulation() {
           <Stack direction="row" spacing={1} alignItems="center">
             <Button
               startIcon={<ArrowBackIcon />}
-              onClick={() => navigate(`/coach/rival-stats${search}`)}
+              onClick={() => navigate(`/coach/match-forecast${search}`)}
               variant="outlined"
               size="small"
             >

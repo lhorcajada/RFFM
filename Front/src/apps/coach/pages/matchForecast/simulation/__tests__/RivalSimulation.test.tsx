@@ -1,7 +1,7 @@
 import React from "react";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../../../../../../shared/components/ui/BaseLayout/BaseLayout", () => ({
@@ -48,7 +48,7 @@ import type {
   RivalSimulationHistory,
   RoundMatch,
   RoundSimulation,
-} from "../../../../services/rivalStatsService";
+} from "../../../../services/matchForecastService";
 
 const team = {
   id: "team-1",
@@ -327,5 +327,24 @@ describe("RivalSimulation — historial de jornadas", () => {
 
     expect(screen.getAllByRole("option")).toHaveLength(1);
     expect(screen.queryByText(/aciertos totales/i)).not.toBeInTheDocument();
+  });
+});
+
+describe("RivalSimulation — navegación de vuelta", () => {
+  it("«Volver» lleva a la página del pronóstico de partidos", async () => {
+    mockUseRivalSimulation.mockReturnValue({ simulation: simulation(), loading: false, error: false });
+
+    render(
+      <MemoryRouter initialEntries={["/coach/match-forecast/simulation?teamId=team-1"]}>
+        <Routes>
+          <Route path="/coach/match-forecast/simulation" element={<RivalSimulation />} />
+          <Route path="/coach/match-forecast" element={<p>Página del pronóstico</p>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Volver" }));
+
+    expect(await screen.findByText("Página del pronóstico")).toBeInTheDocument();
   });
 });

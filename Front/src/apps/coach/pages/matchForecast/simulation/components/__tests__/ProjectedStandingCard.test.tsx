@@ -2,7 +2,7 @@ import React from "react";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import ProjectedStandingCard from "../ProjectedStandingCard";
-import type { ProjectedStanding } from "../../../../../services/rivalStatsService";
+import type { ProjectedStanding } from "../../../../../services/matchForecastService";
 
 function standing(overrides: Partial<ProjectedStanding> = {}): ProjectedStanding {
   return {

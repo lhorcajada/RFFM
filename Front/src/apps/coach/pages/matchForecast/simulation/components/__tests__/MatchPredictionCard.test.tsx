@@ -2,7 +2,7 @@ import React from "react";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import MatchPredictionCard from "../MatchPredictionCard";
-import type { MatchPrediction } from "../../../../../services/rivalStatsService";
+import type { MatchPrediction } from "../../../../../services/matchForecastService";
 
 function prediction(overrides: Partial<MatchPrediction> = {}): MatchPrediction {
   return {

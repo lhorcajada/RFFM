@@ -1,5 +1,5 @@
 import { Avatar, Box, Chip, Paper } from "@mui/material";
-import type { MatchPrediction } from "../../../../services/rivalStatsService";
+import type { MatchPrediction } from "../../../../services/matchForecastService";
 import { formatDecimal, formatPercent } from "../simulationFormat";
 import styles from "./MatchPredictionCard.module.css";
 
