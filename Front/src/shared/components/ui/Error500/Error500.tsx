@@ -2,6 +2,7 @@ import React from "react";
 import { Button } from "@mui/material";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { registerNavigate } from "../../../../core/api/client";
+import { coachAuthService } from "../../../../apps/coach/services/authService";
 import styles from "./Error500.module.css";
 import ContentLayout from "../ContentLayout/ContentLayout";
 import BaseLayout from "../BaseLayout/BaseLayout";
@@ -14,6 +15,15 @@ const Error500: React.FC = () => {
   React.useEffect(() => {
     registerNavigate((p: string) => navigate(p));
   }, [navigate]);
+
+  // A network/timeout failure can be caused by stale session data kept in the browser,
+  // so going back home from there starts from a clean session.
+  const handleGoHome = () => {
+    if (reason === "network" || reason === "timeout") {
+      coachAuthService.logout();
+    }
+    navigate("/");
+  };
 
   return (
     <BaseLayout hideFooterMenu>
@@ -51,7 +61,7 @@ const Error500: React.FC = () => {
               </>
             )}
             <div className={styles.actions}>
-              <Button variant="outlined" onClick={() => navigate("/")}>
+              <Button variant="outlined" onClick={handleGoHome}>
                 Volver al inicio
               </Button>
             </div>
