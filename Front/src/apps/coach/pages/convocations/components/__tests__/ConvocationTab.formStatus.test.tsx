@@ -21,6 +21,7 @@ const emptyProposal: DeconvokeProposal = {
   calledCount: 0,
   previousRivalResult: null,
   players: [],
+  alreadyDeconvoked: [],
 };
 
 

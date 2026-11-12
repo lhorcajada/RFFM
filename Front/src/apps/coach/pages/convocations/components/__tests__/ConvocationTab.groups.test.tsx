@@ -15,7 +15,13 @@ const players = [
   player("p-called", "Jugador Convocado", "Medio Centro"),
 ];
 
-const emptyProposal: DeconvokeProposal = { targetCount: 0, calledCount: 0, previousRivalResult: null, players: [] };
+const emptyProposal: DeconvokeProposal = {
+  targetCount: 0,
+  calledCount: 0,
+  previousRivalResult: null,
+  players: [],
+  alreadyDeconvoked: [],
+};
 
 function renderTab(isLeagueMatch: boolean) {
   render(

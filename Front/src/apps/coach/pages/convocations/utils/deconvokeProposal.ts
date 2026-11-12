@@ -49,6 +49,13 @@ export type PlayerProposal = {
   weeklyTraining: WeeklyTrainingStats;
 };
 
+export type AlreadyDeconvokedPlayer = {
+  playerId: string;
+  displayName: string;
+  position: string | null;
+  positionRole: PositionRole | null;
+};
+
 export type DeconvokeProposal = {
   generatedAt: string;
   targetCount: number;
@@ -64,6 +71,8 @@ export type DeconvokeProposal = {
   players: PlayerProposal[];
   /** Position minimums the remaining called players do not meet. */
   positionWarnings: PositionShortfall[];
+  /** Squad players already deconvoked, in squad order; never proposed again. */
+  alreadyDeconvoked: AlreadyDeconvokedPlayer[];
 };
 
 export type BuildProposalInput = {
@@ -214,6 +223,10 @@ function normalizeName(value: string | null | undefined): string {
     .trim();
 }
 
+function playerDisplayName(p: PlayerResponse): string {
+  return p.alias || `${p.name ?? ""} ${p.lastName ?? ""}`.trim() || "Jugador";
+}
+
 function clamp01(v: number): number {
   return Math.max(0, Math.min(1, v));
 }
@@ -353,6 +366,21 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
   );
 
   const playerById = new Map(players.map((p) => [p.id, p]));
+  // Listed from the full squad, before the filter above; display only, never fed to scoring.
+  const alreadyDeconvoked: AlreadyDeconvokedPlayer[] = alreadyOutIds
+    ? squadIds.flatMap((id) => {
+        const p = playerById.get(id);
+        if (!p || !alreadyOutIds.has(id)) return [];
+        return [
+          {
+            playerId: id,
+            displayName: playerDisplayName(p),
+            position: p.position ?? null,
+            positionRole: toPositionPlayer(p).role,
+          },
+        ];
+      })
+    : [];
   const seasonStatsMap = new Map(seasonStats.map((s) => [s.teamPlayerId, s]));
 
   // calledCount = times convoked this season, computed from the grid (statusId 1/2 = called).
@@ -392,8 +420,7 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
       const p = playerById.get(playerId);
       if (!p) return null;
 
-      const displayName =
-        p.alias || `${p.name ?? ""} ${p.lastName ?? ""}`.trim() || "Jugador";
+      const displayName = playerDisplayName(p);
       const r = ratings[playerId];
       const competitiveness = r?.competitiveness ?? 5;
       const physical = r?.physical ?? 5;
@@ -608,6 +635,7 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
     previousRivalResult,
     players: playersWithSelection,
     positionWarnings: shortfalls,
+    alreadyDeconvoked,
   };
 }
 

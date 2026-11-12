@@ -299,4 +299,80 @@ describe("buildDeconvokeProposal con jugadores ya desconvocados", () => {
     expect(proposal.calledCount).toBe(19);
     expect(proposal.targetCount).toBe(2);
   });
+
+  function buildSquad(players: PlayerResponse[], alreadyOutIds: string[], maxCalledPlayers: number) {
+    return buildDeconvokeProposal({
+      players,
+      calledIds: players.map((x) => x.id),
+      ratings: {},
+      streaks: new Map(),
+      technicalTotals: new Map(),
+      seasonEvents: [],
+      seasonColumns: [],
+      enrichedGrid: new Map(),
+      seasonStats: [],
+      lastInjuryEndMap: new Map(),
+      currentDate: "2026-10-16",
+      currentEventId: null,
+      currentRival: null,
+      weekTrainingStats: new Map(),
+      weekTrainingCount: 0,
+      maxCalledPlayers,
+      alreadyOutIds: new Set(alreadyOutIds),
+    });
+  }
+
+  it("devuelve cada ya desconvocado en orden de plantilla, sea cual sea su motivo, con su nombre y rol", () => {
+    const ana = { ...p("ana", 4), alias: "", name: "Iker", lastName: "Ruiz" };
+    const proposal = build(["mc3", "gk", "ana"], 18, [ana]);
+
+    expect(proposal.alreadyDeconvoked).toEqual([
+      { playerId: "gk", displayName: "gk", position: null, positionRole: "goalkeeper" },
+      { playerId: "mc3", displayName: "mc3", position: null, positionRole: "centralMid" },
+      { playerId: "ana", displayName: "Iker Ruiz", position: null, positionRole: "centreBack" },
+    ]);
+  });
+
+  it("no devuelve como ya desconvocados a los que siguen pendientes", () => {
+    const proposal = build(["mc1"], 18);
+
+    expect(proposal.alreadyDeconvoked.map((x) => x.playerId)).toEqual(["mc1"]);
+  });
+
+  it("sin ya fuera, la lista de ya desconvocados está vacía", () => {
+    expect(build([], 17).alreadyDeconvoked).toEqual([]);
+  });
+
+  it("nunca vuelve a proponer a los ya fuera ni los cuenta como disponibles para el objetivo", () => {
+    const extra = [p("dc3", 11), p("mc7", 6), p("mc8", 6), p("mc9", 6), p("dfc3", 4), p("lat2", 2)];
+    const proposal = build(["mc1", "mc2", "mc3"], 18, extra);
+
+    expect(proposal.players.map((x) => x.playerId)).not.toEqual(expect.arrayContaining(["mc1", "mc2", "mc3"]));
+    expect(proposal.selectedIds.filter((id) => ["mc1", "mc2", "mc3"].includes(id))).toEqual([]);
+    expect(proposal.calledCount).toBe(22);
+    expect(proposal.targetCount).toBe(4);
+  });
+
+  it("los ya fuera siguen restando del mínimo de su posición", () => {
+    const proposal = build(["dfc1", "dfc2"], 30, [p("dfc3", 4)]);
+
+    expect(proposal.positionWarnings.map((w) => `${w.label}: quedan ${w.remaining} de ${w.required}`)).toEqual([
+      "Centrales: quedan 2 de 3",
+    ]);
+    expect(proposal.calledCount).toBe(18);
+  });
+
+  it("los ya fuera no alteran los scores ni la selección de los demás", () => {
+    const withOut = build(["mc1", "mc2", "mc3"], 14);
+    const removedBeforehand = buildSquad(
+      team().filter((x) => !["mc1", "mc2", "mc3"].includes(x.id)),
+      [],
+      14,
+    );
+
+    expect(withOut.selectedIds).toEqual(removedBeforehand.selectedIds);
+    expect(withOut.players.map((x) => [x.playerId, x.score])).toEqual(
+      removedBeforehand.players.map((x) => [x.playerId, x.score]),
+    );
+  });
 });

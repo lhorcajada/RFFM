@@ -23,6 +23,7 @@ const proposal: DeconvokeProposal = {
   previousRivalResult: null,
   players: [],
   positionWarnings: [],
+  alreadyDeconvoked: [],
 };
 
 function renderTab(extra: Partial<React.ComponentProps<typeof ConvocationTab>> = {}) {

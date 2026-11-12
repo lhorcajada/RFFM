@@ -17,6 +17,7 @@ const emptyProposal: DeconvokeProposal = {
   previousRivalResult: null,
   players: [],
   positionWarnings: [],
+  alreadyDeconvoked: [],
 };
 
 function renderTab(handlers: {

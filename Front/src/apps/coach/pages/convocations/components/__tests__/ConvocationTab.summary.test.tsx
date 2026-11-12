@@ -15,6 +15,7 @@ const emptyProposal: DeconvokeProposal = {
   previousRivalResult: null,
   players: [],
   positionWarnings: [],
+  alreadyDeconvoked: [],
 };
 
 type Zones = {

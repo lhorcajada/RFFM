@@ -42,6 +42,12 @@ describe("useConvocationProposal con jugadores ya desconvocados", () => {
     expect(proposal.players.map((p) => p.playerId)).toEqual(expect.not.arrayContaining(["mc1", "mc2"]));
   });
 
+  it("devuelve los ya desconvocados en alreadyDeconvoked", () => {
+    const proposal = render(new Set(["mc1", "mc2"]));
+
+    expect(proposal.alreadyDeconvoked.map((p) => p.playerId)).toEqual(["mc1", "mc2"]);
+  });
+
   it("sin ya desconvocados cuenta a toda la plantilla", () => {
     expect(render(new Set()).calledCount).toBe(5);
   });

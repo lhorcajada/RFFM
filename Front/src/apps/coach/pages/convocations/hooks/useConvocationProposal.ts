@@ -13,7 +13,7 @@ type UseConvocationProposalInput = {
   players: PlayerResponse[];
   /** Whole squad: the proposal picks who to leave out from every player, not only those already called. */
   squadIds: string[];
-  /** Players already deconvoked, whatever the reason: they are not proposed and do not count as available. */
+  /** Players already deconvoked, whatever the reason: not proposed, not counted as available, and returned in alreadyDeconvoked for display. */
   alreadyOutIds?: ReadonlySet<string>;
   ratings: Record<string, PlayerRating>;
   playerStreaks: Map<string, number>;
