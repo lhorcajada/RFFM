@@ -1,6 +1,5 @@
-import type { Rule, RuleResult, RuleContext } from "./types";
-
-const STREAK_POINTS = [50, 45, 20, 15, 10, 5, 3] as const;
+import type { RuleResult, RuleContext } from "./types";
+import { buildDefaultRule, resolveRule, type DeconvocationRuleConfig } from "./ruleCatalog";
 
 function isTechnicalDecisionLocal(cell: any): boolean {
   if (!cell) return false;
@@ -11,19 +10,22 @@ function isTechnicalDecisionLocal(cell: any): boolean {
   return !!cell.excuseName?.toLowerCase().includes("decisi");
 }
 
-export default function streakRule(ctx: RuleContext, _prev: Record<string, RuleResult>): RuleResult {
+export default function streakRule(
+  ctx: RuleContext,
+  _prev: Record<string, RuleResult>,
+  cfg: DeconvocationRuleConfig = buildDefaultRule("streak"),
+): RuleResult {
+  const rule = resolveRule("streak", [cfg])!;
+  const STREAK_POINTS = [1, 2, 3, 4, 5, 6, 7].map((n) => rule.points[`j${n}`]);
   const { effectiveStreak, seasonColumns, enrichedGrid, playerId, injuryAbsencesInStreak } = ctx;
 
-  // Smoothed constants: reduce abrupt jumps and lower the low-streak bonus.
-  // Increase baseline and scale so differences across jornadas grow.
-  // Goal: increase the point gap between low and high streaks.
-  const STREAK_OFFSET = 8.5;
-  const STREAK_SLOPE = 0.6; // gentler decrease per jornada
-  const STREAK_WEIGHT = 1.0; // reduced scale — lower penalties/bonuses
-  const STREAK_POSITIVE_CAP = 40; // lower cap to avoid extreme outliers
-  const STREAK_NEGATIVE_CAP = 15;
-  const STREAK_LOW_BONUS = 22; // slightly stronger protection for jornada 0/1
-  const RECENT_TECH_BOOST = 6; // smaller boost for a very recent technical decision
+  const STREAK_OFFSET = rule.weights.offset;
+  const STREAK_SLOPE = rule.weights.slope;
+  const STREAK_WEIGHT = rule.weights.scale;
+  const STREAK_POSITIVE_CAP = rule.weights.positiveCap;
+  const STREAK_NEGATIVE_CAP = rule.weights.negativeCap;
+  const STREAK_LOW_BONUS = rule.weights.lowBonus;
+  const RECENT_TECH_BOOST = rule.weights.recentTechBoost;
 
   let recentTechnicalDecision = false;
   if (seasonColumns && seasonColumns.length > 0) {
@@ -53,8 +55,8 @@ export default function streakRule(ctx: RuleContext, _prev: Record<string, RuleR
   const factor = {
     key: "streak",
     label: injuryAbsencesInStreak > 0
-      ? `Jornadas sin desconvocatoria técnica (${injuryAbsencesInStreak} de lesión/enfermedad/familia descontadas)`
-      : "Jornadas sin desconvocatoria técnica",
+      ? `${rule.text} (${injuryAbsencesInStreak} de lesión/enfermedad/familia descontadas)`
+      : rule.text,
     value: effectiveStreak,
     impact: Number(streakImpact.toFixed(2)),
   };

@@ -1,13 +1,17 @@
-import type { Rule, RuleResult, RuleContext } from "./types";
+import type { RuleResult, RuleContext } from "./types";
+import { buildDefaultRule, resolveRule, type DeconvocationRuleConfig } from "./ruleCatalog";
 
-export default function technicalTotalRule(ctx: RuleContext, _prev: Record<string, RuleResult>): RuleResult {
+export default function technicalTotalRule(
+  ctx: RuleContext,
+  _prev: Record<string, RuleResult>,
+  cfg: DeconvocationRuleConfig = buildDefaultRule("technicalTotal"),
+): RuleResult {
+  const rule = resolveRule("technicalTotal", [cfg])!;
   const { technicalTotal, maxTechnicalTotal } = ctx;
-  // Increased multiplier to give stronger protection for accumulated technical deconvocations
-  const MULTIPLIER = 40; // was 20
-  const historyDelta = maxTechnicalTotal > 0 ? (technicalTotal / maxTechnicalTotal) * MULTIPLIER : 0;
+  const historyDelta = maxTechnicalTotal > 0 ? (technicalTotal / maxTechnicalTotal) * rule.points.multiplier : 0;
   const factor = {
     key: "technicalTotal",
-    label: "Desconvocatorias técnicas acumuladas",
+    label: rule.text,
     value: technicalTotal,
     impact: Number(historyDelta.toFixed(2)),
   };

@@ -16,6 +16,8 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import PlaylistAddCheckIcon from "@mui/icons-material/PlaylistAddCheck";
+import RefreshIcon from "@mui/icons-material/Refresh";
+import RuleIcon from "@mui/icons-material/Rule";
 import EmptyState from "../../../../../shared/components/ui/EmptyState/EmptyState";
 import { usePointerDrag } from "../../../../../shared/hooks/usePointerDrag";
 import type { ExcuseType } from "../../../services/excuseTypeService";
@@ -28,6 +30,8 @@ import type { DropZone } from "./convocationMatchDetail.types";
 import type { DeconvokeProposal } from "../utils/deconvokeProposal";
 import { formatProposalFactorValue } from "../utils/deconvokeProposal";
 import { formatShortfall, roleLabel } from "../utils/positionRequirements";
+import type { DeconvocationRuleConfig } from "../utils/rules/ruleCatalog";
+import DeconvocationRulesDialog from "./DeconvocationRulesDialog";
 import styles from "./ConvocationTab.module.css";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -105,6 +109,12 @@ type Props = {
   proposalLoading: boolean;
   onApplyProposal: (ids: string[]) => Promise<void>;
   onPrintProposal: () => Promise<void>;
+  /** Reloads the team rules and regenerates the proposal. */
+  onRefreshProposal?: () => Promise<void>;
+  /** Team whose deconvocation rules are configured from the proposal screen. */
+  teamId?: string;
+  /** Rules currently applied to the proposal. */
+  rules?: DeconvocationRuleConfig[];
   /** Rodaje/condición física por teamPlayerId (best-effort, puede estar vacío mientras carga). */
   readinessMap?: Record<string, Pick<PlayerStatistics, "readiness" | "fatigue"> & Partial<Pick<PlayerStatistics, "formStatus">>>;
   /** Jugadores en la semana de recuperación tras una baja de dos semanas o más. */
@@ -170,10 +180,25 @@ export default function ConvocationTab({
   proposalLoading,
   onApplyProposal,
   onPrintProposal,
+  onRefreshProposal,
+  teamId,
+  rules,
   readinessMap,
   recoveringIds,
 }: Props) {
   const [showProposal, setShowProposal] = useState(false);
+  const [rulesOpen, setRulesOpen] = useState(false);
+  const [refreshingProposal, setRefreshingProposal] = useState(false);
+
+  async function handleRefreshProposal() {
+    if (!onRefreshProposal || refreshingProposal) return;
+    setRefreshingProposal(true);
+    try {
+      await onRefreshProposal();
+    } finally {
+      setRefreshingProposal(false);
+    }
+  }
 
   const zoneAtPoint = (clientX: number, clientY: number): DropZone | null => {
     const el = document.elementFromPoint?.(clientX, clientY);
@@ -547,6 +572,16 @@ export default function ConvocationTab({
         <PlayerFormLegend />
       </div>
 
+      {teamId && rules && (
+        <DeconvocationRulesDialog
+          open={rulesOpen}
+          teamId={teamId}
+          rules={rules}
+          onClose={() => setRulesOpen(false)}
+          onSaved={() => void handleRefreshProposal()}
+        />
+      )}
+
       {showProposal && (
         <div className={styles.proposalPage}>
           <div className={styles.proposalHeader}>
@@ -580,6 +615,22 @@ export default function ConvocationTab({
               >
                 Volver
               </Button>
+              {onRefreshProposal && (
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={refreshingProposal ? <CircularProgress size={14} color="inherit" /> : <RefreshIcon />}
+                  disabled={refreshingProposal}
+                  onClick={handleRefreshProposal}
+                >
+                  Actualizar
+                </Button>
+              )}
+              {teamId && rules && (
+                <Button variant="outlined" size="small" startIcon={<RuleIcon />} onClick={() => setRulesOpen(true)}>
+                  Reglas
+                </Button>
+              )}
               <Button
                 variant="contained"
                 size="small"

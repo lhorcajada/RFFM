@@ -1,7 +1,6 @@
-import type { Rule, RuleResult, RuleContext } from "./types";
+import type { RuleResult, RuleContext } from "./types";
+import { buildDefaultRule, resolveRule, type DeconvocationRuleConfig } from "./ruleCatalog";
 import { daysIntoRecovery, isInjuryAbsence, isLongInjury } from "../injuryRecovery";
-
-const RETURN_PROTECTION_POINTS = 30;
 
 function alreadyMissedPreviousMatchAndTraining(ctx: RuleContext): boolean {
   const previousMatch = ctx.seasonColumns[0];
@@ -9,7 +8,14 @@ function alreadyMissedPreviousMatchAndTraining(ctx: RuleContext): boolean {
   return isInjuryAbsence(previousCell) && ctx.weekStats.attendedTrainings > 0;
 }
 
-export default function recentRecoveryRule(ctx: RuleContext, _prev: Record<string, RuleResult>): RuleResult {
+export default function recentRecoveryRule(
+  ctx: RuleContext,
+  _prev: Record<string, RuleResult>,
+  cfg: DeconvocationRuleConfig = buildDefaultRule("recentRecovery"),
+): RuleResult {
+  const rule = resolveRule("recentRecovery", [cfg])!;
+  const forcedPoints = rule.points.forced;
+  const returnProtection = rule.points.returnProtection;
   const { lastInjuryEndMap, lastInjuryStartMap, lastInjuryMissedEventsMap, player, currentIso } = ctx;
   const lastInjuryEnd = lastInjuryEndMap.get(ctx.playerId) ?? null;
   // A short injury during a rest period (no trainings or matches missed) does not count.
@@ -25,12 +31,12 @@ export default function recentRecoveryRule(ctx: RuleContext, _prev: Record<strin
       key: "recoveryProtection",
       label: "Ya desconvocado por lesión y entrenando: no se penaliza dos veces",
       value: days,
-      impact: RETURN_PROTECTION_POINTS,
+      impact: returnProtection,
     };
-    return { factors: [factor], delta: RETURN_PROTECTION_POINTS };
+    return { factors: [factor], delta: returnProtection };
   }
 
-  const label = longInjury ? "En recuperación de lesión" : "Solo una semana desde el alta de lesión";
-  const factor = { key: "recentRecovery", label, value: days, impact: -100 };
-  return { factors: [factor], delta: -100, forced: true };
+  const label = longInjury ? rule.text : "Solo una semana desde el alta de lesión";
+  const factor = { key: "recentRecovery", label, value: days, impact: forcedPoints };
+  return { factors: [factor], delta: forcedPoints, forced: true };
 }

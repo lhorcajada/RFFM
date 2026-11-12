@@ -21,8 +21,17 @@ const ABSENCE_PENALTY_BY_EXCUSE = new Map<number, number>([
 // Absences that never force a deconvocation on their own, even if the player missed the whole week.
 const EXCUSES_NOT_FORCING_DECONVOCATION = new Set([STUDY, FAMILY_PROBLEM, MEDICAL_APPOINTMENT, UNFORESEEN_EVENT]);
 
-export function absencePenalty(excuseTypeId: number | null | undefined): number {
-  return excuseTypeId != null ? ABSENCE_PENALTY_BY_EXCUSE.get(excuseTypeId) ?? 1 : 1;
+/** Penalties the team can override (the two intermediate tiers); injury and technical decision stay at 0. */
+export type AbsencePenaltyOverrides = { half?: number; threeQuarters?: number };
+
+export function absencePenalty(
+  excuseTypeId: number | null | undefined,
+  overrides?: AbsencePenaltyOverrides,
+): number {
+  const base = excuseTypeId != null ? ABSENCE_PENALTY_BY_EXCUSE.get(excuseTypeId) ?? 1 : 1;
+  if (base === 0.5 && overrides?.half != null) return overrides.half;
+  if (base === 0.75 && overrides?.threeQuarters != null) return overrides.threeQuarters;
+  return base;
 }
 
 export function forcesDeconvocation(excuseTypeId: number | null | undefined): boolean {

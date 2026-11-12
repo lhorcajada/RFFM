@@ -9,6 +9,7 @@ import convocationService from "../../../services/convocationService";
 import type { SportEventResponse } from "../../../services/sportEventService";
 import type { WeeklyTrainingStats } from "../utils/deconvokeProposal";
 import { countMissedEventsDuringInjury, type InjuryWindow } from "../utils/injuryMissedEvents";
+import type { AbsencePenaltyOverrides } from "../utils/attendanceWeights";
 import { absencePenalty, classifyFriendlyConvocation, forcesDeconvocation, isFriendlyEvent } from "../utils/attendanceWeights";
 import { getAllSportEventsInRange, previousDaysRangeIso, toIsoDay } from "../helpers/convocationMatchDetail.helpers";
 import type { SeasonPlayerStats } from "../components/simulation/liveMatch.types";
@@ -23,8 +24,12 @@ type TrainingSummaryPlayer = {
 
 type AttendanceAbsence = { excuseTypeId?: number | null };
 
-function weightedAttendance(attended: number, absences: AttendanceAbsence[]): number {
-  return absences.reduce((sum, absence) => sum + 1 - absencePenalty(absence.excuseTypeId), attended);
+function weightedAttendance(
+  attended: number,
+  absences: AttendanceAbsence[],
+  penalties?: AbsencePenaltyOverrides,
+): number {
+  return absences.reduce((sum, absence) => sum + 1 - absencePenalty(absence.excuseTypeId, penalties), attended);
 }
 
 export type ConvocationMatchContext = {
@@ -45,7 +50,10 @@ export function useConvocationMatchContext(
   seasonId: string | null,
   convocationPlayers: PlayerResponse[],
   enabled: boolean = true,
+  absencePenalties?: AbsencePenaltyOverrides,
 ): ConvocationMatchContext {
+  const penaltyHalf = absencePenalties?.half;
+  const penaltyThreeQuarters = absencePenalties?.threeQuarters;
   const [seasonEvents, setSeasonEvents] = useState<SportEventResponse[]>([]);
   const [seasonStats, setSeasonStats] = useState<SeasonPlayerStats[]>([]);
   const [gridStartsCountMap, setGridStartsCountMap] = useState<Map<string, number>>(new Map());
@@ -378,9 +386,9 @@ export function useConvocationMatchContext(
           playerStats.set(p.id, {
             totalTrainings,
             attendedTrainings,
-            weightedAttendedTrainings: weightedAttendance(attendedTrainings, weekAbsences),
+            weightedAttendedTrainings: weightedAttendance(attendedTrainings, weekAbsences, { half: penaltyHalf, threeQuarters: penaltyThreeQuarters }),
             attendedTrainingsSeason,
-            weightedAttendedTrainingsSeason: weightedAttendance(attendedTrainingsSeason, seasonAbsences),
+            weightedAttendedTrainingsSeason: weightedAttendance(attendedTrainingsSeason, seasonAbsences, { half: penaltyHalf, threeQuarters: penaltyThreeQuarters }),
             totalTrainingsSeason,
             knownUnavailableTrainings,
           });
@@ -406,7 +414,7 @@ export function useConvocationMatchContext(
     return () => {
       mounted = false;
     };
-  }, [teamId, matchDate, seasonId, convocationPlayers, enabled]);
+  }, [teamId, matchDate, seasonId, convocationPlayers, enabled, penaltyHalf, penaltyThreeQuarters]);
 
   useEffect(() => {
     if (!teamId || !enabled || convocationPlayers.length === 0) {

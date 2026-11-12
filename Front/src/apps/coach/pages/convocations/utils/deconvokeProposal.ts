@@ -5,6 +5,8 @@ import type { MatchColumn } from "../components/convocationMatchDetail.types";
 import type { GridCell } from "../components/convocationMatchDetail.types";
 import type { SeasonPlayerStats } from "../components/simulation/liveMatch.types";
 import { runRules } from "./rules";
+import { DEFAULT_RULES } from "./rules/defaultRules";
+import { resolveRule, type DeconvocationRuleConfig } from "./rules/ruleCatalog";
 import {
   evaluateRequirements,
   protectionReason,
@@ -24,6 +26,8 @@ export type ProposalFactor = {
   label: string;
   value: number;
   impact: number;
+  /** How the value is displayed; defaults to a plain number. */
+  format?: "percent";
 };
 
 export type PlayerProposal = {
@@ -87,6 +91,8 @@ export type BuildProposalInput = {
   matchUnavailable?: Map<string, MatchUnavailability>;
   /** Players already deconvoked, whatever the reason: out of the squad the proposal works on. */
   alreadyOutIds?: ReadonlySet<string>;
+  /** Team's configured deconvocation rules; the default set when omitted. */
+  rules?: DeconvocationRuleConfig[];
 };
 
 // "Trainings" include the friendlies the player was called to.
@@ -334,6 +340,7 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
     gridStartsCountMap,
     matchUnavailable,
     alreadyOutIds,
+    rules = DEFAULT_RULES,
   } = input;
 
   const calledIds = alreadyOutIds ? squadIds.filter((id) => !alreadyOutIds.has(id)) : squadIds;
@@ -392,11 +399,12 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
       const physical = r?.physical ?? 5;
       const tactical = r?.tactical ?? 5;
       const technical = r?.technical ?? 5;
+      const ratingWeights = resolveRule("rating", rules)?.weights ?? resolveRule("rating", DEFAULT_RULES)!.weights;
       const weightedRating =
-        competitiveness * 0.45 +
-        physical * 0.25 +
-        tactical * 0.2 +
-        technical * 0.1;
+        competitiveness * ratingWeights.competitiveness +
+        physical * ratingWeights.physical +
+        tactical * ratingWeights.tactical +
+        technical * ratingWeights.technical;
 
       const calledStats = seasonStatsMap.get(playerId);
       const calledCount = gridCalledCountMap.get(playerId) ?? 0;
@@ -504,7 +512,7 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
         maxTechnicalTotal,
       } as const;
 
-      const ruleResults = runRules(ruleCtx as any);
+      const ruleResults = runRules(ruleCtx as any, rules);
       for (const rr of ruleResults) {
         if (rr.forced) forced = true;
         score += rr.delta;
@@ -624,7 +632,7 @@ export function formatProposalFactorValue(factor: ProposalFactor): string {
     case "positionProtection":
       return nf0(n);
     case "weeklyTraining":
-      if (label.includes("puntos por asistencia")) return `${nf0(n)}%`;
+      if (factor.format === "percent" || label.includes("puntos por asistencia")) return `${nf0(n)}%`;
       return `${nf0(n)} entrenos`;
     case "weeklyTrainingAccum":
       return `${nf0(n)}%`;

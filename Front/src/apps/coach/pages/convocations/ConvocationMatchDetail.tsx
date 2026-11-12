@@ -23,6 +23,8 @@ import { useDesconvocatoriasGrid } from "./hooks/useDesconvocatoriasGrid";
 import { useConvocationMatchContext } from "./hooks/useConvocationMatchContext";
 import { useConvocationPlayerViews } from "./hooks/useConvocationPlayerViews";
 import { useConvocationProposal } from "./hooks/useConvocationProposal";
+import { useDeconvocationRules } from "./hooks/useDeconvocationRules";
+import { resolveRule } from "./utils/rules/ruleCatalog";
 import { buildMatchUnavailability } from "./utils/matchUnavailability";
 import { toIsoDay } from "./utils/deconvokeProposal";
 import { countDeconvokedPlayers } from "./utils/deconvocationStats";
@@ -159,6 +161,7 @@ export default function ConvocationMatchDetail() {
   }, [teamId]);
 
   const readinessMap = useTeamReadinessMap(teamId);
+  const { rules: deconvocationRules, reload: reloadDeconvocationRules } = useDeconvocationRules(teamId);
 
   // Data hooks
   const convocation = useConvocationManagement(teamId, match?.date);
@@ -181,6 +184,11 @@ export default function ConvocationMatchDetail() {
   }, [convocation.mgmtEventId]);
   const grid = useDesconvocatoriasGrid(teamId, gridEnabled);
 
+  const penaltyWeights = resolveRule("weeklyTraining", deconvocationRules)?.weights;
+  const absencePenalties = {
+    half: penaltyWeights?.penaltyHalf,
+    threeQuarters: penaltyWeights?.penaltyThreeQuarters,
+  };
   const {
     seasonEvents,
     seasonStats,
@@ -191,7 +199,7 @@ export default function ConvocationMatchDetail() {
     weekTrainingStatsMap,
     weekTrainingCount,
     loadingProposalContext,
-  } = useConvocationMatchContext(teamId, match?.date, seasonId, convocation.players, proposalEnabled);
+  } = useConvocationMatchContext(teamId, match?.date, seasonId, convocation.players, proposalEnabled, absencePenalties);
 
   const excuseTypesById = useMemo(
     () => new Map(convocation.excuseTypes.map((e) => [e.id, { name: e.name, justified: e.justified }])),
@@ -254,6 +262,7 @@ export default function ConvocationMatchDetail() {
   }, [lastInjuryEndMap, lastInjuryStartMap, match?.date]);
 
   const proposal = useConvocationProposal({
+    rules: deconvocationRules,
     players: convocation.players,
     squadIds,
     alreadyOutIds,
@@ -413,6 +422,9 @@ export default function ConvocationMatchDetail() {
             playerStreaks={playerStreaks}
             proposal={proposal}
             proposalLoading={loadingProposalContext || grid.isLoading || convocation.loadingPlayers}
+            teamId={teamId}
+            rules={deconvocationRules}
+            onRefreshProposal={reloadDeconvocationRules}
             onApplyProposal={handleApplyProposal}
             onPrintProposal={handlePrintProposal}
             readinessMap={readinessMap}

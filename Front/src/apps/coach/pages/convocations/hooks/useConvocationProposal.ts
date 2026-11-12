@@ -7,6 +7,7 @@ import type { SeasonPlayerStats } from "../components/simulation/liveMatch.types
 import type { DeconvokeProposal, WeeklyTrainingStats } from "../utils/deconvokeProposal";
 import { buildDeconvokeProposal } from "../utils/deconvokeProposal";
 import type { MatchUnavailability } from "../utils/matchUnavailability";
+import type { DeconvocationRuleConfig } from "../utils/rules/ruleCatalog";
 
 type UseConvocationProposalInput = {
   players: PlayerResponse[];
@@ -32,6 +33,8 @@ type UseConvocationProposalInput = {
   gridStartsCountMap: Map<string, number>;
   /** Players not available for this match (playerId → reason). */
   matchUnavailable: Map<string, MatchUnavailability>;
+  /** Team's deconvocation rules; the default set when omitted. */
+  rules?: DeconvocationRuleConfig[];
 };
 
 export function useConvocationProposal(input: UseConvocationProposalInput): DeconvokeProposal {
@@ -56,6 +59,7 @@ export function useConvocationProposal(input: UseConvocationProposalInput): Deco
     weekTrainingCount,
     gridStartsCountMap,
     matchUnavailable,
+    rules,
   } = input;
 
   return useMemo(
@@ -82,6 +86,7 @@ export function useConvocationProposal(input: UseConvocationProposalInput): Deco
         maxCalledPlayers: 18,
         gridStartsCountMap,
         matchUnavailable,
+        rules,
       }),
     [
       players,
@@ -104,6 +109,7 @@ export function useConvocationProposal(input: UseConvocationProposalInput): Deco
       weekTrainingCount,
       gridStartsCountMap,
       matchUnavailable,
+      rules,
     ],
   );
 }

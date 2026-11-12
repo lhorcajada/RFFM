@@ -1,13 +1,18 @@
-import type { Rule, RuleResult, RuleContext } from "./types";
+import type { RuleResult, RuleContext } from "./types";
+import { buildDefaultRule, resolveRule, type DeconvocationRuleConfig } from "./ruleCatalog";
 
-export default function goalsRule(ctx: RuleContext, _prev: Record<string, RuleResult>): RuleResult {
+export default function goalsRule(
+  ctx: RuleContext,
+  _prev: Record<string, RuleResult>,
+  cfg: DeconvocationRuleConfig = buildDefaultRule("goals"),
+): RuleResult {
+  const rule = resolveRule("goals", [cfg])!;
   const goals = Number(ctx.seasonPlayerStats?.leagueGoals ?? 0);
-  const POINTS_PER_GOAL = 2; // configurable: puntos otorgados por gol de liga
-  const goalsDelta = Number((goals * POINTS_PER_GOAL).toFixed(2));
+  const goalsDelta = Number((goals * rule.points.perGoal).toFixed(2));
 
   const factor = {
     key: "goals",
-    label: "Goles (liga)",
+    label: rule.text,
     value: goals,
     impact: goalsDelta,
   };

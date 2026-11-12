@@ -1,69 +1,77 @@
-import type { Rule, RuleResult, RuleContext } from "./types";
+import type { RuleResult, RuleContext } from "./types";
+import { resolveRule, type DeconvocationRuleConfig } from "./ruleCatalog";
+import { DEFAULT_RULES } from "./defaultRules";
 
 function clamp01(v: number) {
   return Math.max(0, Math.min(1, v));
 }
 
-// Combined metric rule — compone una puntuación normalizada a partir de:
-// - 45% `rating` (weightedRating)
-// - 45% `necessity` (ahora basada únicamente en `competitiveness`, rango 0..1)
-// - hasta 25 pts por `training` (asistencia bruta a entrenos y amistosos en la temporada)
-// Nota: `ctx.necessity` ya no combina titularidades/convocatorias; es la competitividad.
-const SEASON_ATTENDANCE_MAX_POINTS = 25;
+// Combined metric rule — three independent conditions computed together:
+// - `rating` (weightedRating, 0..10)
+// - `necessity` (based only on `competitiveness`, 0..10)
+// - `weeklyTrainingAccum` (raw season attendance to trainings and friendlies)
+// A condition without a configured rule does not contribute. `ctx.necessity` no longer mixes
+// starts/calls; it is the competitiveness.
+export default function combinedRule(
+  ctx: RuleContext,
+  _prev: Record<string, RuleResult>,
+  rules: DeconvocationRuleConfig[] = DEFAULT_RULES,
+): RuleResult {
+  const ratingRule = resolveRule("rating", rules);
+  const necessityRule = resolveRule("necessity", rules);
+  const trainingRule = resolveRule("weeklyTrainingAccum", rules);
 
-export default function combinedRule(ctx: RuleContext, _prev: Record<string, RuleResult>): RuleResult {
-  // Raw rate (same figure as the attendance summary): justified absences are not compensated here.
-  const attendedSeason = Number.isFinite(ctx.weekStats.attendedTrainingsSeason)
-    ? ctx.weekStats.attendedTrainingsSeason
-    : 0;
-  const totalTrainingsSeason = Number.isFinite(ctx.weekStats.totalTrainingsSeason)
-    ? Math.max(0, ctx.weekStats.totalTrainingsSeason)
-    : 0;
-  const seasonAttendanceRate = totalTrainingsSeason > 0
-    ? clamp01(attendedSeason / totalTrainingsSeason)
-    : 0;
+  const factors: RuleResult["factors"] = [];
+  let combined = 0;
 
-  // Derive necessity from the player's competitiveness level (0-10).
-  // Accept decimal competitiveness (e.g. 5.3). If `ctx.competitiveness` is
-  // missing, fall back to `ctx.necessity` (0..1) scaled to 0..10.
-  const rawLevel = Number.isFinite(Number(ctx.competitiveness))
-    ? Number(ctx.competitiveness)
-    : (Number(ctx.necessity ?? 0) * 10);
-  const level = Math.max(0, Math.min(10, rawLevel));
-  const boostedNecessity = clamp01(level / 10);
+  if (ratingRule) {
+    const ratingNorm = clamp01(ctx.weightedRating / 10);
+    const impact = ratingNorm * ratingRule.weights.blockWeight * ratingRule.points.max;
+    combined += impact;
+    factors.push({
+      key: "rating",
+      label: ratingRule.text,
+      value: Number(ctx.weightedRating.toFixed(2)),
+      impact: Number(impact.toFixed(2)),
+    });
+  }
 
-  const ratingNorm = clamp01(ctx.weightedRating / 10);
-  const COMBINED_MAX = 100;
+  if (necessityRule) {
+    // Accept decimal competitiveness (e.g. 5.3). If `ctx.competitiveness` is missing,
+    // fall back to `ctx.necessity` (0..1) scaled to 0..10.
+    const rawLevel = Number.isFinite(Number(ctx.competitiveness))
+      ? Number(ctx.competitiveness)
+      : Number(ctx.necessity ?? 0) * 10;
+    const level = Math.max(0, Math.min(10, rawLevel));
+    const impact = clamp01(level / 10) * necessityRule.weights.blockWeight * necessityRule.points.max;
+    combined += impact;
+    factors.push({
+      key: "necessity",
+      label: necessityRule.text,
+      value: Number(level.toFixed(1)),
+      impact: Number(impact.toFixed(2)),
+    });
+  }
 
-  // Compute impacts as floats to preserve small differences between players
-  // (e.g. 59 vs 62 entrenamientos). Round only the final combined delta so
-  // the sum of fractional contributions decides tie-breakers.
-  const ratingImpactF = ratingNorm * 0.45 * COMBINED_MAX;
-  const necessityImpactF = boostedNecessity * 0.45 * COMBINED_MAX;
-  const trainingImpactF = seasonAttendanceRate * SEASON_ATTENDANCE_MAX_POINTS;
-  const combinedDelta = Math.round(ratingImpactF + necessityImpactF + trainingImpactF);
+  if (trainingRule) {
+    // Raw rate (same figure as the attendance summary): justified absences are not compensated here.
+    const attendedSeason = Number.isFinite(ctx.weekStats.attendedTrainingsSeason)
+      ? ctx.weekStats.attendedTrainingsSeason
+      : 0;
+    const totalTrainingsSeason = Number.isFinite(ctx.weekStats.totalTrainingsSeason)
+      ? Math.max(0, ctx.weekStats.totalTrainingsSeason)
+      : 0;
+    const rate = totalTrainingsSeason > 0 ? clamp01(attendedSeason / totalTrainingsSeason) : 0;
+    const impact = rate * trainingRule.points.max;
+    combined += impact;
+    factors.push({
+      key: "weeklyTrainingAccum",
+      label: trainingRule.text,
+      value: Number((rate * 100).toFixed(2)),
+      impact: Number(impact.toFixed(2)),
+    });
+  }
 
-  const ratingFactor = {
-    key: "rating",
-    label: "Nivel ponderado (Comp > Fis > Tac > Tec)",
-    value: Number(ctx.weightedRating.toFixed(2)),
-    impact: Number(ratingImpactF.toFixed(2)),
-  };
-
-  const necessityFactor = {
-    key: "necessity",
-    label: "Necesidad para el equipo: basada únicamente en competitividad",
-    // value reports the competitiveness level with one decimal
-    value: Number(level.toFixed(1)),
-    impact: Number(necessityImpactF.toFixed(2)),
-  };
-
-  const trainingFactor = {
-    key: "weeklyTrainingAccum",
-    label: "Asistencia a entrenamientos y amistosos (temporada)",
-    value: Number((seasonAttendanceRate * 100).toFixed(2)),
-    impact: Number(trainingImpactF.toFixed(2)),
-  };
-
-  return { factors: [ratingFactor, necessityFactor, trainingFactor], delta: combinedDelta };
+  // Impacts stay floats to preserve small differences between players; only the sum is rounded.
+  return { factors, delta: Math.round(combined) };
 }
