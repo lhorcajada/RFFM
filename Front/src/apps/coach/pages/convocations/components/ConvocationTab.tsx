@@ -27,7 +27,7 @@ import type { PlayerStatistics } from "../../../services/teamPlayerStatisticsSer
 import ConvocationPlayerRow from "./ConvocationPlayerRow";
 import PlayerFormLegend from "../../../components/PlayerFormLegend/PlayerFormLegend";
 import type { DropZone } from "./convocationMatchDetail.types";
-import type { DeconvokeProposal } from "../utils/deconvokeProposal";
+import type { AlreadyDeconvokedPlayer, DeconvokeProposal } from "../utils/deconvokeProposal";
 import { formatProposalFactorValue } from "../utils/deconvokeProposal";
 import { formatShortfall, roleLabel } from "../utils/positionRequirements";
 import type { DeconvocationRuleConfig } from "../utils/rules/ruleCatalog";
@@ -299,6 +299,24 @@ export default function ConvocationTab({
   }
 
   const selectedProposalPlayers = proposal.players.filter((p) => p.isSelected);
+
+  function renderAlreadyDeconvokedCard(item: AlreadyDeconvokedPlayer) {
+    return (
+      <article key={item.playerId} className={`${styles.proposalCard} ${styles.proposalCardDim}`}>
+        <div className={styles.proposalCardTop}>
+          <div className={styles.proposalCardName}>
+            <strong>{item.displayName}</strong>
+          </div>
+          <span className={styles.proposalAlreadyBadge}>Ya desconvocado</span>
+        </div>
+        <div className={styles.proposalChips}>
+          <span className={styles.proposalChip} title={item.position ?? undefined}>
+            {roleLabel(item.positionRole)}
+          </span>
+        </div>
+      </article>
+    );
+  }
 
   function renderCard(item: (typeof proposal.players)[0], highlighted: boolean) {
     return (
@@ -660,18 +678,22 @@ export default function ConvocationTab({
 
           {proposalLoading ? (
             <div className={styles.center}><CircularProgress size={28} /></div>
-          ) : proposal.players.length === 0 ? (
+          ) : proposal.players.length === 0 && proposal.alreadyDeconvoked.length === 0 ? (
             <EmptyState description="No hay convocados para evaluar." />
           ) : (
             <>
               {/* ── Proposed section ── */}
-              {selectedProposalPlayers.length === 0 ? (
+              {proposal.players.length > 0 && selectedProposalPlayers.length === 0 && (
                 <p className={styles.proposalSubtitle} style={{ marginBottom: 8 }}>No hace falta desconvocar jugadores con las reglas actuales.</p>
-              ) : (
+              )}
+              {(selectedProposalPlayers.length > 0 || proposal.alreadyDeconvoked.length > 0) && (
                 <>
-                  <p className={styles.proposalSectionLabel}>Propuestos para desconvocar</p>
+                  {selectedProposalPlayers.length > 0 && (
+                    <p className={styles.proposalSectionLabel}>Propuestos para desconvocar</p>
+                  )}
                   <div className={styles.proposalCards}>
-                    {proposal.players.filter((p) => p.isSelected).map((item) => renderCard(item, true))}
+                    {selectedProposalPlayers.map((item) => renderCard(item, true))}
+                    {proposal.alreadyDeconvoked.map((item) => renderAlreadyDeconvokedCard(item))}
                   </div>
                 </>
               )}

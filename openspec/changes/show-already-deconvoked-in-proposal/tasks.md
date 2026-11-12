@@ -36,7 +36,7 @@
 
 ## Step 2: Proposal panel shows the already-deconvoked players
 
-- [ ] Step 2: Proposal panel shows the already-deconvoked players
+- [x] Step 2: Proposal panel shows the already-deconvoked players
 
 **Routing**: category=frontend-ui · context=medium · difficulty=medium
 
