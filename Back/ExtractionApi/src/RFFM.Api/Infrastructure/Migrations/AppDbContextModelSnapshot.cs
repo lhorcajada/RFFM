@@ -5744,6 +5744,30 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.ToTable("TrackingComments", "app");
                 });
 
+            modelBuilder.Entity("RFFM.Api.Domain.Entities.Teams.DeconvocationRulesSettings", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<string>("RulesJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("TeamId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedOn")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TeamId")
+                        .IsUnique();
+
+                    b.ToTable("DeconvocationRulesSettings", "app");
+                });
+
             modelBuilder.Entity("RFFM.Api.Domain.Entities.Teams.LotteryBook", b =>
                 {
                     b.Property<string>("Id")
@@ -7310,6 +7334,15 @@ namespace RFFM.Api.Infrastructure.Migrations
                 });
 
             modelBuilder.Entity("RFFM.Api.Domain.Entities.TeamPlayers.TrackingComment", b =>
+                {
+                    b.HasOne("RFFM.Api.Domain.Aggregates.UserClubs.Team", null)
+                        .WithMany()
+                        .HasForeignKey("TeamId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Entities.Teams.DeconvocationRulesSettings", b =>
                 {
                     b.HasOne("RFFM.Api.Domain.Aggregates.UserClubs.Team", null)
                         .WithMany()
