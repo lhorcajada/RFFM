@@ -41,7 +41,7 @@ function renderTab(teamAvgRating: number) {
       proposal={emptyProposal}
       proposalLoading={false}
       onApplyProposal={async () => {}}
-      onPrintProposal={async () => {}}
+
     />,
   );
 }

@@ -7,6 +7,7 @@ import type { SeasonPlayerStats } from "../components/simulation/liveMatch.types
 import type { DeconvokeProposal, WeeklyTrainingStats } from "../utils/deconvokeProposal";
 import { buildDeconvokeProposal } from "../utils/deconvokeProposal";
 import type { MatchUnavailability } from "../utils/matchUnavailability";
+import type { RivalDifficulty } from "../utils/deconvocationFunnel";
 import type { DeconvocationRuleConfig } from "../utils/rules/ruleCatalog";
 
 type UseConvocationProposalInput = {
@@ -35,6 +36,8 @@ type UseConvocationProposalInput = {
   matchUnavailable: Map<string, MatchUnavailability>;
   /** Team's deconvocation rules; the default set when omitted. */
   rules?: DeconvocationRuleConfig[];
+  /** Difficulty of the rival; medium when omitted. */
+  rivalDifficulty?: RivalDifficulty;
 };
 
 export function useConvocationProposal(input: UseConvocationProposalInput): DeconvokeProposal {
@@ -60,6 +63,7 @@ export function useConvocationProposal(input: UseConvocationProposalInput): Deco
     gridStartsCountMap,
     matchUnavailable,
     rules,
+    rivalDifficulty,
   } = input;
 
   return useMemo(
@@ -87,6 +91,7 @@ export function useConvocationProposal(input: UseConvocationProposalInput): Deco
         gridStartsCountMap,
         matchUnavailable,
         rules,
+        rivalDifficulty,
       }),
     [
       players,
@@ -110,6 +115,7 @@ export function useConvocationProposal(input: UseConvocationProposalInput): Deco
       gridStartsCountMap,
       matchUnavailable,
       rules,
+      rivalDifficulty,
     ],
   );
 }

@@ -1,16 +1,12 @@
 export const RULE_CONDITIONS = [
-  "goals",
-  "streak",
-  "minimum",
-  "rivalResult",
   "injured",
   "weeklyTraining",
   "recentRecovery",
   "recentDeconvocation",
-  "technicalTotal",
+  "otherDeconvocation",
+  "injuryRest",
+  "rivalDifficulty",
   "rating",
-  "necessity",
-  "weeklyTrainingAccum",
 ] as const;
 
 export type RuleCondition = (typeof RULE_CONDITIONS)[number];
@@ -46,61 +42,21 @@ const f = (key: string, label: string, def: number, min = -1000, max = 1000): Nu
   max,
 });
 
-const streakTable = [50, 45, 20, 15, 10, 5, 3].map((v, i) => f(`j${i + 1}`, `Racha de ${i + 1} jornada${i ? "s" : ""}`, v));
-
 export const RULE_CATALOG: Record<RuleCondition, ConditionDefinition> = {
-  goals: {
-    title: "Goles de liga",
-    description: "Protege a quien marca goles en la temporada.",
-    defaultText: "Goles (liga)",
-    points: [f("perGoal", "Puntos por gol", 2)],
-    weights: [],
-  },
-  streak: {
-    title: "Jornadas sin desconvocatoria técnica",
-    description: "Protege más a quien lleva pocas jornadas seguidas convocado sin decisión técnica.",
-    defaultText: "Jornadas sin desconvocatoria técnica",
-    points: streakTable,
-    weights: [
-      f("offset", "Base sin racha", 8.5),
-      f("slope", "Descenso por jornada", 0.6),
-      f("scale", "Escala", 1),
-      f("positiveCap", "Tope positivo", 40),
-      f("negativeCap", "Tope negativo", 15),
-      f("lowBonus", "Bonus racha 0 o 1", 22),
-      f("recentTechBoost", "Bonus por desconvocatoria técnica reciente", 6),
-    ],
-  },
-  minimum: {
-    title: "Mínimo de convocatorias",
-    description: "Protege a quien no llega al mínimo de convocatorias exigido.",
-    defaultText: "Le faltan {deficit} convocatorias para llegar al mínimo exigido ({min})",
-    placeholders: ["{deficit}", "{min}"],
-    points: [f("perMissingCall", "Puntos por convocatoria que falta", 4.5)],
-    weights: [f("cap", "Tope de puntos", 24)],
-  },
-  rivalResult: {
-    title: "Resultado contra el rival",
-    description: "Según el último resultado contra el rival, protege a los más necesarios o descansa titulares.",
-    defaultText: "{result} vs {rival} ({score})",
-    placeholders: ["{result}", "{rival}", "{score}"],
-    points: [f("loss", "Base tras derrota", 22), f("draw", "Base tras empate", 14), f("win", "Base tras victoria", 8)],
-    weights: [f("bigWinGoalDiff", "Diferencia de goles para resultado abultado", 7, 1, 50)],
-  },
   injured: {
     title: "Lesionado",
     description: "Desconvocatoria automática de los lesionados.",
     defaultText: "Lesionado: desconvocatoria automática",
     mandatory: true,
-    points: [f("value", "Puntos", -120)],
+    points: [],
     weights: [],
   },
   weeklyTraining: {
     title: "Asistencia a entrenamientos de la semana",
-    description: "Puntúa la asistencia semanal; sin asistir a ningún entrenamiento fuerza la desconvocatoria.",
-    defaultText: "Puntos por asistencia a entrenamientos y amistosos",
+    description: "Sin asistir a ningún entrenamiento de la semana se fuerza la desconvocatoria.",
+    defaultText: "Semana de partido sin asistir a entrenamientos",
     mandatory: true,
-    points: [f("maxAttendance", "Puntos máximos por asistencia", 12), f("forced", "Puntos si no asiste en toda la semana", -100)],
+    points: [],
     weights: [
       f("reliableAttendance", "Asistencia de temporada que evita forzar (0-1)", 0.8, 0, 1),
       f("penaltyHalf", "Penalización por imprevisto o problema familiar (0-1)", 0.5, 0, 1),
@@ -109,52 +65,55 @@ export const RULE_CATALOG: Record<RuleCondition, ConditionDefinition> = {
   },
   recentRecovery: {
     title: "Recuperación reciente de lesión",
-    description: "Desconvoca a quien acaba de recibir el alta; protege si ya se perdió el partido anterior.",
+    description: "Desconvoca a quien acaba de recibir el alta de una lesión larga.",
     defaultText: "En recuperación de lesión",
     mandatory: true,
-    points: [f("forced", "Puntos de desconvocatoria", -100), f("returnProtection", "Protección al volver de una lesión corta", 30)],
+    points: [],
     weights: [],
   },
   recentDeconvocation: {
-    title: "Desconvocado en las últimas jornadas",
-    description: "Protege a quien fue desconvocado hace poco.",
-    defaultText: "Desconvocado en las últimas jornadas",
-    points: [f("j1", "Hace 1 jornada", 15), f("j2", "Hace 2 jornadas", 10), f("j3", "Hace 3 jornadas", 5)],
+    title: "Desconvocado por decisión técnica",
+    description: "Protege de una nueva desconvocatoria a quien fue desconvocado por decisión técnica hace poco.",
+    defaultText: "Desconvocado por decisión técnica en las últimas jornadas",
+    points: [f("window", "Jornadas de protección", 8, 0, 30)],
     weights: [],
   },
-  technicalTotal: {
-    title: "Desconvocatorias técnicas acumuladas",
-    description: "Protege más a quien acumula más desconvocatorias técnicas.",
-    defaultText: "Desconvocatorias técnicas acumuladas",
-    points: [f("multiplier", "Puntos máximos", 40)],
+  otherDeconvocation: {
+    title: "Desconvocado por otro motivo",
+    description: "Protege de una nueva desconvocatoria a quien fue desconvocado hace poco por otra causa (problema familiar, estudios, imprevisto...), sin contar lesiones.",
+    defaultText: "Desconvocado por otro motivo en las últimas jornadas",
+    points: [f("window", "Jornadas de protección", 4, 0, 30)],
+    weights: [],
+  },
+  injuryRest: {
+    title: "Descanso por lesión",
+    description: "Una ausencia por lesión o enfermedad, aunque sea leve, cuenta como descanso y protege unas jornadas.",
+    defaultText: "No vino por lesión: cuenta como descanso",
+    points: [f("window", "Jornadas de protección", 1, 0, 30)],
+    weights: [],
+  },
+  rivalDifficulty: {
+    title: "Dificultad del rival",
+    description:
+      "Ante un rival difícil, a igualdad de justicia salen primero los jugadores de menor nivel. Se calcula con la probabilidad de victoria del pronóstico.",
+    defaultText: "Dificultad del rival según el pronóstico",
+    points: [
+      f("hardBelow", "Rival difícil si la probabilidad de victoria es menor de (%)", 40, 0, 100),
+      f("easyAbove", "Rival fácil si la probabilidad de victoria es mayor de (%)", 65, 0, 100),
+    ],
     weights: [],
   },
   rating: {
     title: "Nivel ponderado",
-    description: "Valoración del jugador combinando competitividad, físico, táctica y técnica.",
+    description: "Valoración del jugador combinando competitividad, físico, táctica y técnica. Solo se usa ante un rival difícil.",
     defaultText: "Nivel ponderado (Comp > Fis > Tac > Tec)",
-    points: [f("max", "Puntos máximos", 100)],
+    points: [],
     weights: [
-      f("blockWeight", "Peso del bloque (0-1)", 0.45, 0, 1),
       f("competitiveness", "Peso competitividad (0-1)", 0.45, 0, 1),
       f("physical", "Peso físico (0-1)", 0.25, 0, 1),
       f("tactical", "Peso táctico (0-1)", 0.2, 0, 1),
       f("technical", "Peso técnico (0-1)", 0.1, 0, 1),
     ],
-  },
-  necessity: {
-    title: "Necesidad para el equipo",
-    description: "Basada únicamente en la competitividad del jugador.",
-    defaultText: "Necesidad para el equipo: basada únicamente en competitividad",
-    points: [f("max", "Puntos máximos", 100)],
-    weights: [f("blockWeight", "Peso del bloque (0-1)", 0.45, 0, 1)],
-  },
-  weeklyTrainingAccum: {
-    title: "Asistencia de temporada",
-    description: "Porcentaje de asistencia a entrenamientos y amistosos durante la temporada.",
-    defaultText: "Asistencia a entrenamientos y amistosos (temporada)",
-    points: [f("max", "Puntos máximos", 25)],
-    weights: [],
   },
 };
 

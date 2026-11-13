@@ -7,15 +7,6 @@ export default function injuredRule(
   cfg: DeconvocationRuleConfig = buildDefaultRule("injured"),
 ): RuleResult {
   const rule = resolveRule("injured", [cfg])!;
-  const points = rule.points.value;
-  if (ctx.player.isInjured) {
-    const factor = {
-      key: "injured",
-      label: rule.text,
-      value: 1,
-      impact: points,
-    };
-    return { factors: [factor], delta: points, forced: true };
-  }
-  return { factors: [], delta: 0 };
+  if (!ctx.player.isInjured) return { factors: [], delta: 0 };
+  return { factors: [{ key: "injured", label: rule.text, value: 1, impact: 0 }], delta: 0, forced: true };
 }

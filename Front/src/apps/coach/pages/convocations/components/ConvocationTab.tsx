@@ -1,5 +1,4 @@
 import {
-  Alert,
   Button,
   Checkbox,
   CircularProgress,
@@ -10,14 +9,10 @@ import {
   Select,
 } from "@mui/material";
 import { useEffect, useState, type MouseEvent, type PointerEvent } from "react";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CloseIcon from "@mui/icons-material/Close";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
-import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import PlaylistAddCheckIcon from "@mui/icons-material/PlaylistAddCheck";
-import RefreshIcon from "@mui/icons-material/Refresh";
-import RuleIcon from "@mui/icons-material/Rule";
 import EmptyState from "../../../../../shared/components/ui/EmptyState/EmptyState";
 import { usePointerDrag } from "../../../../../shared/hooks/usePointerDrag";
 import type { ExcuseType } from "../../../services/excuseTypeService";
@@ -27,10 +22,9 @@ import type { PlayerStatistics } from "../../../services/teamPlayerStatisticsSer
 import ConvocationPlayerRow from "./ConvocationPlayerRow";
 import PlayerFormLegend from "../../../components/PlayerFormLegend/PlayerFormLegend";
 import type { DropZone } from "./convocationMatchDetail.types";
-import type { AlreadyDeconvokedPlayer, DeconvokeProposal } from "../utils/deconvokeProposal";
-import { formatProposalFactorValue } from "../utils/deconvokeProposal";
-import { formatShortfall, roleLabel } from "../utils/positionRequirements";
+import type { DeconvokeProposal } from "../utils/deconvokeProposal";
 import type { DeconvocationRuleConfig } from "../utils/rules/ruleCatalog";
+import DeconvocationProposalView from "./DeconvocationProposalView";
 import DeconvocationRulesDialog from "./DeconvocationRulesDialog";
 import styles from "./ConvocationTab.module.css";
 
@@ -108,7 +102,6 @@ type Props = {
   proposal: DeconvokeProposal;
   proposalLoading: boolean;
   onApplyProposal: (ids: string[]) => Promise<void>;
-  onPrintProposal: () => Promise<void>;
   /** Reloads the team rules and regenerates the proposal. */
   onRefreshProposal?: () => Promise<void>;
   /** Team whose deconvocation rules are configured from the proposal screen. */
@@ -179,7 +172,6 @@ export default function ConvocationTab({
   proposal,
   proposalLoading,
   onApplyProposal,
-  onPrintProposal,
   onRefreshProposal,
   teamId,
   rules,
@@ -299,133 +291,6 @@ export default function ConvocationTab({
   }
 
   const selectedProposalPlayers = proposal.players.filter((p) => p.isSelected);
-
-  function renderAlreadyDeconvokedCard(item: AlreadyDeconvokedPlayer) {
-    return (
-      <article key={item.playerId} className={`${styles.proposalCard} ${styles.proposalCardDeconvoked}`}>
-        <div className={styles.proposalCardTop}>
-          <div className={styles.proposalCardName}>
-            <strong>{item.displayName}</strong>
-          </div>
-          <span className={styles.proposalAlreadyBadge}>Ya desconvocado</span>
-        </div>
-        <div className={styles.proposalChips}>
-          <span className={styles.proposalChip} title={item.position ?? undefined}>
-            {roleLabel(item.positionRole)}
-          </span>
-        </div>
-      </article>
-    );
-  }
-
-  function renderCard(item: (typeof proposal.players)[0], highlighted: boolean) {
-    return (
-      <article
-        key={item.playerId}
-        className={`${styles.proposalCard} ${highlighted && item.forced ? styles.proposalCardForced : ""} ${!highlighted ? styles.proposalCardDim : ""}`}
-      >
-        {/* ── Header ── */}
-        <div className={styles.proposalCardTop}>
-          <div className={styles.proposalCardName}>
-            {highlighted && item.forced && <span className={styles.proposalForcedBadge}>OBLIGATORIO</span>}
-            <strong>{item.displayName}</strong>
-          </div>
-          <span className={styles.proposalScore}>{item.score.toFixed(0)} pts</span>
-        </div>
-
-        {/* ── Chips de metadatos ── */}
-        <div className={styles.proposalChips}>
-          <span className={styles.proposalChip} title={item.position ?? undefined}>
-            {roleLabel(item.positionRole ?? null)}
-          </span>
-          <span className={styles.proposalChip}>📋 {item.calledCount} conv.</span>
-          {item.startsDataAvailable && (
-            <span className={styles.proposalChip}>🏁 {item.startsCount} tit.</span>
-          )}
-          <span className={styles.proposalChip}>Min. conv: {item.minRequiredCalls}</span>
-          {item.weeklyTraining.totalTrainings > 0 && (
-            <span className={`${styles.proposalChip} ${
-              item.weeklyTraining.attendedTrainings === 0 ? styles.proposalChipRed : styles.proposalChipGreen
-            }`}>
-              🏃 {item.weeklyTraining.attendedTrainings}/{item.weeklyTraining.totalTrainings} entrenos
-            </span>
-          )}
-        </div>
-
-        {/* ── Factores ── */}
-        <div className={styles.factorList}>
-          {
-            // Group factors by parent key (prefix before first '.') so sub-factors
-            // like 'parent.detail' are rendered under the main 'parent' factor.
-          }
-          {(() => {
-            const groups = new Map<string, { main: any | null; children: any[] }>();
-            const order: string[] = [];
-            for (const factor of item.factors) {
-              const key: string = factor.key;
-              const parent = key.includes(".") ? key.split(".")[0] : key;
-              if (!groups.has(parent)) {
-                groups.set(parent, { main: null, children: [] });
-                order.push(parent);
-              }
-              if (key === parent) groups.get(parent)!.main = factor;
-              else groups.get(parent)!.children.push(factor);
-            }
-
-            return order.map((parent) => {
-              const g = groups.get(parent)!;
-              const main = g.main;
-              return (
-                <div key={`${item.playerId}-group-${parent}`}>
-                  {main ? (
-                    <div
-                      key={`${item.playerId}-${main.key}`}
-                      className={`${styles.factorItem} ${main.impact > 0 ? styles.factorItemPositive : main.impact < 0 ? styles.factorItemNegative : styles.factorItemNeutral}`}
-                    >
-                      <span className={styles.factorLabel}>{main.label}</span>
-                      <div className={styles.factorMeta}>
-                        <span className={styles.factorValueLabel}>Valor:</span>
-                        <span className={styles.factorValue} title={`Valor bruto: ${main.value}`}>{formatProposalFactorValue(main)}</span>
-                      </div>
-                      <span
-                        className={`${styles.factorImpact} ${main.impact > 0 ? styles.factorPositive : main.impact < 0 ? styles.factorNegative : styles.factorNeutral}`}
-                        title={`Impacto: ${main.impact.toFixed(0)} pts`}
-                      >
-                        {main.impact > 0 ? "+" : ""}{main.impact.toFixed(0)} pts
-                      </span>
-                    </div>
-                  ) : null}
-
-                  {g.children.length > 0 && (
-                    <div>
-                      {g.children.map((child) => (
-                        <div
-                          key={`${item.playerId}-${child.key}`}
-                          className={`${styles.factorItem} ${styles.factorSubItem} ${child.impact > 0 ? styles.factorItemPositive : child.impact < 0 ? styles.factorItemNegative : styles.factorItemNeutral}`}
-                        >
-                          <span className={styles.factorLabel}>{child.label}</span>
-                          <div className={styles.factorMeta}>
-                            <span className={styles.factorValueLabel}>Valor:</span>
-                            <span className={styles.factorValue} title={`Valor bruto: ${child.value}`}>{formatProposalFactorValue(child)}</span>
-                          </div>
-                          <span
-                            className={`${styles.factorImpact} ${child.impact > 0 ? styles.factorPositive : child.impact < 0 ? styles.factorNegative : styles.factorNeutral}`}
-                            title={`Impacto: ${child.impact.toFixed(0)} pts`}
-                          >
-                            {child.impact > 0 ? "+" : ""}{child.impact.toFixed(0)} pts
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            });
-          })()}
-        </div>
-      </article>
-    );
-  }
 
   const stopDrag = {
     onMouseDown: (e: MouseEvent) => e.stopPropagation(),
@@ -601,129 +466,16 @@ export default function ConvocationTab({
       )}
 
       {showProposal && (
-        <div className={styles.proposalPage}>
-          <div className={styles.proposalHeader}>
-            <div>
-              <h3 className={styles.proposalTitle}>Propuesta automática de desconvocatoria</h3>
-              <p className={styles.proposalSubtitle}>
-                Objetivo: {proposal.targetCount} desconvocado(s) | Plantilla: {proposal.calledCount} jugadores
-              </p>
-              {proposal.previousRivalResult && (
-                <p className={styles.proposalSubtitle}>
-                  Rival: {proposal.previousRivalResult.rival} | Resultado previo: {proposal.previousRivalResult.scoreText} ({proposal.previousRivalResult.result})
-                </p>
-              )}
-              {(proposal.positionWarnings ?? []).length > 0 && (
-                <Alert severity="warning" className={styles.proposalWarningAlert}>
-                  <strong>Mínimos de posición sin cubrir</strong>
-                  <ul className={styles.proposalWarningList}>
-                    {proposal.positionWarnings.map((warning) => (
-                      <li key={warning.requirement}>{formatShortfall(warning)}</li>
-                    ))}
-                  </ul>
-                </Alert>
-              )}
-            </div>
-            <div className={styles.proposalHeaderActions}>
-              <Button
-                variant="text"
-                size="small"
-                startIcon={<ArrowBackIcon />}
-                onClick={() => setShowProposal(false)}
-              >
-                Volver
-              </Button>
-              {onRefreshProposal && (
-                <Button
-                  variant="outlined"
-                  size="small"
-                  startIcon={refreshingProposal ? <CircularProgress size={14} color="inherit" /> : <RefreshIcon />}
-                  disabled={refreshingProposal}
-                  onClick={handleRefreshProposal}
-                >
-                  Actualizar
-                </Button>
-              )}
-              {teamId && rules && (
-                <Button variant="outlined" size="small" startIcon={<RuleIcon />} onClick={() => setRulesOpen(true)}>
-                  Reglas
-                </Button>
-              )}
-              <Button
-                variant="contained"
-                size="small"
-                startIcon={
-                  applyingProposal ? (
-                    <CircularProgress size={14} color="inherit" />
-                  ) : (
-                    <AutoFixHighIcon />
-                  )
-                }
-                disabled={applyingProposal || selectedProposalPlayers.length === 0}
-                onClick={handleApplyProposalClick}
-              >
-                Aplicar propuesta
-              </Button>
-              <Button
-                variant="outlined"
-                size="small"
-                startIcon={<PictureAsPdfIcon />}
-                disabled={proposalLoading || proposal.players.length === 0}
-                onClick={onPrintProposal}
-              >
-                Imprimir propuesta
-              </Button>
-            </div>
-          </div>
-
-          {proposalLoading ? (
-            <div className={styles.center}><CircularProgress size={28} /></div>
-          ) : proposal.players.length === 0 && proposal.alreadyDeconvoked.length === 0 ? (
-            <EmptyState description="No hay convocados para evaluar." />
-          ) : (
-            <>
-              {/* ── Proposed section ── */}
-              {proposal.players.length > 0 && selectedProposalPlayers.length === 0 && (
-                <p className={`${styles.proposalSubtitle} ${styles.proposalNotice}`}>No hace falta desconvocar jugadores con las reglas actuales.</p>
-              )}
-              {(selectedProposalPlayers.length > 0 || proposal.alreadyDeconvoked.length > 0) && (
-                <>
-                  {selectedProposalPlayers.length > 0 && (
-                    <p className={styles.proposalSectionLabel}>Propuestos para desconvocar</p>
-                  )}
-                  {selectedProposalPlayers.length > 0 && (
-                    <div className={styles.proposalList}>
-                      {selectedProposalPlayers.map((item) => renderCard(item, true))}
-                    </div>
-                  )}
-                  {proposal.alreadyDeconvoked.length > 0 && (
-                    <div
-                      className={styles.proposalDeconvokedGroup}
-                      role="group"
-                      aria-label="Jugadores ya desconvocados"
-                    >
-                      <div className={styles.proposalList}>
-                        {proposal.alreadyDeconvoked.map((item) => renderAlreadyDeconvokedCard(item))}
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
-
-              {/* ── Rest section ── */}
-              {proposal.players.some((p) => !p.isSelected) && (
-                <>
-                  <p className={`${styles.proposalSectionLabel} ${styles.proposalSectionLabelDim}`}>Resto de convocados</p>
-                  <div className={styles.proposalList}>
-                    {proposal.players.filter((p) => !p.isSelected).map((item) => renderCard(item, false))}
-                  </div>
-                </>
-              )}
-
-              {/* Acción de propuesta: ahora movida al actionBar superior */}
-            </>
-          )}
-        </div>
+        <DeconvocationProposalView
+          proposal={proposal}
+          loading={proposalLoading}
+          refreshing={refreshingProposal}
+          applying={applyingProposal}
+          onBack={() => setShowProposal(false)}
+          onApply={handleApplyProposalClick}
+          onRefresh={onRefreshProposal ? handleRefreshProposal : undefined}
+          onOpenRules={teamId && rules ? () => setRulesOpen(true) : undefined}
+        />
       )}
 
       {!showProposal && (

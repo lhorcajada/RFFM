@@ -59,7 +59,7 @@ function tab(zones: Zones) {
       proposal={emptyProposal}
       proposalLoading={false}
       onApplyProposal={async () => {}}
-      onPrintProposal={async () => {}}
+
     />
   );
 }

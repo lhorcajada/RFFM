@@ -52,7 +52,7 @@ function renderTab(extra: Partial<React.ComponentProps<typeof ConvocationTab>> =
       proposal={proposal}
       proposalLoading={false}
       onApplyProposal={async () => {}}
-      onPrintProposal={async () => {}}
+
       {...extra}
     />,
   );

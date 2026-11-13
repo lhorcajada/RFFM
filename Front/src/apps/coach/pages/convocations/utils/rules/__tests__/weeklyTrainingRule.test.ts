@@ -62,7 +62,7 @@ describe("weeklyTrainingRule", () => {
     );
 
     expect(result.forced).toBeFalsy();
-    expect(result.factors[0]?.key).toBe("weeklyTraining");
+    expect(result.factors).toEqual([]);
   });
 
   it("fuerza la desconvocatoria si no hay historial de la temporada", () => {
@@ -80,51 +80,30 @@ describe("weeklyTrainingRule", () => {
     expect(result.forced).toBeFalsy();
   });
 
-  it("cuenta todos los entrenos y amistosos de la semana y pondera la falta por estudios", () => {
+  it("no puntúa la asistencia semanal: solo fuerza o no fuerza", () => {
     const result = weeklyTrainingRule(
       createRuleContext({ totalTrainings: 3, attendedTrainings: 2, weightedAttendedTrainings: 2.25, knownUnavailableTrainings: 0 }),
       {},
     );
 
-    expect(result.delta).toBe(9);
+    expect(result).toEqual({ factors: [], delta: 0 });
   });
 
-  it("penaliza también las faltas por imprevisto y problema familiar", () => {
-    const result = weeklyTrainingRule(
-      createRuleContext({ totalTrainings: 3, attendedTrainings: 1, weightedAttendedTrainings: 2, knownUnavailableTrainings: 0 }),
-      {},
-    );
-
-    expect(result.delta).toBe(8);
-  });
-
-  it("no perdona la falta de la semana a quien viene de forma habitual", () => {
+  it("no perdona la falta de la semana a quien viene de forma habitual sin entrenar nada", () => {
     const result = weeklyTrainingRule(
       createRuleContext({
         totalTrainings: 3,
-        attendedTrainings: 2,
-        weightedAttendedTrainings: 2,
+        attendedTrainings: 0,
+        weightedAttendedTrainings: 0,
         knownUnavailableTrainings: 1,
-        weightedAttendedTrainingsSeason: 20,
+        weightedAttendedTrainingsSeason: 7,
         totalTrainingsSeason: 21,
       }),
       {},
     );
 
-    expect(result.delta).toBe(8);
-  });
-
-  it("muestra el factor como puntos por asistencia a entrenamientos y amistosos", () => {
-    const result = weeklyTrainingRule(
-      createRuleContext({ totalTrainings: 3, attendedTrainings: 3, weightedAttendedTrainings: 3, knownUnavailableTrainings: 0 }),
-      {},
-    );
-
-    expect(result.factors[0]).toMatchObject({
-      label: "Puntos por asistencia a entrenamientos y amistosos",
-      value: 100,
-      impact: 12,
-    });
+    expect(result.forced).toBe(true);
+    expect(result.factors[0]).toMatchObject({ key: "weeklyTraining", impact: 0 });
   });
 
   it("no aplica si no hubo entrenos ni amistosos en la semana", () => {

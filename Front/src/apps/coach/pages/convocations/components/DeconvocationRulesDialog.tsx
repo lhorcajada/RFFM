@@ -126,7 +126,7 @@ export default function DeconvocationRulesDialog({ open, teamId, rules, onClose,
     if (fields.length === 0) return null;
     return (
       <section className={styles.fieldGroup}>
-        <h4 className={styles.groupTitle}>{group === "points" ? "Puntos" : "Pesos"}</h4>
+        <h4 className={styles.groupTitle}>{group === "points" ? "Ajustes" : "Pesos"}</h4>
         <div className={styles.fields}>
           {fields.map((field) => (
             <TextField

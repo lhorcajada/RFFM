@@ -5,7 +5,6 @@ import type { PlayerResponse } from "../../../services/teamplayerService";
 import type { ExcuseType } from "../../../services/excuseTypeService";
 import type { ClubKit } from "../../../services/kitService";
 import type { MatchState } from "./convocationMatchDetail.types";
-import type { DeconvokeProposal } from "../utils/deconvokeProposal";
 import {
   formatDateES,
   getExcuseLabel,
@@ -29,7 +28,6 @@ function chunk<T>(arr: T[], size: number): T[][] {
 
 export type ConvocatoriaPrintHandle = {
   print: () => Promise<void>;
-  printProposal: () => Promise<void>;
 };
 
 // ─── Props ─────────────────────────────────────────────────────────────────────
@@ -38,7 +36,6 @@ type Props = {
   match: MatchState | null;
   calledIds: string[];
   notCalledIds: string[];
-  proposal: DeconvokeProposal;
   players: PlayerResponse[];
   photos: Record<string, string | null>;
   excuseMap: Record<string, number | null>;
@@ -507,7 +504,6 @@ const ConvocatoriaPrint = forwardRef<ConvocatoriaPrintHandle, Props>(
       match,
       calledIds,
       notCalledIds,
-      proposal,
       players,
       photos,
       excuseMap,
@@ -593,197 +589,6 @@ const ConvocatoriaPrint = forwardRef<ConvocatoriaPrintHandle, Props>(
         const visitorName = (match?.visitorTeamName ?? "Visitante").replace(/[^a-zA-Z0-9]/g, "_");
         const dateStr = (match?.date ?? "").replace(/-/g, "");
         pdf.save(`Convocatoria_${localName}_vs_${visitorName}_${dateStr}.pdf`);
-      },
-
-      printProposal: async () => {
-        const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-        const pageWidth = 210;
-        const pageHeight = 297;
-        const marginX = 16;
-        const usableWidth = pageWidth - marginX * 2;
-
-        const addPageBackground = () => {
-          pdf.setFillColor(15, 15, 35);
-          pdf.rect(0, 0, pageWidth, pageHeight, "F");
-        };
-
-        const addHeader = (title: string, subtitle: string) => {
-          addPageBackground();
-          pdf.setTextColor(255, 152, 0);
-          pdf.setFont("helvetica", "bold");
-          pdf.setFontSize(18);
-          pdf.text(title, marginX, 18);
-          pdf.setTextColor(220, 220, 220);
-          pdf.setFont("helvetica", "normal");
-          pdf.setFontSize(10);
-          const subtitleLines = pdf.splitTextToSize(subtitle, usableWidth);
-          pdf.text(subtitleLines, marginX, 25);
-        };
-
-        const wrapText = (text: string, width: number, size = 10): string[] => {
-          pdf.setFontSize(size);
-          return pdf.splitTextToSize(text, width);
-        };
-
-        const teamHeader = `${match?.localTeamName ?? "Local"} vs ${match?.visitorTeamName ?? "Visitante"}`;
-        const dateHeader = match?.date ? ` · ${formatDateES(match.date)}` : "";
-        const proposalPlayers = proposal.players;
-        const selectedPlayers = proposalPlayers.filter((p) => p.isSelected);
-        const selectedCount = selectedPlayers.length;
-        const allPlayersCount = proposalPlayers.length;
-        const rivalText = proposal.previousRivalResult
-          ? `${proposal.previousRivalResult.rival} (${proposal.previousRivalResult.scoreText}, ${proposal.previousRivalResult.result})`
-          : "Sin rival previo";
-
-        addHeader("Informe de propuesta automática de desconvocatoria", `${teamHeader}${dateHeader}`);
-
-        let y = 40;
-        const statBoxes = [
-          ["Objetivo", String(proposal.targetCount)],
-          ["Analizados", String(allPlayersCount)],
-          ["Seleccionados", String(selectedCount)],
-          ["Plantilla", String(proposal.calledCount)],
-          ["Rival previo", rivalText],
-        ] as const;
-
-        statBoxes.forEach(([label, value], index) => {
-          const col = index % 2;
-          if (index === 2) y += 22;
-          const x = marginX + col * (usableWidth / 2 + 4);
-          const boxW = usableWidth / 2 - 2;
-          pdf.setDrawColor(255, 152, 0);
-          pdf.roundedRect(x, y, boxW, 16, 2, 2, "S");
-          pdf.setTextColor(255, 152, 0);
-          pdf.setFont("helvetica", "bold");
-          pdf.setFontSize(9);
-          pdf.text(label, x + 3, y + 5);
-          pdf.setTextColor(235, 235, 235);
-          pdf.setFont("helvetica", "normal");
-          pdf.setFontSize(10);
-          pdf.text(wrapText(value, boxW - 6, 10), x + 3, y + 11);
-        });
-
-        y += 26;
-        pdf.setTextColor(255, 255, 255);
-        pdf.setFont("helvetica", "bold");
-        pdf.setFontSize(12);
-        pdf.text("Jugadores analizados", marginX, y);
-        pdf.setDrawColor(255, 152, 0);
-        pdf.line(marginX, y + 2, pageWidth - marginX, y + 2);
-        y += 8;
-
-        if (proposalPlayers.length === 0) {
-          pdf.setTextColor(220, 220, 220);
-          pdf.setFont("helvetica", "normal");
-          pdf.setFontSize(10);
-          pdf.text(wrapText("No hay jugadores para evaluar.", usableWidth, 10), marginX, y);
-        } else {
-          proposalPlayers.forEach((player) => {
-            if (y > 270) {
-              pdf.addPage();
-              addHeader("Informe de propuesta automática de desconvocatoria", `${teamHeader}${dateHeader}`);
-              y = 38;
-            }
-            pdf.setTextColor(255, 255, 255);
-            pdf.setFont("helvetica", "bold");
-            pdf.setFontSize(11);
-            const selectedTag = player.isSelected ? "PROPUESTO" : "NO PROPUESTO";
-            pdf.text(`${player.displayName} · ${player.score.toFixed(0)} pts · ${selectedTag}`, marginX, y);
-            y += 5;
-
-            const meta = `Posición: ${player.position ?? "Sin posición"} | Convocatorias: ${player.calledCount} | Titularidades: ${player.startsCount}`;
-            pdf.setTextColor(190, 190, 190);
-            pdf.setFont("helvetica", "normal");
-            pdf.setFontSize(9);
-            pdf.text(wrapText(meta, usableWidth - 3, 9), marginX + 2, y);
-            y += 5;
-
-            pdf.setTextColor(150, 150, 150);
-            pdf.setFontSize(8);
-            player.factors.forEach((factor) => {
-              const line = `${factor.label}: ${factor.impact > 0 ? "+" : ""}${factor.impact.toFixed(0)} (${factor.value})`;
-              pdf.text(wrapText(line, usableWidth - 3, 8), marginX + 2, y);
-              y += 4;
-            });
-            y += 4;
-          });
-        }
-
-        if (proposal.alreadyDeconvoked.length > 0) {
-          if (y > 255) {
-            pdf.addPage();
-            addHeader("Informe de propuesta automática de desconvocatoria", `${teamHeader}${dateHeader}`);
-            y = 38;
-          }
-          y += 4;
-          pdf.setTextColor(255, 255, 255);
-          pdf.setFont("helvetica", "bold");
-          pdf.setFontSize(12);
-          pdf.text("Ya desconvocados", marginX, y);
-          pdf.setDrawColor(255, 152, 0);
-          pdf.line(marginX, y + 2, pageWidth - marginX, y + 2);
-          y += 8;
-          proposal.alreadyDeconvoked.forEach((player) => {
-            if (y > 275) {
-              pdf.addPage();
-              addHeader("Informe de propuesta automática de desconvocatoria", `${teamHeader}${dateHeader}`);
-              y = 38;
-            }
-            pdf.setTextColor(255, 255, 255);
-            pdf.setFont("helvetica", "bold");
-            pdf.setFontSize(10);
-            pdf.text(`${player.displayName} · ${player.position ?? "Sin posición"} · YA DESCONVOCADO`, marginX, y);
-            y += 6;
-          });
-        }
-
-        pdf.addPage();
-        addHeader("Detalle de factores", `${teamHeader}${dateHeader}`);
-        y = 34;
-        proposalPlayers.forEach((player) => {
-          if (y > 270) {
-            pdf.addPage();
-            addHeader("Detalle de factores", `${teamHeader}${dateHeader}`);
-            y = 34;
-          }
-          pdf.setTextColor(255, 255, 255);
-          pdf.setFont("helvetica", "bold");
-          pdf.setFontSize(10);
-          pdf.text(`${player.displayName} (${player.score.toFixed(0)} pts)`, marginX, y);
-          y += 5;
-          player.factors.forEach((factor) => {
-            const line = `- ${factor.label}: ${factor.impact > 0 ? "+" : ""}${factor.impact.toFixed(0)} (${factor.value})`;
-            pdf.setTextColor(210, 210, 210);
-            pdf.setFont("helvetica", "normal");
-            pdf.setFontSize(8.5);
-            const wrapped = wrapText(line, usableWidth - 2, 8.5);
-            pdf.text(wrapped, marginX + 2, y);
-            y += wrapped.length * 4;
-          });
-          y += 3;
-        });
-
-        pdf.addPage();
-        addHeader("Reglas aplicadas", `${teamHeader}${dateHeader}`);
-        y = 36;
-        const ruleLabels = [...new Set(proposalPlayers.flatMap((player) => player.factors.map((factor) => factor.label)))];
-        ruleLabels.forEach((rule, index) => {
-          if (y > 275) {
-            pdf.addPage();
-            addHeader("Reglas aplicadas", `${teamHeader}${dateHeader}`);
-            y = 36;
-          }
-          pdf.setTextColor(255, 255, 255);
-          pdf.setFont("helvetica", "bold");
-          pdf.setFontSize(10);
-          pdf.text(`${index + 1}. ${rule}`, marginX, y);
-          y += 5;
-        });
-
-        const safeLocal = (match?.localTeamName ?? "Local").replace(/[^a-zA-Z0-9]/g, "_");
-        const safeVisitor = (match?.visitorTeamName ?? "Visitante").replace(/[^a-zA-Z0-9]/g, "_");
-        const dateStr = (match?.date ?? "").replace(/-/g, "");
-        pdf.save(`Propuesta_Desconvocatoria_${safeLocal}_vs_${safeVisitor}_${dateStr}.pdf`);
       },
     }));
 

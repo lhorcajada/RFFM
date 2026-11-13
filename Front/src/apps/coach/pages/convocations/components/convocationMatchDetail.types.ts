@@ -37,6 +37,8 @@ export type MatchColumn = {
   label: string;
   date: string;
   rival: string | null;
+  /** League match: friendlies and tournaments do not count as matchdays of the deconvocation proposal. */
+  isLeague?: boolean;
 };
 
 /** Tab indices of the match convocation screen, in display order */

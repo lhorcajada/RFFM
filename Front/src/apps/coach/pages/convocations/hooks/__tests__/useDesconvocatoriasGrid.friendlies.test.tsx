@@ -102,4 +102,18 @@ describe("useDesconvocatoriasGrid - partidos amistosos", () => {
     expect(league.label).toMatch(/^J1 · /);
     expect(friendly.label).toMatch(/^Amist\. · /);
   });
+
+  it("marca como partido de liga solo las columnas de liga", async () => {
+    const tournament = { id: "tournament-1", name: "Torneo", eventTypeId: 1, matchCategory: "Tournament", eveDateTime: "2026-09-13T10:00:00" };
+    getSportEventsMock.mockResolvedValue({ items: [leagueMatch, tournament, friendlyMatch] });
+    const { result } = renderHook(() => useDesconvocatoriasGrid("team-1", true));
+
+    await waitFor(() => expect(result.current.matchColumns).toHaveLength(3));
+
+    expect(result.current.matchColumns.map((c) => [c.eventId, c.isLeague])).toEqual([
+      ["league-1", true],
+      ["tournament-1", false],
+      ["friendly-1", false],
+    ]);
+  });
 });

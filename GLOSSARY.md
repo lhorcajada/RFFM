@@ -16,9 +16,20 @@ Domain language of FutbolBase, the football team management platform. Terms are 
 **Ya desconvocado**: "A player of the squad that is listed in the not-called list of a convocation (`mgmtNotCalled`) before the deconvocation proposal is generated, whatever the reason."
 *Avoid*: ya fuera, excluido
 
+**Jugador protegido**: "A player the deconvocation proposal never proposes because a funnel rule keeps them called: a technical deconvocation within the protection window, an absence by injury counted as rest, a minimum of calls not reached, or a position minimum."
+*Avoid*: bloqueado, intocable
+
+**Descanso por lesión**: "An absence by injury or illness, even mild, that counts as a rest of the player for the deconvocation proposal and protects them for a configurable number of matchdays."
+*Avoid*: lesión descontada
+
+**Dificultad del rival**: "Classification of the next rival as easy, medium or hard from the own win probability of the match forecast; only a hard rival makes the level of the players break ties in the deconvocation proposal."
+*Avoid*: rival fuerte
+
 ## Relationships
 
 - A **Monedero** belongs to one user and one team
 - A row of the wallets list of a family member has many **Jugador asociado** (one per linked player of that team)
 - A row of the wallets list of a player user has one **Jugador asociado** (the player itself)
 - A **Ya desconvocado** player is shown in the deconvocation proposal but is never proposed again and never counts as available
+- A **Jugador protegido** is shown in the deconvocation proposal with the one rule that protects them
+- A **Descanso por lesión** protects the player for the injury rest window, separate from the technical deconvocation window

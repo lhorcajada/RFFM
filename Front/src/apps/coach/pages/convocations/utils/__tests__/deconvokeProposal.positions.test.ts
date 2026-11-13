@@ -13,10 +13,10 @@ function ordered(ids: string[], forced: string[] = []): Candidate[] {
   return ids.map((playerId) => ({ playerId, forced: forced.includes(playerId) }));
 }
 
-// 22 convocados: 2 POR, 2 LAT, 4 DFC, 6 MC (2 ofensivos), 5 banda, 3 DC.
+// 23 convocados: 2 POR, 3 LAT, 4 DFC, 6 MC (2 ofensivos), 5 banda, 3 DC.
 const BASE: Array<[string, PositionRole | null, PositionRole[]?]> = [
   ["gk1", "goalkeeper"], ["gk2", "goalkeeper"],
-  ["lat1", "fullBack"], ["lat2", "fullBack"],
+  ["lat1", "fullBack"], ["lat2", "fullBack"], ["lat3", "fullBack"],
   ["dfc1", "centreBack"], ["dfc2", "centreBack"], ["dfc3", "centreBack"], ["dfc4", "centreBack"],
   ["mc1", "centralMid"], ["mc2", "centralMid"], ["mc3", "centralMid"], ["mc4", "centralMid"],
   ["mco1", "centralMid"], ["mco2", "centralMid"],
@@ -47,27 +47,40 @@ describe("selectDeconvocations", () => {
     expect(selectDeconvocations(order, players, 1).selectedIds).toEqual(["mc3"]);
   });
 
-  it("con un solo delantero protege al medio centro que puede jugar de delantero", () => {
-    const entries = BASE.filter(([id]) => id !== "dc2" && id !== "dc3" && id !== "mco1" && id !== "mco2");
-    entries.push(["mcoDc", "centralMid", ["centralMid", "forward"]], ["mco3", "centralMid"]);
+  it("un lateral polivalente compensa a dos centrales desconvocados si su línea conserva el mínimo", () => {
+    const entries = BASE.filter(([id]) => id !== "lat3");
+    entries.push(["lat3", "fullBack", ["fullBack", "centreBack"]], ["lat4", "fullBack"]);
     const players = squad(entries);
-    const order = ordered(["mcoDc", "mco3", ...entries.map(([id]) => id).filter((id) => id !== "mcoDc" && id !== "mco3")]);
+    const order = ordered(["dfc1", "dfc2", ...entries.map(([id]) => id).filter((id) => id !== "dfc1" && id !== "dfc2")]);
 
-    const result = selectDeconvocations(order, players, 1);
+    const result = selectDeconvocations(order, players, 2);
 
-    expect(result.selectedIds).not.toContain("mcoDc");
-    expect(result.protectedBy.get("mcoDc")).toBe("forwardCover");
+    expect(result.selectedIds).toEqual(["dfc1", "dfc2"]);
+    expect(result.shortfalls).toEqual([]);
   });
 
-  it("con cuatro de banda y nadie más que pueda jugar en banda no propone ninguno de banda", () => {
-    const entries = BASE.filter(([id]) => id !== "b5");
+  it("el polivalente no compensa si su propia línea quedaría por debajo del mínimo", () => {
+    const entries = BASE.filter(([id]) => id !== "lat3");
+    entries.push(["lat3", "fullBack", ["fullBack", "centreBack"]]);
     const players = squad(entries);
-    const order = ordered(["b1", "b2", "b3", "b4", "mc1", ...entries.map(([id]) => id).filter((id) => !/^b\d$/.test(id) && id !== "mc1")]);
+    const order = ordered(["dfc1", "dfc2", ...entries.map(([id]) => id).filter((id) => id !== "dfc1" && id !== "dfc2")]);
+
+    const result = selectDeconvocations(order, players, 2);
+
+    expect(result.selectedIds).toContain("dfc1");
+    expect(result.selectedIds).not.toContain("dfc2");
+    expect(result.protectedBy.get("dfc2")).toBe("centreBack");
+  });
+
+  it("con dos de banda no propone ninguno de banda", () => {
+    const entries = BASE.filter(([id]) => !/^b[345]$/.test(id));
+    const players = squad(entries);
+    const order = ordered(["b1", "b2", "mc1", ...entries.map(([id]) => id).filter((id) => !/^b\d$/.test(id) && id !== "mc1")]);
 
     const result = selectDeconvocations(order, players, 1);
 
     expect(result.selectedIds).toEqual(["mc1"]);
-    expect(result.protectedBy.get("b1")).toBe("wideCover");
+    expect(result.protectedBy.get("b1")).toBe("wide");
   });
 
   it("los obligatorios se proponen aunque rompan un mínimo y se avisa", () => {
@@ -101,9 +114,9 @@ describe("selectDeconvocations", () => {
     expect(result.protectedBy.has("dfc1")).toBe(false);
   });
 
-  it("no propone a un lateral sano aunque un central polivalente pudiera cubrirlo", () => {
+  it("no propone a un lateral sano si ni con un central polivalente se llega al mínimo", () => {
     // 2 LD + 2 LI; un LD lesionado y un LI con faltas son obligatorios. Queda justo un LD y un LI.
-    const entries = BASE.filter(([id]) => id !== "lat1" && id !== "lat2");
+    const entries = BASE.filter(([id]) => !id.startsWith("lat"));
     entries.push(
       ["ld1", "fullBack"], ["ld2", "fullBack"], ["li1", "fullBack"], ["li2", "fullBack"],
       ["dfcLd", "centreBack", ["centreBack", "fullBack"]],
@@ -130,15 +143,15 @@ describe("selectDeconvocations", () => {
     expect(result.shortfalls).toEqual([]);
   });
 
-  it("mantiene al menos un portero", () => {
+  it("mantiene al menos dos porteros", () => {
     const players = squad(BASE);
     const order = ordered(["gk1", "gk2", ...BASE.map(([id]) => id).filter((id) => !id.startsWith("gk"))]);
 
     const result = selectDeconvocations(order, players, 2);
 
-    expect(result.selectedIds).toContain("gk1");
+    expect(result.selectedIds).not.toContain("gk1");
     expect(result.selectedIds).not.toContain("gk2");
-    expect(result.protectedBy.get("gk2")).toBe("goalkeeper");
+    expect(result.protectedBy.get("gk1")).toBe("goalkeeper");
   });
 });
 
@@ -167,11 +180,11 @@ function input(players: PlayerResponse[], maxCalledPlayers: number): BuildPropos
   };
 }
 
-// 1 POR, 2 LAT, 3 DFC, 3 MC, 1 MCO, 4 banda, 2 DC
+// 2 POR, 3 LAT, 3 DFC, 3 MC, 1 MCO, 4 banda, 2 DC
 function fullTeam(): PlayerResponse[] {
   return [
-    player("gk", 1),
-    player("li", 2), player("ld", 3),
+    player("gk", 1), player("gk2", 1),
+    player("li", 2), player("ld", 3), player("lat3", 2),
     player("dfc1", 4), player("dfc2", 4), player("lib", 5),
     player("mc1", 6), player("mc2", 6), player("mcd", 7),
     player("mco", 8),
@@ -208,7 +221,7 @@ describe("buildDeconvokeProposal con posiciones", () => {
   // el portero va primero, pero el único que puede salir sin romper un mínimo es el medio centro sobrante.
   it("mantiene al portero con su motivo y propone al medio centro sobrante", () => {
     const team = [...fullTeam(), player("mc3", 6)];
-    const proposal = buildDeconvokeProposal(input(team, 16));
+    const proposal = buildDeconvokeProposal(input(team, 18));
 
     expect(proposal.selectedIds).toEqual(["mc1"]);
     const gk = proposal.players.find((p) => p.playerId === "gk")!;
@@ -224,10 +237,10 @@ describe("buildDeconvokeProposal con jugadores ya desconvocados", () => {
     return { id, name: id, alias: id, activePositionId, possibleDemarcationIds: [activePositionId] } as PlayerResponse;
   }
 
-  // 1 POR, 2 LAT, 3 DFC, 7 MC (uno ofensivo), 4 banda, 2 DC = 19
+  // 2 POR, 3 LAT, 3 DFC, 7 MC (uno ofensivo), 4 banda, 2 DC = 21
   function team(): PlayerResponse[] {
     return [
-      p("gk", 1), p("li", 2), p("ld", 3),
+      p("gk", 1), p("gk2", 1), p("li", 2), p("ld", 3), p("lat3", 2),
       p("dfc1", 4), p("dfc2", 4), p("lib", 5),
       p("mc1", 6), p("mc2", 6), p("mc3", 6), p("mc4", 7), p("mc5", 7), p("mc6", 7),
       p("mco", 8),
@@ -261,9 +274,9 @@ describe("buildDeconvokeProposal con jugadores ya desconvocados", () => {
   }
 
   it("el objetivo se calcula sobre los disponibles", () => {
-    const proposal = build(["mc1", "mc2", "mc3"], 14);
+    const proposal = build(["mc1", "mc2", "mc3"], 16);
 
-    expect(proposal.calledCount).toBe(16);
+    expect(proposal.calledCount).toBe(18);
     expect(proposal.targetCount).toBe(2);
   });
 
@@ -274,14 +287,14 @@ describe("buildDeconvokeProposal con jugadores ya desconvocados", () => {
     expect(proposal.selectedIds.filter((id) => ["mc1", "mc2", "mc3"].includes(id))).toEqual([]);
   });
 
-  it("los ya fuera no cuentan para los mínimos: los tres medios centro restantes quedan protegidos", () => {
-    const proposal = build(["mc1", "mc2", "mc3", "mco"], 12);
+  it("los ya fuera no cuentan para los mínimos: los cuatro medios centro restantes quedan protegidos", () => {
+    const proposal = build(["mc1", "mc2", "mc3"], 15);
 
     const mc4 = proposal.players.find((x) => x.playerId === "mc4")!;
     expect(proposal.selectedIds).not.toContain("mc4");
     expect(mc4.factors.find((f) => f.key === "positionProtection")).toMatchObject({
-      label: "Protegido: quedan 3 de 3 medios centro disponibles",
-      value: 3,
+      label: "Protegido: quedan 4 de 4 medios centro disponibles",
+      value: 4,
     });
   });
 
@@ -294,9 +307,9 @@ describe("buildDeconvokeProposal con jugadores ya desconvocados", () => {
   });
 
   it("sin ya fuera conserva el comportamiento anterior", () => {
-    const proposal = build([], 17);
+    const proposal = build([], 19);
 
-    expect(proposal.calledCount).toBe(19);
+    expect(proposal.calledCount).toBe(21);
     expect(proposal.targetCount).toBe(2);
   });
 
@@ -349,8 +362,8 @@ describe("buildDeconvokeProposal con jugadores ya desconvocados", () => {
 
     expect(proposal.players.map((x) => x.playerId)).not.toEqual(expect.arrayContaining(["mc1", "mc2", "mc3"]));
     expect(proposal.selectedIds.filter((id) => ["mc1", "mc2", "mc3"].includes(id))).toEqual([]);
-    expect(proposal.calledCount).toBe(22);
-    expect(proposal.targetCount).toBe(4);
+    expect(proposal.calledCount).toBe(24);
+    expect(proposal.targetCount).toBe(6);
   });
 
   it("los ya fuera siguen restando del mínimo de su posición", () => {
@@ -359,7 +372,7 @@ describe("buildDeconvokeProposal con jugadores ya desconvocados", () => {
     expect(proposal.positionWarnings.map((w) => `${w.label}: quedan ${w.remaining} de ${w.required}`)).toEqual([
       "Centrales: quedan 2 de 3",
     ]);
-    expect(proposal.calledCount).toBe(18);
+    expect(proposal.calledCount).toBe(20);
   });
 
   it("los ya fuera no alteran los scores ni la selección de los demás", () => {

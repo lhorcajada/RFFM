@@ -20,15 +20,15 @@ function times(n: number, role: PositionRole, possibleRoles: PositionRole[] = []
   return Array.from({ length: n }, () => pp(role, possibleRoles));
 }
 
-// 1 POR, 2 LAT, 3 DFC, 3 MC, 4 banda, 2 DC → todos los mínimos cumplidos.
+// 2 POR, 3 LAT, 3 DFC, 4 MC, 2 banda, 1 DC → todos los mínimos cumplidos.
 function fullSquad(): PositionPlayer[] {
   return [
-    ...times(1, "goalkeeper"),
-    ...times(2, "fullBack"),
+    ...times(2, "goalkeeper"),
+    ...times(3, "fullBack"),
     ...times(3, "centreBack"),
-    ...times(3, "centralMid"),
-    ...times(4, "wide"),
-    ...times(2, "forward"),
+    ...times(4, "centralMid"),
+    ...times(2, "wide"),
+    ...times(1, "forward"),
   ];
 }
 
@@ -125,12 +125,20 @@ describe("evaluateRequirements", () => {
     expect(shortfallTexts(without(fullSquad(), "centreBack"))).toEqual(["Centrales: quedan 2 de 3"]);
   });
 
-  it("sin portero avisa de porteros", () => {
-    expect(shortfallTexts(without(fullSquad(), "goalkeeper"))).toEqual(["Porteros: quedan 0 de 1"]);
+  it("con un solo portero avisa de que quedan 1 de 2", () => {
+    expect(shortfallTexts(without(fullSquad(), "goalkeeper"))).toEqual(["Porteros: quedan 1 de 2"]);
+  });
+
+  it("con 2 laterales avisa de que quedan 2 de 3", () => {
+    expect(shortfallTexts(without(fullSquad(), "fullBack"))).toEqual(["Laterales: quedan 2 de 3"]);
   });
 
   it("un central con lateral entre sus posiciones cubre al lateral que falta si sobran centrales", () => {
-    const squad = [...without(fullSquad(), "fullBack"), pp("centreBack", ["centreBack", "fullBack"])];
+    const squad = [
+      ...without(fullSquad(), "fullBack"),
+      pp("centreBack", ["centreBack", "fullBack"]),
+      pp("centreBack"),
+    ];
     const result = evaluateRequirements(squad);
     expect(result.shortfalls).toEqual([]);
     expect([...result.coverAssignments.values()]).toEqual(["fullBack"]);
@@ -141,35 +149,30 @@ describe("evaluateRequirements", () => {
       ...without(without(fullSquad(), "fullBack"), "centreBack"),
       pp("centreBack", ["centreBack", "fullBack"]),
     ];
-    expect(shortfallTexts(squad)).toEqual(["Laterales: quedan 1 de 2"]);
+    expect(shortfallTexts(squad)).toEqual(["Laterales: quedan 2 de 3"]);
   });
 
-  it("con solo 3 de banda y nadie más que pueda jugar en banda avisa de la cobertura", () => {
-    expect(shortfallTexts(without(fullSquad(), "wide"))).toEqual(["Cobertura de banda: quedan 3 de 4"]);
+  it("con un solo extremo avisa de que quedan 1 de 2", () => {
+    expect(shortfallTexts(without(fullSquad(), "wide"))).toEqual(["Bandas: quedan 1 de 2"]);
   });
 
-  it("un medio centro con extremo entre sus posiciones completa la cobertura de banda", () => {
-    const squad = [...without(fullSquad(), "wide"), pp("centralMid", ["centralMid", "wide"])];
-    expect(shortfallTexts(squad)).toEqual([]);
-  });
-
-  it("con un solo delantero y nadie más que pueda jugar de delantero avisa de la cobertura", () => {
-    expect(shortfallTexts(without(fullSquad(), "forward"))).toEqual(["Cobertura de delantero: quedan 1 de 2"]);
-  });
-
-  it("un medio centro que puede jugar de delantero completa la cobertura de delantero", () => {
+  it("un medio centro con extremo entre sus posiciones cubre la banda si sobran medios centro", () => {
     const squad = [
-      ...without(fullSquad(), "forward"),
-      pp("centralMid", ["centralMid", "forward"]),
+      ...without(fullSquad(), "wide"),
+      pp("centralMid", ["centralMid", "wide"]),
+      pp("centralMid"),
     ];
     expect(shortfallTexts(squad)).toEqual([]);
   });
 
-  it("sin delanteros avisa del mínimo y de la cobertura", () => {
-    expect(shortfallTexts(without(fullSquad(), "forward", 2))).toEqual([
-      "Delanteros: quedan 0 de 1",
-      "Cobertura de delantero: quedan 0 de 2",
-    ]);
+  it("sin delanteros avisa de que quedan 0 de 1", () => {
+    expect(shortfallTexts(without(fullSquad(), "forward"))).toEqual(["Delanteros: quedan 0 de 1"]);
+  });
+
+  it("no hay cobertura extra de banda ni de delantero", () => {
+    const keys = evaluateRequirements(fullSquad()).shortfalls.map((s) => s.requirement);
+    expect(keys).toEqual([]);
+    expect(evaluateRequirements(fullSquad()).available.has("wideCover" as never)).toBe(false);
   });
 
   it("los jugadores sin posición no cuentan para ningún mínimo", () => {
@@ -192,7 +195,7 @@ describe("medios centro", () => {
     ];
 
     expect(shortfallTexts(squad)).toEqual([]);
-    expect(evaluateRequirements(squad).available.get("centralMid")).toBe(3);
+    expect(evaluateRequirements(squad).available.get("centralMid")).toBe(4);
   });
 
   it("el mediocampista derecho cuenta como banda y no como medio centro", () => {
@@ -201,22 +204,17 @@ describe("medios centro", () => {
       toPositionPlayer({ id: "m1", position: "Mediocampista Derecho", activePositionId: 10 }),
     ];
 
-    expect(shortfallTexts(squad)).toEqual(["Medios centro: quedan 2 de 3"]);
+    expect(shortfallTexts(squad)).toEqual(["Medios centro: quedan 3 de 4"]);
   });
 });
 
 describe("protectionReason", () => {
   it("indica cuántos disponibles quedan de los que exige el mínimo", () => {
-    expect(protectionReason("centralMid", 3)).toBe("Protegido: quedan 3 de 3 medios centro disponibles");
+    expect(protectionReason("centralMid", 4)).toBe("Protegido: quedan 4 de 4 medios centro disponibles");
   });
 
   it("usa el mínimo de cada posición", () => {
-    expect(protectionReason("fullBack", 2)).toBe("Protegido: quedan 2 de 2 laterales disponibles");
-  });
-
-  it("mantiene el texto de cobertura de banda y de delantero", () => {
-    expect(protectionReason("wideCover", 4)).toBe("Protegido: cobertura de banda");
-    expect(protectionReason("forwardCover", 2)).toBe("Protegido: cobertura de delantero");
+    expect(protectionReason("fullBack", 3)).toBe("Protegido: quedan 3 de 3 laterales disponibles");
   });
 });
 
@@ -224,7 +222,7 @@ describe("evaluateRequirements available", () => {
   it("expone los disponibles por exigencia", () => {
     const result = evaluateRequirements(fullSquad());
 
-    expect(result.available.get("centralMid")).toBe(3);
-    expect(result.available.get("wideCover")).toBe(4);
+    expect(result.available.get("centralMid")).toBe(4);
+    expect(result.available.get("wide")).toBe(2);
   });
 });

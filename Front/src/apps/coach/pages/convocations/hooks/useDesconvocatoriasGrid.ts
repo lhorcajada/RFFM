@@ -33,6 +33,13 @@ function isFriendlyEvent(ev: { matchCategory?: string | null; eventType?: string
   return /amist|friendly/.test(eventType) || /amist|friendly/.test(title);
 }
 
+/** League match: friendlies and tournaments are excluded; an event without category counts as league unless its name says friendly. */
+function isLeagueEvent(ev: { matchCategory?: string | null; eventType?: string | null; title?: string | null; name?: string | null }): boolean {
+  if (ev.matchCategory === "League") return true;
+  if (ev.matchCategory === "Friendly" || ev.matchCategory === "Tournament") return false;
+  return !isFriendlyEvent(ev);
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type DesconvocatoriasGridReturn = {
@@ -129,6 +136,7 @@ export function useDesconvocatoriasGrid(teamId: string, enabled: boolean = true)
             label: `${prefix} · ${shortDate(d)}`,
             date: d,
             rival: ev.rival ?? ev.name ?? ev.title ?? null,
+            isLeague: isLeagueEvent(ev),
           };
         });
 

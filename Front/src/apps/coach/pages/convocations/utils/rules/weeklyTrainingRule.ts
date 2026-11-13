@@ -1,8 +1,6 @@
 import type { RuleResult, RuleContext } from "./types";
 import { buildDefaultRule, resolveRule, type DeconvocationRuleConfig } from "./ruleCatalog";
 
-function clamp01(v: number) { return Math.max(0, Math.min(1, v)); }
-
 export default function weeklyTrainingRule(
   ctx: RuleContext,
   _prev: Record<string, RuleResult>,
@@ -20,18 +18,8 @@ export default function weeklyTrainingRule(
   const hasAbsenceForcingDeconvocation = weekStats.knownUnavailableTrainings > 0;
 
   if (noWeeklyAttendance && hasAbsenceForcingDeconvocation) {
-    const factor = { key: "weeklyTraining", label: "Semana de partido sin asistir a entrenamientos", value: weekStats.attendedTrainings, impact: rule.points.forced };
-    return { factors: [factor], delta: rule.points.forced, forced: true };
+    const factor = { key: "weeklyTraining", label: rule.text, value: weekStats.attendedTrainings, impact: 0 };
+    return { factors: [factor], delta: 0, forced: true };
   }
-
-  const weeklyAttendanceRate = clamp01(weekStats.weightedAttendedTrainings / weekStats.totalTrainings);
-  const weeklyAttendanceDelta = weeklyAttendanceRate * rule.points.maxAttendance;
-  const factor = {
-    key: "weeklyTraining",
-    label: rule.text,
-    format: "percent" as const,
-    value: Number((weeklyAttendanceRate * 100).toFixed(2)),
-    impact: Number(weeklyAttendanceDelta.toFixed(2)),
-  };
-  return { factors: [factor], delta: weeklyAttendanceDelta };
+  return { factors: [], delta: 0 };
 }

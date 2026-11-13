@@ -48,7 +48,7 @@ function renderTab(withHandler = true) {
       proposal={emptyProposal}
       proposalLoading={false}
       onApplyProposal={async () => {}}
-      onPrintProposal={async () => {}}
+
     />,
   );
 }

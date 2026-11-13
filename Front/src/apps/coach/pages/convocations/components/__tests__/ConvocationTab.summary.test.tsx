@@ -56,7 +56,7 @@ function renderTab(isLeagueMatch: boolean, zones: Zones) {
       proposal={emptyProposal}
       proposalLoading={false}
       onApplyProposal={async () => {}}
-      onPrintProposal={async () => {}}
+
     />,
   );
 }

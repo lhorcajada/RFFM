@@ -7,11 +7,11 @@ function player(id: string, activePositionId: number | null): PlayerResponse {
   return { id, name: id, alias: id, activePositionId, possibleDemarcationIds: activePositionId ? [activePositionId] : [] };
 }
 
-// 1 POR, 2 LAT, 3 DFC, 4 MC, 1 MCO, 4 banda, 2 DC
+// 2 POR, 3 LAT, 3 DFC, 4 MC, 1 MCO, 4 banda, 2 DC
 function team(): PlayerResponse[] {
   return [
-    player("gk", 1),
-    player("li", 2), player("ld", 3),
+    player("gk", 1), player("gk2", 1),
+    player("li", 2), player("ld", 3), player("lat3", 2),
     player("dfc1", 4), player("dfc2", 4), player("lib", 5),
     player("mc1", 6), player("mc2", 6), player("mc3", 6), player("mcd", 7),
     player("mco", 8),
@@ -60,7 +60,7 @@ describe("buildDeconvokeProposal con jugadores no disponibles para el partido", 
   });
 
   it("el no disponible cuenta para el objetivo y no se desconvoca a nadie más", () => {
-    const proposal = buildDeconvokeProposal(input(unavailable("mc2", 8, "Sanción deportiva"), 16));
+    const proposal = buildDeconvokeProposal(input(unavailable("mc2", 8, "Sanción deportiva"), 18));
 
     expect(proposal.targetCount).toBe(1);
     expect(proposal.selectedIds).toEqual(["mc2"]);

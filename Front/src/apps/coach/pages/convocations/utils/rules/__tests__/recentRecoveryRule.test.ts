@@ -61,7 +61,7 @@ function createContextWithInjury({ start, previousMatchStatus, attendedTrainings
 
 describe("recentRecoveryRule", () => {
   describe("baja corta (menos de dos semanas)", () => {
-    it("no vuelve a desconvocar y suma puntos de protección si ya fue desconvocado por lesión el partido anterior y entrena esta semana", () => {
+    it("no vuelve a desconvocar si ya fue desconvocado por lesión el partido anterior y entrena esta semana", () => {
       const ctx = createContextWithInjury({
         start: "2026-09-28",
         previousMatchStatus: { statusName: "Deconvoke", excuseTypeId: 1 },
@@ -71,8 +71,7 @@ describe("recentRecoveryRule", () => {
       const result = recentRecoveryRule(ctx, {});
 
       expect(result.forced).toBeUndefined();
-      expect(result.delta).toBe(30);
-      expect(result.factors[0]).toMatchObject({ key: "recoveryProtection", impact: 30 });
+      expect(result).toEqual({ factors: [], delta: 0 });
     });
 
     it("sigue desconvocando si todavía no ha entrenado esta semana", () => {

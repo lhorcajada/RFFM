@@ -8,7 +8,7 @@ export type PositionRole =
   | "wide"
   | "forward";
 
-export type RequirementKey = PositionRole | "wideCover" | "forwardCover";
+export type RequirementKey = PositionRole;
 
 export type PositionPlayer = {
   id: string;
@@ -26,9 +26,6 @@ export type PositionShortfall = {
 export type RequirementsEvaluation = {
   shortfalls: PositionShortfall[];
   deficit: number;
-  /** Role minimums counting only active positions (no cover from possible demarcations). */
-  specialistShortfalls: PositionShortfall[];
-  specialistDeficit: number;
   /** Players counted through a possible (non-active) demarcation, by the role they cover. */
   coverAssignments: Map<string, PositionRole>;
   /** Players available for each requirement, cover included. */
@@ -36,16 +33,13 @@ export type RequirementsEvaluation = {
 };
 
 export const ROLE_MINIMUMS: Record<PositionRole, number> = {
-  goalkeeper: 1,
-  fullBack: 2,
+  goalkeeper: 2,
+  fullBack: 3,
   centreBack: 3,
-  centralMid: 3,
-  wide: 3,
+  centralMid: 4,
+  wide: 2,
   forward: 1,
 };
-
-/** Players able to play the position, on top of the role minimum. */
-export const EXTRA_COVER = { wide: 1, forward: 1 } as const;
 
 const ROLE_ORDER: PositionRole[] = [
   "goalkeeper",
@@ -62,9 +56,7 @@ const REQUIREMENT_LABELS: Record<RequirementKey, string> = {
   centreBack: "Centrales",
   centralMid: "Medios centro",
   wide: "Bandas",
-  wideCover: "Cobertura de banda",
   forward: "Delanteros",
-  forwardCover: "Cobertura de delantero",
 };
 
 const ROLE_LABELS: Record<PositionRole, string> = {
@@ -74,11 +66,6 @@ const ROLE_LABELS: Record<PositionRole, string> = {
   centralMid: "Medio centro",
   wide: "Banda",
   forward: "Delantero",
-};
-
-const COVER_PROTECTION_REASONS: Partial<Record<RequirementKey, string>> = {
-  wideCover: "cobertura de banda",
-  forwardCover: "cobertura de delantero",
 };
 
 // DemarcationMaster ids (backend catalog).
@@ -162,24 +149,16 @@ export function roleLabel(role: PositionRole | null): string {
 }
 
 export function protectionReason(requirement: RequirementKey, remaining: number): string {
-  const cover = COVER_PROTECTION_REASONS[requirement];
-  if (cover) return `Protegido: ${cover}`;
   const required = requiredCount(requirement);
   return `Protegido: quedan ${remaining} de ${required} ${REQUIREMENT_LABELS[requirement].toLowerCase()} disponibles`;
 }
 
 export function requiredCount(requirement: RequirementKey): number {
-  if (requirement === "wideCover") return ROLE_MINIMUMS.wide + EXTRA_COVER.wide;
-  if (requirement === "forwardCover") return ROLE_MINIMUMS.forward + EXTRA_COVER.forward;
   return ROLE_MINIMUMS[requirement];
 }
 
 export function formatShortfall(shortfall: PositionShortfall): string {
   return `${shortfall.label}: quedan ${shortfall.remaining} de ${shortfall.required}`;
-}
-
-function canPlay(player: PositionPlayer, role: PositionRole): boolean {
-  return player.role === role || player.possibleRoles.includes(role);
 }
 
 export function evaluateRequirements(players: PositionPlayer[]): RequirementsEvaluation {
@@ -191,7 +170,7 @@ export function evaluateRequirements(players: PositionPlayer[]): RequirementsEva
     ROLE_ORDER.map((r) => [r, (counts.get(r) ?? 0) - ROLE_MINIMUMS[r]]),
   );
 
-  // Possible demarcations only fill a role when its specialists are not enough, and only
+  // Possible demarcations fill a role when its specialists are not enough, and only
   // from players whose own role keeps its minimum without them.
   const coverAssignments = new Map<string, PositionRole>();
   const remaining = new Map<PositionRole, number>(counts);
@@ -209,49 +188,18 @@ export function evaluateRequirements(players: PositionPlayer[]): RequirementsEva
     }
   }
 
-  const ableToPlay = (role: PositionRole) =>
-    players.filter((p) => {
-      const coveredRole = coverAssignments.get(p.id);
-      if (coveredRole && coveredRole !== role) return false;
-      return canPlay(p, role);
-    }).length;
-
-  const checks: Array<{ requirement: RequirementKey; required: number; remaining: number }> = [
-    ...ROLE_ORDER.map((role) => ({
-      requirement: role as RequirementKey,
-      required: ROLE_MINIMUMS[role],
-      remaining: remaining.get(role) ?? 0,
-    })),
-    { requirement: "wideCover", required: ROLE_MINIMUMS.wide + EXTRA_COVER.wide, remaining: ableToPlay("wide") },
-    { requirement: "forwardCover", required: ROLE_MINIMUMS.forward + EXTRA_COVER.forward, remaining: ableToPlay("forward") },
-  ];
-
-  // Keep cover warnings right after their role.
-  const order: RequirementKey[] = [
-    "goalkeeper", "fullBack", "centreBack", "centralMid",
-    "wide", "wideCover", "forward", "forwardCover",
-  ];
-  const shortfalls = order
-    .map((key) => checks.find((c) => c.requirement === key)!)
+  const shortfalls = ROLE_ORDER.map((role) => ({
+    requirement: role as RequirementKey,
+    required: ROLE_MINIMUMS[role],
+    remaining: remaining.get(role) ?? 0,
+  }))
     .filter((c) => c.remaining < c.required)
     .map((c) => ({ ...c, label: REQUIREMENT_LABELS[c.requirement] }));
 
-  const specialistShortfalls = ROLE_ORDER
-    .filter((role) => (counts.get(role) ?? 0) < ROLE_MINIMUMS[role])
-    .map((role) => ({
-      requirement: role as RequirementKey,
-      label: REQUIREMENT_LABELS[role],
-      required: ROLE_MINIMUMS[role],
-      remaining: counts.get(role) ?? 0,
-    }));
-
-  const sumGaps = (list: PositionShortfall[]) => list.reduce((sum, s) => sum + (s.required - s.remaining), 0);
   return {
     shortfalls,
-    deficit: sumGaps(shortfalls),
-    specialistShortfalls,
-    specialistDeficit: sumGaps(specialistShortfalls),
+    deficit: shortfalls.reduce((sum, s) => sum + (s.required - s.remaining), 0),
     coverAssignments,
-    available: new Map(checks.map((c) => [c.requirement, c.remaining])),
+    available: new Map<RequirementKey, number>(ROLE_ORDER.map((role) => [role, remaining.get(role) ?? 0])),
   };
 }

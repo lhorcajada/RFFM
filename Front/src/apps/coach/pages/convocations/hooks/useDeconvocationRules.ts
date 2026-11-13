@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { getDeconvocationRules } from "../../../services/deconvocationRulesService";
 import { DEFAULT_RULES } from "../utils/rules/defaultRules";
 import type { DeconvocationRuleConfig } from "../utils/rules/ruleCatalog";
+import { migrateRules } from "../utils/rules/rulesMigration";
 
 type UseDeconvocationRules = {
   /** The team's rules; the default set while loading, when none is saved or when the read fails. */
@@ -17,7 +18,7 @@ export function useDeconvocationRules(teamId: string): UseDeconvocationRules {
     if (!teamId) return;
     try {
       const response = await getDeconvocationRules(teamId);
-      setSaved(response.rules);
+      setSaved(response.rules ? migrateRules(response.rules) : null);
     } catch {
       setSaved(null);
     }

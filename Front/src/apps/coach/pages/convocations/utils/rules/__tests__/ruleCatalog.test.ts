@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_RULES } from "../defaultRules";
 import { RULE_CATALOG, RULE_CONDITIONS, resolveRule, unusedConditions } from "../ruleCatalog";
+import { migrateRules } from "../rulesMigration";
 
 describe("ruleCatalog", () => {
-  it("define 12 condiciones únicas", () => {
-    expect(RULE_CONDITIONS).toHaveLength(12);
-    expect(new Set(RULE_CONDITIONS).size).toBe(12);
+  it("define las condiciones del embudo: tres obligatorias, dos ventanas, dificultad y nivel", () => {
+    expect([...RULE_CONDITIONS].sort()).toEqual(
+      ["injured", "injuryRest", "otherDeconvocation", "rating", "recentDeconvocation", "recentRecovery", "rivalDifficulty", "weeklyTraining"].sort(),
+    );
   });
 
   it("tiene una definición por condición", () => {
@@ -16,26 +18,66 @@ describe("ruleCatalog", () => {
     expect(DEFAULT_RULES.map((r) => r.condition).sort()).toEqual([...RULE_CONDITIONS].sort());
   });
 
-  it("los valores por defecto equivalen a las constantes actuales", () => {
-    const goals = resolveRule("goals", DEFAULT_RULES);
-    expect(goals?.points.perGoal).toBe(2);
-    const streak = resolveRule("streak", DEFAULT_RULES);
-    expect([1, 2, 3, 4, 5, 6, 7].map((n) => streak?.points[`j${n}`])).toEqual([50, 45, 20, 15, 10, 5, 3]);
-    expect(resolveRule("injured", DEFAULT_RULES)?.points.value).toBe(-120);
-    expect(resolveRule("technicalTotal", DEFAULT_RULES)?.points.multiplier).toBe(40);
+  it("las ventanas de protección por defecto son 8 jornadas (técnica), 4 (otro motivo) y 1 (lesión)", () => {
+    expect(resolveRule("recentDeconvocation", DEFAULT_RULES)?.points.window).toBe(8);
+    expect(resolveRule("otherDeconvocation", DEFAULT_RULES)?.points.window).toBe(4);
+    expect(resolveRule("injuryRest", DEFAULT_RULES)?.points.window).toBe(1);
+  });
+
+  it("los umbrales de dificultad por defecto son 40% y 65%", () => {
+    const rule = resolveRule("rivalDifficulty", DEFAULT_RULES);
+    expect(rule?.points.hardBelow).toBe(40);
+    expect(rule?.points.easyAbove).toBe(65);
   });
 
   it("resolveRule devuelve null si la regla no está en la lista", () => {
-    expect(resolveRule("goals", DEFAULT_RULES.filter((r) => r.condition !== "goals"))).toBeNull();
+    expect(resolveRule("injuryRest", DEFAULT_RULES.filter((r) => r.condition !== "injuryRest"))).toBeNull();
   });
 
   it("resolveRule completa con valores por defecto las claves que faltan", () => {
-    const resolved = resolveRule("goals", [{ condition: "goals", text: "Mis goles", points: {}, weights: {} }]);
-    expect(resolved).toMatchObject({ text: "Mis goles", points: { perGoal: 2 } });
+    const resolved = resolveRule("injuryRest", [{ condition: "injuryRest", text: "Descanso", points: {}, weights: {} }]);
+    expect(resolved).toMatchObject({ text: "Descanso", points: { window: 1 } });
   });
 
   it("unusedConditions excluye las condiciones ya usadas", () => {
-    const unused = unusedConditions(DEFAULT_RULES.filter((r) => r.condition !== "goals" && r.condition !== "streak"));
-    expect(unused.sort()).toEqual(["goals", "streak"]);
+    const unused = unusedConditions(DEFAULT_RULES.filter((r) => r.condition !== "injuryRest" && r.condition !== "rating"));
+    expect(unused.sort()).toEqual(["injuryRest", "rating"]);
+  });
+});
+
+describe("migrateRules", () => {
+  const legacy = [
+    { condition: "goals", text: "Goles", points: { perGoal: 3 }, weights: {} },
+    { condition: "streak", text: "Racha", points: {}, weights: {} },
+    { condition: "injured", text: "Lesionado propio", points: { value: -120 }, weights: {} },
+    { condition: "recentDeconvocation", text: "Mi texto", points: { j1: 15, j2: 10, j3: 5 }, weights: {} },
+  ] as never;
+
+  it("descarta las condiciones que ya no existen", () => {
+    const migrated = migrateRules(legacy);
+
+    expect(migrated.map((r) => r.condition)).not.toContain("goals");
+    expect(migrated.map((r) => r.condition)).not.toContain("streak");
+  });
+
+  it("conserva el texto de las reglas que siguen y pone la ventana técnica por defecto", () => {
+    const migrated = migrateRules(legacy);
+
+    expect(migrated.find((r) => r.condition === "injured")?.text).toBe("Lesionado propio");
+    expect(resolveRule("recentDeconvocation", migrated)).toMatchObject({ text: "Mi texto", points: { window: 8 } });
+  });
+
+  it("añade el descanso por lesión y la dificultad del rival a una configuración antigua", () => {
+    const migrated = migrateRules(legacy);
+
+    expect(resolveRule("injuryRest", migrated)?.points.window).toBe(1);
+    expect(resolveRule("otherDeconvocation", migrated)?.points.window).toBe(4);
+    expect(resolveRule("rivalDifficulty", migrated)?.points.hardBelow).toBe(40);
+  });
+
+  it("no toca una configuración nueva en la que se quitó una regla", () => {
+    const current = DEFAULT_RULES.filter((r) => r.condition !== "injuryRest");
+
+    expect(migrateRules(current).map((r) => r.condition)).not.toContain("injuryRest");
   });
 });

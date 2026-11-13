@@ -38,6 +38,8 @@ function proposalPlayer(overrides: Partial<PlayerProposal>): PlayerProposal {
       totalTrainingsSeason: 0,
       knownUnavailableTrainings: 0,
     },
+    decision: { group: overrides.isSelected ? "proposed" : "notChosen", reason: "Motivo" },
+    detail: [],
     ...overrides,
   };
 }
@@ -55,6 +57,7 @@ function alreadyOut(overrides: Partial<AlreadyDeconvokedPlayer>): AlreadyDeconvo
 function proposal(overrides: Partial<DeconvokeProposal> = {}): DeconvokeProposal {
   return {
     generatedAt: "2026-10-14T10:00:00.000Z",
+    rivalDifficulty: "medium",
     targetCount: 1,
     calledCount: 2,
     selectedIds: ["p2"],
@@ -101,7 +104,7 @@ function renderTab(value: DeconvokeProposal) {
       proposal={value}
       proposalLoading={false}
       onApplyProposal={async () => {}}
-      onPrintProposal={async () => {}}
+
     />,
   );
   fireEvent.click(screen.getByRole("button", { name: /proponer desconvocados/i }));

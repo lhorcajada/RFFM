@@ -51,7 +51,7 @@ function renderTab(stats: { readiness: number; fatigue: number; formStatus?: num
       proposal={emptyProposal}
       proposalLoading={false}
       onApplyProposal={async () => {}}
-      onPrintProposal={async () => {}}
+
       readinessMap={{ p1: stats }}
     />,
   );

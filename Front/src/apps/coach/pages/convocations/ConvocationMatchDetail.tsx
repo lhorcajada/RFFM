@@ -24,6 +24,8 @@ import { useConvocationMatchContext } from "./hooks/useConvocationMatchContext";
 import { useConvocationPlayerViews } from "./hooks/useConvocationPlayerViews";
 import { useConvocationProposal } from "./hooks/useConvocationProposal";
 import { useDeconvocationRules } from "./hooks/useDeconvocationRules";
+import { useRivalDifficulty } from "./hooks/useRivalDifficulty";
+import { leagueTechnicalTotals } from "./utils/technicalTotals";
 import { resolveRule } from "./utils/rules/ruleCatalog";
 import { buildMatchUnavailability } from "./utils/matchUnavailability";
 import { toIsoDay } from "./utils/deconvokeProposal";
@@ -133,16 +135,6 @@ export default function ConvocationMatchDetail() {
     }
   }, [printing]);
 
-  const handlePrintProposal = useCallback(async () => {
-    if (printing) return;
-    setPrinting(true);
-    try {
-      await printRef.current?.printProposal();
-    } finally {
-      setPrinting(false);
-    }
-  }, [printing]);
-
   // "Ver convocatoria" dialog
   const [viewConvocationOpen, setViewConvocationOpen] = useState(false);
 
@@ -245,6 +237,13 @@ export default function ConvocationMatchDetail() {
     return match.isHomeTeam ? match.visitorTeamName : match.localTeamName;
   }, [match]);
 
+  const proposalTechnicalTotals = useMemo(
+    () => leagueTechnicalTotals(convocation.players.map((p) => p.id), grid.matchColumns, grid.enrichedGrid),
+    [convocation.players, grid.matchColumns, grid.enrichedGrid],
+  );
+
+  const rivalDifficulty = useRivalDifficulty(teamId, proposalRivalName, deconvocationRules);
+
   const squadIds = useMemo(() => convocation.players.map((p) => p.id), [convocation.players]);
   const alreadyOutIds = useMemo(() => new Set(convocation.mgmtNotCalled), [convocation.mgmtNotCalled]);
   const matchUnavailable = useMemo(
@@ -263,12 +262,13 @@ export default function ConvocationMatchDetail() {
 
   const proposal = useConvocationProposal({
     rules: deconvocationRules,
+    rivalDifficulty,
     players: convocation.players,
     squadIds,
     alreadyOutIds,
     ratings: convocation.mgmtRatings,
     playerStreaks,
-    playerTechnicalTotals,
+    playerTechnicalTotals: proposalTechnicalTotals,
     seasonEvents: seasonEvents as any,
     seasonColumns: grid.matchColumns,
     enrichedGrid: grid.enrichedGrid,
@@ -426,7 +426,6 @@ export default function ConvocationMatchDetail() {
             rules={deconvocationRules}
             onRefreshProposal={reloadDeconvocationRules}
             onApplyProposal={handleApplyProposal}
-            onPrintProposal={handlePrintProposal}
             readinessMap={readinessMap}
             recoveringIds={recoveringIds}
           />
@@ -488,7 +487,6 @@ export default function ConvocationMatchDetail() {
           match={match}
           calledIds={convocation.mgmtCalled}
           notCalledIds={convocation.mgmtNotCalled}
-          proposal={proposal}
           players={convocation.players}
           photos={convocation.mgmtPhotos}
           excuseMap={convocation.mgmtExcuseMap}

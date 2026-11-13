@@ -10,7 +10,7 @@ import { useDeconvocationRules } from "../useDeconvocationRules";
 import { DEFAULT_RULES } from "../../utils/rules/defaultRules";
 
 const mockGet = getDeconvocationRules as ReturnType<typeof vi.fn>;
-const custom = [{ condition: "goals" as const, text: "Mis goles", points: { perGoal: 5 }, weights: {} }];
+const custom = [{ condition: "injuryRest" as const, text: "Mi descanso", points: { window: 2 }, weights: {} }];
 
 describe("useDeconvocationRules", () => {
   beforeEach(() => {
@@ -34,6 +34,15 @@ describe("useDeconvocationRules", () => {
     mockGet.mockResolvedValue({ rules: custom, isDefault: false });
     const { result } = renderHook(() => useDeconvocationRules("t1"));
     await waitFor(() => expect(result.current.rules).toEqual(custom));
+  });
+
+  it("migra una configuración antigua con reglas de puntos", async () => {
+    mockGet.mockResolvedValue({
+      rules: [{ condition: "goals", text: "Goles", points: { perGoal: 5 }, weights: {} }],
+      isDefault: false,
+    });
+    const { result } = renderHook(() => useDeconvocationRules("t1"));
+    await waitFor(() => expect(result.current.rules.map((r) => r.condition)).toEqual(["injuryRest", "otherDeconvocation", "rivalDifficulty"]));
   });
 
   it("usa las reglas por defecto si la lectura falla", async () => {

@@ -10,6 +10,7 @@ import { resolveRule, type DeconvocationRuleConfig } from "./rules/ruleCatalog";
 import {
   evaluateRequirements,
   protectionReason,
+  roleLabel,
   toPositionPlayer,
   type PositionPlayer,
   type PositionRole,
@@ -17,6 +18,20 @@ import {
   type RequirementKey,
 } from "./positionRequirements";
 import { isInjuryAbsence } from "./injuryRecovery";
+import {
+  attendanceBucket,
+  compareFairness,
+  CRITERION_NAMES,
+  describeCriterion,
+  formatCriterionValues,
+  protectionOf,
+  type Criterion,
+  type FairnessMetrics,
+  type Protection,
+  type ProtectionKind,
+  type ProtectionWindows,
+  type RivalDifficulty,
+} from "./deconvocationFunnel";
 import type { MatchUnavailability } from "./matchUnavailability";
 
 type RivalResult = "win" | "draw" | "loss";
@@ -28,6 +43,43 @@ export type ProposalFactor = {
   impact: number;
   /** How the value is displayed; defaults to a plain number. */
   format?: "percent";
+};
+
+export type DecisionGroup = "proposed" | "protected" | "notChosen";
+
+export type ProposalDecision = {
+  group: DecisionGroup;
+  /** The one reason that decided: why the player is out, protected or kept. */
+  reason: string;
+  /** Deciding criterion of a proposed player; `mandatory` when a rule forces the deconvocation. */
+  criterion?: Criterion | "mandatory";
+  /** Who the proposed player was preferred over, e.g. "Pedro lleva 4". */
+  compare?: string | null;
+  /** What keeps a protected player called. */
+  protection?: ProtectionKind | "position" | "goalkeeper";
+};
+
+export type ProposalComparisonRow = {
+  playerId: string;
+  name: string;
+  position: string;
+  /** How the proposed player compares: `decides` he goes before the other, `tie` all criteria match, `position` the other stays for a position minimum. */
+  outcome: "decides" | "tie" | "position";
+  verdict: string;
+};
+
+export type DetailResult = "protects" | "doesNotProtect" | "allows" | "decides" | "tie" | "noEffect" | "mandatory";
+
+export type ProposalDetailRow = { rule: string; value: string; result: DetailResult };
+
+export const DETAIL_RESULT_LABELS: Record<DetailResult, string> = {
+  protects: "Protege",
+  doesNotProtect: "No protege",
+  allows: "Permite",
+  decides: "Decide",
+  tie: "Empate",
+  noEffect: "Sin efecto",
+  mandatory: "Obligatorio",
 };
 
 export type PlayerProposal = {
@@ -47,6 +99,11 @@ export type PlayerProposal = {
   startsDataAvailable: boolean;
   minRequiredCalls: number;
   weeklyTraining: WeeklyTrainingStats;
+  decision: ProposalDecision;
+  /** Every rule evaluated for the player, for the collapsible detail. */
+  detail: ProposalDetailRow[];
+  /** A proposed player against every eligible player not proposed; empty for the others. */
+  comparison: ProposalComparisonRow[];
 };
 
 export type AlreadyDeconvokedPlayer = {
@@ -58,6 +115,8 @@ export type AlreadyDeconvokedPlayer = {
 
 export type DeconvokeProposal = {
   generatedAt: string;
+  /** Difficulty of the rival used as last tiebreak. */
+  rivalDifficulty: RivalDifficulty;
   targetCount: number;
   calledCount: number;
   selectedIds: string[];
@@ -102,6 +161,10 @@ export type BuildProposalInput = {
   alreadyOutIds?: ReadonlySet<string>;
   /** Team's configured deconvocation rules; the default set when omitted. */
   rules?: DeconvocationRuleConfig[];
+  /** Difficulty of the rival; medium when unknown. */
+  rivalDifficulty?: RivalDifficulty;
+  /** Matchdays a technical deconvocation / an injury absence protects; 5 and 1 by default. */
+  protectionWindows?: ProtectionWindows;
 };
 
 // "Trainings" include the friendlies the player was called to.
@@ -118,6 +181,112 @@ export type WeeklyTrainingStats = {
 };
 
 const NOT_CALLED_NAMES = new Set(["Deconvoke", "No disponible"]);
+
+type PlayerInternals = {
+  protection: Protection | null;
+  forcedLabel: string | null;
+  technicalAgo: number | null;
+  injuryAgo: number | null;
+  otherAgo: number | null;
+  otherReason: string | null;
+  calledCount: number;
+  minRequiredCalls: number;
+  metrics: FairnessMetrics;
+};
+
+function isInjuryOrIllnessAbsence(cell: GridCell | undefined): boolean {
+  if (isInjuryAbsence(cell)) return true;
+  if (!cell || !NOT_CALLED_NAMES.has(cell.statusName)) return false;
+  const excuse = cell.excuseName?.toLowerCase() ?? "";
+  return cell.excuseTypeId === 3 || excuse.includes("enfermedad") || excuse.includes("ill");
+}
+
+/** Deconvoked for a cause that is neither a technical decision nor an injury or illness (family, studies...). */
+function isOtherCauseDeconvocation(cell: GridCell | undefined): boolean {
+  if (!cell || !NOT_CALLED_NAMES.has(cell.statusName)) return false;
+  return !isTechnicalDecision(cell) && !isInjuryOrIllnessAbsence(cell);
+}
+
+type DetailInput = {
+  proposal: PlayerProposal;
+  internal: PlayerInternals;
+  decision: ProposalDecision;
+  decidingCriterion: Criterion | null;
+  positionReason: string | null;
+  windows: ProtectionWindows;
+  difficulty: RivalDifficulty;
+};
+
+const CRITERIA_ORDER: Criterion[] = ["consecutive", "surplus", "technicalTotal", "attendance", "rating"];
+
+/** Every rule evaluated for a player, in funnel order, with its value and outcome. */
+function buildDetail({ proposal, internal, decision, decidingCriterion, positionReason, windows, difficulty }: DetailInput): ProposalDetailRow[] {
+  const { technicalAgo, injuryAgo, otherAgo, otherReason, calledCount, minRequiredCalls, metrics } = internal;
+  const matchdays = (n: number) => (n === 1 ? "1 jornada" : `${n} jornadas`);
+  const protectedBy = internal.protection?.kind;
+  const rows: ProposalDetailRow[] = [];
+
+  if (proposal.forced) {
+    rows.push({ rule: "Regla obligatoria", value: internal.forcedLabel ?? "Disponibilidad", result: "mandatory" });
+  }
+  rows.push(
+    {
+      rule: "Desconvocado hace poco",
+      value:
+        technicalAgo == null
+          ? `Sin desconvocatorias técnicas (ventana ${windows.technical})`
+          : `Última técnica hace ${matchdays(technicalAgo)} (ventana ${windows.technical})`,
+      result: protectedBy === "technicalWindow" ? "protects" : "doesNotProtect",
+    },
+    {
+      rule: "Desconvocado por otro motivo",
+      value:
+        otherAgo == null
+          ? `Sin otras desconvocatorias (ventana ${windows.otherCause})`
+          : `${otherReason ?? "Otro motivo"} hace ${matchdays(otherAgo)} (ventana ${windows.otherCause})`,
+      result: protectedBy === "otherCause" ? "protects" : "doesNotProtect",
+    },
+    {
+      rule: "Descanso por lesión",
+      value:
+        injuryAgo == null
+          ? `Sin ausencias por lesión (ventana ${windows.injuryRest})`
+          : `Ausencia por lesión hace ${matchdays(injuryAgo)} (ventana ${windows.injuryRest})`,
+      result: protectedBy === "injuryRest" ? "protects" : "doesNotProtect",
+    },
+    {
+      rule: "Mínimo de convocatorias",
+      value: `${calledCount} de ${minRequiredCalls} exigidas`,
+      result: protectedBy === "minCalls" ? "protects" : "doesNotProtect",
+    },
+  );
+  if (positionReason) {
+    rows.push({ rule: "Mínimo por posición", value: positionReason.replace("Protegido: ", ""), result: "protects" });
+  } else if (decision.group === "proposed" && !proposal.forced) {
+    rows.push({ rule: "Mínimo por posición", value: "Se mantiene el mínimo de su posición", result: "allows" });
+  }
+
+  if (!proposal.forced && !internal.protection && !positionReason && !proposal.locked) {
+    const values: Record<Criterion, [string, string]> = {
+      consecutive: ["Jornadas seguidas convocado", String(metrics.consecutive)],
+      surplus: ["Convocatorias sobre el mínimo", String(metrics.surplus)],
+      technicalTotal: ["Desconvocatorias técnicas", String(metrics.technicalTotal)],
+      attendance: ["Asistencia a entrenamientos", `${metrics.attendanceBucket * 10}%`],
+      rating: ["Nivel ante rival difícil", metrics.rating.toFixed(1).replace(".", ",")],
+    };
+    const decidingIndex = decidingCriterion ? CRITERIA_ORDER.indexOf(decidingCriterion) : -1;
+    CRITERIA_ORDER.forEach((criterion, index) => {
+      if (criterion === "rating" && difficulty !== "hard") return;
+      let result: DetailResult = "noEffect";
+      if (decision.group === "proposed") {
+        if (criterion === decidingCriterion) result = "decides";
+        else if (decidingIndex === -1 || index < decidingIndex) result = "tie";
+      }
+      rows.push({ rule: values[criterion][0], value: values[criterion][1], result });
+    });
+  }
+  return rows;
+}
 
 // ── Position-aware selection ─────────────────────────────────────────────────
 
@@ -168,14 +337,10 @@ export function selectDeconvocations(
     if (selected.has(candidate.playerId) || candidate.locked) continue;
     const before = evaluateWithout();
     const after = evaluateWithout(candidate.playerId);
-    // Cover from possible demarcations only fills gaps left by mandatory deconvocations or a
-    // short squad; it never justifies leaving out an available specialist.
+    // Players able to play a position through a possible demarcation compensate any deconvocation.
     const breaksMinimum = after.deficit > before.deficit;
-    const leavesSpecialistGap = after.specialistDeficit > before.specialistDeficit;
-    if (breaksMinimum || leavesSpecialistGap) {
-      const requirement =
-        firstWorsenedRequirement(before.shortfalls, after.shortfalls) ??
-        firstWorsenedRequirement(before.specialistShortfalls, after.specialistShortfalls);
+    if (breaksMinimum) {
+      const requirement = firstWorsenedRequirement(before.shortfalls, after.shortfalls);
       if (requirement) {
         protectedBy.set(candidate.playerId, requirement);
         protectedRemaining.set(candidate.playerId, before.available.get(requirement) ?? 0);
@@ -188,14 +353,12 @@ export function selectDeconvocations(
   while (selected.size < targetCount) {
     const base = evaluateWithout();
     let best: DeconvocationCandidate | null = null;
-    let bestIncrease = [Infinity, Infinity];
+    let bestIncrease = Infinity;
     for (const candidate of ordered) {
       if (selected.has(candidate.playerId) || candidate.locked) continue;
       const after = evaluateWithout(candidate.playerId);
-      const increase = [after.deficit - base.deficit, after.specialistDeficit - base.specialistDeficit];
-      const isBetter =
-        increase[0] < bestIncrease[0] || (increase[0] === bestIncrease[0] && increase[1] < bestIncrease[1]);
-      if (isBetter) {
+      const increase = after.deficit - base.deficit;
+      if (increase < bestIncrease) {
         best = candidate;
         bestIncrease = increase;
       }
@@ -338,7 +501,7 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
     streaks,
     technicalTotals,
     seasonEvents,
-    seasonColumns,
+    seasonColumns: allSeasonColumns,
     enrichedGrid,
     seasonStats,
     lastInjuryEndMap,
@@ -354,7 +517,16 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
     matchUnavailable,
     alreadyOutIds,
     rules = DEFAULT_RULES,
+    rivalDifficulty = "medium",
   } = input;
+  const protectionWindows: ProtectionWindows = input.protectionWindows ?? {
+    technical: resolveRule("recentDeconvocation", rules)?.points.window ?? 0,
+    injuryRest: resolveRule("injuryRest", rules)?.points.window ?? 0,
+    otherCause: resolveRule("otherDeconvocation", rules)?.points.window ?? 0,
+  };
+
+  // Only league matches count as matchdays: friendlies and tournaments are left out of every count.
+  const seasonColumns = allSeasonColumns.filter((col) => col.isLeague !== false);
 
   const calledIds = alreadyOutIds ? squadIds.filter((id) => !alreadyOutIds.has(id)) : squadIds;
 
@@ -415,6 +587,7 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
     ...calledIds.map((pid) => technicalTotals.get(pid) ?? 0),
   );
 
+  const internals = new Map<string, PlayerInternals>();
   const proposals = calledIds
     .map((playerId) => {
       const p = playerById.get(playerId);
@@ -475,10 +648,31 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
       // represent a coach-driven technical deconvocation.
       const effectiveStreak = Math.max(0, technicalStreak - protectedAbsencesInStreak);
 
-      const proportionalMin = Math.ceil(
-        18 * (availableMatches / Math.max(1, seasonMatchCount)),
+      // Fair share of the matches already played the player was available for, given how many of the
+      // squad are called each matchday.
+      const playedAvailable = Math.max(0, availableMatches - 1);
+      const minRequiredCalls = Math.min(
+        playedAvailable,
+        Math.floor((playedAvailable * maxCalledPlayers) / Math.max(1, squadIds.length)),
       );
-      const minRequiredCalls = Math.min(availableMatches, 18, proportionalMin);
+
+      let technicalAgo: number | null = null;
+      let injuryAgo: number | null = null;
+      let otherAgo: number | null = null;
+      let otherReason: string | null = null;
+      let consecutive = 0;
+      let streakOpen = true;
+      seasonColumns.forEach((col, i) => {
+        const cell = enrichedGrid.get(col.eventId)?.get(playerId);
+        if (technicalAgo === null && isTechnicalDecision(cell)) technicalAgo = i + 1;
+        if (injuryAgo === null && isInjuryOrIllnessAbsence(cell)) injuryAgo = i + 1;
+        if (otherAgo === null && isOtherCauseDeconvocation(cell)) {
+          otherAgo = i + 1;
+          otherReason = cell?.excuseName ?? null;
+        }
+        if (streakOpen && cell?.statusId != null && CALLED_STATUS_IDS_SET.has(cell.statusId)) consecutive++;
+        else streakOpen = false;
+      });
 
       // Prepare week stats early so they can be used in the combined score
       
@@ -486,6 +680,7 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
       const factors: ProposalFactor[] = [];
       let score = 0;
       let forced = false;
+      let forcedLabel: string | null = null;
 
       // Execute modular rules (streak, technical-total, combined, minimum,
       // position coverage, rival result, injured, weekly training, recent recovery)
@@ -541,7 +736,10 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
 
       const ruleResults = runRules(ruleCtx as any, rules);
       for (const rr of ruleResults) {
-        if (rr.forced) forced = true;
+        if (rr.forced) {
+          forced = true;
+          forcedLabel ??= rr.factors[0]?.label ?? null;
+        }
         score += rr.delta;
         for (const f of rr.factors) factors.push(f);
       }
@@ -572,7 +770,32 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
 
       const summary = forced
         ? "Regla obligatoria de disponibilidad física aplicada"
-        : "Ordenado por mayor score de desconvocatoria";
+        : "Ordenado por el embudo de desconvocatoria";
+
+      const protection = forced || isGoalkeeper
+        ? null
+        : protectionOf({ technicalAgo, injuryAgo, otherAgo, otherReason, calledCount, minRequiredCalls }, protectionWindows);
+      internals.set(playerId, {
+        protection,
+        forcedLabel: forcedLabel ?? unavailability?.reason ?? null,
+        technicalAgo,
+        injuryAgo,
+        otherAgo,
+        otherReason,
+        calledCount,
+        minRequiredCalls,
+        metrics: {
+          consecutive,
+          surplus: calledCount - minRequiredCalls,
+          technicalTotal,
+          attendanceBucket: attendanceBucket(
+            weekStats.totalTrainingsSeason > 0
+              ? weekStats.weightedAttendedTrainingsSeason / weekStats.totalTrainingsSeason
+              : null,
+          ),
+          rating: weightedRating,
+        },
+      });
 
       return {
         playerId,
@@ -590,45 +813,196 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
         startsDataAvailable,
         minRequiredCalls,
         weeklyTraining: weekStats,
+        decision: { group: "notChosen", reason: "" },
+        detail: [],
+        comparison: [],
       } as PlayerProposal;
     })
-    .filter((item): item is PlayerProposal => item !== null)
-    .sort((a, b) => {
-      // Forced rules always go first (to be selected as desconvocados)
-      if (a.forced !== b.forced) return a.forced ? -1 : 1;
-      // Ahora la puntuación es de 'protección': los más bajos son candidatos a desconvocar
-      return a.score - b.score;
-    });
+    .filter((item): item is PlayerProposal => item !== null);
 
-  const forcedCount = proposals.filter((p) => p.forced).length;
+  const metricsOf = (id: string): FairnessMetrics => internals.get(id)!.metrics;
+  const isHeldByProtection = (p: PlayerProposal) => !p.forced && internals.get(p.playerId)?.protection != null;
+  const byFairness = (a: PlayerProposal, b: PlayerProposal) =>
+    compareFairness(metricsOf(a.playerId), metricsOf(b.playerId), rivalDifficulty).order;
+  const forcedPlayers = proposals.filter((p) => p.forced);
+  const eligible = proposals
+    .filter((p) => !p.forced && !p.locked && !isHeldByProtection(p))
+    .sort(byFairness);
+  const held = proposals.filter((p) => !p.forced && (p.locked || isHeldByProtection(p)));
+  const orderedProposals = [...forcedPlayers, ...eligible, ...held];
+
+  const forcedCount = forcedPlayers.length;
   const targetCount = Math.max(forcedCount, calledIds.length - maxCalledPlayers, 0);
 
   const { selectedIds, protectedBy, protectedRemaining, shortfalls } = selectDeconvocations(
-    proposals,
+    orderedProposals.map((p) => ({
+      playerId: p.playerId,
+      forced: p.forced,
+      locked: p.locked || isHeldByProtection(p),
+    })),
     positionPlayers,
     targetCount,
   );
   const selectedSet = new Set(selectedIds);
 
-  const playersWithSelection = proposals.map((p) => {
+  // Eligible players the loop did not reach (the target was met first) stay called when they could not
+  // take the place of a proposed player without breaking a position minimum; they are reported as
+  // protected by position, not as not chosen.
+  const remainingPositions = orderedProposals.filter((p) => !selectedSet.has(p.playerId));
+  const toPositions = (list: PlayerProposal[]) =>
+    list.map((p) => positionPlayers.get(p.playerId) ?? { id: p.playerId, role: null, possibleRoles: [] });
+  const baseEvaluation = evaluateRequirements(toPositions(remainingPositions));
+  /** Requirement that breaks when `other` is deconvoked instead of the proposed `chosen` (or in addition, without one). */
+  const positionBlock = (other: PlayerProposal, chosen?: PlayerProposal): RequirementKey | null => {
+    const kept = remainingPositions.filter((p) => p !== other);
+    const after = evaluateRequirements(toPositions(chosen ? [...kept, chosen] : kept));
+    if (after.deficit <= baseEvaluation.deficit) return null;
+    return firstWorsenedRequirement(baseEvaluation.shortfalls, after.shortfalls);
+  };
+  const replaceable = eligible.filter((p) => selectedSet.has(p.playerId));
+  for (const candidate of eligible) {
+    if (selectedSet.has(candidate.playerId) || protectedBy.has(candidate.playerId)) continue;
+    const blocks = replaceable.length > 0 ? replaceable.map((chosen) => positionBlock(candidate, chosen)) : [positionBlock(candidate)];
+    if (blocks.some((b) => b === null) || blocks.length === 0) continue;
+    const requirement = blocks[0]!;
+    protectedBy.set(candidate.playerId, requirement);
+    protectedRemaining.set(candidate.playerId, baseEvaluation.available.get(requirement) ?? 0);
+  }
+
+  const selectedEligible = eligible.filter((p) => selectedSet.has(p.playerId));
+  const sameRole = (a: PlayerProposal, b: PlayerProposal) => a.positionRole === b.positionRole;
+
+  const playersWithSelection = orderedProposals.map((p) => {
+    const internal = internals.get(p.playerId)!;
     const requirement = protectedBy.get(p.playerId);
     const remaining = protectedRemaining.get(p.playerId) ?? 0;
+    const positionReason = requirement ? protectionReason(requirement, remaining) : null;
     const factors = requirement
-      ? [
-          ...p.factors,
-          {
-            key: "positionProtection",
-            label: protectionReason(requirement, remaining),
-            value: remaining,
-            impact: 0,
-          },
-        ]
+      ? [...p.factors, { key: "positionProtection", label: positionReason!, value: remaining, impact: 0 }]
       : p.factors;
-    return { ...p, factors, isSelected: selectedSet.has(p.playerId) };
+    const isSelected = selectedSet.has(p.playerId);
+
+    let decision: ProposalDecision;
+    let decidingCriterion: Criterion | null = null;
+    let comparison: ProposalComparisonRow[] = [];
+    if (isSelected && p.forced) {
+      decision = {
+        group: "proposed",
+        criterion: "mandatory",
+        reason: `Obligatorio: ${internal.forcedLabel ?? "regla de disponibilidad"}`,
+      };
+    } else if (isSelected) {
+      const own = metricsOf(p.playerId);
+      const others = eligible.filter((o) => o !== p && !selectedSet.has(o.playerId));
+      comparison = others.map((o) => {
+        if (protectedBy.has(o.playerId)) {
+          return {
+            playerId: o.playerId,
+            name: o.displayName,
+            position: roleLabel(o.positionRole ?? null),
+            outcome: "position" as const,
+            verdict: "Se queda por el mínimo de su posición",
+          };
+        }
+        const { criterion } = compareFairness(own, metricsOf(o.playerId), rivalDifficulty);
+        return {
+          playerId: o.playerId,
+          name: o.displayName,
+          position: roleLabel(o.positionRole ?? null),
+          outcome: criterion ? ("decides" as const) : ("tie" as const),
+          verdict: criterion
+            ? `Decide: ${CRITERION_NAMES[criterion]} (${formatCriterionValues(criterion, own, metricsOf(o.playerId))})`
+            : "Empate en todos los criterios",
+        };
+      });
+      const contenders = others.filter((o) => !protectedBy.has(o.playerId));
+      const ties = contenders.filter((o) => compareFairness(own, metricsOf(o.playerId), rivalDifficulty).criterion === null);
+      const peer = contenders[0];
+      const field = `Frente a los otros ${others.length} elegibles`;
+      if (!peer) {
+        decision = {
+          group: "proposed",
+          reason: "Elegido: necesario para llegar al objetivo respetando los mínimos por posición",
+        };
+      } else if (ties.length > 0) {
+        decision = {
+          group: "proposed",
+          reason: `Elegido: empata con ${ties.map((o) => o.displayName).join(", ")} en todos los criterios, incluido el nivel, y va antes en la plantilla`,
+          compare: `${field}: ${ties.length} empatan con él`,
+        };
+      } else {
+        const { criterion } = compareFairness(own, metricsOf(peer.playerId), rivalDifficulty);
+        decidingCriterion = criterion;
+        const text = describeCriterion(
+          criterion!,
+          own,
+          metricsOf(peer.playerId),
+          peer.displayName,
+          p.displayName,
+          rivalDifficulty,
+        );
+        decision = {
+          group: "proposed",
+          criterion: criterion!,
+          reason: `Elegido: ${text.chosen}`,
+          compare: `${field}. El más parecido: ${text.compare}`,
+        };
+      }
+    } else if (p.locked && !internal.protection) {
+      decision = {
+        group: "protected",
+        protection: "goalkeeper",
+        reason: "Portero: siempre convocado salvo lesión, sanción o no disponibilidad",
+      };
+    } else if (internal.protection) {
+      decision = { group: "protected", protection: internal.protection.kind, reason: internal.protection.reason };
+    } else if (positionReason) {
+      decision = { group: "protected", protection: "position", reason: positionReason };
+    } else {
+      const index = eligible.indexOf(p);
+      const earlier = selectedEligible.filter((o) => eligible.indexOf(o) < index);
+      const preferred = earlier.find((o) => sameRole(o, p)) ?? earlier[earlier.length - 1];
+      if (!preferred) {
+        decision = { group: "notChosen", reason: "No ha hecho falta desconvocar a más jugadores" };
+      } else {
+        const { criterion } = compareFairness(metricsOf(preferred.playerId), metricsOf(p.playerId), rivalDifficulty);
+        decision = {
+          group: "notChosen",
+          reason: criterion
+            ? describeCriterion(
+                criterion,
+                metricsOf(preferred.playerId),
+                metricsOf(p.playerId),
+                p.displayName,
+                preferred.displayName,
+                rivalDifficulty,
+              ).notChosen
+            : `Empata con ${preferred.displayName} en todos los criterios y va después en la plantilla`,
+        };
+      }
+    }
+
+    return {
+      ...p,
+      factors,
+      isSelected,
+      decision,
+      comparison,
+      detail: buildDetail({
+        proposal: p,
+        internal,
+        decision,
+        decidingCriterion,
+        positionReason,
+        windows: protectionWindows,
+        difficulty: rivalDifficulty,
+      }),
+    };
   });
 
   return {
     generatedAt: new Date().toISOString(),
+    rivalDifficulty,
     targetCount,
     calledCount: calledIds.length,
     selectedIds,

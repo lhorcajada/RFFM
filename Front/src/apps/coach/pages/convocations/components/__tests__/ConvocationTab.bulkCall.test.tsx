@@ -46,7 +46,7 @@ function renderTab(available: string[] = ["p1", "p2"]) {
       proposal={emptyProposal}
       proposalLoading={false}
       onApplyProposal={async () => {}}
-      onPrintProposal={async () => {}}
+
     />,
   );
 }

@@ -49,7 +49,7 @@ function renderTab(handlers: {
       proposal={emptyProposal}
       proposalLoading={false}
       onApplyProposal={async () => {}}
-      onPrintProposal={async () => {}}
+
       {...handlers}
     />,
   );

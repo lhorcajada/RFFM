@@ -51,7 +51,7 @@ describe("ConvocationTab - indicador de rodaje", () => {
         proposal={emptyProposal}
         proposalLoading={false}
         onApplyProposal={async () => {}}
-        onPrintProposal={async () => {}}
+
         readinessMap={{ p1: { readiness: 65 } }}
       />,
     );

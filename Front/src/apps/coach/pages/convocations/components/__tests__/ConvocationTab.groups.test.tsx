@@ -52,7 +52,7 @@ function renderTab(isLeagueMatch: boolean) {
       proposal={emptyProposal}
       proposalLoading={false}
       onApplyProposal={async () => {}}
-      onPrintProposal={async () => {}}
+
     />
   );
 }
