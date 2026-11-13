@@ -1,0 +1,15 @@
+## Step 1: Restructure the proposal block markup under test
+
+**Interfaces**: No new export and no prop change: `ConvocationTab` in `Front/src/apps/coach/pages/convocations/components/ConvocationTab.tsx` keeps its default export and props. The observable markup contract added by the step is:
+- Already-deconvoked rows are rendered after the proposed rows inside one element with `role="group"` and accessible name `Jugadores ya desconvocados`, present only when `proposal.alreadyDeconvoked` is non-empty.
+- Every proposed and already-deconvoked row stays an `article`; the block contains no `table` element.
+- CSS Module keys used by the markup: `proposalList`, `proposalDeconvokedGroup`, `proposalCardDeconvoked`, `proposalWarningAlert`, `proposalNotice` (all in `ConvocationTab.module.css`).
+
+**Test assertions** (fixture: the `proposalPlayer`, `alreadyOut`, `proposal`, and `renderTab` helper pattern of `Front/src/apps/coach/pages/convocations/components/__tests__/ConvocationTab.alreadyDeconvoked.test.tsx`, proposal opened by clicking the button named "proponer desconvocados"; spec: `openspec/changes/redesign-deconvocation-proposal-ui/specs/deconvocation-proposal-ui/spec.md`):
+1. [unit] Order — 2 proposed players (scores 80 then 60) and 1 already-deconvoked player → the three `article` elements appear in DOM order proposed (80), proposed (60), already-deconvoked; no proposed row follows the already-deconvoked one. Spec: requirement "Proposal block keeps its content and order in the new design", scenario "Proposed players come before already-deconvoked players".
+2. [unit] Mark — 2 already-deconvoked players → `getAllByText("Ya desconvocado")` has length 2 and both matches are inside the group named `Jugadores ya desconvocados`; with 1 proposed player added, no «Ya desconvocado» text sits inside the proposed row. Spec: scenarios "Already-deconvoked players keep their mark" and "Already-deconvoked players are distinguishable from proposed players".
+3. [unit] No already-deconvoked players → `queryByRole("group", { name: /ya desconvocados/i })` and `queryByText("Ya desconvocado")` are both null. Spec: scenario "No already-deconvoked players".
+4. [unit] Row data kept — a forced proposed player with score 70, role `Defensa` and 3 calls → the row shows its name, `70 pts`, the role chip, `OBLIGATORIO`, and `3 conv.`. Spec: scenario "Row data is preserved".
+5. [unit] Only already-deconvoked players and no proposals → the group is present with its rows and `queryByText("No hay convocados para evaluar.")` is null. Spec: scenario "Only already-deconvoked players".
+6. [unit] No table — full fixture (proposed, forced, remaining, already-deconvoked) → `container.querySelector("table")` is null and `queryByRole("table")` is null. Spec: scenario "No table markup".
+7. [unit] No inline style on the notice — no player selected and some evaluated → the paragraph with «No hace falta desconvocar jugadores con las reglas actuales.» has no `style` attribute and the text is still shown. Spec: requirement "Redesign follows the project's styling rules", scenario "Styles live in CSS Modules".
