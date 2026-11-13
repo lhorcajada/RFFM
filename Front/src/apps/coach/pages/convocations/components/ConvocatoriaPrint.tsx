@@ -709,6 +709,34 @@ const ConvocatoriaPrint = forwardRef<ConvocatoriaPrintHandle, Props>(
           });
         }
 
+        if (proposal.alreadyDeconvoked.length > 0) {
+          if (y > 255) {
+            pdf.addPage();
+            addHeader("Informe de propuesta automática de desconvocatoria", `${teamHeader}${dateHeader}`);
+            y = 38;
+          }
+          y += 4;
+          pdf.setTextColor(255, 255, 255);
+          pdf.setFont("helvetica", "bold");
+          pdf.setFontSize(12);
+          pdf.text("Ya desconvocados", marginX, y);
+          pdf.setDrawColor(255, 152, 0);
+          pdf.line(marginX, y + 2, pageWidth - marginX, y + 2);
+          y += 8;
+          proposal.alreadyDeconvoked.forEach((player) => {
+            if (y > 275) {
+              pdf.addPage();
+              addHeader("Informe de propuesta automática de desconvocatoria", `${teamHeader}${dateHeader}`);
+              y = 38;
+            }
+            pdf.setTextColor(255, 255, 255);
+            pdf.setFont("helvetica", "bold");
+            pdf.setFontSize(10);
+            pdf.text(`${player.displayName} · ${player.position ?? "Sin posición"} · YA DESCONVOCADO`, marginX, y);
+            y += 6;
+          });
+        }
+
         pdf.addPage();
         addHeader("Detalle de factores", `${teamHeader}${dateHeader}`);
         y = 34;
