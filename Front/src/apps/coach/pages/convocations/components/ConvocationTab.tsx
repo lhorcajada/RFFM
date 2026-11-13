@@ -302,7 +302,7 @@ export default function ConvocationTab({
 
   function renderAlreadyDeconvokedCard(item: AlreadyDeconvokedPlayer) {
     return (
-      <article key={item.playerId} className={`${styles.proposalCard} ${styles.proposalCardDim}`}>
+      <article key={item.playerId} className={`${styles.proposalCard} ${styles.proposalCardDeconvoked}`}>
         <div className={styles.proposalCardTop}>
           <div className={styles.proposalCardName}>
             <strong>{item.displayName}</strong>
@@ -614,7 +614,7 @@ export default function ConvocationTab({
                 </p>
               )}
               {(proposal.positionWarnings ?? []).length > 0 && (
-                <Alert severity="warning" sx={{ mt: 1 }}>
+                <Alert severity="warning" className={styles.proposalWarningAlert}>
                   <strong>Mínimos de posición sin cubrir</strong>
                   <ul className={styles.proposalWarningList}>
                     {proposal.positionWarnings.map((warning) => (
@@ -684,17 +684,29 @@ export default function ConvocationTab({
             <>
               {/* ── Proposed section ── */}
               {proposal.players.length > 0 && selectedProposalPlayers.length === 0 && (
-                <p className={styles.proposalSubtitle} style={{ marginBottom: 8 }}>No hace falta desconvocar jugadores con las reglas actuales.</p>
+                <p className={`${styles.proposalSubtitle} ${styles.proposalNotice}`}>No hace falta desconvocar jugadores con las reglas actuales.</p>
               )}
               {(selectedProposalPlayers.length > 0 || proposal.alreadyDeconvoked.length > 0) && (
                 <>
                   {selectedProposalPlayers.length > 0 && (
                     <p className={styles.proposalSectionLabel}>Propuestos para desconvocar</p>
                   )}
-                  <div className={styles.proposalCards}>
-                    {selectedProposalPlayers.map((item) => renderCard(item, true))}
-                    {proposal.alreadyDeconvoked.map((item) => renderAlreadyDeconvokedCard(item))}
-                  </div>
+                  {selectedProposalPlayers.length > 0 && (
+                    <div className={styles.proposalList}>
+                      {selectedProposalPlayers.map((item) => renderCard(item, true))}
+                    </div>
+                  )}
+                  {proposal.alreadyDeconvoked.length > 0 && (
+                    <div
+                      className={styles.proposalDeconvokedGroup}
+                      role="group"
+                      aria-label="Jugadores ya desconvocados"
+                    >
+                      <div className={styles.proposalList}>
+                        {proposal.alreadyDeconvoked.map((item) => renderAlreadyDeconvokedCard(item))}
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
 
@@ -702,7 +714,7 @@ export default function ConvocationTab({
               {proposal.players.some((p) => !p.isSelected) && (
                 <>
                   <p className={`${styles.proposalSectionLabel} ${styles.proposalSectionLabelDim}`}>Resto de convocados</p>
-                  <div className={styles.proposalCards}>
+                  <div className={styles.proposalList}>
                     {proposal.players.filter((p) => !p.isSelected).map((item) => renderCard(item, false))}
                   </div>
                 </>
