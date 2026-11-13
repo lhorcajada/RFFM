@@ -13,8 +13,12 @@ Domain language of FutbolBase, the football team management platform. Terms are 
 **Rol Coach**: "The role of a user who is a coach (entrenador), distinct from the Administrator role."
 *Avoid*: administrador (es otro rol)
 
+**Ya desconvocado**: "A player of the squad that is listed in the not-called list of a convocation (`mgmtNotCalled`) before the deconvocation proposal is generated, whatever the reason."
+*Avoid*: ya fuera, excluido
+
 ## Relationships
 
 - A **Monedero** belongs to one user and one team
 - A row of the wallets list of a family member has many **Jugador asociado** (one per linked player of that team)
 - A row of the wallets list of a player user has one **Jugador asociado** (the player itself)
+- A **Ya desconvocado** player is shown in the deconvocation proposal but is never proposed again and never counts as available
