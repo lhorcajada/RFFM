@@ -131,6 +131,10 @@ namespace RFFM.Api.Tests.UnitTests
         public void Validator_AcceptsKnownConditions() => Assert.True(IsValid(Rule("goals"), Rule("streak")));
 
         [Fact]
+        public void Validator_AcceptsTheFunnelConditions() =>
+            Assert.True(IsValid(Rule("injuryRest"), Rule("rivalDifficulty"), Rule("recentDeconvocation")));
+
+        [Fact]
         public void Validator_RejectsAnUnknownCondition() => Assert.False(IsValid(Rule("nope")));
 
         [Fact]

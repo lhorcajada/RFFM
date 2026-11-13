@@ -22,11 +22,14 @@ namespace RFFM.Api.Features.Coaches.DeconvocationRules
         public const int MaxTextLength = 200;
         public const double MaxValue = 1000;
 
-        /// <summary>Catálogo de condiciones; debe coincidir con el del frontend (ruleCatalog.ts).</summary>
+        /// <summary>
+        /// Catálogo de condiciones; debe coincidir con el del frontend (ruleCatalog.ts). Se mantienen las
+        /// condiciones antiguas de puntuación para aceptar configuraciones ya guardadas; el frontend las descarta al leerlas.
+        /// </summary>
         public static readonly IReadOnlySet<string> Conditions = new HashSet<string>
         {
-            "goals", "streak", "minimum", "rivalResult", "injured", "weeklyTraining",
-            "recentRecovery", "recentDeconvocation", "technicalTotal", "rating", "necessity", "weeklyTrainingAccum",
+            "injured", "weeklyTraining", "recentRecovery", "recentDeconvocation", "otherDeconvocation", "injuryRest", "rivalDifficulty", "rating",
+            "goals", "streak", "minimum", "rivalResult", "technicalTotal", "necessity", "weeklyTrainingAccum",
         };
     }
 
