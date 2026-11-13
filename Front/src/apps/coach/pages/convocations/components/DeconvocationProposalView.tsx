@@ -54,10 +54,18 @@ const RESULT_TONE: Record<DetailResult, string> = {
 };
 
 const PROTECTED_GROUPS: Array<{ title: string; kinds: Array<NonNullable<ProposalDecision["protection"]>> }> = [
-  { title: "Descansaron o desconvocados hace poco", kinds: ["technicalWindow", "injuryRest"] },
+  { title: "Descansaron o desconvocados hace poco", kinds: ["technicalWindow", "injuryRest", "otherCause"] },
   { title: "Mínimo de convocatorias", kinds: ["minCalls"] },
   { title: "Mínimo por posición", kinds: ["position", "goalkeeper"] },
 ];
+
+const OTHER_PROTECTED = { title: "Otros protegidos", kinds: [] as Array<NonNullable<ProposalDecision["protection"]>> };
+
+/** Group of a protected player; one whose reason has no group is never dropped, it goes to the last one. */
+function groupOf(item: PlayerProposal): string {
+  const kind = item.decision.protection;
+  return PROTECTED_GROUPS.find((g) => kind && g.kinds.includes(kind))?.title ?? OTHER_PROTECTED.title;
+}
 
 function plural(count: number, one: string, many: string): string {
   return `${count} ${count === 1 ? one : many}`;
@@ -308,10 +316,8 @@ export default function DeconvocationProposalView({
                 Protegidos · no se desconvocan
               </h4>
               <div className={styles.groups}>
-                {PROTECTED_GROUPS.map((group) => {
-                  const members = protectedPlayers.filter(
-                    (p) => p.decision.protection && group.kinds.includes(p.decision.protection),
-                  );
+                {[...PROTECTED_GROUPS, OTHER_PROTECTED].map((group) => {
+                  const members = protectedPlayers.filter((p) => groupOf(p) === group.title);
                   if (members.length === 0) return null;
                   return (
                     <div key={group.title} role="group" aria-label={group.title} className={styles.group}>

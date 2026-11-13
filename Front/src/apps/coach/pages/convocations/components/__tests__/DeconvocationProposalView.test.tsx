@@ -157,6 +157,22 @@ describe("DeconvocationProposalView", () => {
     expect(within(screen.getByRole("group", { name: "Mínimo por posición" })).getByText("Dani")).toBeInTheDocument();
   });
 
+  it("muestra al protegido por otro motivo (por ejemplo, un problema familiar)", () => {
+    const nico = player("p8", "Nico", { group: "protected", protection: "otherCause", reason: "Protegido: desconvocado hace 1 jornada por problema familiar" });
+    renderView(proposal({ players: [...proposal().players, nico] }));
+
+    const rest = within(screen.getByRole("group", { name: "Descansaron o desconvocados hace poco" }));
+    expect(rest.getByText("Nico")).toBeInTheDocument();
+    expect(rest.getByText("Protegido: desconvocado hace 1 jornada por problema familiar")).toBeInTheDocument();
+  });
+
+  it("nunca esconde a un protegido: si su motivo no tiene grupo lo muestra en «Otros protegidos»", () => {
+    const raro = player("p9", "Raro", { group: "protected", reason: "Protegido: motivo sin clasificar" });
+    renderView(proposal({ players: [...proposal().players, raro] }));
+
+    expect(within(screen.getByRole("group", { name: "Otros protegidos" })).getByText("Raro")).toBeInTheDocument();
+  });
+
   it("no muestra grupos de protegidos vacíos", () => {
     renderView(proposal({ players: [proposal().players[0]] }));
 
