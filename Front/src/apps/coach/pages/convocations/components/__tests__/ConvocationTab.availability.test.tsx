@@ -22,6 +22,7 @@ const emptyProposal: DeconvokeProposal = {
   previousRivalResult: null,
   players: [],
   alreadyDeconvoked: [],
+  order: [],
 };
 
 describe("ConvocationTab - indicador Ef/Rodaje/Cansancio", () => {

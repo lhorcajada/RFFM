@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { Alert, Button, CircularProgress } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
@@ -14,6 +14,7 @@ import {
   type DetailResult,
   type PlayerProposal,
   type ProposalDecision,
+  type ProposalOrderEntry,
 } from "../utils/deconvokeProposal";
 import { formatShortfall, roleLabel } from "../utils/positionRequirements";
 import PlayerFitDialog from "./PlayerFitDialog";
@@ -40,7 +41,7 @@ export type FitContext = {
 };
 
 const CRITERION_LABELS: Record<NonNullable<ProposalDecision["criterion"]>, string> = {
-  fit: "encaje en el puesto",
+  fit: "encaje por rasgos",
   consecutive: "jornadas seguidas",
   surplus: "excedente de convocatorias",
   technicalTotal: "desconvocatorias técnicas",
@@ -139,25 +140,63 @@ function ProposedCard({ item, onShowFit }: { item: PlayerProposal; onShowFit?: (
               </li>
             ))}
           </ul>
-          {item.comparison.length > 0 && (
-            <div role="group" aria-label="Frente a los demás elegibles" className={styles.comparison}>
-              <h5 className={styles.comparisonTitle}>Frente a los demás elegibles</h5>
-              {item.comparison.map((row) => (
-                <div key={row.playerId} className={styles.comparisonRow}>
-                  <span className={styles.comparisonName}>
-                    <strong>{row.name}</strong>
-                    <span className={styles.position}>{row.position}</span>
-                  </span>
-                  <span className={`${styles.comparisonVerdict} ${row.outcome === "decides" ? styles.toneDecides : styles.toneMuted}`}>
-                    {row.verdict}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
         </details>
       )}
     </article>
+  );
+}
+
+const ORDER_OUTCOME_LABELS: Partial<Record<ProposalOrderEntry["outcome"], string>> = {
+  proposed: "Se desconvoca",
+  positionSkip: "Se salta: mínimo de su posición",
+};
+
+function OrderList({ order }: { order: ProposalOrderEntry[] }) {
+  const lastProposed = order.reduce((last, entry, index) => (entry.outcome === "proposed" ? index : last), -1);
+  return (
+    <section className={styles.orderSection} aria-label="Orden en que se desconvoca">
+      <h4 className={styles.sectionLabel}>Orden de desconvocatoria</h4>
+      <p className={styles.orderIntro}>
+        De arriba abajo, el primero es el primero en salir. Cada jugador explica por qué va antes que el siguiente.
+      </p>
+      <ol className={styles.orderList} aria-label="Orden de desconvocatoria">
+        {order.map((entry, index) => (
+          <Fragment key={entry.playerId}>
+            <li
+              className={`${styles.orderItem} ${entry.outcome === "proposed" ? styles.orderItemOut : ""} ${
+                entry.outcome === "stays" ? styles.orderItemStays : ""
+              }`}
+            >
+              <span className={styles.orderRank}>{entry.rank}</span>
+              <div className={styles.orderBody}>
+                <div className={styles.name}>
+                  <strong>{entry.name}</strong>
+                  <span className={styles.position}>{entry.position}</span>
+                  {ORDER_OUTCOME_LABELS[entry.outcome] && (
+                    <span className={entry.outcome === "proposed" ? styles.orderBadgeOut : styles.orderBadgeSkip}>
+                      {ORDER_OUTCOME_LABELS[entry.outcome]}
+                    </span>
+                  )}
+                </div>
+                <div className={styles.chips}>
+                  {entry.chips.map((chip) => (
+                    <span key={chip} className={styles.chip}>
+                      {chip}
+                    </span>
+                  ))}
+                </div>
+                {entry.versusNext && <p className={styles.orderVersus}>{entry.versusNext.text}</p>}
+              </div>
+            </li>
+            {index === lastProposed && index < order.length - 1 && (
+              <li role="separator" aria-label="Línea de corte" className={styles.cutLine}>
+                Línea de corte: se quedan los de abajo
+              </li>
+            )}
+          </Fragment>
+        ))}
+      </ol>
+    </section>
   );
 }
 
@@ -213,7 +252,7 @@ export default function DeconvocationProposalView({
     },
     {
       title: "Justicia",
-      text: `Entre los ${eligibleCount} elegibles se ordena primero por el encaje en su puesto (cuando hay orden de encaje) y después por jornadas seguidas convocado sin descansar, excedente de convocatorias, desconvocatorias técnicas y asistencia.`,
+      text: `Entre los ${eligibleCount} elegibles se ordena por jornadas seguidas, excedente de convocatorias y encaje por rasgos (la nota de sus valoraciones en su puesto), y después por desconvocatorias técnicas y asistencia.`,
     },
     {
       title: "Dificultad del rival",
@@ -311,6 +350,8 @@ export default function DeconvocationProposalView({
               ))}
             </ol>
           </section>
+
+          {proposal.order.length > 0 && <OrderList order={proposal.order} />}
 
           {proposal.players.length > 0 && proposed.length === 0 && (
             <p className={styles.notice}>No hace falta desconvocar jugadores con las reglas actuales.</p>

@@ -369,10 +369,10 @@ describe("buildDeconvokeProposal — comparación con todos los elegibles", () =
     expect(find(proposal, "gk1").comparison).toEqual([]);
   });
 
-  it("la razón explica contra cuántos elegibles se ha comparado", () => {
+  it("la razón indica el puesto del jugador en el orden de desconvocatoria", () => {
     const proposal = build(team());
 
-    expect(find(proposal, proposal.selectedIds[0]).decision.compare).toMatch(/^Frente a los otros \d+ elegibles/);
+    expect(find(proposal, proposal.selectedIds[0]).decision.compare).toMatch(/^\d+\.º del orden de desconvocatoria/);
   });
 });
 

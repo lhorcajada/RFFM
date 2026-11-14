@@ -155,8 +155,16 @@ export function formatFitPlace(info: FitInfo): string {
   return `${info.place}.º de ${info.total} en ${info.positionLabel} (${fitValueText(info.value)})`;
 }
 
-function fitPlaceText(info: FitInfo | undefined): string {
-  return info ? formatFitPlace(info) : "sin orden de encaje";
+/** e.g. «2,6 como Lateral»: the trait-based fit of the player in his position. */
+export function formatFitValue(info: FitInfo | undefined): string {
+  if (!info || info.value == null) return "sin encaje calculado";
+  return `${fitValueText(info.value)} como ${info.positionLabel}`;
+}
+
+/** Fit difference in the tenths the coach sees; the order of the position list is the fallback without trait data. */
+function fitDifference(a: FitInfo | undefined, b: FitInfo | undefined): number {
+  if (a?.value != null && b?.value != null) return Math.round(a.value * 10) - Math.round(b.value * 10);
+  return (a?.share ?? NEUTRAL_FIT_SHARE) - (b?.share ?? NEUTRAL_FIT_SHARE);
 }
 
 export type FairnessMetrics = {
@@ -172,6 +180,18 @@ export type FairnessMetrics = {
   /** Place in the fit order of the player's position; absent when the position has no usable order. */
   fit?: FitInfo;
 };
+
+/** The values every criterion compares, in the order they are applied, for the order list chips. */
+export function fairnessChips(metrics: FairnessMetrics): string[] {
+  return [
+    `${metrics.consecutive} seguidas`,
+    `Excedente ${metrics.surplus}`,
+    metrics.fit?.value != null ? `Encaje ${fitValueText(metrics.fit.value)}` : "Encaje sin datos",
+    `Técnicas ${metrics.technicalTotal}`,
+    `Asistencia ${percent(metrics.attendanceBucket)}`,
+    `Nivel ${nf(metrics.rating)}`,
+  ];
+}
 
 export function attendanceBucket(rate: number | null): number {
   if (rate == null || !Number.isFinite(rate)) return 10;
@@ -189,10 +209,7 @@ export function compareFairness(
   b: FairnessMetrics,
   difficulty: RivalDifficulty,
 ): { order: number; criterion: Criterion | null } {
-  const fit: [Criterion, number] = [
-    "fit",
-    (a.fit?.share ?? NEUTRAL_FIT_SHARE) - (b.fit?.share ?? NEUTRAL_FIT_SHARE),
-  ];
+  const fit: [Criterion, number] = ["fit", fitDifference(a.fit, b.fit)];
   const consecutive: [Criterion, number] = ["consecutive", b.consecutive - a.consecutive];
   const surplus: [Criterion, number] = ["surplus", b.surplus - a.surplus];
   const technicalTotal: [Criterion, number] = ["technicalTotal", a.technicalTotal - b.technicalTotal];
@@ -200,8 +217,8 @@ export function compareFairness(
   const rating: [Criterion, number] = ["rating", a.rating - b.rating];
   const steps =
     difficulty === "hard"
-      ? [fit, consecutive, surplus, rating, technicalTotal, attendance]
-      : [fit, consecutive, surplus, technicalTotal, attendance, rating];
+      ? [consecutive, surplus, fit, rating, technicalTotal, attendance]
+      : [consecutive, surplus, fit, technicalTotal, attendance, rating];
   for (const [criterion, diff] of steps) {
     if (diff !== 0) return { order: diff, criterion };
   }
@@ -231,9 +248,9 @@ export function describeCriterion(
   switch (criterion) {
     case "fit":
       return {
-        chosen: `tiene peor encaje en su puesto (${fitPlaceText(a.fit)})`,
-        compare: `${peerName}: ${fitPlaceText(b.fit)}`,
-        notChosen: `Se desconvoca a ${chosenName} en su lugar: peor encaje en su puesto (${fitPlaceText(a.fit)} frente a ${fitPlaceText(b.fit)})`,
+        chosen: `tiene peor encaje por rasgos en su puesto (${formatFitValue(a.fit)})`,
+        compare: `${peerName}: ${formatFitValue(b.fit)}`,
+        notChosen: `Se desconvoca a ${chosenName} en su lugar: peor encaje por rasgos en su puesto (${formatFitValue(a.fit)} frente a ${formatFitValue(b.fit)})`,
       };
     case "consecutive":
       return {
@@ -275,7 +292,7 @@ export function describeCriterion(
 export function formatCriterionValues(criterion: Criterion, a: FairnessMetrics, b: FairnessMetrics): string {
   switch (criterion) {
     case "fit":
-      return `${fitPlaceText(a.fit)} frente a ${fitPlaceText(b.fit)}`;
+      return `${formatFitValue(a.fit)} frente a ${formatFitValue(b.fit)}`;
     case "consecutive":
       return `${a.consecutive} frente a ${b.consecutive}`;
     case "surplus":
@@ -290,7 +307,7 @@ export function formatCriterionValues(criterion: Criterion, a: FairnessMetrics, 
 }
 
 export const CRITERION_NAMES: Record<Criterion, string> = {
-  fit: "encaje en el puesto",
+  fit: "encaje por rasgos",
   consecutive: "jornadas seguidas",
   surplus: "excedente de convocatorias",
   technicalTotal: "desconvocatorias técnicas",
