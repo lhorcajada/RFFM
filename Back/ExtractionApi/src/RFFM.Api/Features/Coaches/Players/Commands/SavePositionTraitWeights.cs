@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using RFFM.Api.Domain;
 using RFFM.Api.Domain.Entities.TeamPlayers;
 using RFFM.Api.Domain.PositionFit;
 using RFFM.Api.Domain.Services;
@@ -51,8 +52,8 @@ namespace RFFM.Api.Features.Coaches.Players.Commands
                     .WithMessage("El puesto indicado no existe.");
                 RuleFor(x => x.Request.Weights)
                     .NotEmpty()
-                    .Must(weights => weights.Keys.All(TraitCatalog.IsKnown))
-                    .WithMessage("Algún rasgo indicado no existe.")
+                    .Must(weights => weights.Keys.All(key => !string.IsNullOrWhiteSpace(key) && key.Length <= RatingConfigRules.MaxKeyLength))
+                    .WithMessage("Algún rasgo indicado no es válido.")
                     .Must(weights => weights.Values.All(w => TraitWeightKeys.TryParse(w).HasValue))
                     .WithMessage("El peso debe ser key, sum o indifferent.");
             }
@@ -73,6 +74,15 @@ namespace RFFM.Api.Features.Coaches.Players.Commands
             {
                 var teamId = await TeamTraitRatingAccess.EnsureCanManageAsync(_db, _currentUser, request.TeamId, cancellationToken);
                 var position = FitPositionKeys.TryParse(request.Position)!.Value;
+
+                var customizations = await _db.TeamTraitDefinitions
+                    .AsNoTracking()
+                    .Where(t => t.TeamId == teamId)
+                    .ToListAsync(cancellationToken);
+                var visibleTraits = EffectiveTraitCatalog.Resolve(customizations).Visible;
+                var allTraitsAllowed = request.Request.Weights.Keys.All(visibleTraits.Contains);
+                if (!allTraitsAllowed)
+                    throw new DomainException("Encaje", "Algún rasgo no existe o está oculto para este equipo.", ErrorCodes.TraitNotInTeamCatalog);
 
                 var existing = await _db.TeamTraitWeights
                     .Where(w => w.TeamId == teamId && w.Position == (int)position)

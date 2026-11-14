@@ -64,6 +64,11 @@ const data: PositionFit[] = [
   position("forward", []),
 ];
 
+async function chooseView(user: ReturnType<typeof userEvent.setup>, name: string) {
+  await user.click(screen.getByRole("combobox", { name: "Vista" }));
+  await user.click(await screen.findByRole("option", { name }));
+}
+
 function renderPage() {
   return render(
     <MemoryRouter initialEntries={["/coach/squad/rating-sheet?teamId=team-1&seasonId=season-1&view=order"]}>
@@ -243,7 +248,7 @@ describe("PositionFitPage", () => {
     await renderLoadedPage();
     await user.click(screen.getByRole("button", { name: "Subir a Bruno" }));
 
-    await user.click(screen.getByRole("button", { name: "Capacidad" }));
+    await chooseView(user, "Capacidad");
 
     expect(await screen.findByText("Cambiar de vista")).toBeInTheDocument();
   });

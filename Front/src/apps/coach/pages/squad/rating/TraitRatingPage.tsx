@@ -12,6 +12,7 @@ import RatingViewSwitcher from "./components/RatingViewSwitcher";
 import TraitBoardView from "./components/TraitBoardView";
 import TraitPlayerCard from "./components/TraitPlayerCard";
 import { squadSearchFrom, useRatingView } from "./ratingViews";
+import { useRatingConfig } from "./useRatingConfig";
 import { useTraitRating } from "./useTraitRating";
 
 import styles from "./TraitRatingPage.module.css";
@@ -34,8 +35,10 @@ export default function TraitRatingPage() {
   const { roles } = usePermissions();
   const canRate = roles.includes("Coach") || roles.includes("Administrator");
 
+  const teamId = searchParams.get("teamId");
+  const { loading: configLoading, visibleTraits } = useRatingConfig(teamId);
   const { loading, loadError, saving, players, draft, previousLevels, plan, hasUnsavedChanges, setLevel, setTrend, save } =
-    useTraitRating(searchParams.get("teamId"), searchParams.get("seasonId"));
+    useTraitRating(teamId, searchParams.get("seasonId"), visibleTraits);
 
   const [groupBy, setGroupBy] = useState<GroupBy>("trait");
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -55,7 +58,7 @@ export default function TraitRatingPage() {
     }
   }
 
-  if (loading) {
+  if (loading || configLoading) {
     return (
       <BaseLayout hideFooterMenu>
         <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "60vh" }}>
@@ -130,6 +133,7 @@ export default function TraitRatingPage() {
             {groupBy === "trait" ? (
               <TraitBoardView
                 players={players}
+                traits={visibleTraits}
                 draft={draft}
                 readOnly={!canRate}
                 onPlace={(playerIds, traitKey, level) => playerIds.forEach((id) => setLevel(id, traitKey, level))}
@@ -145,6 +149,7 @@ export default function TraitRatingPage() {
                   <TraitPlayerCard
                     key={player.id}
                     player={player}
+                    traits={visibleTraits}
                     draft={draft[player.id] ?? { levels: {}, trend: "same" }}
                     previousLevels={previousLevels[player.id] ?? {}}
                     readOnly={!canRate}

@@ -38,6 +38,11 @@ const players = [
   { id: "iker", name: "Iker", lastName: "Sanz", alias: "", position: "Portero", dorsal: 1, activePositionId: 1 },
 ];
 
+async function chooseView(user: ReturnType<typeof userEvent.setup>, name: string) {
+  await user.click(screen.getByRole("combobox", { name: "Vista" }));
+  await user.click(await screen.findByRole("option", { name }));
+}
+
 function renderPage() {
   return render(
     <MemoryRouter initialEntries={["/coach/squad/rating-sheet?teamId=team-1&seasonId=season-1&view=traits"]}>
@@ -222,7 +227,7 @@ describe("TraitRatingPage", () => {
     await expandPlayer(user, /Juan Pérez/);
     await user.click(within(screen.getByRole("group", { name: "Posición y cobertura" })).getByRole("button", { name: /nivel 5/ }));
 
-    await user.click(screen.getByRole("button", { name: "Capacidad" }));
+    await chooseView(user, "Capacidad");
 
     expect(await screen.findByText("Cambiar de vista")).toBeInTheDocument();
   });

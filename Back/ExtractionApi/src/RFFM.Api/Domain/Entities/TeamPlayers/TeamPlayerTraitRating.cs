@@ -64,8 +64,8 @@ namespace RFFM.Api.Domain.Entities.TeamPlayers
 
         public static TeamPlayerTraitRatingLevel Create(string ratingId, string traitKey, int level)
         {
-            if (!TraitCatalog.IsKnown(traitKey))
-                throw new ArgumentException($"Unknown trait '{traitKey}'.", nameof(traitKey));
+            if (string.IsNullOrWhiteSpace(traitKey) || traitKey.Length > RatingConfigRules.MaxKeyLength)
+                throw new ArgumentException($"Trait key must have between 1 and {RatingConfigRules.MaxKeyLength} characters.", nameof(traitKey));
             if (!TraitCatalog.IsValidLevel(level))
                 throw new ArgumentException($"Level must be between {TraitCatalog.MinLevel} and {TraitCatalog.MaxLevel} (was {level}).", nameof(level));
 

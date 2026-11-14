@@ -98,8 +98,8 @@ namespace RFFM.Api.Features.Coaches.Players.Commands
                 RuleForEach(x => x.Levels).ChildRules(level =>
                 {
                     level.RuleFor(l => l.TraitKey)
-                        .Must(TraitCatalog.IsKnown)
-                        .WithMessage("El rasgo indicado no existe.");
+                        .NotEmpty()
+                        .MaximumLength(RatingConfigRules.MaxKeyLength);
                     level.RuleFor(l => l.Level)
                         .InclusiveBetween(TraitCatalog.MinLevel, TraitCatalog.MaxLevel);
                 });
@@ -130,6 +130,15 @@ namespace RFFM.Api.Features.Coaches.Players.Commands
                 var allPlayersBelongToTeam = teamPlayerIds.Count == requestedIds.Count;
                 if (!allPlayersBelongToTeam)
                     throw new DomainException("Valoraciones", "Algún jugador no pertenece a este equipo.", ErrorCodes.RatingPlayerNotInTeam);
+
+                var customizations = await _db.TeamTraitDefinitions
+                    .AsNoTracking()
+                    .Where(t => t.TeamId == teamId)
+                    .ToListAsync(cancellationToken);
+                var visibleTraits = EffectiveTraitCatalog.Resolve(customizations).Visible;
+                var allTraitsAllowed = request.Request.Ratings.SelectMany(r => r.Levels).All(l => visibleTraits.Contains(l.TraitKey));
+                if (!allTraitsAllowed)
+                    throw new DomainException("Valoraciones", "Algún rasgo no existe o está oculto para este equipo.", ErrorCodes.TraitNotInTeamCatalog);
 
                 var ratedAt = request.Request.RatedAt ?? DateTimeOffset.UtcNow;
                 var ratings = request.Request.Ratings

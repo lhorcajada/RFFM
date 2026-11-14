@@ -30,15 +30,23 @@ A player SHALL be a candidate of every unified position that at least one of the
 - **THEN** the player is not a candidate of any position
 
 ### Requirement: Trait weights per position
-Each unified position SHALL define a weight for each of the 12 traits with three values: clave, suma and indiferente. Default weights SHALL be provided for every position, and the same weights SHALL apply to left and right sides. The coach SHALL be able to change the weights per team. A trait with weight indiferente SHALL NOT contribute to the fit.
+Each unified position SHALL define a weight for each trait of the team's effective catalog with three values: clave, suma and indiferente. Default weights SHALL be provided for the default traits of every position, a trait created by the team SHALL have weight suma in every position until the coach changes it, and the same weights SHALL apply to left and right sides. The coach SHALL be able to change the weights per team. A trait with weight indiferente and a hidden trait SHALL NOT contribute to the fit, and hidden traits SHALL NOT be offered in the weights.
 
 #### Scenario: Default weights exist
 - **WHEN** a team has never configured weights
-- **THEN** every position has the default weight for every trait
+- **THEN** every position has the default weight for every default trait
 
 #### Scenario: Team override
 - **WHEN** the coach sets `traitPressing` as clave for Mediocentro defensivo
 - **THEN** the fit of Mediocentro defensivo candidates uses that weight for the team
+
+#### Scenario: Custom trait weight
+- **WHEN** the team creates a trait and has not changed its weights
+- **THEN** the trait counts with weight suma in every position
+
+#### Scenario: Hidden trait ignored
+- **WHEN** a trait with saved levels is hidden
+- **THEN** it does not count in the fit and is not listed in the weights
 
 ### Requirement: Fit score
 The fit of a player in a position SHALL be the weighted average of the player's trait levels, using the position's weights, ignoring traits with weight indiferente and traits without a level, with clave counting more than suma. A player with no level in any trait that counts for the position SHALL have no fit. The fit SHALL be shown as a value from 1 to 5 with one decimal.

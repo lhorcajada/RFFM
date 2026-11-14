@@ -14,6 +14,7 @@ import RatingViewSwitcher from "./components/RatingViewSwitcher";
 import { FIT_POSITION_LABELS, FIT_POSITIONS, type FitPosition } from "./ratingTraits";
 import { squadSearchFrom, useRatingView } from "./ratingViews";
 import { usePositionFit } from "./usePositionFit";
+import { useRatingConfig } from "./useRatingConfig";
 
 import styles from "./PositionFitPage.module.css";
 
@@ -34,7 +35,9 @@ export default function PositionFitPage() {
   const { roles } = usePermissions();
   const canRate = roles.includes("Coach") || roles.includes("Administrator");
 
-  const fit = usePositionFit(searchParams.get("teamId"));
+  const teamId = searchParams.get("teamId");
+  const { loading: configLoading, visibleTraits } = useRatingConfig(teamId);
+  const fit = usePositionFit(teamId);
   const { loading, loadError, saving, positions, orderOf, isDirty, hasUnsavedChanges } = fit;
 
   const [selectedPosition, setSelectedPosition] = useState<FitPosition | null>(null);
@@ -73,7 +76,7 @@ export default function PositionFitPage() {
     }
   }
 
-  if (loading) {
+  if (loading || configLoading) {
     return (
       <BaseLayout hideFooterMenu>
         <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "60vh" }}>
@@ -178,6 +181,7 @@ export default function PositionFitPage() {
                 <PositionWeightsEditor
                   key={`${selected}:${JSON.stringify(current.weights)}`}
                   weights={current.weights}
+                  traits={visibleTraits}
                   readOnly={!canRate}
                   saving={saving}
                   onSave={handleSaveWeights}

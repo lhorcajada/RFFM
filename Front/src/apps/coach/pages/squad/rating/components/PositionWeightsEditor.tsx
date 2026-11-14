@@ -2,12 +2,14 @@ import { useState } from "react";
 import { Accordion, AccordionDetails, AccordionSummary, Button, ToggleButton, ToggleButtonGroup } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
-import { TRAIT_CATALOG, type TraitWeight } from "../ratingTraits";
+import { TRAIT_CATALOG, type TraitDefinition, type TraitWeight } from "../ratingTraits";
 
 import styles from "./PositionWeightsEditor.module.css";
 
 type Props = {
   weights: Record<string, TraitWeight>;
+  /** Rasgos visibles del equipo; por defecto los 12 del catálogo. */
+  traits?: TraitDefinition[];
   readOnly: boolean;
   saving: boolean;
   onSave: (weights: Record<string, TraitWeight>) => void;
@@ -19,15 +21,15 @@ const WEIGHT_OPTIONS: { value: TraitWeight; label: string }[] = [
   { value: "indifferent", label: "Indiferente" },
 ];
 
-export default function PositionWeightsEditor({ weights, readOnly, saving, onSave }: Props) {
+export default function PositionWeightsEditor({ weights, traits = TRAIT_CATALOG, readOnly, saving, onSave }: Props) {
   const [draft, setDraft] = useState<Record<string, TraitWeight>>(weights);
-  const changed = TRAIT_CATALOG.some((trait) => draft[trait.key] !== weights[trait.key]);
+  const changed = traits.some((trait) => draft[trait.key] !== weights[trait.key]);
 
   return (
     <Accordion disableGutters slotProps={{ transition: { unmountOnExit: true } }} className={styles.accordion}>
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>Pesos del puesto</AccordionSummary>
       <AccordionDetails>
-        {TRAIT_CATALOG.map((trait) => (
+        {traits.map((trait) => (
           <div key={trait.key} role="group" aria-label={`Peso de ${trait.label}`} className={styles.row}>
             <span className={styles.label}>{trait.label}</span>
             <ToggleButtonGroup

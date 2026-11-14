@@ -28,7 +28,10 @@ namespace RFFM.Api.Tests.UnitTests
         public void Unknown_position_fails() => Assert.False(IsValid("libero", ("traitPressing", "key")));
 
         [Fact]
-        public void Unknown_trait_fails() => Assert.False(IsValid("defensiveMidfielder", ("traitMadeUp", "key")));
+        public void Custom_trait_key_passes() => Assert.True(IsValid("defensiveMidfielder", ("custom-0123456789abcdef0123456789abcdef", "key")));
+
+        [Fact]
+        public void Empty_trait_key_fails() => Assert.False(IsValid("defensiveMidfielder", ("", "key")));
 
         [Fact]
         public void Unknown_weight_fails() => Assert.False(IsValid("defensiveMidfielder", ("traitPressing", "huge")));

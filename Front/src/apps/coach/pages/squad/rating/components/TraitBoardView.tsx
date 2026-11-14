@@ -18,6 +18,8 @@ import styles from "./TraitBoardView.module.css";
 
 type Props = {
   players: PlayerResponse[];
+  /** Rasgos que se piden al equipo; por defecto los 12 del catálogo. */
+  traits?: TraitDefinition[];
   draft: TraitDraft;
   readOnly: boolean;
   /** `null` quita el nivel de los jugadores. */
@@ -35,13 +37,13 @@ function boardCharacteristic(trait: TraitDefinition): BoardCharacteristic {
   return { key: trait.key, levels };
 }
 
-export default function TraitBoardView({ players, draft, readOnly, onPlace }: Props) {
+export default function TraitBoardView({ players, traits = TRAIT_CATALOG, draft, readOnly, onPlace }: Props) {
   const theme = useTheme();
   const isNarrowViewport = useMediaQuery(theme.breakpoints.down("md"));
-  const [selectedKey, setSelectedKey] = useState<string>(TRAIT_CATALOG[0].key);
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<ReadonlySet<string>>(new Set());
 
-  const selected = TRAIT_CATALOG.find((trait) => trait.key === selectedKey) ?? TRAIT_CATALOG[0];
+  const selected = traits.find((trait) => trait.key === selectedKey) ?? traits[0];
   const levelsDraft: SheetDraft = useMemo(
     () => Object.fromEntries(Object.entries(draft).map(([playerId, d]) => [playerId, d.levels])),
     [draft],
@@ -71,6 +73,10 @@ export default function TraitBoardView({ players, draft, readOnly, onPlace }: Pr
     setSelectedIds(new Set());
   }
 
+  if (!selected) {
+    return <Typography className={styles.emptyMessage}>No hay rasgos que valorar.</Typography>;
+  }
+
   if (players.length === 0) {
     return <Typography className={styles.emptyMessage}>No hay jugadores de campo en la plantilla.</Typography>;
   }
@@ -79,7 +85,7 @@ export default function TraitBoardView({ players, draft, readOnly, onPlace }: Pr
     <div className={`${styles.layout} ${isNarrowViewport ? styles.layoutNarrow : ""}`}>
       {isNarrowViewport ? (
         <TextField select fullWidth size="small" label="Rasgo" value={selected.key} onChange={(e) => selectTrait(e.target.value)}>
-          {TRAIT_CATALOG.map((trait) => (
+          {traits.map((trait) => (
             <MenuItem key={trait.key} value={trait.key}>
               {TRAIT_PHASE_LABELS[trait.phase]} · {trait.label} ({progressOf(trait.key)})
             </MenuItem>
@@ -90,7 +96,7 @@ export default function TraitBoardView({ players, draft, readOnly, onPlace }: Pr
           {PHASES.map((phase) => (
             <div key={phase} className={styles.phaseSection}>
               <div className={styles.phaseHeader}>{TRAIT_PHASE_LABELS[phase]}</div>
-              {TRAIT_CATALOG.filter((trait) => trait.phase === phase).map((trait) => (
+              {traits.filter((trait) => trait.phase === phase).map((trait) => (
                 <button
                   key={trait.key}
                   type="button"

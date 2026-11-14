@@ -1,0 +1,61 @@
+.card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  list-style: none;
+}
+
+.cardHidden {
+  opacity: 0.6;
+}
+
+.main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.label {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.detail {
+  font-size: 0.75rem;
+  opacity: 0.7;
+}
+
+.badges {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(255, 122, 26, 0.25);
+  color: #ff7a1a;
+}
+
+.badgeHidden {
+  background: rgba(255, 255, 255, 0.12);
+  color: inherit;
+}
+
+.actions {
+  display: inline-flex;
+  gap: 4px;
+}

@@ -21,6 +21,7 @@ import BaseLayout from "../../../../../shared/components/ui/BaseLayout/BaseLayou
 import ContentLayout from "../../../../../shared/components/ui/ContentLayout/ContentLayout";
 import ConfirmDialog from "../../../../../shared/components/ui/ConfirmDialog/ConfirmDialog";
 import PositionFitPage from "./PositionFitPage";
+import RatingConfigPage from "./RatingConfigPage";
 import RatingSheetBoard, { playerDisplayName } from "./components/RatingSheetBoard";
 import RatingViewSwitcher from "./components/RatingViewSwitcher";
 import TraitRatingPage from "./TraitRatingPage";
@@ -33,6 +34,7 @@ import {
 } from "./positionCategory";
 import { getCategoryLabel, type CategoryKey, type CharacteristicDef } from "./ratingConcepts";
 import { characteristicsFor, sheetOf, type SheetType } from "./ratingSheet";
+import { useRatingConfig } from "./useRatingConfig";
 import { useRatingSheet } from "./useRatingSheet";
 
 import styles from "./RatingSheetPage.module.css";
@@ -65,9 +67,13 @@ function CapacitySheetView() {
   const { roles } = usePermissions();
   const canRate = roles.includes("Coach") || roles.includes("Administrator");
 
+  const teamId = searchParams.get("teamId");
+  const { loading: configLoading, visibleSheetCatalog } = useRatingConfig(teamId);
   const { loading, loadError, saving, players, draft, plan, place, save } = useRatingSheet(
-    searchParams.get("teamId"),
+    teamId,
     searchParams.get("seasonId"),
+    visibleSheetCatalog,
+    !configLoading,
   );
 
   const [sheet, setSheet] = useState<SheetType>("field");
@@ -77,7 +83,7 @@ function CapacitySheetView() {
   const [ratedAt, setRatedAt] = useState<string>(() => new Date().toISOString().slice(0, 10));
   const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
 
-  const characteristics = characteristicsFor(sheet);
+  const characteristics = characteristicsFor(sheet, visibleSheetCatalog);
   const selectedChar: CharacteristicDef =
     characteristics.find((c) => c.key === selectedKeyBySheet[sheet]) ?? characteristics[0];
 
@@ -152,7 +158,7 @@ function CapacitySheetView() {
     navigate(`/coach/squad${squadSearch}`);
   }
 
-  if (loading) {
+  if (loading || configLoading) {
     return (
       <BaseLayout hideFooterMenu>
         <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "60vh" }}>
@@ -328,5 +334,6 @@ export default function RatingSheetPage() {
   const [view] = useRatingView();
   if (view === "traits") return <TraitRatingPage />;
   if (view === "order") return <PositionFitPage />;
+  if (view === "config") return <RatingConfigPage />;
   return <CapacitySheetView />;
 }

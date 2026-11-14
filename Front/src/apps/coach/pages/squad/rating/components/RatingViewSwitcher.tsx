@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ToggleButton, ToggleButtonGroup } from "@mui/material";
+import { MenuItem, TextField } from "@mui/material";
 
 import ConfirmDialog from "../../../../../../shared/components/ui/ConfirmDialog/ConfirmDialog";
 import type { RatingView } from "../ratingViews";
@@ -16,13 +16,14 @@ const VIEW_OPTIONS: { value: RatingView; label: string }[] = [
   { value: "capacity", label: "Capacidad" },
   { value: "traits", label: "Conducta en partido" },
   { value: "order", label: "Orden por puesto" },
+  { value: "config", label: "Configurar" },
 ];
 
 export default function RatingViewSwitcher({ value, hasUnsavedChanges, onChange }: Props) {
   const [pendingView, setPendingView] = useState<RatingView | null>(null);
 
-  function requestChange(next: RatingView | null) {
-    if (next == null || next === value) return;
+  function requestChange(next: RatingView) {
+    if (next === value) return;
     if (hasUnsavedChanges) setPendingView(next);
     else onChange(next);
   }
@@ -34,20 +35,20 @@ export default function RatingViewSwitcher({ value, hasUnsavedChanges, onChange 
 
   return (
     <>
-      <ToggleButtonGroup
-        value={value}
-        exclusive
+      <TextField
+        select
         size="small"
-        aria-label="Vista de valoración"
-        className={styles.switcher}
-        onChange={(_, next: RatingView | null) => requestChange(next)}
+        label="Vista"
+        value={value}
+        className={styles.select}
+        onChange={(e) => requestChange(e.target.value as RatingView)}
       >
         {VIEW_OPTIONS.map(({ value: optionValue, label }) => (
-          <ToggleButton key={optionValue} value={optionValue} className={styles.toggleBtn}>
+          <MenuItem key={optionValue} value={optionValue}>
             {label}
-          </ToggleButton>
+          </MenuItem>
         ))}
-      </ToggleButtonGroup>
+      </TextField>
 
       <ConfirmDialog
         open={pendingView !== null}

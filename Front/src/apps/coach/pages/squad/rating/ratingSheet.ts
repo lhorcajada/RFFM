@@ -2,11 +2,8 @@ import type { PlayerRating } from "../../../types/playerRating";
 import type { TeamRatingItem } from "../../../services/playerRatingService";
 import type { PlayerResponse } from "../../../services/teamplayerService";
 import { isGoalkeeperPosition } from "./positionCategory";
-import {
-  FIELD_PLAYER_CHARACTERISTICS,
-  GOALKEEPER_CHARACTERISTICS,
-  type CharacteristicDef,
-} from "./ratingConcepts";
+import { DEFAULT_SHEET_CATALOG, type SheetCatalog } from "./ratingCatalog";
+import type { CharacteristicDef } from "./ratingConcepts";
 
 export type SheetType = "field" | "goalkeeper";
 
@@ -25,17 +22,19 @@ export function sheetOf(player: PlayerResponse): SheetType {
   return isGoalkeeperPosition(player.position) ? "goalkeeper" : "field";
 }
 
-export function characteristicsFor(sheet: SheetType): CharacteristicDef[] {
-  return sheet === "goalkeeper" ? GOALKEEPER_CHARACTERISTICS : FIELD_PLAYER_CHARACTERISTICS;
+/** Capacidades de una hoja: las del equipo si se recibe su catálogo, y si no las de por defecto. */
+export function characteristicsFor(sheet: SheetType, catalog: SheetCatalog = DEFAULT_SHEET_CATALOG): CharacteristicDef[] {
+  return catalog[sheet];
 }
 
 export function buildInitialDraft(
   players: PlayerResponse[],
   latestRatings: Record<string, PlayerRating>,
+  catalog: SheetCatalog = DEFAULT_SHEET_CATALOG,
 ): SheetDraft {
   const draft: SheetDraft = {};
   for (const player of players) {
-    const sheetKeys = new Set(characteristicsFor(sheetOf(player)).map((c) => c.key));
+    const sheetKeys = new Set(characteristicsFor(sheetOf(player), catalog).map((c) => c.key));
     const levels: PlayerLevels = {};
     for (const answer of latestRatings[player.id]?.answers ?? []) {
       if (sheetKeys.has(answer.characteristicKey)) levels[answer.characteristicKey] = answer.level;
@@ -45,8 +44,8 @@ export function buildInitialDraft(
   return draft;
 }
 
-export function isComplete(sheet: SheetType, levels: PlayerLevels): boolean {
-  return characteristicsFor(sheet).every((c) => levels[c.key] != null);
+export function isComplete(sheet: SheetType, levels: PlayerLevels, catalog: SheetCatalog = DEFAULT_SHEET_CATALOG): boolean {
+  return characteristicsFor(sheet, catalog).every((c) => levels[c.key] != null);
 }
 
 function sameLevels(a: PlayerLevels, b: PlayerLevels): boolean {
@@ -59,6 +58,7 @@ export function planSave(
   draft: SheetDraft,
   baseline: SheetDraft,
   latestRatings: Record<string, PlayerRating>,
+  catalog: SheetCatalog = DEFAULT_SHEET_CATALOG,
 ): SavePlan {
   const plan: SavePlan = { items: [], incompletePlayers: [] };
   for (const player of players) {
@@ -66,7 +66,7 @@ export function planSave(
     if (sameLevels(levels, baseline[player.id] ?? {})) continue;
 
     const sheet = sheetOf(player);
-    if (!isComplete(sheet, levels)) {
+    if (!isComplete(sheet, levels, catalog)) {
       plan.incompletePlayers.push(player);
       continue;
     }
@@ -74,7 +74,7 @@ export function planSave(
     plan.items.push({
       teamPlayerId: player.id,
       isGoalkeeper: sheet === "goalkeeper",
-      answers: characteristicsFor(sheet).map((c) => ({
+      answers: characteristicsFor(sheet, catalog).map((c) => ({
         characteristicKey: c.key,
         level: levels[c.key],
         concept: c.levels[levels[c.key] - 1].concept,

@@ -24,6 +24,8 @@ vi.mock("../../../../services/playerRatingService", () => ({
 }));
 vi.mock("../TraitRatingPage", () => ({ default: () => <div>Vista de conducta</div> }));
 vi.mock("../PositionFitPage", () => ({ default: () => <div>Vista de orden por puesto</div> }));
+vi.mock("../RatingConfigPage", () => ({ default: () => <div>Vista de configuración</div> }));
+vi.mock("../../../../services/ratingConfigService", () => ({ getRatingConfig: vi.fn().mockResolvedValue({ capacities: [], traits: [] }) }));
 
 const mockUsePermissions = vi.fn();
 vi.mock("../../../../../../shared/hooks/usePermissions", () => ({
@@ -37,6 +39,11 @@ import { getTeamLatestRatings } from "../../../../services/playerRatingService";
 const players = [
   { id: "juan", name: "Juan", lastName: "Pérez", alias: "", position: "Delantero", dorsal: 9 },
 ];
+
+async function chooseView(user: ReturnType<typeof userEvent.setup>, name: string) {
+  await user.click(screen.getByRole("combobox", { name: "Vista" }));
+  await user.click(await screen.findByRole("option", { name }));
+}
 
 function renderAt(search: string) {
   return render(
@@ -60,7 +67,7 @@ describe("RatingSheetPage · vistas", () => {
     renderAt("?teamId=team-1&seasonId=season-1");
 
     expect(await screen.findByRole("group", { name: "Sin colocar" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Capacidad" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("combobox", { name: "Vista" })).toHaveTextContent("Capacidad");
   });
 
   it("muestra la valoración por rasgos con view=traits", async () => {
@@ -75,12 +82,28 @@ describe("RatingSheetPage · vistas", () => {
     expect(await screen.findByText("Vista de orden por puesto")).toBeInTheDocument();
   });
 
+  it("muestra la configuración con view=config", async () => {
+    renderAt("?teamId=team-1&seasonId=season-1&view=config");
+
+    expect(await screen.findByText("Vista de configuración")).toBeInTheDocument();
+  });
+
+  it("cambia a la configuración desde la hoja de capacidad", async () => {
+    const user = userEvent.setup();
+    renderAt("?teamId=team-1&seasonId=season-1");
+    await screen.findByRole("group", { name: "Sin colocar" });
+
+    await chooseView(user, "Configurar");
+
+    expect(await screen.findByText("Vista de configuración")).toBeInTheDocument();
+  });
+
   it("cambia a la valoración por rasgos desde la hoja de capacidad", async () => {
     const user = userEvent.setup();
     renderAt("?teamId=team-1&seasonId=season-1");
     await screen.findByRole("group", { name: "Sin colocar" });
 
-    await user.click(screen.getByRole("button", { name: "Conducta en partido" }));
+    await chooseView(user, "Conducta en partido");
 
     expect(await screen.findByText("Vista de conducta")).toBeInTheDocument();
   });
@@ -92,7 +115,7 @@ describe("RatingSheetPage · vistas", () => {
     await user.click(screen.getByRole("button", { name: /Juan Pérez/ }));
     await user.click(within(screen.getByRole("group", { name: "Nivel 5" })).getAllByRole("button")[0]);
 
-    await user.click(screen.getByRole("button", { name: "Conducta en partido" }));
+    await chooseView(user, "Conducta en partido");
 
     expect(await screen.findByText("Cambiar de vista")).toBeInTheDocument();
     expect(screen.queryByText("Vista de conducta")).not.toBeInTheDocument();
