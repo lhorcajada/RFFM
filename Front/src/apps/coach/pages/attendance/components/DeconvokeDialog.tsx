@@ -26,13 +26,13 @@ type Props = {
 };
 
 const TECHNICAL_NAMES = ["decisión técnica", "decision tecnica", "technical decision"];
-const SPORTIVE_SANCTION_EXCUSE_TYPE_ID = 8;
+const COACH_ONLY_EXCUSE_TYPE_IDS = new Set([8, 11]);
 
 const ALL_OPTIONS = (excuseTypes: ExcuseType[], hideTechnical?: boolean, hideCoachOnly?: boolean) => [
   ...(hideTechnical || hideCoachOnly ? [] : [{ value: "technical", label: "Decisión técnica", justified: false }]),
   ...excuseTypes
     .filter((ex) => !TECHNICAL_NAMES.includes(ex.name.toLowerCase()))
-    .filter((ex) => !(hideCoachOnly && ex.id === SPORTIVE_SANCTION_EXCUSE_TYPE_ID))
+    .filter((ex) => !(hideCoachOnly && COACH_ONLY_EXCUSE_TYPE_IDS.has(ex.id)))
     .map((ex) => ({ value: String(ex.id), label: ex.name, justified: ex.justified ?? false })),
 ];
 

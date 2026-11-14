@@ -39,16 +39,37 @@ type ProtectionInput = {
   technicalAgo: number | null;
   /** Matchdays since the last absence by injury or illness (1 = the previous matchday); null when none. */
   injuryAgo: number | null;
+  /** The last injury-related absence was the coach's "Prevención después de lesión" rest. */
+  injuryPrevention?: boolean;
+  injuryMatch?: string | null;
   /** Matchdays since the last deconvocation for another cause (not technical, not injury); null when none. */
   otherAgo?: number | null;
   /** Name of that cause, e.g. "Problema familiar". */
   otherReason?: string | null;
+  /** Label of the matchday of the last technical deconvocation, e.g. "J9 · 21 oct". */
+  technicalMatch?: string | null;
+  /** Label of the matchday of the last deconvocation for another cause. */
+  otherMatch?: string | null;
   calledCount: number;
   minRequiredCalls: number;
 };
 
 function matchdays(n: number): string {
   return n === 1 ? "1 jornada" : `${n} jornadas`;
+}
+
+/** "J9 · 21 oct" -> "en la J9 (21 oct)"; "J9" -> "en la J9"; nothing when the label is unknown. */
+export function matchWhere(label: string | null | undefined): string {
+  const text = label?.trim();
+  if (!text) return "";
+  const [name, date] = text.split(/\s·\s/);
+  const where = /^J\d+$/.test(name) ? `en la ${name}` : `en ${name}`;
+  return date ? `${where} (${date})` : where;
+}
+
+function describeDeconvocation(cause: string, match: string | null | undefined, ago: number): string {
+  const where = matchWhere(match);
+  return `Protegido: desconvocado por ${cause}${where ? ` ${where},` : ""} hace ${matchdays(ago)}`;
 }
 
 /**
@@ -59,18 +80,21 @@ export function protectionOf(
   input: ProtectionInput,
   windows: ProtectionWindows = DEFAULT_PROTECTION_WINDOWS,
 ): Protection | null {
-  const { technicalAgo, injuryAgo, otherAgo = null, otherReason = null, calledCount, minRequiredCalls } = input;
+  const { technicalAgo, injuryAgo, injuryPrevention = false, injuryMatch, otherAgo = null, otherReason = null, technicalMatch, otherMatch, calledCount, minRequiredCalls } = input;
   const causes: Array<{ ago: number; kind: ProtectionKind; reason: string }> = [];
   if (technicalAgo != null && technicalAgo <= windows.technical) {
-    causes.push({ ago: technicalAgo, kind: "technicalWindow", reason: `Protegido: desconvocado hace ${matchdays(technicalAgo)}` });
+    causes.push({ ago: technicalAgo, kind: "technicalWindow", reason: describeDeconvocation("decisión técnica", technicalMatch, technicalAgo) });
   }
   if (injuryAgo != null && injuryAgo <= windows.injuryRest) {
     const when = injuryAgo === 1 ? "la jornada anterior" : `hace ${matchdays(injuryAgo)}`;
-    causes.push({ ago: injuryAgo, kind: "injuryRest", reason: `Protegido: no vino ${when} por lesión` });
+    const reason = injuryPrevention
+      ? describeDeconvocation("prevención después de lesión", injuryMatch, injuryAgo)
+      : `Protegido: no vino ${when} por lesión`;
+    causes.push({ ago: injuryAgo, kind: "injuryRest", reason });
   }
   if (otherAgo != null && otherAgo <= windows.otherCause) {
     const cause = otherReason?.trim() ? otherReason.trim().toLowerCase() : "otro motivo";
-    causes.push({ ago: otherAgo, kind: "otherCause", reason: `Protegido: desconvocado hace ${matchdays(otherAgo)} por ${cause}` });
+    causes.push({ ago: otherAgo, kind: "otherCause", reason: describeDeconvocation(cause, otherMatch, otherAgo) });
   }
   const recent = causes.sort((x, y) => x.ago - y.ago)[0];
   if (recent) return { kind: recent.kind, reason: recent.reason };

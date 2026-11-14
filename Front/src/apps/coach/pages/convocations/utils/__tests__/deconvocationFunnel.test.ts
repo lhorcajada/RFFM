@@ -19,7 +19,28 @@ describe("protectionOf", () => {
   it("protege a quien fue desconvocado por decisión técnica dentro de la ventana", () => {
     const protection = protectionOf({ ...base, technicalAgo: 3 });
 
-    expect(protection).toEqual({ kind: "technicalWindow", reason: "Protegido: desconvocado hace 3 jornadas" });
+    expect(protection).toEqual({
+      kind: "technicalWindow",
+      reason: "Protegido: desconvocado por decisión técnica hace 3 jornadas",
+    });
+  });
+
+  it("indica la jornada y el motivo de la desconvocatoria técnica", () => {
+    const protection = protectionOf({ ...base, technicalAgo: 4, technicalMatch: "J9 · 21 oct" });
+
+    expect(protection?.reason).toBe("Protegido: desconvocado por decisión técnica en la J9 (21 oct), hace 4 jornadas");
+  });
+
+  it("indica la jornada cuando la etiqueta no lleva fecha", () => {
+    expect(protectionOf({ ...base, technicalAgo: 1, technicalMatch: "J9" })?.reason).toBe(
+      "Protegido: desconvocado por decisión técnica en la J9, hace 1 jornada",
+    );
+  });
+
+  it("indica el motivo y la jornada de una desconvocatoria por otro motivo", () => {
+    const protection = protectionOf({ ...base, otherAgo: 2, otherReason: "Problema familiar", otherMatch: "J11 · 7 nov" });
+
+    expect(protection?.reason).toBe("Protegido: desconvocado por problema familiar en la J11 (7 nov), hace 2 jornadas");
   });
 
   it("incluye el límite de la ventana de 8 jornadas", () => {
@@ -37,7 +58,7 @@ describe("protectionOf", () => {
   it("protege 4 jornadas a quien fue desconvocado por otro motivo y dice cuál", () => {
     expect(protectionOf({ ...base, otherAgo: 4, otherReason: "Problema familiar" })).toEqual({
       kind: "otherCause",
-      reason: "Protegido: desconvocado hace 4 jornadas por problema familiar",
+      reason: "Protegido: desconvocado por problema familiar hace 4 jornadas",
     });
   });
 
@@ -46,13 +67,13 @@ describe("protectionOf", () => {
   });
 
   it("sin motivo conocido no lo inventa", () => {
-    expect(protectionOf({ ...base, otherAgo: 1, otherReason: null })?.reason).toBe("Protegido: desconvocado hace 1 jornada por otro motivo");
+    expect(protectionOf({ ...base, otherAgo: 1, otherReason: null })?.reason).toBe("Protegido: desconvocado por otro motivo hace 1 jornada");
   });
 
   it("si hay varias causas muestra la más reciente", () => {
     const protection = protectionOf({ ...base, technicalAgo: 5, otherAgo: 1, otherReason: "Problema familiar" });
 
-    expect(protection).toEqual({ kind: "otherCause", reason: "Protegido: desconvocado hace 1 jornada por problema familiar" });
+    expect(protection).toEqual({ kind: "otherCause", reason: "Protegido: desconvocado por problema familiar hace 1 jornada" });
   });
 
   it("si la causa más reciente ya no protege, vale la otra", () => {
@@ -65,6 +86,15 @@ describe("protectionOf", () => {
     expect(protectionOf({ ...base, injuryAgo: 1 })).toEqual({
       kind: "injuryRest",
       reason: "Protegido: no vino la jornada anterior por lesión",
+    });
+  });
+
+  it("indica la jornada y el motivo cuando el descanso es prevención después de lesión", () => {
+    expect(
+      protectionOf({ ...base, injuryAgo: 1, injuryPrevention: true, injuryMatch: "J9 · 21 oct" }),
+    ).toEqual({
+      kind: "injuryRest",
+      reason: "Protegido: desconvocado por prevención después de lesión en la J9 (21 oct), hace 1 jornada",
     });
   });
 
