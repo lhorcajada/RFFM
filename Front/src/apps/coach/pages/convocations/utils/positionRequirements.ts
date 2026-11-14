@@ -32,7 +32,9 @@ export type RequirementsEvaluation = {
   available: Map<RequirementKey, number>;
 };
 
-export const ROLE_MINIMUMS: Record<PositionRole, number> = {
+export type RoleMinimums = Record<PositionRole, number>;
+
+export const ROLE_MINIMUMS: RoleMinimums = {
   goalkeeper: 2,
   fullBack: 3,
   centreBack: 3,
@@ -148,26 +150,30 @@ export function roleLabel(role: PositionRole | null): string {
   return role ? ROLE_LABELS[role] : "Sin posición";
 }
 
-export function protectionReason(requirement: RequirementKey, remaining: number): string {
-  const required = requiredCount(requirement);
+export function protectionReason(
+  requirement: RequirementKey,
+  remaining: number,
+  minimums: RoleMinimums = ROLE_MINIMUMS,
+): string {
+  const required = requiredCount(requirement, minimums);
   return `Protegido: quedan ${remaining} de ${required} ${REQUIREMENT_LABELS[requirement].toLowerCase()} disponibles`;
 }
 
-export function requiredCount(requirement: RequirementKey): number {
-  return ROLE_MINIMUMS[requirement];
+export function requiredCount(requirement: RequirementKey, minimums: RoleMinimums = ROLE_MINIMUMS): number {
+  return minimums[requirement];
 }
 
 export function formatShortfall(shortfall: PositionShortfall): string {
   return `${shortfall.label}: quedan ${shortfall.remaining} de ${shortfall.required}`;
 }
 
-export function evaluateRequirements(players: PositionPlayer[]): RequirementsEvaluation {
+export function evaluateRequirements(players: PositionPlayer[], minimums: RoleMinimums = ROLE_MINIMUMS): RequirementsEvaluation {
   const counts = new Map<PositionRole, number>(ROLE_ORDER.map((r) => [r, 0]));
   for (const p of players) {
     if (p.role) counts.set(p.role, (counts.get(p.role) ?? 0) + 1);
   }
   const surplus = new Map<PositionRole, number>(
-    ROLE_ORDER.map((r) => [r, (counts.get(r) ?? 0) - ROLE_MINIMUMS[r]]),
+    ROLE_ORDER.map((r) => [r, (counts.get(r) ?? 0) - minimums[r]]),
   );
 
   // Possible demarcations fill a role when its specialists are not enough, and only
@@ -175,7 +181,7 @@ export function evaluateRequirements(players: PositionPlayer[]): RequirementsEva
   const coverAssignments = new Map<string, PositionRole>();
   const remaining = new Map<PositionRole, number>(counts);
   for (const role of ROLE_ORDER) {
-    let missing = ROLE_MINIMUMS[role] - (remaining.get(role) ?? 0);
+    let missing = minimums[role] - (remaining.get(role) ?? 0);
     for (const p of players) {
       if (missing <= 0) break;
       if (p.role === role || coverAssignments.has(p.id) || !p.possibleRoles.includes(role)) continue;
@@ -190,7 +196,7 @@ export function evaluateRequirements(players: PositionPlayer[]): RequirementsEva
 
   const shortfalls = ROLE_ORDER.map((role) => ({
     requirement: role as RequirementKey,
-    required: ROLE_MINIMUMS[role],
+    required: minimums[role],
     remaining: remaining.get(role) ?? 0,
   }))
     .filter((c) => c.remaining < c.required)

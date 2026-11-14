@@ -89,3 +89,12 @@
 .spacer {
   flex: 1 1 auto;
 }
+
+.preview {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.875rem;
+}

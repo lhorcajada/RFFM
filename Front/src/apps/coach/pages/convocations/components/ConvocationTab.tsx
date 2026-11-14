@@ -460,6 +460,7 @@ export default function ConvocationTab({
           open={rulesOpen}
           teamId={teamId}
           rules={rules}
+          squadSize={players.length}
           onClose={() => setRulesOpen(false)}
           onSaved={() => void handleRefreshProposal()}
         />

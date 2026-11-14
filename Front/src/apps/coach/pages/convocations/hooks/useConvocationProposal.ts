@@ -9,6 +9,7 @@ import type { DeconvokeProposal, WeeklyTrainingStats } from "../utils/deconvokeP
 import { buildDeconvokeProposal } from "../utils/deconvokeProposal";
 import type { MatchUnavailability } from "../utils/matchUnavailability";
 import type { RivalDifficulty } from "../utils/deconvocationFunnel";
+import { DEFAULT_MAX_CALLED_PLAYERS } from "../utils/minimumCalls";
 import type { LastMatchMinutes } from "../utils/lastMatchMinutes";
 import type { DeconvocationRuleConfig } from "../utils/rules/ruleCatalog";
 
@@ -95,7 +96,7 @@ export function useConvocationProposal(input: UseConvocationProposalInput): Deco
         currentRival,
         weekTrainingStats,
         weekTrainingCount,
-        maxCalledPlayers: 18,
+        maxCalledPlayers: DEFAULT_MAX_CALLED_PLAYERS,
         gridStartsCountMap,
         matchUnavailable,
         rules,

@@ -218,6 +218,33 @@ describe("protectionReason", () => {
   });
 });
 
+describe("mínimos configurables por posición", () => {
+  const minimums = { goalkeeper: 1, fullBack: 2, centreBack: 2, centralMid: 3, wide: 2, forward: 1 };
+
+  it("con mínimos más bajos una plantilla justa ya no tiene avisos", () => {
+    const squad = without(fullSquad(), "centralMid");
+
+    expect(evaluateRequirements(squad).shortfalls.map((s) => s.requirement)).toEqual(["centralMid"]);
+    expect(evaluateRequirements(squad, minimums).shortfalls).toEqual([]);
+  });
+
+  it("con mínimos más altos aparece el aviso", () => {
+    const result = evaluateRequirements(fullSquad(), { ...minimums, goalkeeper: 3 });
+
+    expect(result.shortfalls.map(formatShortfall)).toEqual(["Porteros: quedan 2 de 3"]);
+  });
+
+  it("un mínimo de 0 desactiva esa posición", () => {
+    const result = evaluateRequirements(times(1, "goalkeeper"), { ...minimums, goalkeeper: 0, fullBack: 0, centreBack: 0, centralMid: 0, wide: 0, forward: 0 });
+
+    expect(result.shortfalls).toEqual([]);
+  });
+
+  it("el motivo de protección usa el mínimo configurado", () => {
+    expect(protectionReason("fullBack", 2, { ...minimums, fullBack: 2 })).toBe("Protegido: quedan 2 de 2 laterales disponibles");
+  });
+});
+
 describe("evaluateRequirements available", () => {
   it("expone los disponibles por exigencia", () => {
     const result = evaluateRequirements(fullSquad());

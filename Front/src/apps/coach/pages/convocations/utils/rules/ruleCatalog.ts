@@ -6,6 +6,8 @@ export const RULE_CONDITIONS = [
   "otherDeconvocation",
   "injuryRest",
   "lowMinutes",
+  "minCalls",
+  "positionMinimums",
   "rivalDifficulty",
   "rating",
 ] as const;
@@ -99,6 +101,29 @@ export const RULE_CATALOG: Record<RuleCondition, ConditionDefinition> = {
       "Protege de la desconvocatoria a quien jugó menos de unos minutos en el último partido, incluido quien fue convocado y no llegó a jugar. Solo vale para esta jornada y no se aplica ante un rival difícil.",
     defaultText: "Jugó pocos minutos en el último partido",
     points: [f("minutes", "Minutos por debajo de los cuales se protege", 20, 1, 120)],
+    weights: [],
+  },
+  minCalls: {
+    title: "Mínimo de convocatorias",
+    description:
+      "Cada jugador debería ser convocado al menos su reparto justo de partidos (partidos que pudo jugar × plazas de la convocatoria ÷ plantilla). Con el porcentaje lo exiges más o menos: 100 % es el cálculo base, 0 % lo desactiva. Quien no llega queda protegido.",
+    defaultText: "Aún no llega al mínimo de convocatorias",
+    points: [f("percent", "Porcentaje del reparto justo que se exige", 100, 0, 200)],
+    weights: [],
+  },
+  positionMinimums: {
+    title: "Mínimo por posición",
+    description:
+      "Jugadores que deben quedar convocados en cada posición. No se propone desconvocar a quien dejaría su posición por debajo del mínimo. Un 0 desactiva esa posición.",
+    defaultText: "Mínimo de jugadores por posición",
+    points: [
+      f("goalkeeper", "Porteros", 2, 0, 5),
+      f("fullBack", "Laterales", 3, 0, 8),
+      f("centreBack", "Centrales", 3, 0, 8),
+      f("centralMid", "Medios centro", 4, 0, 8),
+      f("wide", "Bandas", 2, 0, 8),
+      f("forward", "Delanteros", 1, 0, 6),
+    ],
     weights: [],
   },
   rivalDifficulty: {

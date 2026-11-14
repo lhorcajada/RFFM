@@ -11,6 +11,7 @@ import { DEFAULT_RULES } from "./rules/defaultRules";
 import { resolveRule, type DeconvocationRuleConfig } from "./rules/ruleCatalog";
 import {
   evaluateRequirements,
+  ROLE_MINIMUMS,
   protectionReason,
   roleLabel,
   toPositionPlayer,
@@ -18,8 +19,10 @@ import {
   type PositionRole,
   type PositionShortfall,
   type RequirementKey,
+  type RoleMinimums,
 } from "./positionRequirements";
 import { isInjuryAbsence } from "./injuryRecovery";
+import { DEFAULT_MAX_CALLED_PLAYERS, minimumCalls } from "./minimumCalls";
 import type { LastMatchMinutes } from "./lastMatchMinutes";
 import {
   attendanceBucket,
@@ -385,6 +388,7 @@ export function selectDeconvocations(
   ordered: DeconvocationCandidate[],
   positionPlayers: Map<string, PositionPlayer>,
   targetCount: number,
+  minimums: RoleMinimums = ROLE_MINIMUMS,
 ): DeconvocationSelection {
   const selected = new Set(ordered.filter((c) => c.forced && !c.locked).map((c) => c.playerId));
   const protectedBy = new Map<string, RequirementKey>();
@@ -396,6 +400,7 @@ export function selectDeconvocations(
       ordered
         .filter((c) => !selected.has(c.playerId) && c.playerId !== excludedId)
         .map((c) => positionOf(c.playerId)),
+      minimums,
     );
 
   for (const candidate of ordered) {
@@ -578,13 +583,16 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
     currentRival,
     weekTrainingStats,
     weekTrainingCount,
-    maxCalledPlayers = 18,
+    maxCalledPlayers = DEFAULT_MAX_CALLED_PLAYERS,
     gridStartsCountMap,
     matchUnavailable,
     alreadyOutIds,
     rules = DEFAULT_RULES,
     rivalDifficulty = "medium",
   } = input;
+  // Rules the team never saved keep the base behaviour (fair share at 100 %, the standard position minimums).
+  const minCallsPercent = resolveRule("minCalls", rules)?.points.percent ?? 100;
+  const roleMinimums: RoleMinimums = { ...ROLE_MINIMUMS, ...resolveRule("positionMinimums", rules)?.points };
   const protectionWindows: ProtectionWindows = input.protectionWindows ?? {
     technical: resolveRule("recentDeconvocation", rules)?.points.window ?? 0,
     injuryRest: resolveRule("injuryRest", rules)?.points.window ?? 0,
@@ -719,10 +727,12 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
       // Fair share of the matches already played the player was available for, given how many of the
       // squad are called each matchday.
       const playedAvailable = Math.max(0, availableMatches - 1);
-      const minRequiredCalls = Math.min(
+      const minRequiredCalls = minimumCalls({
         playedAvailable,
-        Math.floor((playedAvailable * maxCalledPlayers) / Math.max(1, squadIds.length)),
-      );
+        maxCalledPlayers,
+        squadSize: squadIds.length,
+        percent: minCallsPercent,
+      });
 
       let technicalAgo: number | null = null;
       let injuryAgo: number | null = null;
@@ -929,6 +939,7 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
     })),
     positionPlayers,
     targetCount,
+    roleMinimums,
   );
   const selectedSet = new Set(selectedIds);
 
@@ -938,11 +949,11 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
   const remainingPositions = orderedProposals.filter((p) => !selectedSet.has(p.playerId));
   const toPositions = (list: PlayerProposal[]) =>
     list.map((p) => positionPlayers.get(p.playerId) ?? { id: p.playerId, role: null, possibleRoles: [] });
-  const baseEvaluation = evaluateRequirements(toPositions(remainingPositions));
+  const baseEvaluation = evaluateRequirements(toPositions(remainingPositions), roleMinimums);
   /** Requirement that breaks when `other` is deconvoked instead of the proposed `chosen` (or in addition, without one). */
   const positionBlock = (other: PlayerProposal, chosen?: PlayerProposal): RequirementKey | null => {
     const kept = remainingPositions.filter((p) => p !== other);
-    const after = evaluateRequirements(toPositions(chosen ? [...kept, chosen] : kept));
+    const after = evaluateRequirements(toPositions(chosen ? [...kept, chosen] : kept), roleMinimums);
     if (after.deficit <= baseEvaluation.deficit) return null;
     return firstWorsenedRequirement(baseEvaluation.shortfalls, after.shortfalls);
   };
@@ -963,7 +974,7 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
     const internal = internals.get(p.playerId)!;
     const requirement = protectedBy.get(p.playerId);
     const remaining = protectedRemaining.get(p.playerId) ?? 0;
-    const positionReason = requirement ? protectionReason(requirement, remaining) : null;
+    const positionReason = requirement ? protectionReason(requirement, remaining, roleMinimums) : null;
     const factors = requirement
       ? [...p.factors, { key: "positionProtection", label: positionReason!, value: remaining, impact: 0 }]
       : p.factors;

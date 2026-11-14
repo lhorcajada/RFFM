@@ -6,12 +6,27 @@ import { migrateRules } from "../rulesMigration";
 describe("ruleCatalog", () => {
   it("define las condiciones del embudo: tres obligatorias, ventanas, minutos bajos, dificultad y nivel", () => {
     expect([...RULE_CONDITIONS].sort()).toEqual(
-      ["injured", "injuryRest", "lowMinutes", "otherDeconvocation", "rating", "recentDeconvocation", "recentRecovery", "rivalDifficulty", "weeklyTraining"].sort(),
+      ["injured", "injuryRest", "lowMinutes", "minCalls", "otherDeconvocation", "positionMinimums", "rating", "recentDeconvocation", "recentRecovery", "rivalDifficulty", "weeklyTraining"].sort(),
     );
   });
 
   it("la regla de pocos minutos protege por defecto por debajo de 20 minutos", () => {
     expect(buildDefaultRule("lowMinutes").points).toEqual({ minutes: 20 });
+  });
+
+  it("el mínimo de convocatorias parte del 100 % del reparto justo", () => {
+    expect(buildDefaultRule("minCalls").points).toEqual({ percent: 100 });
+  });
+
+  it("los mínimos por posición parten de los valores de siempre", () => {
+    expect(buildDefaultRule("positionMinimums").points).toEqual({
+      goalkeeper: 2,
+      fullBack: 3,
+      centreBack: 3,
+      centralMid: 4,
+      wide: 2,
+      forward: 1,
+    });
   });
 
   it("tiene una definición por condición", () => {
