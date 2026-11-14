@@ -11,7 +11,7 @@ import {
 } from "../deconvocationFunnel";
 
 function fit(partial: Partial<FitInfo> = {}): FitInfo {
-  return { share: 0.5, place: 2, total: 3, positionLabel: "Mediocentro", value: 3.6, ...partial };
+  return { share: 0.5, place: 2, total: 3, positionLabel: "Mediocentro", position: "midfielder", value: 3.6, ...partial };
 }
 
 function metrics(partial: Partial<FairnessMetrics> = {}): FairnessMetrics {

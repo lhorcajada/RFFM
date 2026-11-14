@@ -24,6 +24,7 @@ import { useConvocationMatchContext } from "./hooks/useConvocationMatchContext";
 import { useConvocationPlayerViews } from "./hooks/useConvocationPlayerViews";
 import { useConvocationProposal } from "./hooks/useConvocationProposal";
 import { useDeconvocationRules } from "./hooks/useDeconvocationRules";
+import { useLatestTraitRatings } from "./hooks/useLatestTraitRatings";
 import { useMatchMinutes } from "./hooks/useMatchMinutes";
 import { buildLastMatchMinutes } from "./utils/lastMatchMinutes";
 import { usePositionFitOrder } from "./hooks/usePositionFitOrder";
@@ -158,6 +159,8 @@ export default function ConvocationMatchDetail() {
   const readinessMap = useTeamReadinessMap(teamId);
   const { rules: deconvocationRules, reload: reloadDeconvocationRules } = useDeconvocationRules(teamId);
   const positionFit = usePositionFitOrder(teamId);
+  const traitRatings = useLatestTraitRatings(teamId, proposalEnabled);
+  const fitContext = useMemo(() => ({ positionFit, traitRatings }), [positionFit, traitRatings]);
 
   // Data hooks
   const convocation = useConvocationManagement(teamId, match?.date);
@@ -436,6 +439,7 @@ export default function ConvocationMatchDetail() {
             proposalLoading={loadingProposalContext || grid.isLoading || convocation.loadingPlayers}
             teamId={teamId}
             rules={deconvocationRules}
+            fitContext={fitContext}
             onRefreshProposal={reloadDeconvocationRules}
             onApplyProposal={handleApplyProposal}
             readinessMap={readinessMap}

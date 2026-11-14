@@ -90,6 +90,20 @@ describe("buildDeconvokeProposal — encaje en el puesto", () => {
     expect(proposal.selectedIds).toEqual(["mc5"]);
   });
 
+  it("cada jugador expone su puesto de encaje, su lugar y su valor", () => {
+    const proposal = build(team(), {
+      positionFit: [fitPosition("midfielder", [["mc1", 4.2], ["mc2", 3.8], ["mc5", 2.1]])],
+    });
+
+    expect(find(proposal, "mc5").fit).toMatchObject({ position: "midfielder", place: 3, total: 3, value: 2.1 });
+  });
+
+  it("sin orden de encaje el jugador no expone encaje", () => {
+    const proposal = build(team());
+
+    expect(find(proposal, "mc5").fit).toBeUndefined();
+  });
+
   it("sin encaje decide la equidad como antes", () => {
     const baseline = build(team());
     const withoutData = build(team(), { positionFit: [fitPosition("midfielder", [["mc1", null], ["mc2", null], ["mc5", null]])] });

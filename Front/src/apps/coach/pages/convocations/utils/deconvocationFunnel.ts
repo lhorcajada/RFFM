@@ -1,3 +1,4 @@
+import type { FitPosition } from "../../squad/rating/ratingTraits";
 export type RivalDifficulty = "easy" | "medium" | "hard";
 
 export type ProtectionWindows = {
@@ -132,6 +133,8 @@ export type FitInfo = {
   /** Players called that compete in the position. */
   total: number;
   positionLabel: string;
+  /** Fit position whose order the player is placed in. */
+  position: FitPosition;
   /** Fit 1–5, or null when there is no fit calculated (only a confirmed order). */
   value: number | null;
 };

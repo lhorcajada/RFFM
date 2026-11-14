@@ -1,9 +1,12 @@
+import { useState } from "react";
 import { Alert, Button, CircularProgress } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import RuleIcon from "@mui/icons-material/Rule";
 import EmptyState from "../../../../../shared/components/ui/EmptyState/EmptyState";
+import type { PositionFit } from "../../../types/positionFit";
+import type { TraitRating } from "../../../types/traitRating";
 import type { RivalDifficulty } from "../utils/deconvocationFunnel";
 import {
   DETAIL_RESULT_LABELS,
@@ -13,6 +16,7 @@ import {
   type ProposalDecision,
 } from "../utils/deconvokeProposal";
 import { formatShortfall, roleLabel } from "../utils/positionRequirements";
+import PlayerFitDialog from "./PlayerFitDialog";
 import styles from "./DeconvocationProposalView.module.css";
 
 type Props = {
@@ -26,6 +30,13 @@ type Props = {
   onRefresh?: () => void;
   /** Opens the rules dialog; the button is hidden when omitted. */
   onOpenRules?: () => void;
+  /** Fit orders and trait ratings; without them the players' fit cannot be explained. */
+  fitContext?: FitContext;
+};
+
+export type FitContext = {
+  positionFit: PositionFit[];
+  traitRatings: TraitRating[];
 };
 
 const CRITERION_LABELS: Record<NonNullable<ProposalDecision["criterion"]>, string> = {
@@ -73,7 +84,21 @@ function plural(count: number, one: string, many: string): string {
   return `${count} ${count === 1 ? one : many}`;
 }
 
-function ProposedCard({ item }: { item: PlayerProposal }) {
+function FitButton({ item, onShowFit }: { item: PlayerProposal; onShowFit?: (item: PlayerProposal) => void }) {
+  if (!onShowFit || !item.fit) return null;
+  return (
+    <button
+      type="button"
+      className={styles.fitButton}
+      aria-label={`Ver encaje de ${item.displayName}`}
+      onClick={() => onShowFit(item)}
+    >
+      Ver encaje
+    </button>
+  );
+}
+
+function ProposedCard({ item, onShowFit }: { item: PlayerProposal; onShowFit?: (item: PlayerProposal) => void }) {
   const { decision } = item;
   return (
     <article className={styles.card}>
@@ -91,6 +116,7 @@ function ProposedCard({ item }: { item: PlayerProposal }) {
       </div>
       <p className={styles.reason}>{decision.reason}</p>
       {decision.compare && <p className={styles.compare}>{decision.compare}</p>}
+      <FitButton item={item} onShowFit={onShowFit} />
       <div className={styles.chips}>
         <span className={styles.chip}>{item.calledCount} conv.</span>
         {item.startsDataAvailable && <span className={styles.chip}>{item.startsCount} tit.</span>}
@@ -135,7 +161,7 @@ function ProposedCard({ item }: { item: PlayerProposal }) {
   );
 }
 
-function ReasonCard({ item }: { item: PlayerProposal }) {
+function ReasonCard({ item, onShowFit }: { item: PlayerProposal; onShowFit?: (item: PlayerProposal) => void }) {
   return (
     <article className={styles.reasonCard}>
       <div className={styles.reasonCardName}>
@@ -145,6 +171,7 @@ function ReasonCard({ item }: { item: PlayerProposal }) {
         </span>
       </div>
       <p className={styles.reasonText}>{item.decision.reason}</p>
+      <FitButton item={item} onShowFit={onShowFit} />
     </article>
   );
 }
@@ -158,7 +185,13 @@ export default function DeconvocationProposalView({
   onApply,
   onRefresh,
   onOpenRules,
+  fitContext,
 }: Props) {
+  const [fitTarget, setFitTarget] = useState<PlayerProposal | null>(null);
+  const onShowFit = fitContext ? setFitTarget : undefined;
+  const fitPosition = fitTarget?.fit ? fitContext?.positionFit.find((p) => p.position === fitTarget.fit?.position) : undefined;
+  const fitLevels = fitContext?.traitRatings.find((r) => r.teamPlayerId === fitTarget?.playerId)?.levels ?? [];
+
   const proposed = proposal.players.filter((p) => p.decision.group === "proposed");
   const protectedPlayers = proposal.players.filter((p) => p.decision.group === "protected");
   const notChosen = proposal.players.filter((p) => p.decision.group === "notChosen");
@@ -287,7 +320,7 @@ export default function DeconvocationProposalView({
               <h4 className={styles.sectionLabel}>Propuestos para desconvocar</h4>
               <div className={styles.grid}>
                 {proposed.map((item) => (
-                  <ProposedCard key={item.playerId} item={item} />
+                  <ProposedCard key={item.playerId} item={item} onShowFit={onShowFit} />
                 ))}
               </div>
             </>
@@ -325,7 +358,7 @@ export default function DeconvocationProposalView({
                     <div key={group.title} role="group" aria-label={group.title} className={styles.group}>
                       <h5 className={styles.groupTitle}>{group.title}</h5>
                       {members.map((item) => (
-                        <ReasonCard key={item.playerId} item={item} />
+                        <ReasonCard key={item.playerId} item={item} onShowFit={onShowFit} />
                       ))}
                     </div>
                   );
@@ -339,12 +372,23 @@ export default function DeconvocationProposalView({
               <h4 className={`${styles.sectionLabel} ${styles.sectionLabelDim}`}>Elegibles no elegidos</h4>
               <div className={styles.grid}>
                 {notChosen.map((item) => (
-                  <ReasonCard key={item.playerId} item={item} />
+                  <ReasonCard key={item.playerId} item={item} onShowFit={onShowFit} />
                 ))}
               </div>
             </div>
           )}
         </>
+      )}
+      {fitTarget && (
+        <PlayerFitDialog
+          open
+          onClose={() => setFitTarget(null)}
+          playerId={fitTarget.playerId}
+          playerName={fitTarget.displayName}
+          fit={fitTarget.fit}
+          positionFit={fitPosition}
+          levels={fitLevels}
+        />
       )}
     </div>
   );

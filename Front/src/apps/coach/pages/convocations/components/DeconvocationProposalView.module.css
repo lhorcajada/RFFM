@@ -452,3 +452,16 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
+
+.fitButton {
+  align-self: flex-start;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}

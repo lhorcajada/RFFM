@@ -111,6 +111,8 @@ export type PlayerProposal = {
   decision: ProposalDecision;
   /** Every rule evaluated for the player, for the collapsible detail. */
   detail: ProposalDetailRow[];
+  /** Place and value of the player in the fit order of his position; absent without an order. */
+  fit?: FitInfo;
   /** A proposed player against every eligible player not proposed; empty for the others. */
   comparison: ProposalComparisonRow[];
 };
@@ -203,6 +205,7 @@ function buildFitInfo(
         place: index + 1,
         total: called.length,
         positionLabel: FIT_POSITION_LABELS[position.position],
+        position: position.position,
         value: candidate.fit,
       });
     });
@@ -913,6 +916,7 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
         decision: { group: "notChosen", reason: "" },
         detail: [],
         comparison: [],
+        fit: fitInfoById.get(playerId),
       } as PlayerProposal;
     })
     .filter((item): item is PlayerProposal => item !== null);
