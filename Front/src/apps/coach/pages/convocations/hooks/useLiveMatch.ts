@@ -646,6 +646,8 @@ export function useLiveMatch(
     setSaveError(null);
   }, [commitModel]);
 
+  const hydrateSavedParticipationRef = useRef<(data: LiveMatchParticipationPayload) => void>(() => {});
+
   const applyServerState = useCallback(
     (s: LiveMatchServerState) => {
       const next = modelFromServerState(s, modelRef.current);
@@ -656,6 +658,12 @@ export function useLiveMatch(
       if (s.phase === "finished") {
         setHasSavedData(true);
         setSavedParticipationData(savedParticipationOf(s, next));
+        // Manual edits after the finish are stored in the participation, not in the closed server state.
+        void getMatchParticipation(s.eventId)
+          .then((data) => {
+            if (data && data.matchPhase === "finished") hydrateSavedParticipationRef.current(data);
+          })
+          .catch(() => {});
       } else {
         setHasSavedData(false);
         setSavedParticipationData(null);
@@ -705,6 +713,7 @@ export function useLiveMatch(
     },
     [commitModel],
   );
+  hydrateSavedParticipationRef.current = hydrateFromSavedParticipation;
 
   // Legacy read: a finished match saved before server state exists.
   useEffect(() => {
