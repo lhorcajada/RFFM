@@ -274,6 +274,39 @@ describe("QuinielaHistory", () => {
       expect(screen.getByRole("region", { name: /quiniela actual/i })).toBeInTheDocument();
     });
 
+    it("muestra cada jornada en un desplegable: la más reciente abierta y las demás cerradas", async () => {
+      getQuinielaHistory.mockResolvedValue(
+        history([item(7, { winners: [{ userName: "Carla Ruiz", category: "Special", hits: 14, prize: 6.5, ticketNumber: 1 }] }), item(6)]),
+      );
+      renderPage();
+
+      const latest = await screen.findByRole("button", { name: /^jornada 7/i });
+      const older = screen.getByRole("button", { name: /^jornada 6/i });
+      expect(latest).toHaveAttribute("aria-expanded", "true");
+      expect(older).toHaveAttribute("aria-expanded", "false");
+      expect(screen.getByText("Carla Ruiz")).toBeInTheDocument();
+      expect(within(screen.getByRole("region", { name: /jornada 6/i })).queryByText(/sin acertantes/i)).not.toBeInTheDocument();
+
+      fireEvent.click(older);
+      expect(older).toHaveAttribute("aria-expanded", "true");
+      expect(within(screen.getByRole("region", { name: /jornada 6/i })).getByText(/sin acertantes/i)).toBeInTheDocument();
+    });
+
+    it("la cabecera cerrada resume el resultado del usuario en esa jornada", async () => {
+      getQuinielaHistory.mockResolvedValue(
+        history([
+          item(9),
+          item(8, { myHits: 11, myCategory: "Second", myPrize: 4 }),
+          item(7, { myHits: 8, myPrize: 0 }),
+        ]),
+      );
+      renderPage();
+
+      expect(await screen.findByRole("button", { name: /^jornada 8.*ganaste 4,00\s€.*11 aciertos/i })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /^jornada 7.*8 aciertos.*sin premio/i })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /^jornada 9.*no participaste/i })).toBeInTheDocument();
+    });
+
     it("«Cargar más» pide la siguiente página y la añade", async () => {
       getQuinielaHistory
         .mockResolvedValueOnce(history([item(7)], 2))

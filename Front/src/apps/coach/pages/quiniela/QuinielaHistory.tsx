@@ -73,57 +73,84 @@ function CurrentCard({ current, quinielaHref }: { current: QuinielaCurrent; quin
   );
 }
 
-function JornadaCard({ item, teamId }: { item: QuinielaHistoryItem; teamId: string }) {
+function myResultText(item: QuinielaHistoryItem): string {
   const myPrize = item.myPrize ?? 0;
+  if (myPrize > 0) {
+    return `Ganaste ${formatMoney(myPrize)}${item.myHits !== null ? ` · ${item.myHits} aciertos` : ""}`;
+  }
+  if (item.myHits !== null) return `${item.myHits} aciertos · sin premio`;
+  return "No participaste";
+}
+
+function JornadaCard({ item, teamId, defaultOpen }: { item: QuinielaHistoryItem; teamId: string; defaultOpen: boolean }) {
+  const [open, setOpen] = useState(defaultOpen);
+  const myPrize = item.myPrize ?? 0;
+  const panelId = `quiniela-jornada-${item.jornadaId}`;
   return (
     <section aria-label={`Jornada ${item.roundNumber}`} className={styles.card}>
-      <div className={styles.topRow}>
-        <h3 className={styles.title}>Jornada {item.roundNumber}</h3>
-        <span className={styles.date}>{formatKickoff(item.settledAt)}</span>
-      </div>
-      <div className={styles.summary}>
-        <span>
-          Recaudado <strong>{formatMoney(item.collected)}</strong>
+      <button
+        type="button"
+        className={styles.accordionHead}
+        aria-expanded={open}
+        aria-controls={panelId}
+        onClick={() => setOpen((v) => !v)}
+      >
+        <span className={styles.accordionText}>
+          <span className={styles.title}>Jornada {item.roundNumber}</span>
+          <span className={styles.date}>{formatKickoff(item.settledAt)}</span>
+          <span className={myPrize > 0 ? styles.myResultWin : styles.myResult}>{myResultText(item)}</span>
         </span>
-        <span>
-          Bolsa <strong>{formatMoney(item.prizePool)}</strong>
+        <span aria-hidden="true" className={`${styles.chevron} ${open ? styles.chevronOpen : ""}`}>
+          ▾
         </span>
-        <span>
-          Bote <strong>{formatMoney(item.carryOut)}</strong>
-        </span>
-      </div>
-      {myPrize > 0 && (
-        <p className={styles.mine}>
-          Tu premio: <strong>{formatMoney(myPrize)}</strong>
-          {categoryLabel(item.myCategory) ? ` · ${categoryLabel(item.myCategory)}` : ""}
-          {item.myHits !== null ? ` · ${item.myHits} aciertos` : ""}
-        </p>
+      </button>
+      {open && (
+        <div id={panelId} className={styles.accordionBody}>
+          <div className={styles.summary}>
+            <span>
+              Recaudado <strong>{formatMoney(item.collected)}</strong>
+            </span>
+            <span>
+              Bolsa <strong>{formatMoney(item.prizePool)}</strong>
+            </span>
+            <span>
+              Bote <strong>{formatMoney(item.carryOut)}</strong>
+            </span>
+          </div>
+          {myPrize > 0 && (
+            <p className={styles.mine}>
+              Tu premio: <strong>{formatMoney(myPrize)}</strong>
+              {categoryLabel(item.myCategory) ? ` · ${categoryLabel(item.myCategory)}` : ""}
+              {item.myHits !== null ? ` · ${item.myHits} aciertos` : ""}
+            </p>
+          )}
+          {item.winners.length === 0 ? (
+            <p className={styles.note}>
+              Sin acertantes en esta jornada.
+              {item.carryOut > 0 ? ` El bote de ${formatMoney(item.carryOut)} pasó a la siguiente.` : ""}
+            </p>
+          ) : (
+            <ul className={styles.winners}>
+              {item.winners.map((winner, index) => (
+                <li
+                  key={`${winner.userName}-${winner.ticketNumber}-${index}`}
+                  className={winner.isMine ? styles.winnerMine : styles.winner}
+                  data-mine={winner.isMine ? "true" : undefined}
+                >
+                  <span className={styles.who}>
+                    <span className={styles.name}>{ticketOwnerLabel(winner.userName, winner.ticketNumber)}</span>
+                    <span className={styles.detail}>
+                      {categoryLabel(winner.category)} · {winner.hits} aciertos
+                    </span>
+                  </span>
+                  <span className={styles.prize}>{formatMoney(winner.prize)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <JornadaTickets teamId={teamId} jornadaId={item.jornadaId} roundNumber={item.roundNumber} />
+        </div>
       )}
-      {item.winners.length === 0 ? (
-        <p className={styles.note}>
-          Sin acertantes en esta jornada.
-          {item.carryOut > 0 ? ` El bote de ${formatMoney(item.carryOut)} pasó a la siguiente.` : ""}
-        </p>
-      ) : (
-        <ul className={styles.winners}>
-          {item.winners.map((winner, index) => (
-            <li
-              key={`${winner.userName}-${winner.ticketNumber}-${index}`}
-              className={winner.isMine ? styles.winnerMine : styles.winner}
-              data-mine={winner.isMine ? "true" : undefined}
-            >
-              <span className={styles.who}>
-                <span className={styles.name}>{ticketOwnerLabel(winner.userName, winner.ticketNumber)}</span>
-                <span className={styles.detail}>
-                  {categoryLabel(winner.category)} · {winner.hits} aciertos
-                </span>
-              </span>
-              <span className={styles.prize}>{formatMoney(winner.prize)}</span>
-            </li>
-          ))}
-        </ul>
-      )}
-      <JornadaTickets teamId={teamId} jornadaId={item.jornadaId} roundNumber={item.roundNumber} />
     </section>
   );
 }
@@ -203,8 +230,8 @@ export default function QuinielaHistory() {
           <EmptyState title="Aún no hay quinielas liquidadas" description="Cuando acabe una jornada verás aquí sus resultados y premios." />
         ) : (
           <div className={styles.stack}>
-            {items.map((item) => (
-              <JornadaCard key={item.jornadaId} item={item} teamId={teamId} />
+            {items.map((item, index) => (
+              <JornadaCard key={item.jornadaId} item={item} teamId={teamId} defaultOpen={index === 0} />
             ))}
             {items.length < total && (
               <Button variant="outlined" onClick={() => void handleLoadMore()} disabled={loadingMore} className={styles.more}>

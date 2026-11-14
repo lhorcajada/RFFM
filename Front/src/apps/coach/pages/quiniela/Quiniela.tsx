@@ -37,9 +37,10 @@ import MatchPickCard from "./components/MatchPickCard";
 import PlenoCard from "./components/PlenoCard";
 import PoolSummary from "./components/PoolSummary";
 import PreviousResultCard from "./components/PreviousResultCard";
+import QuinielaClosedView from "./components/QuinielaClosedView";
 import QuinielaRulesDialog from "./components/QuinielaRulesDialog";
 import TicketSummary from "./components/TicketSummary";
-import TicketTabs, { NEW_TICKET } from "./components/TicketTabs";
+import TicketList from "./components/TicketList";
 import { QUINIELA_WALLET_UPDATED_EVENT } from "../../../../shared/hooks/useQuinielaWalletBalance";
 import { currentUserId, markQuinielaSeen } from "../team-dashboard/utils/quinielaNovelty";
 import styles from "./Quiniela.module.css";
@@ -71,17 +72,18 @@ export default function Quiniela() {
   const [saving, setSaving] = useState(false);
   const [opening, setOpening] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
-  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<QuinielaTicket | null>(null);
+  const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [picks, setPicks] = useState<Picks>({});
   const [plenoHome, setPlenoHome] = useState<string | null>(null);
   const [plenoAway, setPlenoAway] = useState<string | null>(null);
-  const [selectedId, setSelectedId] = useState<string>(NEW_TICKET);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [wallet, setWallet] = useState<QuinielaWallet | null>(null);
-  const [paying, setPaying] = useState(false);
+  const [payingTicketId, setPayingTicketId] = useState<string | null>(null);
 
   const selectTicket = useCallback((ticket: QuinielaTicket | null) => {
-    setSelectedId(ticket?.id ?? NEW_TICKET);
+    setSelectedId(ticket?.id ?? null);
     setPicks(picksFromTicket(ticket));
     setPlenoHome(ticket ? goalsToLabel(ticket.plenoHome) : null);
     setPlenoAway(ticket ? goalsToLabel(ticket.plenoAway) : null);
@@ -90,6 +92,7 @@ export default function Quiniela() {
   const applyCurrent = useCallback(
     (data: QuinielaCurrent) => {
       setCurrent(data);
+      setEditing(false);
       selectTicket(data.myTickets[0] ?? null);
     },
     [selectTicket],
@@ -137,9 +140,7 @@ export default function Quiniela() {
   const hasPleno = validMatches.some((m) => m.isPleno);
   const closed = jornada?.picksClosed ?? false;
   const picksOpen = jornada?.status === "Open" && !closed;
-  const isWalletPaid = selectedTicket?.paymentStatus === "Paid" && selectedTicket.paymentMethod === "Wallet";
-  const isManuallyPaid = selectedTicket?.paymentStatus === "Paid" && !isWalletPaid;
-  const canPayWithWallet = selectedTicket?.paymentStatus === "Pending" && picksOpen;
+  const deleteTargetIsWalletPaid = deleteTarget?.paymentStatus === "Paid" && deleteTarget.paymentMethod === "Wallet";
   const walletBlockedReason =
     jornada && wallet && wallet.balance < jornada.price
       ? `Saldo insuficiente: tienes ${formatMoney(wallet.balance)} y el boleto cuesta ${formatMoney(jornada.price)}.`
@@ -150,8 +151,17 @@ export default function Quiniela() {
   const filled = pickedCount + (hasPleno && plenoHome !== null && plenoAway !== null ? 1 : 0);
   const canSave = total > 0 && filled === total;
 
-  const handleSelectTicket = (ticketId: string) =>
-    selectTicket(ticketId === NEW_TICKET ? null : (myTickets.find((t) => t.id === ticketId) ?? null));
+  const showEditor = editing || myTickets.length === 0;
+
+  const handleEdit = (ticket: QuinielaTicket) => {
+    selectTicket(ticket);
+    setEditing(true);
+  };
+
+  const handleCreate = () => {
+    selectTicket(null);
+    setEditing(true);
+  };
 
   const setSign = (recordCode: string, sign: QuinielaSign) => setPicks((prev) => ({ ...prev, [recordCode]: sign }));
 
@@ -178,6 +188,7 @@ export default function Quiniela() {
           : prev,
       );
       setSelectedId(ticket.id);
+      setEditing(false);
       if (ticket.walletCharge) {
         notify(`Boleto guardado. ${walletChargeMessage(ticket.walletCharge)}`, "success");
         void loadWallet(teamId);
@@ -192,11 +203,11 @@ export default function Quiniela() {
     }
   };
 
-  const handlePayWithWallet = async () => {
-    if (!teamId || !jornada || !selectedTicket) return;
-    setPaying(true);
+  const handlePayWithWallet = async (target: QuinielaTicket) => {
+    if (!teamId || !jornada) return;
+    setPayingTicketId(target.id);
     try {
-      const ticket = await payQuinielaTicketWithWallet(teamId, jornada.id, selectedTicket.id);
+      const ticket = await payQuinielaTicketWithWallet(teamId, jornada.id, target.id);
       setCurrent((prev) =>
         prev ? { ...prev, myTickets: prev.myTickets.map((t) => (t.id === ticket.id ? ticket : t)) } : prev,
       );
@@ -206,7 +217,7 @@ export default function Quiniela() {
       notify(apiErrorMessage(e, "No se pudo pagar el boleto con el monedero."), "error");
     } finally {
       void loadWallet(teamId);
-      setPaying(false);
+      setPayingTicketId(null);
     }
   };
 
@@ -225,19 +236,20 @@ export default function Quiniela() {
   };
 
   const handleDeleteConfirmed = async () => {
-    if (!teamId || !jornada || !selectedTicket) return;
+    if (!teamId || !jornada || !deleteTarget) return;
+    const target = deleteTarget;
     setDeleting(true);
     try {
-      await deleteMyQuinielaTicket(teamId, jornada.id, selectedTicket.id);
-      setDeleteOpen(false);
+      await deleteMyQuinielaTicket(teamId, jornada.id, target.id);
+      setDeleteTarget(null);
       await load(teamId);
-      if (isWalletPaid) {
+      if (target.paymentStatus === "Paid" && target.paymentMethod === "Wallet") {
         void loadWallet(teamId);
         notifyWalletUpdated();
       }
       notify("Boleto eliminado", "success");
     } catch (e: unknown) {
-      setDeleteOpen(false);
+      setDeleteTarget(null);
       notify(apiErrorMessage(e, "No se pudo eliminar el boleto."), "error");
     } finally {
       setDeleting(false);
@@ -296,69 +308,81 @@ export default function Quiniela() {
           </div>
         )}
 
-        <div className={styles.cards}>
-          {(myTickets.length > 1 || (multipleTickets && myTickets.length > 0)) && (
-            <TicketTabs
-              tickets={myTickets}
-              selectedId={selectedId}
-              canCreate={multipleTickets && !closed}
-              onSelect={handleSelectTicket}
-            />
-          )}
-          <div className={styles.cardsHead}>
-            <h2 className={styles.cardsTitle}>Tus pronósticos</h2>
-            <span className={styles.legend}>1 = gana local · X = empate · 2 = gana visitante</span>
+        {closed ? (
+          <div className={styles.cards}>
+            <QuinielaClosedView matches={matches} tickets={myTickets} />
           </div>
-          {matches.map((match, index) =>
-            match.isValid && match.isPleno ? (
-              <PlenoCard
-                key={match.recordCode}
-                number={index + 1}
-                match={match}
-                sign={picks[match.recordCode] ?? null}
-                plenoHome={plenoHome}
-                plenoAway={plenoAway}
-                disabled={closed}
-                onSignChange={(sign) => setSign(match.recordCode, sign)}
-                onHomeGoalsChange={setPlenoHome}
-                onAwayGoalsChange={setPlenoAway}
+        ) : !showEditor ? (
+          <div className={styles.cards}>
+            <TicketList
+              tickets={myTickets}
+              totalMatches={validMatches.length}
+              picksOpen={picksOpen}
+              canCreate={multipleTickets && picksOpen}
+              walletBlockedReason={walletBlockedReason}
+              payingTicketId={payingTicketId}
+              deletingTicketId={deleting ? (deleteTarget?.id ?? null) : null}
+              onCreate={handleCreate}
+              onEdit={handleEdit}
+              onDelete={setDeleteTarget}
+              onPayWithWallet={(ticket) => void handlePayWithWallet(ticket)}
+            />
+          </div>
+        ) : (
+          <>
+            <div className={styles.cards}>
+              {myTickets.length > 0 && (
+                <button type="button" className={styles.backToTickets} onClick={() => setEditing(false)}>
+                  ← Volver a mis boletos
+                </button>
+              )}
+              <div className={styles.cardsHead}>
+                <h2 className={styles.cardsTitle}>Tus pronósticos</h2>
+                <span className={styles.legend}>1 = gana local · X = empate · 2 = gana visitante</span>
+              </div>
+              {matches.map((match, index) =>
+                match.isValid && match.isPleno ? (
+                  <PlenoCard
+                    key={match.recordCode}
+                    number={index + 1}
+                    match={match}
+                    sign={picks[match.recordCode] ?? null}
+                    plenoHome={plenoHome}
+                    plenoAway={plenoAway}
+                    disabled={closed}
+                    onSignChange={(sign) => setSign(match.recordCode, sign)}
+                    onHomeGoalsChange={setPlenoHome}
+                    onAwayGoalsChange={setPlenoAway}
+                  />
+                ) : (
+                  <MatchPickCard
+                    key={match.recordCode}
+                    number={index + 1}
+                    match={match}
+                    sign={picks[match.recordCode] ?? null}
+                    disabled={closed}
+                    onSignChange={(sign) => setSign(match.recordCode, sign)}
+                  />
+                ),
+              )}
+            </div>
+            <div className={styles.ticket}>
+              <TicketSummary
+                filled={filled}
+                total={total}
+                price={jornada.price}
+                title={selectedTicket ? `Boleto ${selectedTicket.number}` : myTickets.length > 0 ? "Nuevo boleto" : "Tu boleto"}
+                paymentStatus={selectedTicket?.paymentStatus ?? null}
+                paymentMethod={selectedTicket?.paymentMethod ?? null}
+                paymentDeadlineUtc={jornada.paymentDeadlineUtc}
+                closed={closed}
+                saving={saving}
+                canSave={canSave}
+                onSave={() => void handleSave()}
               />
-            ) : (
-              <MatchPickCard
-                key={match.recordCode}
-                number={index + 1}
-                match={match}
-                sign={picks[match.recordCode] ?? null}
-                disabled={closed}
-                onSignChange={(sign) => setSign(match.recordCode, sign)}
-              />
-            ),
-          )}
-        </div>
-
-        <div className={styles.ticket}>
-          <TicketSummary
-            filled={filled}
-            total={total}
-            price={jornada.price}
-            title={selectedTicket ? `Boleto ${selectedTicket.number}` : myTickets.length > 0 ? "Nuevo boleto" : "Tu boleto"}
-            paymentStatus={selectedTicket?.paymentStatus ?? null}
-            paymentMethod={selectedTicket?.paymentMethod ?? null}
-            paymentDeadlineUtc={jornada.paymentDeadlineUtc}
-            closed={closed}
-            saving={saving}
-            canSave={canSave}
-            canDelete={selectedTicket !== null && picksOpen && !isManuallyPaid}
-            deleting={deleting}
-            canPayWithWallet={canPayWithWallet}
-            walletBlockedReason={walletBlockedReason}
-            payingWithWallet={paying}
-            manualPaymentNote={isManuallyPaid && picksOpen}
-            onSave={() => void handleSave()}
-            onDelete={() => setDeleteOpen(true)}
-            onPayWithWallet={() => void handlePayWithWallet()}
-          />
-        </div>
+            </div>
+          </>
+        )}
 
         {data.previous && (
           <div className={styles.previous}>
@@ -440,16 +464,16 @@ export default function Quiniela() {
       </ContentLayout>
       <QuinielaRulesDialog open={rulesOpen} onClose={() => setRulesOpen(false)} prizePool={current?.pool?.prizePool} />
       <ConfirmDialog
-        open={deleteOpen}
-        title="Eliminar mi boleto"
+        open={deleteTarget !== null}
+        title={deleteTarget ? `Eliminar el boleto ${deleteTarget.number}` : "Eliminar boleto"}
         description={
-          isWalletPaid
+          deleteTargetIsWalletPaid
             ? `Se eliminará tu boleto de esta jornada y se te reembolsarán ${formatMoney(jornada?.price)} en tu monedero. Podrás rellenar uno nuevo mientras los pronósticos sigan abiertos.`
-            : "Se eliminará tu boleto de esta jornada. Podrás rellenar uno nuevo mientras los pronósticos sigan abiertos."
+            : "Se eliminará tu boleto de esta jornada. No se puede deshacer. Podrás rellenar uno nuevo mientras los pronósticos sigan abiertos."
         }
         confirmText="Eliminar"
         processing={deleting}
-        onCancel={() => setDeleteOpen(false)}
+        onCancel={() => setDeleteTarget(null)}
         onConfirm={() => void handleDeleteConfirmed()}
       />
     </BaseLayout>

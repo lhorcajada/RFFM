@@ -1,0 +1,121 @@
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ticket {
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--rffm-card-bg, #1c1c30);
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 64px;
+  padding: 12px 14px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.headerText {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.title {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.status {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+}
+
+.paid {
+  color: var(--rffm-status-accepted);
+  background: color-mix(in srgb, var(--rffm-status-accepted) 14%, transparent);
+}
+
+.pending {
+  color: var(--rffm-status-pending);
+  background: color-mix(in srgb, var(--rffm-status-pending) 14%, transparent);
+}
+
+.summary {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--rffm-status-accepted);
+}
+
+.muted {
+  font-size: 0.8125rem;
+  color: var(--rffm-muted, #a59f9f);
+}
+
+.chevron {
+  flex: none;
+  transition: transform 0.15s ease;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 14px 14px;
+}
+
+.panelAlone {
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--rffm-card-bg, #1c1c30);
+}
+
+.noTicket {
+  margin: 0;
+  color: var(--rffm-muted, #a59f9f);
+  font-size: 0.9375rem;
+}
+
+.pleno {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--rffm-accent, #ff8a3d) 40%, transparent);
+  background: color-mix(in srgb, var(--rffm-accent, #ff8a3d) 10%, transparent);
+  font-size: 0.875rem;
+}
+
+.plenoTitle {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--rffm-accent, #ff8a3d);
+}

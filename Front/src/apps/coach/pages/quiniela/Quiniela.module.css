@@ -131,3 +131,16 @@
     position: static;
   }
 }
+
+.backToTickets {
+  align-self: flex-start;
+  min-height: 44px;
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+  color: var(--rffm-muted, #a59f9f);
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}

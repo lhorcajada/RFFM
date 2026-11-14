@@ -14,15 +14,7 @@ type Props = {
   saving: boolean;
   canSave: boolean;
   title?: string;
-  canDelete: boolean;
-  deleting: boolean;
-  canPayWithWallet?: boolean;
-  walletBlockedReason?: string | null;
-  payingWithWallet?: boolean;
-  manualPaymentNote?: boolean;
   onSave: () => void;
-  onDelete: () => void;
-  onPayWithWallet?: () => void;
 };
 
 export default function TicketSummary({
@@ -36,15 +28,7 @@ export default function TicketSummary({
   saving,
   canSave,
   title = "Tu boleto",
-  canDelete,
-  deleting,
-  canPayWithWallet = false,
-  walletBlockedReason = null,
-  payingWithWallet = false,
-  manualPaymentNote = false,
   onSave,
-  onDelete,
-  onPayWithWallet,
 }: Props) {
   const percent = total > 0 ? Math.round((filled / total) * 100) : 0;
   const statusClass = paymentStatus === "Paid" ? styles.paid : paymentStatus === "Expired" ? styles.expired : styles.pending;
@@ -77,32 +61,6 @@ export default function TicketSummary({
       <button type="button" className={styles.save} disabled={!canSave || saving || closed} onClick={onSave}>
         {saving ? <CircularProgress size={20} color="inherit" /> : "Guardar boleto"}
       </button>
-      {canPayWithWallet && (
-        <>
-          <button
-            type="button"
-            className={styles.wallet}
-            disabled={walletBlockedReason !== null || payingWithWallet}
-            aria-describedby={walletBlockedReason ? "quiniela-wallet-blocked" : undefined}
-            onClick={onPayWithWallet}
-          >
-            {payingWithWallet ? <CircularProgress size={20} color="inherit" /> : "Pagar con monedero"}
-          </button>
-          {walletBlockedReason && (
-            <p id="quiniela-wallet-blocked" className={styles.noteVisible}>{walletBlockedReason}</p>
-          )}
-        </>
-      )}
-      {canDelete && (
-        <button type="button" className={styles.remove} disabled={deleting} onClick={onDelete}>
-          Eliminar mi boleto
-        </button>
-      )}
-      {manualPaymentNote && (
-        <p className={styles.noteVisible}>
-          Este boleto se pagó en mano o por Bizum: si quieres eliminarlo, pídeselo al entrenador.
-        </p>
-      )}
       {paymentDeadlineUtc && (
         <p className={styles.note}>
           Puedes guardar el boleto y pagar después: el plazo termina el {formatKickoff(paymentDeadlineUtc)}. El pago se entrega al entrenador.
