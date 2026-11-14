@@ -138,7 +138,7 @@ describe("buildDeconvokeProposal — encaje en el puesto", () => {
     });
 
     expect(proposal.selectedIds).toEqual(["mc5"]);
-    expect(find(proposal, "mc5").decision.reason).toContain("3.º de 3 en Mediocentro");
+    expect(find(proposal, "mc5").decision.reason).toContain("2,1 como Mediocentro");
   });
 
   it("un puesto con un solo candidato es neutro", () => {
@@ -168,7 +168,7 @@ describe("buildDeconvokeProposal — encaje en el puesto", () => {
 
     const mc5 = find(proposal, "mc5");
     expect(mc5.decision.criterion).toBe("fit");
-    expect(mc5.decision.reason).toContain("3.º de 3 en Mediocentro (2,1)");
+    expect(mc5.decision.reason).toContain("2,1 como Mediocentro");
     expect(mc5.detail).toContainEqual({
       rule: "Encaje en el puesto",
       value: "3.º de 3 en Mediocentro (2,1)",
@@ -181,7 +181,7 @@ describe("buildDeconvokeProposal — encaje en el puesto", () => {
       positionFit: [fitPosition("midfielder", [["mc1", 4.2], ["mc2", 3.8], ["mc5", 2.1]])],
     });
 
-    expect(find(proposal, "mc1").decision.reason).toContain("peor encaje en su puesto");
+    expect(find(proposal, "mc1").decision.reason).toContain("peor encaje por rasgos en su puesto");
   });
 
   it("sin orden de encaje para el puesto del jugador la fila de detalle no tiene efecto", () => {

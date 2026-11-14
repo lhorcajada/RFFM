@@ -55,6 +55,7 @@ function proposal(overrides: Partial<DeconvokeProposal> = {}): DeconvokeProposal
     ],
     positionWarnings: [],
     alreadyDeconvoked: [],
+  order: [],
     ...overrides,
   };
 }

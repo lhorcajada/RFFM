@@ -16,6 +16,7 @@ const emptyProposal: DeconvokeProposal = {
   players: [],
   positionWarnings: [],
   alreadyDeconvoked: [],
+  order: [],
 };
 
 type Zones = {

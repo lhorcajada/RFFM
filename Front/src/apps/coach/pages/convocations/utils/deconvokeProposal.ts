@@ -28,6 +28,7 @@ import {
   attendanceBucket,
   compareFairness,
   CRITERION_NAMES,
+  fairnessChips,
   describeCriterion,
   fitShareOf,
   formatCriterionValues,
@@ -75,6 +76,20 @@ export type ProposalComparisonRow = {
   /** How the proposed player compares: `decides` he goes before the other, `tie` all criteria match, `position` the other stays for a position minimum. */
   outcome: "decides" | "tie" | "position";
   verdict: string;
+};
+
+/** A player of the deconvocation order: rank 1 is the first to go; the cut line falls after the last `proposed`. */
+export type ProposalOrderEntry = {
+  rank: number;
+  playerId: string;
+  name: string;
+  position: string;
+  /** `proposed` goes out; `positionSkip` would go but stays for his position minimum; `stays` is below the cut. */
+  outcome: "proposed" | "positionSkip" | "stays";
+  /** Values of every criterion, in the order they are applied. */
+  chips: string[];
+  /** Why he goes before the next player of the order; null for the last one. */
+  versusNext: { nextName: string; criterion: Criterion | null; text: string } | null;
 };
 
 export type DetailResult = "protects" | "doesNotProtect" | "allows" | "decides" | "tie" | "noEffect" | "mandatory";
@@ -143,6 +158,8 @@ export type DeconvokeProposal = {
   positionWarnings: PositionShortfall[];
   /** Squad players already deconvoked, in squad order; never proposed again. */
   alreadyDeconvoked: AlreadyDeconvokedPlayer[];
+  /** Eligible players from first to last to be deconvoked, each justified against the next one. */
+  order: ProposalOrderEntry[];
 };
 
 export type BuildProposalInput = {
@@ -1017,10 +1034,10 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
             : "Empate en todos los criterios",
         };
       });
-      const contenders = others.filter((o) => !protectedBy.has(o.playerId));
-      const ties = contenders.filter((o) => compareFairness(own, metricsOf(o.playerId), rivalDifficulty).criterion === null);
-      const peer = contenders[0];
-      const field = `Frente a los otros ${others.length} elegibles`;
+      const rank = eligible.indexOf(p) + 1;
+      const peer = eligible.slice(rank).find((o) => !protectedBy.has(o.playerId));
+      const ties = peer && compareFairness(own, metricsOf(peer.playerId), rivalDifficulty).criterion === null ? [peer] : [];
+      const field = `${rank}.º del orden de desconvocatoria`;
       if (!peer) {
         decision = {
           group: "proposed",
@@ -1030,7 +1047,7 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
         decision = {
           group: "proposed",
           reason: `Elegido: empata con ${ties.map((o) => o.displayName).join(", ")} en todos los criterios, incluido el nivel, y va antes en la plantilla`,
-          compare: `${field}: ${ties.length} empatan con él`,
+          compare: `${field}. Va antes que ${peer!.displayName}: empatan en todos los criterios`,
         };
       } else {
         const { criterion } = compareFairness(own, metricsOf(peer.playerId), rivalDifficulty);
@@ -1047,7 +1064,7 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
           group: "proposed",
           criterion: criterion!,
           reason: `Elegido: ${text.chosen}`,
-          compare: `${field}. El más parecido: ${text.compare}`,
+          compare: `${field}. Va antes que ${peer.displayName}: ${text.compare}`,
         };
       }
     } else if (p.locked && !internal.protection) {
@@ -1102,6 +1119,30 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
     };
   });
 
+  const order: ProposalOrderEntry[] = eligible.map((p, index) => {
+    const next = eligible[index + 1];
+    let versusNext: ProposalOrderEntry["versusNext"] = null;
+    if (next) {
+      const { criterion } = compareFairness(metricsOf(p.playerId), metricsOf(next.playerId), rivalDifficulty);
+      versusNext = {
+        nextName: next.displayName,
+        criterion,
+        text: criterion
+          ? `Va antes que ${next.displayName}: ${CRITERION_NAMES[criterion]} (${formatCriterionValues(criterion, metricsOf(p.playerId), metricsOf(next.playerId))})`
+          : `Va antes que ${next.displayName}: empatan en todos los criterios y va antes en la plantilla`,
+      };
+    }
+    return {
+      rank: index + 1,
+      playerId: p.playerId,
+      name: p.displayName,
+      position: roleLabel(p.positionRole ?? null),
+      outcome: selectedSet.has(p.playerId) ? "proposed" : protectedBy.has(p.playerId) ? "positionSkip" : "stays",
+      chips: fairnessChips(metricsOf(p.playerId)),
+      versusNext,
+    };
+  });
+
   return {
     generatedAt: new Date().toISOString(),
     rivalDifficulty,
@@ -1112,6 +1153,7 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
     players: playersWithSelection,
     positionWarnings: shortfalls,
     alreadyDeconvoked,
+    order,
   };
 }
 

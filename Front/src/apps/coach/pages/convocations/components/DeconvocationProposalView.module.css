@@ -288,42 +288,6 @@
   text-align: right;
 }
 
-.comparison {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding-top: 8px;
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
-}
-
-.comparisonTitle {
-  margin: 0 0 4px;
-  font-size: 0.82rem;
-  font-weight: 700;
-  color: #ffffff;
-}
-
-.comparisonRow {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 6px 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  font-size: 0.82rem;
-}
-
-.comparisonName {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: baseline;
-  color: #ffffff;
-}
-
-.comparisonVerdict {
-  line-height: 1.4;
-}
-
 .toneMuted {
   color: rgba(255, 255, 255, 0.6);
 }
@@ -464,4 +428,99 @@
   font-weight: 600;
   text-decoration: underline;
   cursor: pointer;
+}
+
+.orderSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.orderIntro {
+  margin: 0;
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.orderList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.orderItem {
+  display: flex;
+  gap: 10px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.orderItemOut {
+  border-color: rgba(255, 179, 0, 0.45);
+  background: rgba(255, 152, 0, 0.08);
+}
+
+.orderItemStays {
+  opacity: 0.85;
+}
+
+.orderRank {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 26px;
+  text-align: center;
+  color: #ffffff;
+}
+
+.orderBody {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+}
+
+.orderVersus {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.orderBadgeOut,
+.orderBadgeSkip {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.orderBadgeOut {
+  background: #ffb300;
+  color: #1a1a1a;
+}
+
+.orderBadgeSkip {
+  background: rgba(94, 222, 216, 0.18);
+  color: #5eded8;
+}
+
+.cutLine {
+  padding: 6px 0;
+  border-top: 2px dashed #ffb300;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-align: center;
+  color: #ffb300;
 }
