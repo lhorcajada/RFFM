@@ -30,7 +30,7 @@ export function signOfGoals(homeGoals: number, awayGoals: number): "1" | "X" | "
   return homeGoals === awayGoals ? "X" : "2";
 }
 
-function parseUtc(value: string): Date {
+export function parseUtc(value: string): Date {
   const hasZone = /(Z|[+-]\d{2}:?\d{2})$/.test(value);
   return new Date(hasZone ? value : `${value}Z`);
 }
