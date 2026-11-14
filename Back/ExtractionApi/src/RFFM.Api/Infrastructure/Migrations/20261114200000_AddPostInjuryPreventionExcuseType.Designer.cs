@@ -5721,6 +5721,139 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.ToTable("TeamPlayerSanctions", "app");
                 });
 
+            modelBuilder.Entity("RFFM.Api.Domain.Entities.TeamPlayers.TeamPlayerTraitRating", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("RatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("TeamPlayerId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Trend")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasDefaultValue("same");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TeamPlayerId", "RatedAt");
+
+                    b.ToTable("TeamPlayerTraitRatings", "app");
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Entities.TeamPlayers.TeamPlayerTraitRatingLevel", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<int>("Level")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("RatingId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("TraitKey")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RatingId", "TraitKey")
+                        .IsUnique();
+
+                    b.ToTable("TeamPlayerTraitRatingLevels", "app");
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Entities.TeamPlayers.TeamPositionFitOrder", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsManual")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TeamId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("WeekStart")
+                        .HasColumnType("date");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TeamId", "Position", "WeekStart")
+                        .IsUnique();
+
+                    b.ToTable("TeamPositionFitOrders", "app");
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Entities.TeamPlayers.TeamPositionFitOrderEntry", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<string>("OrderId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Place")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TeamPlayerId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TeamPlayerId");
+
+                    b.HasIndex("OrderId", "TeamPlayerId")
+                        .IsUnique();
+
+                    b.ToTable("TeamPositionFitOrderEntries", "app");
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Entities.TeamPlayers.TeamTraitWeight", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TeamId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("TraitKey")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Weight")
+                        .IsRequired()
+                        .HasMaxLength(15)
+                        .HasColumnType("character varying(15)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TeamId", "Position", "TraitKey")
+                        .IsUnique();
+
+                    b.ToTable("TeamTraitWeights", "app");
+                });
+
             modelBuilder.Entity("RFFM.Api.Domain.Entities.TeamPlayers.TrackingComment", b =>
                 {
                     b.Property<string>("Id")
@@ -7342,6 +7475,63 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.Navigation("TeamPlayer");
                 });
 
+            modelBuilder.Entity("RFFM.Api.Domain.Entities.TeamPlayers.TeamPlayerTraitRating", b =>
+                {
+                    b.HasOne("RFFM.Api.Domain.Entities.TeamPlayers.TeamPlayer", "TeamPlayer")
+                        .WithMany()
+                        .HasForeignKey("TeamPlayerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("TeamPlayer");
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Entities.TeamPlayers.TeamPlayerTraitRatingLevel", b =>
+                {
+                    b.HasOne("RFFM.Api.Domain.Entities.TeamPlayers.TeamPlayerTraitRating", "Rating")
+                        .WithMany("Levels")
+                        .HasForeignKey("RatingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Rating");
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Entities.TeamPlayers.TeamPositionFitOrder", b =>
+                {
+                    b.HasOne("RFFM.Api.Domain.Aggregates.UserClubs.Team", null)
+                        .WithMany()
+                        .HasForeignKey("TeamId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Entities.TeamPlayers.TeamPositionFitOrderEntry", b =>
+                {
+                    b.HasOne("RFFM.Api.Domain.Entities.TeamPlayers.TeamPositionFitOrder", "Order")
+                        .WithMany("Entries")
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("RFFM.Api.Domain.Entities.TeamPlayers.TeamPlayer", null)
+                        .WithMany()
+                        .HasForeignKey("TeamPlayerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Order");
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Entities.TeamPlayers.TeamTraitWeight", b =>
+                {
+                    b.HasOne("RFFM.Api.Domain.Aggregates.UserClubs.Team", null)
+                        .WithMany()
+                        .HasForeignKey("TeamId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("RFFM.Api.Domain.Entities.TeamPlayers.TrackingComment", b =>
                 {
                     b.HasOne("RFFM.Api.Domain.Aggregates.UserClubs.Team", null)
@@ -7654,6 +7844,16 @@ namespace RFFM.Api.Infrastructure.Migrations
             modelBuilder.Entity("RFFM.Api.Domain.Entities.TeamPlayers.TeamPlayerRating", b =>
                 {
                     b.Navigation("Details");
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Entities.TeamPlayers.TeamPlayerTraitRating", b =>
+                {
+                    b.Navigation("Levels");
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Entities.TeamPlayers.TeamPositionFitOrder", b =>
+                {
+                    b.Navigation("Entries");
                 });
 
             modelBuilder.Entity("RFFM.Api.Domain.Entities.Teams.LotteryCampaign", b =>
