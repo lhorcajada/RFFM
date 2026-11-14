@@ -3,7 +3,7 @@ import { createTeamTraitRatings, getTeamLatestTraitRatings, type TraitRatingItem
 import { getPlayersByTeam, type PlayerResponse } from "../../../services/teamplayerService";
 import type { TraitRating, TraitTrend } from "../../../types/traitRating";
 import { isGoalkeeperPosition } from "./positionCategory";
-import { TRAIT_CATALOG } from "./ratingTraits";
+import { TRAIT_CATALOG, type TraitDefinition } from "./ratingTraits";
 
 export type TraitLevels = Record<string, number>;
 
@@ -15,7 +15,6 @@ export type PlayerTraitDraft = {
 export type TraitDraft = Record<string, PlayerTraitDraft>;
 
 const GOALKEEPER_DEMARCATION_ID = 1;
-const TRAIT_ORDER = new Map(TRAIT_CATALOG.map((trait, index) => [trait.key, index]));
 
 function isFieldPlayer(player: PlayerResponse): boolean {
   return player.activePositionId !== GOALKEEPER_DEMARCATION_ID && !isGoalkeeperPosition(player.position);
@@ -30,12 +29,12 @@ function sameLevels(a: TraitLevels, b: TraitLevels): boolean {
   return [...keys].every((key) => a[key] === b[key]);
 }
 
-function toItem(playerId: string, draft: PlayerTraitDraft): TraitRatingItem {
+function toItem(playerId: string, draft: PlayerTraitDraft, traitOrder: Map<string, number>): TraitRatingItem {
   return {
     teamPlayerId: playerId,
     trend: draft.trend,
     levels: Object.entries(draft.levels)
-      .sort(([a], [b]) => (TRAIT_ORDER.get(a) ?? 0) - (TRAIT_ORDER.get(b) ?? 0))
+      .sort(([a], [b]) => (traitOrder.get(a) ?? 0) - (traitOrder.get(b) ?? 0))
       .map(([traitKey, level]) => ({ traitKey, level })),
   };
 }
@@ -56,7 +55,12 @@ export type TraitRatingState = {
   save: (ratedAt: string) => Promise<number>;
 };
 
-export function useTraitRating(teamId: string | null, seasonId: string | null): TraitRatingState {
+/** `traits` son los rasgos del equipo (visibles): fijan el orden en que se envían los niveles. */
+export function useTraitRating(
+  teamId: string | null,
+  seasonId: string | null,
+  traits: TraitDefinition[] = TRAIT_CATALOG,
+): TraitRatingState {
   const [players, setPlayers] = useState<PlayerResponse[]>([]);
   const [baseline, setBaseline] = useState<TraitDraft>({});
   const [draft, setDraft] = useState<TraitDraft>({});
@@ -100,15 +104,16 @@ export function useTraitRating(teamId: string | null, seasonId: string | null): 
   }, [teamId, seasonId]);
 
   const plan = useMemo(() => {
+    const traitOrder = new Map(traits.map((trait, index) => [trait.key, index]));
     const items = players
       .filter((player) => {
         const current = draft[player.id];
         const base = baseline[player.id];
         return current && base && (current.trend !== base.trend || !sameLevels(current.levels, base.levels));
       })
-      .map((player) => toItem(player.id, draft[player.id]));
+      .map((player) => toItem(player.id, draft[player.id], traitOrder));
     return { items };
-  }, [players, draft, baseline]);
+  }, [players, draft, baseline, traits]);
 
   const previousLevels = useMemo(
     () => Object.fromEntries(Object.entries(baseline).map(([id, d]) => [id, d.levels])),

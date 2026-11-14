@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { createTeamRatings, getTeamLatestRatings } from "../../../services/playerRatingService";
 import { getPlayersByTeam, type PlayerResponse } from "../../../services/teamplayerService";
 import type { PlayerRating } from "../../../types/playerRating";
+import { DEFAULT_SHEET_CATALOG, type SheetCatalog } from "./ratingCatalog";
 import { buildInitialDraft, planSave, type SavePlan, type SheetDraft } from "./ratingSheet";
 
 export type RatingSheetState = {
@@ -20,7 +21,16 @@ function byTeamPlayerId(ratings: PlayerRating[]): Record<string, PlayerRating> {
   return Object.fromEntries(ratings.map((rating) => [rating.teamPlayerId, rating]));
 }
 
-export function useRatingSheet(teamId: string | null, seasonId: string | null): RatingSheetState {
+/**
+ * `catalog` son las capacidades visibles del equipo; con `enabled` false (configuración aún cargando) no se
+ * carga nada, para que el borrador parta ya del catálogo definitivo.
+ */
+export function useRatingSheet(
+  teamId: string | null,
+  seasonId: string | null,
+  catalog: SheetCatalog = DEFAULT_SHEET_CATALOG,
+  enabled = true,
+): RatingSheetState {
   const [players, setPlayers] = useState<PlayerResponse[]>([]);
   const [latestRatings, setLatestRatings] = useState<Record<string, PlayerRating>>({});
   const [baseline, setBaseline] = useState<SheetDraft>({});
@@ -30,6 +40,7 @@ export function useRatingSheet(teamId: string | null, seasonId: string | null): 
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
+    if (!enabled) return;
     if (!teamId) {
       setLoading(false);
       setLoadError(true);
@@ -42,7 +53,7 @@ export function useRatingSheet(teamId: string | null, seasonId: string | null): 
       .then(([teamPlayers, ratings]) => {
         if (cancelled) return;
         const ratingsByPlayer = byTeamPlayerId(ratings);
-        const initialDraft = buildInitialDraft(teamPlayers, ratingsByPlayer);
+        const initialDraft = buildInitialDraft(teamPlayers, ratingsByPlayer, catalog);
         setPlayers(teamPlayers);
         setLatestRatings(ratingsByPlayer);
         setBaseline(initialDraft);
@@ -57,11 +68,11 @@ export function useRatingSheet(teamId: string | null, seasonId: string | null): 
     return () => {
       cancelled = true;
     };
-  }, [teamId, seasonId]);
+  }, [teamId, seasonId, catalog, enabled]);
 
   const plan = useMemo(
-    () => planSave(players, draft, baseline, latestRatings),
-    [players, draft, baseline, latestRatings],
+    () => planSave(players, draft, baseline, latestRatings, catalog),
+    [players, draft, baseline, latestRatings, catalog],
   );
 
   const place = useCallback((playerIds: string[], characteristicKey: string, level: number | null) => {

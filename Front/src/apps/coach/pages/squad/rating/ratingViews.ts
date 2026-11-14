@@ -1,12 +1,12 @@
 import { useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 
-export type RatingView = "capacity" | "traits" | "order";
+export type RatingView = "capacity" | "traits" | "order" | "config";
 
 export const RATING_VIEW_PARAM = "view";
 
 export function parseRatingView(value: string | null): RatingView {
-  return value === "traits" || value === "order" ? value : "capacity";
+  return value === "traits" || value === "order" || value === "config" ? value : "capacity";
 }
 
 /** Vista activa de /coach/squad/rating-sheet, guardada en la query string junto a teamId y seasonId. */

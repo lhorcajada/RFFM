@@ -24,6 +24,8 @@ import styles from "./TraitPlayerCard.module.css";
 
 type Props = {
   player: PlayerResponse;
+  /** Rasgos que se piden al equipo; por defecto los 12 del catálogo. */
+  traits?: TraitDefinition[];
   draft: PlayerTraitDraft;
   previousLevels: TraitLevels;
   readOnly: boolean;
@@ -56,6 +58,7 @@ function anchorOf(trait: TraitDefinition, level: number): string | undefined {
 
 export default function TraitPlayerCard({
   player,
+  traits = TRAIT_CATALOG,
   draft,
   previousLevels,
   readOnly,
@@ -64,7 +67,7 @@ export default function TraitPlayerCard({
   onLevel,
   onTrend,
 }: Props) {
-  const rated = TRAIT_CATALOG.filter((trait) => draft.levels[trait.key] != null).length;
+  const rated = traits.filter((trait) => draft.levels[trait.key] != null).length;
 
   return (
     <Accordion
@@ -80,7 +83,7 @@ export default function TraitPlayerCard({
           <span className={styles.name}>{playerDisplayName(player)}</span>
           {player.dorsal != null && <span className={styles.meta}>#{player.dorsal}</span>}
           {player.position && <span className={styles.meta}>{player.position}</span>}
-          <span className={styles.progress}>{rated}/{TRAIT_CATALOG.length}</span>
+          <span className={styles.progress}>{rated}/{traits.length}</span>
           {draft.trend !== "same" && <span className={styles.trendMark} aria-hidden="true">{TREND_SYMBOL[draft.trend]}</span>}
         </span>
       </AccordionSummary>
@@ -105,7 +108,7 @@ export default function TraitPlayerCard({
         {PHASES.map((phase) => (
           <section key={phase} className={styles.phase}>
             <h3 className={styles.phaseTitle}>{TRAIT_PHASE_LABELS[phase]}</h3>
-            {TRAIT_CATALOG.filter((trait) => trait.phase === phase).map((trait) => (
+            {traits.filter((trait) => trait.phase === phase).map((trait) => (
               <div key={trait.key} role="group" aria-label={trait.label} className={styles.trait}>
                 <span className={styles.traitLabel}>{trait.label}</span>
                 <span className={styles.levels}>
