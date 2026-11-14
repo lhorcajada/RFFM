@@ -128,6 +128,7 @@ namespace RFFM.Api.Domain
 
         // Squad rating sheets (Features/Coaches/Players/Commands/CreateTeamRatingsBatch.cs)
         public const string RatingPlayerNotInTeam = "RatingPlayerNotInTeam";
+        public const string PositionFitPlayerNotCandidate = "PositionFitPlayerNotCandidate";
 
         // Season Plans (Features/Coaches/SeasonPlans)
         public const string SeasonPlanNotFound = "SeasonPlanNotFound";

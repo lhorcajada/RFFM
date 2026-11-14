@@ -50,6 +50,11 @@ namespace RFFM.Api.Infrastructure.Persistence
         public DbSet<TeamPlayer> TeamPlayers { get; set; }
         public DbSet<TeamPlayerRating> TeamPlayerRatings { get; set; }
         public DbSet<TeamPlayerRatingDetail> TeamPlayerRatingDetails { get; set; }
+        public DbSet<TeamPlayerTraitRating> TeamPlayerTraitRatings { get; set; }
+        public DbSet<TeamPlayerTraitRatingLevel> TeamPlayerTraitRatingLevels { get; set; }
+        public DbSet<TeamPositionFitOrder> TeamPositionFitOrders { get; set; }
+        public DbSet<TeamPositionFitOrderEntry> TeamPositionFitOrderEntries { get; set; }
+        public DbSet<TeamTraitWeight> TeamTraitWeights { get; set; }
         public DbSet<TeamPlayerInjury> TeamPlayerInjuries { get; set; }
         public DbSet<TeamPlayerSanction> TeamPlayerSanctions { get; set; }
         public DbSet<PlayerModelObservation> PlayerModelObservations { get; set; }
