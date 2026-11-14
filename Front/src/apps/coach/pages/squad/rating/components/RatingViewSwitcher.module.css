@@ -1,0 +1,9 @@
+.switcher {
+  flex-wrap: wrap;
+}
+
+.toggleBtn {
+  font-size: 0.68rem !important;
+  padding: 3px 9px !important;
+  text-transform: none !important;
+}

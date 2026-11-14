@@ -6,12 +6,17 @@ import {
   MIDFIELDER_CATEGORY,
   positionCategory,
 } from "../positionCategory";
-import type { CharacteristicDef } from "../ratingConcepts";
 import type { SheetDraft } from "../ratingSheet";
 import styles from "./RatingSheetBoard.module.css";
 
+/** Lo que el tablero necesita de lo que se valora: una clave y el texto de cada nivel. */
+export type BoardCharacteristic = {
+  key: string;
+  levels: { concept: string }[];
+};
+
 type Props = {
-  characteristic: CharacteristicDef;
+  characteristic: BoardCharacteristic;
   players: PlayerResponse[];
   draft: SheetDraft;
   selectedIds: ReadonlySet<string>;

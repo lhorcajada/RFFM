@@ -1,0 +1,51 @@
+.actionBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 720px;
+}
+
+.positions {
+  flex-wrap: wrap;
+}
+
+.positionBtn {
+  gap: 6px;
+  font-size: 0.72rem !important;
+  padding: 4px 10px !important;
+  text-transform: none !important;
+}
+
+.count {
+  font-size: 0.68rem;
+  opacity: 0.7;
+}
+
+.status {
+  opacity: 0.8;
+}
+
+.hint {
+  display: block;
+  opacity: 0.75;
+}
+
+.emptyMessage {
+  opacity: 0.7;
+}

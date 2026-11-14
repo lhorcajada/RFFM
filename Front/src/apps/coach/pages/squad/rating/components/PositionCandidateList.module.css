@@ -1,0 +1,79 @@
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+}
+
+.rowOver {
+  border-color: #ff7a1a;
+}
+
+.rowDragging {
+  position: relative;
+  z-index: 2;
+  opacity: 0.9;
+}
+
+.place {
+  flex: 0 0 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #ff7a1a;
+  color: #07071a;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.name {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.fit {
+  font-size: 0.75rem;
+  opacity: 0.75;
+  font-variant-numeric: tabular-nums;
+}
+
+.trend {
+  font-weight: 700;
+  color: #ff7a1a;
+}
+
+.controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.handle {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px;
+  cursor: grab;
+  touch-action: none;
+  opacity: 0.7;
+}

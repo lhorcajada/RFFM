@@ -268,4 +268,31 @@ describe("DeconvocationProposalView", () => {
 
     expect(screen.getByRole("button", { name: "Aplicar propuesta" })).toBeDisabled();
   });
+
+  it("muestra el puesto, el lugar y el encaje del propuesto por encaje en la tarjeta y en el detalle", () => {
+    const fit = player(
+      "p1",
+      "Araque",
+      {
+        group: "proposed",
+        criterion: "fit",
+        reason: "Elegido: tiene peor encaje en su puesto (3.º de 3 en Mediocentro defensivo (3,1))",
+        compare: "Frente a los otros 2 elegibles. El más parecido: Bruno: 1.º de 3 en Mediocentro defensivo (4,2)",
+      },
+      { detail: [{ rule: "Encaje en el puesto", value: "3.º de 3 en Mediocentro defensivo (3,1)", result: "decides" }] },
+    );
+    renderView(proposal({ players: [fit], selectedIds: ["p1"] }));
+
+    expect(screen.getByText("Elegido por: encaje en el puesto")).toBeInTheDocument();
+    expect(screen.getByText(/3\.º de 3 en Mediocentro defensivo \(3,1\)\)$/)).toBeInTheDocument();
+    fireEvent.click(screen.getByText("Ver detalle de reglas"));
+    expect(screen.getByText("Encaje en el puesto")).toBeInTheDocument();
+    expect(screen.getByText("3.º de 3 en Mediocentro defensivo (3,1)")).toBeInTheDocument();
+  });
+
+  it("explica que el encaje en el puesto se mira primero entre los elegibles", () => {
+    renderView(proposal());
+
+    expect(screen.getByText(/se ordena primero por el encaje en su puesto/)).toBeInTheDocument();
+  });
 });

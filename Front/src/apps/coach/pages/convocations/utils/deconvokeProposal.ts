@@ -1,6 +1,8 @@
 import type { SportEventResponse } from "../../../services/sportEventService";
 import type { PlayerResponse } from "../../../services/teamplayerService";
 import type { PlayerRating } from "../../../types/playerRating";
+import type { PositionFit } from "../../../types/positionFit";
+import { FIT_POSITION_LABELS, positionForDemarcation } from "../../squad/rating/ratingTraits";
 import type { MatchColumn } from "../components/convocationMatchDetail.types";
 import type { GridCell } from "../components/convocationMatchDetail.types";
 import type { SeasonPlayerStats } from "../components/simulation/liveMatch.types";
@@ -23,10 +25,13 @@ import {
   compareFairness,
   CRITERION_NAMES,
   describeCriterion,
+  fitShareOf,
   formatCriterionValues,
+  formatFitPlace,
   protectionOf,
   type Criterion,
   type FairnessMetrics,
+  type FitInfo,
   type Protection,
   type ProtectionKind,
   type ProtectionWindows,
@@ -165,7 +170,39 @@ export type BuildProposalInput = {
   rivalDifficulty?: RivalDifficulty;
   /** Matchdays a technical deconvocation / an injury absence protects; 5 and 1 by default. */
   protectionWindows?: ProtectionWindows;
+  /** Fit order of each unified position; positions without a usable order keep the fairness order. */
+  positionFit?: PositionFit[];
 };
+
+/**
+ * Place of each called player in the fit order of his active position. Only positions with a confirmed
+ * order or at least one calculated fit are used, and only the players called count for the place.
+ */
+function buildFitInfo(
+  positionFit: PositionFit[] | undefined,
+  calledIds: string[],
+  playerById: Map<string, PlayerResponse>,
+): Map<string, FitInfo> {
+  const info = new Map<string, FitInfo>();
+  const calledSet = new Set(calledIds);
+  for (const position of positionFit ?? []) {
+    const hasUsableOrder = position.confirmedWeekStart != null || position.candidates.some((c) => c.fit != null);
+    if (!hasUsableOrder) continue;
+    const called = position.candidates.filter((c) => calledSet.has(c.teamPlayerId));
+    called.forEach((candidate, index) => {
+      const activePositionId = playerById.get(candidate.teamPlayerId)?.activePositionId;
+      if (activePositionId == null || positionForDemarcation(activePositionId) !== position.position) return;
+      info.set(candidate.teamPlayerId, {
+        share: fitShareOf(index + 1, called.length),
+        place: index + 1,
+        total: called.length,
+        positionLabel: FIT_POSITION_LABELS[position.position],
+        value: candidate.fit,
+      });
+    });
+  }
+  return info;
+}
 
 // "Trainings" include the friendlies the player was called to.
 export type WeeklyTrainingStats = {
@@ -217,7 +254,7 @@ type DetailInput = {
   difficulty: RivalDifficulty;
 };
 
-const CRITERIA_ORDER: Criterion[] = ["consecutive", "surplus", "technicalTotal", "attendance", "rating"];
+const CRITERIA_ORDER: Criterion[] = ["fit", "consecutive", "surplus", "technicalTotal", "attendance", "rating"];
 
 /** Every rule evaluated for a player, in funnel order, with its value and outcome. */
 function buildDetail({ proposal, internal, decision, decidingCriterion, positionReason, windows, difficulty }: DetailInput): ProposalDetailRow[] {
@@ -268,6 +305,10 @@ function buildDetail({ proposal, internal, decision, decidingCriterion, position
 
   if (!proposal.forced && !internal.protection && !positionReason && !proposal.locked) {
     const values: Record<Criterion, [string, string]> = {
+      fit: [
+        "Encaje en el puesto",
+        metrics.fit ? formatFitPlace(metrics.fit) : "Sin orden de encaje para su puesto",
+      ],
       consecutive: ["Jornadas seguidas convocado", String(metrics.consecutive)],
       surplus: ["Convocatorias sobre el mínimo", String(metrics.surplus)],
       technicalTotal: ["Desconvocatorias técnicas", String(metrics.technicalTotal)],
@@ -278,6 +319,10 @@ function buildDetail({ proposal, internal, decision, decidingCriterion, position
     CRITERIA_ORDER.forEach((criterion, index) => {
       if (criterion === "rating" && difficulty !== "hard") return;
       let result: DetailResult = "noEffect";
+      if (criterion === "fit" && !metrics.fit) {
+        rows.push({ rule: values[criterion][0], value: values[criterion][1], result });
+        return;
+      }
       if (decision.group === "proposed") {
         if (criterion === decidingCriterion) result = "decides";
         else if (decidingIndex === -1 || index < decidingIndex) result = "tie";
@@ -586,6 +631,7 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
     0,
     ...calledIds.map((pid) => technicalTotals.get(pid) ?? 0),
   );
+  const fitInfoById = buildFitInfo(input.positionFit, calledIds, playerById);
 
   const internals = new Map<string, PlayerInternals>();
   const proposals = calledIds
@@ -794,6 +840,7 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
               : null,
           ),
           rating: weightedRating,
+          fit: fitInfoById.get(playerId),
         },
       });
 

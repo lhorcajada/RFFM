@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import type { SportEventResponse } from "../../../services/sportEventService";
 import type { PlayerResponse } from "../../../services/teamplayerService";
 import type { PlayerRating } from "../../../types/playerRating";
+import type { PositionFit } from "../../../types/positionFit";
 import type { GridCell, MatchColumn } from "../components/convocationMatchDetail.types";
 import type { SeasonPlayerStats } from "../components/simulation/liveMatch.types";
 import type { DeconvokeProposal, WeeklyTrainingStats } from "../utils/deconvokeProposal";
@@ -38,6 +39,8 @@ type UseConvocationProposalInput = {
   rules?: DeconvocationRuleConfig[];
   /** Difficulty of the rival; medium when omitted. */
   rivalDifficulty?: RivalDifficulty;
+  /** Fit order of each unified position; positions without one keep the fairness order. */
+  positionFit?: PositionFit[];
 };
 
 export function useConvocationProposal(input: UseConvocationProposalInput): DeconvokeProposal {
@@ -64,6 +67,7 @@ export function useConvocationProposal(input: UseConvocationProposalInput): Deco
     matchUnavailable,
     rules,
     rivalDifficulty,
+    positionFit,
   } = input;
 
   return useMemo(
@@ -92,6 +96,7 @@ export function useConvocationProposal(input: UseConvocationProposalInput): Deco
         matchUnavailable,
         rules,
         rivalDifficulty,
+        positionFit,
       }),
     [
       players,
@@ -116,6 +121,7 @@ export function useConvocationProposal(input: UseConvocationProposalInput): Deco
       matchUnavailable,
       rules,
       rivalDifficulty,
+      positionFit,
     ],
   );
 }

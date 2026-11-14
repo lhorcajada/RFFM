@@ -24,6 +24,7 @@ import { useConvocationMatchContext } from "./hooks/useConvocationMatchContext";
 import { useConvocationPlayerViews } from "./hooks/useConvocationPlayerViews";
 import { useConvocationProposal } from "./hooks/useConvocationProposal";
 import { useDeconvocationRules } from "./hooks/useDeconvocationRules";
+import { usePositionFitOrder } from "./hooks/usePositionFitOrder";
 import { useRivalDifficulty } from "./hooks/useRivalDifficulty";
 import { leagueTechnicalTotals } from "./utils/technicalTotals";
 import { resolveRule } from "./utils/rules/ruleCatalog";
@@ -154,6 +155,7 @@ export default function ConvocationMatchDetail() {
 
   const readinessMap = useTeamReadinessMap(teamId);
   const { rules: deconvocationRules, reload: reloadDeconvocationRules } = useDeconvocationRules(teamId);
+  const positionFit = usePositionFitOrder(teamId);
 
   // Data hooks
   const convocation = useConvocationManagement(teamId, match?.date);
@@ -263,6 +265,7 @@ export default function ConvocationMatchDetail() {
   const proposal = useConvocationProposal({
     rules: deconvocationRules,
     rivalDifficulty,
+    positionFit,
     players: convocation.players,
     squadIds,
     alreadyOutIds,

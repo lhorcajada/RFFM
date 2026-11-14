@@ -1,0 +1,47 @@
+.actionBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.dateField {
+  width: 160px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  max-width: 900px;
+}
+
+.hint {
+  display: block;
+  margin-bottom: 12px;
+  opacity: 0.75;
+}
+
+.emptyMessage {
+  opacity: 0.7;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.toggleBtn {
+  font-size: 0.68rem !important;
+  padding: 3px 9px !important;
+  text-transform: none !important;
+}

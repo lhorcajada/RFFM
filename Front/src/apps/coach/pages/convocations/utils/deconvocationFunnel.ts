@@ -86,7 +86,40 @@ export function protectionOf(
   return null;
 }
 
-export type Criterion = "consecutive" | "surplus" | "technicalTotal" | "attendance" | "rating";
+export type Criterion = "fit" | "consecutive" | "surplus" | "technicalTotal" | "attendance" | "rating";
+
+/** Where a player stands in the fit order of his position, among the players called. */
+export type FitInfo = {
+  /** 0 = worst fit of the position, 1 = best, 0.5 = neutral (a single candidate). */
+  share: number;
+  /** 1-based place in the order. */
+  place: number;
+  /** Players called that compete in the position. */
+  total: number;
+  positionLabel: string;
+  /** Fit 1–5, or null when there is no fit calculated (only a confirmed order). */
+  value: number | null;
+};
+
+const NEUTRAL_FIT_SHARE = 0.5;
+
+export function fitShareOf(place: number, total: number): number {
+  if (total <= 1) return NEUTRAL_FIT_SHARE;
+  return (total - place) / (total - 1);
+}
+
+function fitValueText(value: number | null): string {
+  return value == null ? "sin datos" : value.toFixed(1).replace(".", ",");
+}
+
+/** e.g. «3.º de 3 en Mediocentro defensivo (3,1)». */
+export function formatFitPlace(info: FitInfo): string {
+  return `${info.place}.º de ${info.total} en ${info.positionLabel} (${fitValueText(info.value)})`;
+}
+
+function fitPlaceText(info: FitInfo | undefined): string {
+  return info ? formatFitPlace(info) : "sin orden de encaje";
+}
 
 export type FairnessMetrics = {
   /** Consecutive matchdays called without rest, newest first. */
@@ -98,6 +131,8 @@ export type FairnessMetrics = {
   attendanceBucket: number;
   /** Weighted rating: the last tiebreak, or right after the call surplus against a hard rival. */
   rating: number;
+  /** Place in the fit order of the player's position; absent when the position has no usable order. */
+  fit?: FitInfo;
 };
 
 export function attendanceBucket(rate: number | null): number {
@@ -106,8 +141,8 @@ export function attendanceBucket(rate: number | null): number {
 }
 
 /**
- * Negative order: `a` is deconvoked before `b`. The first criterion where they differ decides:
- * more consecutive matchdays, larger call surplus, fewer technical deconvocations, lower attendance
+ * Negative order: `a` is deconvoked before `b`. The first criterion where they differ decides: the
+ * worst fit in the player's position, then more consecutive matchdays, larger call surplus, fewer technical deconvocations, lower attendance
  * and lower rating, so the best players are the last to rest. Against a hard rival the rating moves
  * right after the call surplus.
  */
@@ -116,6 +151,10 @@ export function compareFairness(
   b: FairnessMetrics,
   difficulty: RivalDifficulty,
 ): { order: number; criterion: Criterion | null } {
+  const fit: [Criterion, number] = [
+    "fit",
+    (a.fit?.share ?? NEUTRAL_FIT_SHARE) - (b.fit?.share ?? NEUTRAL_FIT_SHARE),
+  ];
   const consecutive: [Criterion, number] = ["consecutive", b.consecutive - a.consecutive];
   const surplus: [Criterion, number] = ["surplus", b.surplus - a.surplus];
   const technicalTotal: [Criterion, number] = ["technicalTotal", a.technicalTotal - b.technicalTotal];
@@ -123,8 +162,8 @@ export function compareFairness(
   const rating: [Criterion, number] = ["rating", a.rating - b.rating];
   const steps =
     difficulty === "hard"
-      ? [consecutive, surplus, rating, technicalTotal, attendance]
-      : [consecutive, surplus, technicalTotal, attendance, rating];
+      ? [fit, consecutive, surplus, rating, technicalTotal, attendance]
+      : [fit, consecutive, surplus, technicalTotal, attendance, rating];
   for (const [criterion, diff] of steps) {
     if (diff !== 0) return { order: diff, criterion };
   }
@@ -152,6 +191,12 @@ export function describeCriterion(
   difficulty: RivalDifficulty = "medium",
 ): { chosen: string; compare: string; notChosen: string } {
   switch (criterion) {
+    case "fit":
+      return {
+        chosen: `tiene peor encaje en su puesto (${fitPlaceText(a.fit)})`,
+        compare: `${peerName}: ${fitPlaceText(b.fit)}`,
+        notChosen: `Se desconvoca a ${chosenName} en su lugar: peor encaje en su puesto (${fitPlaceText(a.fit)} frente a ${fitPlaceText(b.fit)})`,
+      };
     case "consecutive":
       return {
         chosen: `lleva ${a.consecutive} jornadas seguidas convocado sin descansar`,
@@ -191,6 +236,8 @@ export function describeCriterion(
 /** Values of a criterion for the player proposed (a) and a peer (b), e.g. "6 frente a 4". */
 export function formatCriterionValues(criterion: Criterion, a: FairnessMetrics, b: FairnessMetrics): string {
   switch (criterion) {
+    case "fit":
+      return `${fitPlaceText(a.fit)} frente a ${fitPlaceText(b.fit)}`;
     case "consecutive":
       return `${a.consecutive} frente a ${b.consecutive}`;
     case "surplus":
@@ -205,6 +252,7 @@ export function formatCriterionValues(criterion: Criterion, a: FairnessMetrics, 
 }
 
 export const CRITERION_NAMES: Record<Criterion, string> = {
+  fit: "encaje en el puesto",
   consecutive: "jornadas seguidas",
   surplus: "excedente de convocatorias",
   technicalTotal: "desconvocatorias técnicas",

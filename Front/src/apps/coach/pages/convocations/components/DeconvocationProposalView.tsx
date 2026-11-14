@@ -29,6 +29,7 @@ type Props = {
 };
 
 const CRITERION_LABELS: Record<NonNullable<ProposalDecision["criterion"]>, string> = {
+  fit: "encaje en el puesto",
   consecutive: "jornadas seguidas",
   surplus: "excedente de convocatorias",
   technicalTotal: "desconvocatorias técnicas",
@@ -178,7 +179,7 @@ export default function DeconvocationProposalView({
     },
     {
       title: "Justicia",
-      text: `Entre los ${eligibleCount} elegibles se ordena por jornadas seguidas convocado sin descansar, excedente de convocatorias, desconvocatorias técnicas y asistencia.`,
+      text: `Entre los ${eligibleCount} elegibles se ordena primero por el encaje en su puesto (cuando hay orden de encaje) y después por jornadas seguidas convocado sin descansar, excedente de convocatorias, desconvocatorias técnicas y asistencia.`,
     },
     {
       title: "Dificultad del rival",

@@ -20,7 +20,11 @@ import { usePermissions } from "../../../../../shared/hooks/usePermissions";
 import BaseLayout from "../../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../../shared/components/ui/ContentLayout/ContentLayout";
 import ConfirmDialog from "../../../../../shared/components/ui/ConfirmDialog/ConfirmDialog";
+import PositionFitPage from "./PositionFitPage";
 import RatingSheetBoard, { playerDisplayName } from "./components/RatingSheetBoard";
+import RatingViewSwitcher from "./components/RatingViewSwitcher";
+import TraitRatingPage from "./TraitRatingPage";
+import { squadSearchFrom, useRatingView } from "./ratingViews";
 import {
   DEFENDER_CATEGORY,
   FORWARD_CATEGORY,
@@ -51,12 +55,13 @@ function showSnackbar(message: string, severity: "success" | "error") {
   window.dispatchEvent(new CustomEvent("rffm.show_snackbar", { detail: { message, severity } }));
 }
 
-export default function RatingSheetPage() {
+function CapacitySheetView() {
   const navigate = useNavigate();
   const theme = useTheme();
   const isNarrowViewport = useMediaQuery(theme.breakpoints.down("md"));
   const [searchParams] = useSearchParams();
-  const squadSearch = searchParams.toString() ? `?${searchParams.toString()}&tab=1` : "?tab=1";
+  const [, setView] = useRatingView();
+  const squadSearch = squadSearchFrom(searchParams);
   const { roles } = usePermissions();
   const canRate = roles.includes("Coach") || roles.includes("Administrator");
 
@@ -163,6 +168,7 @@ export default function RatingSheetPage() {
         title="Valorar plantilla"
         actionBar={
           <div className={styles.actionBar}>
+            <RatingViewSwitcher value="capacity" hasUnsavedChanges={hasUnsavedChanges} onChange={setView} />
             <ToggleButtonGroup
               value={sheet}
               exclusive
@@ -316,4 +322,11 @@ export default function RatingSheetPage() {
       />
     </BaseLayout>
   );
+}
+
+export default function RatingSheetPage() {
+  const [view] = useRatingView();
+  if (view === "traits") return <TraitRatingPage />;
+  if (view === "order") return <PositionFitPage />;
+  return <CapacitySheetView />;
 }
