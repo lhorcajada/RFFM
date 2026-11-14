@@ -16,6 +16,8 @@ import {
 } from "../../quiniela/quinielaHelpers";
 import QuinielaRulesDialog from "../../quiniela/components/QuinielaRulesDialog";
 import QuinielaWinnersCard from "./QuinielaWinnersCard";
+import QuinielaMatchList from "./QuinielaMatchList";
+import { buildQuinielaMatchRows, summarizeTickets } from "../utils/quinielaMatchResults";
 import { currentUserId, isQuinielaNovelty } from "../utils/quinielaNovelty";
 import styles from "./QuinielaPromoCard.module.css";
 
@@ -139,6 +141,8 @@ export default function QuinielaPromoCard({
   const previous = current.previous;
   const showNovelty = isQuinielaNovelty(currentUserId(), teamId);
   const day = formatJornadaDay(current.jornada.firstKickoffUtc);
+  const matchRows = buildQuinielaMatchRows(current.matches, current.myTickets, new Date());
+  const ticketSummaries = summarizeTickets(matchRows, current.myTickets);
   const barText = `${closed ? "Quiniela de la jornada" : "Haz tu apuesta para la siguiente jornada"} ${current.jornada.roundNumber}${day ? ` día ${day}` : ""}`;
 
   return (
@@ -211,6 +215,8 @@ export default function QuinielaPromoCard({
             </div>
 
             <div className={`${styles.status} ${view.tone}`}>{view.status}</div>
+
+            <QuinielaMatchList rows={matchRows} summaries={ticketSummaries} />
 
             <Link to={href} className={styles.cta}>
               {current.myTickets.length > 1
