@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Alert, Avatar, Button, CircularProgress, Tab, Tabs } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import EmptyState from "../../../../shared/components/ui/EmptyState/EmptyState";
@@ -9,6 +10,7 @@ import { useAuditPageAccess } from "../../../../shared/hooks/useAuditPageAccess"
 import { resolveStorageUrl } from "../../../../shared/utils/resolveStorageUrl";
 import ActaContent from "../../../../shared/components/acta/ActaContent/ActaContent";
 import type { Acta } from "../../../../shared/types/acta";
+import { exportElementToPdf } from "../../../../shared/services/pdfService";
 import {
   getFederationActaByCode,
   getMatchReport,
@@ -96,6 +98,9 @@ export default function MatchReport() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [selectedTab, setSelectedTab] = useState<ReportTab | null>(null);
+  const [eventActa, setEventActa] = useState<Acta | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const printRef = useRef<HTMLDivElement>(null);
   const [playerTarget, setPlayerTarget] = useState<{ code: string; name: string | null } | null>(null);
 
   const handlePlayerClick = (playerCode: string, playerName?: string) => {
@@ -138,8 +143,29 @@ export default function MatchReport() {
 
   function renderTab(tab: ReportTab | undefined) {
     if (!report || !tab) return <EmptyState description="No hay acta disponible para este partido." />;
-    if (tab === "federation") return <FederationActaTab eventId={report.eventId} onPlayerClick={handlePlayerClick} />;
+    if (tab === "federation") return <FederationActaTab eventId={report.eventId} onPlayerClick={handlePlayerClick} printRef={printRef} onActaLoaded={setEventActa} />;
     return report.live ? <LiveReportTab report={report.live} /> : null;
+  }
+
+  const printableActa = isFederationOnly ? acta : activeTab === "federation" ? eventActa : null;
+
+  async function handleDownloadPdf() {
+    if (!printRef.current || !printableActa) return;
+    setExporting(true);
+    try {
+      await exportElementToPdf(
+        printRef.current,
+        `Acta ${printableActa.equipo_local ?? ""} - ${printableActa.equipo_visitante ?? ""}.pdf`,
+      );
+    } catch {
+      window.dispatchEvent(
+        new CustomEvent("rffm.show_snackbar", {
+          detail: { message: "No se ha podido generar el PDF del acta.", severity: "error" },
+        }),
+      );
+    } finally {
+      setExporting(false);
+    }
   }
 
   function renderContent() {
@@ -156,7 +182,9 @@ export default function MatchReport() {
         <>
           <MatchHeader {...actaHeader(acta)} />
           <div className={styles.tabPanel}>
-            <ActaContent acta={acta} onPlayerClick={handlePlayerClick} />
+            <div ref={printRef}>
+              <ActaContent acta={acta} onPlayerClick={handlePlayerClick} />
+            </div>
           </div>
         </>
       );
@@ -186,9 +214,16 @@ export default function MatchReport() {
       <ContentLayout
         title="Acta del partido"
         actionBar={
-          <Button startIcon={<ArrowBackIcon />} onClick={() => navigate(-1)} variant="outlined" size="small">
-            Volver
-          </Button>
+          <>
+            <Button startIcon={<ArrowBackIcon />} onClick={() => navigate(-1)} variant="outlined" size="small">
+              Volver
+            </Button>
+            {printableActa && (
+              <Button startIcon={<PictureAsPdfIcon />} onClick={handleDownloadPdf} disabled={exporting} variant="outlined" size="small">
+                Descargar PDF
+              </Button>
+            )}
+          </>
         }
       >
         {renderContent()}
