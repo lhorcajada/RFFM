@@ -4,13 +4,19 @@ import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { UserProvider } from "../../../../../shared/context/UserContext";
 
+vi.mock("../../../hooks/useTeamAndClub", () => ({
+  default: () => ({ team: null }),
+}));
+vi.mock("../../../../../shared/context/RffmSeasonContext", () => ({
+  useRffmSeason: () => ({ seasonId: 22, currentSeasonId: 22 }),
+}));
+
 vi.mock("../hooks/useConvocations", () => ({
   default: () => ({
     matches: [],
     loading: false,
     error: null,
-    federationTeamId: "team-1",
-    settingsLoading: false,
+    canSyncCalendar: true,
     syncing: false,
     syncSnackbar: null,
     setSyncSnackbar: vi.fn(),

@@ -9,7 +9,9 @@ import ContentLayout from "../../../../shared/components/ui/ContentLayout/Conten
 import styles from "./Convocations.module.css";
 import { useState, useMemo } from "react";
 
-import useConvocations from "./hooks/useConvocations";
+import useConvocations, { type CalendarSource } from "./hooks/useConvocations";
+import useTeamAndClub from "../../hooks/useTeamAndClub";
+import { useRffmSeason } from "../../../../shared/context/RffmSeasonContext";
 import useTeamDashboardBack from "../../hooks/useTeamDashboardBack";
 import { useIsPlayerRole } from "../../hooks/useIsPlayerRole";
 import useEventAttendanceSummaries from "../../hooks/useEventAttendanceSummaries";
@@ -38,17 +40,29 @@ export default function Convocations() {
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
 
+  const { team } = useTeamAndClub();
+  const { seasonId, currentSeasonId } = useRffmSeason();
+  const season = String(currentSeasonId ?? seasonId ?? "");
+  const calendarSource = useMemo<CalendarSource | null>(() => {
+    if (!team?.rffmCompetitionId || !team?.rffmGroupId || !team?.rffmTeamCode || season === "") return null;
+    return {
+      season,
+      competition: String(team.rffmCompetitionId),
+      group: String(team.rffmGroupId),
+      teamCode: String(team.rffmTeamCode),
+    };
+  }, [team?.rffmCompetitionId, team?.rffmGroupId, team?.rffmTeamCode, season]);
+
   const {
     matches,
     loading,
     error,
-    federationTeamId,
-    settingsLoading,
+    canSyncCalendar,
     syncing,
     syncSnackbar,
     setSyncSnackbar,
     handleSyncCalendar,
-  } = useConvocations(teamId || undefined);
+  } = useConvocations(teamId || undefined, calendarSource);
 
   // Build date → matches map
   const matchByDay = useMemo<Record<string, NormalizedMatch[]>>(() => {
@@ -101,7 +115,7 @@ export default function Convocations() {
     navigate(`/coach/match-report?${params.toString()}`);
   };
 
-  const isLoadingAny = settingsLoading || loading;
+  const isLoadingAny = loading;
 
   const roles = coachAuthService.getRoles();
   const isPlayerFamilyOrFollower =
@@ -125,8 +139,8 @@ export default function Convocations() {
                 onClick={handleSyncCalendar}
                 variant="contained"
                 size="small"
-                disabled={syncing || !federationTeamId}
-                title={!federationTeamId ? "Configura tu equipo en Federación para poder generar el calendario" : undefined}
+                disabled={syncing || !canSyncCalendar}
+                title={!canSyncCalendar ? "Configura la competición y el grupo de tu equipo para poder generar el calendario" : undefined}
               >
                 Generar calendario
               </Button>

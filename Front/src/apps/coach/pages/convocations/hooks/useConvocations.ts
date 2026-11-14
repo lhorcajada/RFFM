@@ -1,15 +1,21 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { calendarService, settingsService } from "../../../../federation/services/Federation";
+import { calendarService } from "../../../../federation/services/Federation";
 import sportEventService from "../../../services/sportEventService";
 import { normalizeFromSportEvent, normalizeRawMatch } from "../helpers/convocationUtils";
 import type { NormalizedMatch } from "../types";
 
-export function useConvocations(teamId?: string) {
+/** Competition the coach team plays in (from the coach team config, never the Federation selection). */
+export type CalendarSource = {
+  season: string;
+  competition: string;
+  group: string;
+  teamCode: string;
+};
+
+export function useConvocations(teamId?: string, calendarSource: CalendarSource | null = null) {
   const [matches, setMatches] = useState<NormalizedMatch[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [federationTeamId, setFederationTeamId] = useState<string | null>(null);
-  const [settingsLoading, setSettingsLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [syncSnackbar, setSyncSnackbar] = useState<string | null>(null);
 
@@ -17,25 +23,6 @@ export function useConvocations(teamId?: string) {
   useEffect(() => {
     mountedRef.current = true;
     return () => { mountedRef.current = false; };
-  }, []);
-
-  // Load federation settings → get the federation team ID
-  useEffect(() => {
-    let mounted = true;
-    setSettingsLoading(true);
-    (async () => {
-      try {
-        const settings = await settingsService.getSettings();
-        if (!mounted) return;
-        const primary = settings.find((s) => s.isPrimary) ?? settings[0] ?? null;
-        setFederationTeamId(primary?.teamId ?? null);
-      } catch {
-        if (mounted) setFederationTeamId(null);
-      } finally {
-        if (mounted) setSettingsLoading(false);
-      }
-    })();
-    return () => { mounted = false; };
   }, []);
 
   const loadCoachEvents = useCallback(async () => {
@@ -91,9 +78,8 @@ export function useConvocations(teamId?: string) {
   }, [teamId]);
 
   useEffect(() => {
-    if (settingsLoading) return;
     loadCoachEvents();
-  }, [teamId, settingsLoading, loadCoachEvents]);
+  }, [teamId, loadCoachEvents]);
 
   useEffect(() => {
     if (!loading) return;
@@ -106,10 +92,15 @@ export function useConvocations(teamId?: string) {
   }, [loading]);
 
   const handleSyncCalendar = useCallback(async () => {
-    if (!federationTeamId || !teamId || syncing) return;
+    if (!calendarSource || !teamId || syncing) return;
+    const federationTeamId = calendarSource.teamCode;
     setSyncing(true);
     try {
-      const raw = await calendarService.getTeamMatches(federationTeamId) as Array<{ date: string | null; match: Record<string, unknown> }>;
+      const raw = await calendarService.getTeamMatches(federationTeamId, {
+        season: calendarSource.season,
+        competition: calendarSource.competition,
+        group: calendarSource.group,
+      }) as Array<{ date: string | null; match: Record<string, unknown> }>;
 
       let myTeamShieldUrl: string | null = null;
       for (const item of raw) {
@@ -158,14 +149,13 @@ export function useConvocations(teamId?: string) {
     } finally {
       setSyncing(false);
     }
-  }, [federationTeamId, teamId, syncing, loadCoachEvents]);
+  }, [calendarSource, teamId, syncing, loadCoachEvents]);
 
   return {
     matches,
     loading,
     error,
-    federationTeamId,
-    settingsLoading,
+    canSyncCalendar: calendarSource !== null,
     syncing,
     syncSnackbar,
     setSyncSnackbar,
