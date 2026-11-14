@@ -115,6 +115,14 @@ describe("splitRound", () => {
     expect(splitRound([otherBye, own, other], "100").rest).toEqual([other, otherBye]);
   });
 
+  it("ordena el resto por día y hora, dejando los descansos ajenos al final", () => {
+    const late = match({ matchRecordCode: "late", localTeamCode: "300", visitorTeamCode: "400", date: "15-11-2026", time: "12:15" });
+    const early = match({ matchRecordCode: "early", localTeamCode: "310", visitorTeamCode: "410", date: "14-11-2026", time: "11:00" });
+    const mid = match({ matchRecordCode: "mid", localTeamCode: "320", visitorTeamCode: "420", date: "14-11-2026", time: "17:00" });
+    const otherBye = match({ matchRecordCode: "ob", localTeamCode: "500", visitorTeamCode: "", visitorTeamName: "Descansa", date: "14-11-2026", time: "09:00" });
+    expect(splitRound([late, otherBye, mid, own, early], "100").rest).toEqual([early, mid, late, otherBye]);
+  });
+
   it("sin código de equipo devuelve todos los partidos en el resto", () => {
     expect(splitRound([own, other], null)).toEqual({ own: null, ownBye: false, rest: [own, other] });
   });
