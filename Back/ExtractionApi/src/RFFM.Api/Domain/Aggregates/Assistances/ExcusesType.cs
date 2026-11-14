@@ -12,6 +12,7 @@
         public static readonly ExcuseTypes SportiveSanction = new ExcuseTypes(8, "Sanción deportiva", true);
         private static readonly ExcuseTypes MedicalAppointment = new ExcuseTypes(9, "Cita médica", true);
         private static readonly ExcuseTypes UnforeseenEvent = new ExcuseTypes(10, "Imprevisto", true);
+        public static readonly ExcuseTypes PostInjuryPrevention = new ExcuseTypes(11, "Prevención después de lesión", true);
 
         public int Id { get; private set; }
         public string Name { get; private set; } = null!;
@@ -26,7 +27,7 @@
             Justified = justified;
         }
 
-        public static IEnumerable<ExcuseTypes> List() => new[] { Injury, Study, Ill, FamilyProblem, FamilyEvent, BirthdayEvent, TechnicalDecision, SportiveSanction, MedicalAppointment, UnforeseenEvent };
+        public static IEnumerable<ExcuseTypes> List() => new[] { Injury, Study, Ill, FamilyProblem, FamilyEvent, BirthdayEvent, TechnicalDecision, SportiveSanction, MedicalAppointment, UnforeseenEvent, PostInjuryPrevention };
 
         public static ExcuseTypes? FromId(int id) => List().SingleOrDefault(e => e.Id == id);
     }

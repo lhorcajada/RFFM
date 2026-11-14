@@ -23,6 +23,7 @@ namespace RFFM.Api.Tests.UnitTests
         private const int IllnessExcuseTypeId = 3;
         private const int TechnicalDecisionExcuseTypeId = 7;
         private const int SportiveSanctionExcuseTypeId = 8;
+        private const int PostInjuryPreventionExcuseTypeId = 11;
 
         private readonly PostgresContainerFixture _fixture;
 
@@ -275,6 +276,7 @@ namespace RFFM.Api.Tests.UnitTests
         [Theory]
         [InlineData(TechnicalDecisionExcuseTypeId)]
         [InlineData(SportiveSanctionExcuseTypeId)]
+        [InlineData(PostInjuryPreventionExcuseTypeId)]
         public void Validator_rejects_coach_only_reasons(int excuseTypeId)
         {
             var result = new RespondAvailabilityRequest.Validator().Validate(Command("e", "r", available: false, excuseTypeId));
