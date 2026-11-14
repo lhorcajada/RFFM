@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using RFFM.Api.Domain.Aggregates.UserClubs;
 using RFFM.Api.Features.Coaches.Teams;
 using RFFM.Api.Infrastructure.Persistence;
 
@@ -18,7 +19,18 @@ namespace RFFM.Api.Features.Coaches.LiveMatch
                 return false;
 
             var coachTeamIds = await TeamEditAuthorization.CoachTeamIdsAsync(db, userId, ct);
-            return coachTeamIds.Contains(eventTeamId);
+            if (coachTeamIds.Contains(eventTeamId))
+                return true;
+
+            return await IsClubCoachOfTeamAsync(db, userId, eventTeamId, ct);
         }
+
+        private static Task<bool> IsClubCoachOfTeamAsync(AppDbContext db, string userId, string teamId, CancellationToken ct) =>
+            db.UserClubs
+                .AsNoTracking()
+                .AnyAsync(uc =>
+                    uc.ApplicationUserId == userId
+                    && uc.RoleId == Membership.Coach.Id
+                    && db.Teams.Any(t => t.Id == teamId && t.ClubId == uc.ClubId), ct);
     }
 }
