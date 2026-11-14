@@ -36,13 +36,19 @@ const finishedMatch: NormalizedMatch = {
   matchCategory: "League",
 };
 
+vi.mock("../../../hooks/useTeamAndClub", () => ({
+  default: () => ({ team: null }),
+}));
+vi.mock("../../../../../shared/context/RffmSeasonContext", () => ({
+  useRffmSeason: () => ({ seasonId: 22, currentSeasonId: 22 }),
+}));
+
 vi.mock("../hooks/useConvocations", () => ({
   default: () => ({
     matches: [finishedMatch],
     loading: false,
     error: null,
-    federationTeamId: "team-1",
-    settingsLoading: false,
+    canSyncCalendar: true,
     syncing: false,
     syncSnackbar: null,
     setSyncSnackbar: vi.fn(),
