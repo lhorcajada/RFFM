@@ -44,8 +44,18 @@ namespace RFFM.Api.Tests.UnitTests
             Assert.False(IsValid(Item("tp-1", null, Level(level: level))));
 
         [Fact]
-        public void Unknown_trait_key_fails() =>
-            Assert.False(IsValid(Item("tp-1", null, Level("traitMadeUp", 3))));
+        public void Custom_trait_key_passes() =>
+            Assert.True(IsValid(Item("tp-1", null, Level("custom-0123456789abcdef0123456789abcdef", 3))));
+
+        [Theory]
+        [InlineData("")]
+        [InlineData("   ")]
+        public void Empty_trait_key_fails(string key) =>
+            Assert.False(IsValid(Item("tp-1", null, Level(key, 3))));
+
+        [Fact]
+        public void Trait_key_longer_than_50_fails() =>
+            Assert.False(IsValid(Item("tp-1", null, Level(new string('x', 51), 3))));
 
         [Fact]
         public void Repeated_trait_in_the_same_player_fails() =>

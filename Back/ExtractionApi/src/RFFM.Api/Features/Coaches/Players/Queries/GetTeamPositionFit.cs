@@ -90,6 +90,11 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                 .AsNoTracking()
                 .Where(w => w.TeamId == teamId)
                 .ToListAsync(cancellationToken);
+            var customizations = await db.TeamTraitDefinitions
+                .AsNoTracking()
+                .Where(t => t.TeamId == teamId)
+                .ToListAsync(cancellationToken);
+            var visibleTraits = EffectiveTraitCatalog.Resolve(customizations).Visible;
 
             var confirmedByPosition = new Dictionary<int, TeamPositionFitOrder>();
             if (useConfirmedOrder)
@@ -107,7 +112,7 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
             var responses = new List<PositionFitResponse>();
             foreach (var position in FitPositionKeys.Evaluated)
             {
-                var weights = ResolveWeights(position, overrides);
+                var weights = ResolveWeights(position, overrides, visibleTraits);
                 var candidates = rows
                     .Where(r => FitPositionMap.CandidatePositions(r.ActivePositionId, r.PossibleDemarcationIds).Contains(position))
                     .Select(r =>
@@ -139,9 +144,15 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
             return responses;
         }
 
-        private static Dictionary<string, TraitWeight> ResolveWeights(FitPosition position, IReadOnlyList<TeamTraitWeight> overrides)
+        private static Dictionary<string, TraitWeight> ResolveWeights(
+            FitPosition position,
+            IReadOnlyList<TeamTraitWeight> overrides,
+            IReadOnlySet<string> visibleTraits)
         {
-            var weights = DefaultTraitWeights.For(position).ToDictionary(w => w.Key, w => w.Value);
+            // Default weights of the visible default traits; traits created by the team weigh "suma" until changed.
+            var weights = visibleTraits.ToDictionary(
+                key => key,
+                key => DefaultTraitWeights.For(position).TryGetValue(key, out var weight) ? weight : TraitWeight.Sum);
             foreach (var teamOverride in overrides.Where(o => o.Position == (int)position))
             {
                 var weight = TraitWeightKeys.TryParse(teamOverride.Weight);
