@@ -298,7 +298,11 @@ export default function Squad() {
                 startIcon={<PictureAsPdfIcon />}
                 onClick={() =>
                   exportSquadMatchStatsPdf(
-                    buildSquadMatchStatsRows(playerStats, leagueStats),
+                    buildSquadMatchStatsRows(
+                      playerStats,
+                      leagueStats,
+                      Object.fromEntries(players.map((p) => [p.id, p]))
+                    ),
                     team?.name
                   )
                 }

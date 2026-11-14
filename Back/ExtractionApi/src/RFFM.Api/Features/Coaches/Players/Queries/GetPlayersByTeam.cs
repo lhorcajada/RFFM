@@ -52,6 +52,7 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
             public string TeamCategory { get; set; } = string.Empty;
             public bool IsInjured { get; set; }
             public DateTime? InjuryStartDate { get; set; }
+            public string? DominantFoot { get; set; }
 
         };
 
@@ -105,6 +106,7 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                         BirthDate = tp.Player.BirthDate,
                         Team = tp.Team.Name,
                         TeamCategory = tp.Team.Category.Name,
+                        DominantFoot = tp.PhysicalInfo != null ? tp.PhysicalInfo.DominantFoot : null,
                         IsInjured = tp.Injuries.Any(i => i.EndDate == null),
                         InjuryStartDate = tp.Injuries
                             .Where(i => i.EndDate == null)
@@ -131,7 +133,8 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                     Team = i.Team,
                     TeamCategory = i.TeamCategory,
                     IsInjured = i.IsInjured,
-                    InjuryStartDate = i.InjuryStartDate
+                    InjuryStartDate = i.InjuryStartDate,
+                    DominantFoot = i.DominantFoot?.Name
                 }).ToArray();
             }
         }

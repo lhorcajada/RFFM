@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildSquadMatchStatsRows } from "../squadMatchStatsModel";
+import { buildSquadMatchStatsRows, playerInfoLines } from "../squadMatchStatsModel";
 import type { PlayerStatistics } from "../../../services/teamPlayerStatisticsService";
 import type { LeaguePlayerStats } from "../../../services/leagueStatsService";
 
@@ -59,5 +59,32 @@ describe("buildSquadMatchStatsRows", () => {
     );
 
     expect(rows.map((r) => r.name)).toEqual(["Siete", "Diez", "Sin dorsal"]);
+  });
+});
+
+describe("datos del jugador desde la plantilla", () => {
+  const roster = {
+    p1: { alias: "Anita", position: "Medio Centro", dominantFoot: "Zurdo" },
+  };
+
+  it("toma alias, posición y pie dominante de la plantilla", () => {
+    const [row] = buildSquadMatchStatsRows([player({ position: null })], {}, roster);
+
+    expect(row).toMatchObject({ alias: "Anita", position: "Medio Centro", dominantFoot: "Zurdo" });
+  });
+
+  it("indica dorsal, posición y pie dominante etiquetados, y el alias junto al nombre", () => {
+    const [row] = buildSquadMatchStatsRows([player({})], {}, roster);
+
+    expect(playerInfoLines(row)).toEqual({
+      title: "Ana Pérez · Alias: Anita",
+      detail: "Dorsal 9 · Posición: Medio Centro · Pie dominante: Zurdo",
+    });
+  });
+
+  it("omite lo que no está informado", () => {
+    const [row] = buildSquadMatchStatsRows([player({ dorsal: null, position: null })], {}, {});
+
+    expect(playerInfoLines(row)).toEqual({ title: "Ana Pérez", detail: "" });
   });
 });
