@@ -5,11 +5,13 @@ export type ProtectionWindows = {
   technical: number;
   /** Matchdays an absence by injury or illness counts as rest. */
   injuryRest: number;
+  /** Minutes below which the last match leaves the player protected; 0 or absent turns the rule off. */
+  lowMinutes?: number;
   /** Matchdays a deconvocation for any other cause (family, studies...) protects the player. */
   otherCause: number;
 };
 
-export const DEFAULT_PROTECTION_WINDOWS: ProtectionWindows = { technical: 8, injuryRest: 1, otherCause: 4 };
+export const DEFAULT_PROTECTION_WINDOWS: ProtectionWindows = { technical: 8, injuryRest: 1, otherCause: 4, lowMinutes: 20 };
 
 export type DifficultyThresholds = {
   /** Own win probability below which the rival is hard. */
@@ -30,7 +32,7 @@ export function classifyRivalDifficulty(
   return "medium";
 }
 
-export type ProtectionKind = "technicalWindow" | "injuryRest" | "otherCause" | "minCalls";
+export type ProtectionKind = "technicalWindow" | "injuryRest" | "otherCause" | "lowMinutes" | "minCalls";
 
 export type Protection = { kind: ProtectionKind; reason: string };
 
@@ -41,6 +43,9 @@ type ProtectionInput = {
   injuryAgo: number | null;
   /** The last injury-related absence was the coach's "Prevención después de lesión" rest. */
   injuryPrevention?: boolean;
+  /** Minutes played in the last match; null or absent when unknown. */
+  lastMinutes?: number | null;
+  lastMinutesMatch?: string | null;
   injuryMatch?: string | null;
   /** Matchdays since the last deconvocation for another cause (not technical, not injury); null when none. */
   otherAgo?: number | null;
@@ -80,8 +85,14 @@ export function protectionOf(
   input: ProtectionInput,
   windows: ProtectionWindows = DEFAULT_PROTECTION_WINDOWS,
 ): Protection | null {
-  const { technicalAgo, injuryAgo, injuryPrevention = false, injuryMatch, otherAgo = null, otherReason = null, technicalMatch, otherMatch, calledCount, minRequiredCalls } = input;
+  const { technicalAgo, injuryAgo, injuryPrevention = false, injuryMatch, lastMinutes = null, lastMinutesMatch, otherAgo = null, otherReason = null, technicalMatch, otherMatch, calledCount, minRequiredCalls } = input;
   const causes: Array<{ ago: number; kind: ProtectionKind; reason: string }> = [];
+  const minutesThreshold = windows.lowMinutes ?? 0;
+  if (lastMinutes != null && minutesThreshold > 0 && lastMinutes < minutesThreshold) {
+    const where = matchWhere(lastMinutesMatch);
+    const played = lastMinutes === 0 ? "convocado y sin jugar minutos" : `jugó solo ${lastMinutes} min`;
+    causes.push({ ago: 0, kind: "lowMinutes", reason: `Protegido: ${played}${where ? ` ${where}` : ""}` });
+  }
   if (technicalAgo != null && technicalAgo <= windows.technical) {
     causes.push({ ago: technicalAgo, kind: "technicalWindow", reason: describeDeconvocation("decisión técnica", technicalMatch, technicalAgo) });
   }

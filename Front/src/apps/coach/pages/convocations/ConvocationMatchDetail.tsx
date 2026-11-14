@@ -24,6 +24,8 @@ import { useConvocationMatchContext } from "./hooks/useConvocationMatchContext";
 import { useConvocationPlayerViews } from "./hooks/useConvocationPlayerViews";
 import { useConvocationProposal } from "./hooks/useConvocationProposal";
 import { useDeconvocationRules } from "./hooks/useDeconvocationRules";
+import { useMatchMinutes } from "./hooks/useMatchMinutes";
+import { buildLastMatchMinutes } from "./utils/lastMatchMinutes";
 import { usePositionFitOrder } from "./hooks/usePositionFitOrder";
 import { useRivalDifficulty } from "./hooks/useRivalDifficulty";
 import { leagueTechnicalTotals } from "./utils/technicalTotals";
@@ -262,7 +264,14 @@ export default function ConvocationMatchDetail() {
     return ids;
   }, [lastInjuryEndMap, lastInjuryStartMap, match?.date]);
 
+  const matchMinutes = useMatchMinutes(teamId, proposalEnabled);
+  const lastMatchMinutes = useMemo(
+    () => buildLastMatchMinutes(matchMinutes, grid.matchColumns),
+    [matchMinutes, grid.matchColumns],
+  );
+
   const proposal = useConvocationProposal({
+    lastMatchMinutes,
     rules: deconvocationRules,
     rivalDifficulty,
     positionFit,

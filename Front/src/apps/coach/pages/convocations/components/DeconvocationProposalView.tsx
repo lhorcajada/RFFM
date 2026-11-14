@@ -56,6 +56,7 @@ const RESULT_TONE: Record<DetailResult, string> = {
 
 const PROTECTED_GROUPS: Array<{ title: string; kinds: Array<NonNullable<ProposalDecision["protection"]>> }> = [
   { title: "Descansaron o desconvocados hace poco", kinds: ["technicalWindow", "injuryRest", "otherCause"] },
+  { title: "Pocos minutos en el último partido", kinds: ["lowMinutes"] },
   { title: "Mínimo de convocatorias", kinds: ["minCalls"] },
   { title: "Mínimo por posición", kinds: ["position", "goalkeeper"] },
 ];

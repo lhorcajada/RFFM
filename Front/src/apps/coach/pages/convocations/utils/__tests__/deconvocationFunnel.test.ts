@@ -98,6 +98,38 @@ describe("protectionOf", () => {
     });
   });
 
+  it("protege a quien jugó menos minutos que el umbral en el último partido", () => {
+    expect(protectionOf({ ...base, lastMinutes: 12, lastMinutesMatch: "J9 · 21 oct" })).toEqual({
+      kind: "lowMinutes",
+      reason: "Protegido: jugó solo 12 min en la J9 (21 oct)",
+    });
+  });
+
+  it("protege a quien estaba convocado y no llegó a jugar", () => {
+    expect(protectionOf({ ...base, lastMinutes: 0, lastMinutesMatch: "J9 · 21 oct" })).toEqual({
+      kind: "lowMinutes",
+      reason: "Protegido: convocado y sin jugar minutos en la J9 (21 oct)",
+    });
+  });
+
+  it("no protege a quien llegó al umbral de minutos", () => {
+    expect(protectionOf({ ...base, lastMinutes: 20 })).toBeNull();
+  });
+
+  it("no protege por minutos si no hay datos del último partido", () => {
+    expect(protectionOf({ ...base, lastMinutes: null })).toBeNull();
+  });
+
+  it("no protege por minutos cuando la regla está desactivada (umbral 0)", () => {
+    expect(protectionOf({ ...base, lastMinutes: 5 }, { technical: 8, injuryRest: 1, otherCause: 4, lowMinutes: 0 })).toBeNull();
+  });
+
+  it("los minutos bajos van antes que otra protección más antigua", () => {
+    const protection = protectionOf({ ...base, technicalAgo: 3, lastMinutes: 8 });
+
+    expect(protection?.kind).toBe("lowMinutes");
+  });
+
   it("no protege una lesión de hace dos jornadas con ventana de una", () => {
     expect(protectionOf({ ...base, injuryAgo: 2 })).toBeNull();
   });

@@ -1,13 +1,17 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_RULES } from "../defaultRules";
-import { RULE_CATALOG, RULE_CONDITIONS, resolveRule, unusedConditions } from "../ruleCatalog";
+import { RULE_CATALOG, buildDefaultRule, RULE_CONDITIONS, resolveRule, unusedConditions } from "../ruleCatalog";
 import { migrateRules } from "../rulesMigration";
 
 describe("ruleCatalog", () => {
-  it("define las condiciones del embudo: tres obligatorias, dos ventanas, dificultad y nivel", () => {
+  it("define las condiciones del embudo: tres obligatorias, ventanas, minutos bajos, dificultad y nivel", () => {
     expect([...RULE_CONDITIONS].sort()).toEqual(
-      ["injured", "injuryRest", "otherDeconvocation", "rating", "recentDeconvocation", "recentRecovery", "rivalDifficulty", "weeklyTraining"].sort(),
+      ["injured", "injuryRest", "lowMinutes", "otherDeconvocation", "rating", "recentDeconvocation", "recentRecovery", "rivalDifficulty", "weeklyTraining"].sort(),
     );
+  });
+
+  it("la regla de pocos minutos protege por defecto por debajo de 20 minutos", () => {
+    expect(buildDefaultRule("lowMinutes").points).toEqual({ minutes: 20 });
   });
 
   it("tiene una definición por condición", () => {
