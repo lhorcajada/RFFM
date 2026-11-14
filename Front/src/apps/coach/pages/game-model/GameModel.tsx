@@ -17,7 +17,7 @@ import {
 } from "@mui/material";
 import { useNavigate, useLocation } from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import PrintIcon from "@mui/icons-material/Print";
+import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import EditNoteIcon from "@mui/icons-material/EditNote";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
@@ -31,8 +31,8 @@ import useTeamDashboardBack from "../../hooks/useTeamDashboardBack";
 import gameModelService from "../../services/gameModelService";
 import seasonService, { type Season } from "../../services/seasonService";
 import type { GameModel as GameModelType } from "../../types/gameModel";
-import GameModelTree from "./components/GameModelTree";
 import GameModelView from "./components/GameModelView";
+import { exportGameModelPdf } from "./gameModelPdfExport";
 import styles from "./GameModel.module.css";
 
 export default function GameModel() {
@@ -114,8 +114,8 @@ export default function GameModel() {
     setSelectedSeason(e.target.value);
   };
 
-  const handlePrint = () => {
-    window.print();
+  const handleDownloadPdf = () => {
+    if (gameModel) exportGameModelPdf(gameModel, team?.name);
   };
 
   const handleDelete = async () => {
@@ -233,8 +233,8 @@ export default function GameModel() {
               </Button>
             )}
             {gameModel && (
-              <Button startIcon={<PrintIcon />} onClick={handlePrint} variant="contained" size="small" color="primary">
-                Imprimir PDF
+              <Button startIcon={<PictureAsPdfIcon />} onClick={handleDownloadPdf} variant="contained" size="small" color="primary">
+                Descargar PDF
               </Button>
             )}
           </>
@@ -285,9 +285,6 @@ export default function GameModel() {
           </Box>
         )}
       </ContentLayout>
-
-      {/* ── Vista de impresión (oculta en pantalla, visible al imprimir) ── */}
-      {gameModel && <GameModelTree gameModel={gameModel} print />}
 
       {/* ── Dialog nueva temporada ── */}
       <Dialog open={newSeasonDialogOpen} onClose={handleCloseNewSeasonDialog} maxWidth="xs" fullWidth>

@@ -154,6 +154,6 @@ describe("GameModel page", () => {
     expect(screen.queryByRole("button", { name: /nuevo modelo/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /editar modelo/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /eliminar modelo/i })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /imprimir pdf/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /descargar pdf/i })).toBeInTheDocument();
   });
 });
