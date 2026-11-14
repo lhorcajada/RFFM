@@ -135,6 +135,9 @@ namespace RFFM.Api.Tests.UnitTests
             Assert.True(IsValid(Rule("injuryRest"), Rule("rivalDifficulty"), Rule("recentDeconvocation")));
 
         [Fact]
+        public void Validator_AcceptsTheLowMinutesCondition() => Assert.True(IsValid(Rule("lowMinutes")));
+
+        [Fact]
         public void Validator_RejectsAnUnknownCondition() => Assert.False(IsValid(Rule("nope")));
 
         [Fact]
