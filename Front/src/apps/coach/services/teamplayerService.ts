@@ -18,6 +18,7 @@ export type PlayerResponse = {
   teamCategory?: string | null;
   isInjured?: boolean;
   injuryStartDate?: string | null;
+  dominantFoot?: string | null;
 };
 
 export type AddressResponse = {

@@ -1,15 +1,15 @@
 import jsPDF from "jspdf";
-import type { SquadMatchStatsRow } from "./squadMatchStatsModel";
+import { playerInfoLines, type SquadMatchStatsRow } from "./squadMatchStatsModel";
 
 const MARGIN = 14;
-const ROW_H = 6;
+const ROW_H = 9;
 const HEADER_FONT = 7.5;
 const BODY_FONT = 8.5;
 
 type Column = { label: string; width: number; value: (r: SquadMatchStatsRow) => string };
 
 const COLUMNS: Column[] = [
-  { label: "Jugador", width: 56, value: (r) => `${r.dorsal ?? "-"}  ${r.name}` },
+  { label: "Jugador", width: 104, value: (r) => playerInfoLines(r).title },
   { label: "Conv.", width: 12, value: (r) => String(r.league.callUps) },
   { label: "Tit.", width: 11, value: (r) => String(r.league.starts) },
   { label: "Gol", width: 11, value: (r) => String(r.league.goals) },
@@ -43,7 +43,7 @@ export function squadMatchStatsFileName(teamName?: string): string {
 }
 
 export function exportSquadMatchStatsPdf(rows: SquadMatchStatsRow[], teamName?: string): void {
-  const doc = new jsPDF({ unit: "mm", format: "a4" });
+  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
   const xs: number[] = [];
@@ -95,6 +95,14 @@ export function exportSquadMatchStatsPdf(rows: SquadMatchStatsRow[], teamName?: 
     COLUMNS.forEach((c, i) =>
       doc.text(c.value(row), i === 0 ? xs[i] + 1 : xs[i] + c.width - 2, y, { align: i === 0 ? "left" : "right" }),
     );
+    const { detail } = playerInfoLines(row);
+    if (detail) {
+      doc.setFontSize(7);
+      doc.setTextColor(90);
+      doc.text(detail, xs[0] + 1, y + 3.6);
+      doc.setTextColor(0);
+      doc.setFontSize(BODY_FONT);
+    }
     y += ROW_H;
   });
 
