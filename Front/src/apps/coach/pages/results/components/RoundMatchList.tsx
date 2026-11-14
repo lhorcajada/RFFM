@@ -27,18 +27,18 @@ export default function RoundMatchList({ title, matches, resolveActaLink }: Prop
             <li key={code || `${m.localTeamName}-${m.visitorTeamName}-${index}`} className={styles.card}>
               <div className={styles.row}>
                 <span className={`${styles.team} ${styles.home}`}>
-                  <span className={styles.teamName}>{m.localTeamName}</span>
                   <TeamCrest name={m.localTeamName} imageUrl={m.localTeamImageUrl} size="sm" />
+                  <span className={styles.teamName}>{m.localTeamName}</span>
+                </span>
+                <span className={`${styles.team} ${styles.away}`}>
+                  <TeamCrest name={m.visitorTeamName} imageUrl={m.visitorTeamImageUrl} size="sm" />
+                  <span className={styles.teamName}>{m.visitorTeamName}</span>
                 </span>
                 {played ? (
                   <span className={styles.score}>{`${m.localGoals.trim()} – ${m.visitorGoals.trim()}`}</span>
                 ) : (
                   <span className={styles.time}>{m.time?.trim() || "—"}</span>
                 )}
-                <span className={styles.team}>
-                  <TeamCrest name={m.visitorTeamName} imageUrl={m.visitorTeamImageUrl} size="sm" />
-                  <span className={styles.teamName}>{m.visitorTeamName}</span>
-                </span>
               </div>
               <div className={styles.footer}>
                 {suspended && <span className={styles.suspended}>Suspendido</span>}

@@ -1,4 +1,5 @@
 import type { CalendarMatch } from "../../../../federation/types/calendarMatchDay";
+import { compareByKickoff } from "./matchDates";
 
 export type Outcome = "V" | "E" | "D";
 
@@ -74,7 +75,7 @@ export function splitRound(
       rest.push(m);
     }
   }
-  return { own, ownBye: ownBye && !own, rest: [...rest, ...byes] };
+  return { own, ownBye: ownBye && !own, rest: [...[...rest].sort(compareByKickoff), ...byes] };
 }
 
 export function seasonSummary(

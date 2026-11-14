@@ -35,9 +35,12 @@
 
 .row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 64px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "home center"
+    "away center";
   align-items: center;
-  gap: 8px;
+  gap: 6px 12px;
 }
 
 .team {
@@ -52,12 +55,16 @@
 
 .teamName {
   min-width: 0;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+  text-wrap: balance;
 }
 
 .home {
-  justify-content: flex-end;
-  text-align: right;
+  grid-area: home;
+}
+
+.away {
+  grid-area: away;
 }
 
 .suspended {
@@ -72,6 +79,7 @@
 }
 
 .score {
+  grid-area: center;
   justify-self: center;
   min-width: 56px;
   padding: 4px 6px;
@@ -84,6 +92,7 @@
 }
 
 .time {
+  grid-area: center;
   justify-self: center;
   font-size: 0.8125rem;
   font-weight: 600;
