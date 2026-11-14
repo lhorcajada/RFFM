@@ -28,7 +28,7 @@ namespace RFFM.Api.Features.Coaches.DeconvocationRules
         /// </summary>
         public static readonly IReadOnlySet<string> Conditions = new HashSet<string>
         {
-            "injured", "weeklyTraining", "recentRecovery", "recentDeconvocation", "otherDeconvocation", "injuryRest", "lowMinutes", "rivalDifficulty", "rating",
+            "injured", "weeklyTraining", "recentRecovery", "recentDeconvocation", "otherDeconvocation", "injuryRest", "lowMinutes", "minCalls", "positionMinimums", "rivalDifficulty", "rating",
             "goals", "streak", "minimum", "rivalResult", "technicalTotal", "necessity", "weeklyTrainingAccum",
         };
     }
