@@ -8,8 +8,8 @@ vi.mock("../../../services/matchReportService", () => ({
   getEventFederationActa: vi.fn(),
   getFederationActaByCode: vi.fn(),
 }));
-vi.mock("../../../../../shared/services/pdfService", () => ({
-  exportElementToPdf: vi.fn().mockResolvedValue(undefined),
+vi.mock("../../../../../shared/services/actaPdfExport", () => ({
+  downloadActaPdf: vi.fn(),
 }));
 vi.mock("../../../../../shared/components/ui/BaseLayout/BaseLayout", () => ({
   default: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
@@ -28,7 +28,7 @@ import {
   getMatchReport,
   type MatchReport as MatchReportType,
 } from "../../../services/matchReportService";
-import { exportElementToPdf } from "../../../../../shared/services/pdfService";
+import { downloadActaPdf } from "../../../../../shared/services/actaPdfExport";
 
 const acta = { equipo_local: "CD Local", equipo_visitante: "CF Visitante", goles_local: "1", goles_visitante: "0", fecha: "04-10-2026" };
 
@@ -81,10 +81,8 @@ describe("MatchReport — descarga del acta en PDF desde la barra de botones", (
 
     await userEvent.click(await screen.findByRole("button", { name: /descargar pdf/i }));
 
-    await waitFor(() => expect(exportElementToPdf).toHaveBeenCalledTimes(1));
-    const [element, fileName] = vi.mocked(exportElementToPdf).mock.calls[0];
-    expect(element).toHaveTextContent("Acta RFFM CD Local");
-    expect(fileName).toBe("Acta CD Local - CF Visitante.pdf");
+    await waitFor(() => expect(downloadActaPdf).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(downloadActaPdf).mock.calls[0][0]).toMatchObject({ equipo_local: "CD Local", equipo_visitante: "CF Visitante" });
   });
 
   it("en un partido propio sin acta en directo, el botón está en la barra y exporta el acta", async () => {
@@ -93,8 +91,8 @@ describe("MatchReport — descarga del acta en PDF desde la barra de botones", (
 
     await userEvent.click(await screen.findByRole("button", { name: /descargar pdf/i }));
 
-    await waitFor(() => expect(exportElementToPdf).toHaveBeenCalledTimes(1));
-    expect(vi.mocked(exportElementToPdf).mock.calls[0][1]).toBe("Acta CD Local - CF Visitante.pdf");
+    await waitFor(() => expect(downloadActaPdf).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(downloadActaPdf).mock.calls[0][0]).toMatchObject({ equipo_local: "CD Local" });
   });
 
   it("con las dos pestañas, el botón solo aparece mientras se ve la pestaña de Federación", async () => {
@@ -108,7 +106,9 @@ describe("MatchReport — descarga del acta en PDF desde la barra de botones", (
   });
 
   it("si falla la generación del PDF avisa con un mensaje de error", async () => {
-    vi.mocked(exportElementToPdf).mockRejectedValueOnce(new Error("boom"));
+    vi.mocked(downloadActaPdf).mockImplementationOnce(() => {
+      throw new Error("boom");
+    });
     const messages: string[] = [];
     const listener = (e: Event) => messages.push((e as CustomEvent<{ message: string }>).detail.message);
     window.addEventListener("rffm.show_snackbar", listener);
