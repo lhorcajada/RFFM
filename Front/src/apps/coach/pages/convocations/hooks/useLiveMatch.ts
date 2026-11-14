@@ -47,13 +47,13 @@ const SAVE_ERROR_MESSAGE = "Error al guardar los datos del partido. Inténtalo d
 const ACTION_ERROR_MESSAGE = "No se ha podido guardar la última acción en el servidor. Revisa el partido.";
 const LEGACY_BACKUP_PREFIX = "rffm_live";
 
-/** Appends the HTTP status and the server's reason, when the failure carries them, to the save error. */
-function describeSaveFailure(error: unknown): string {
+/** Appends the HTTP status and the server's reason, when the failure carries them, to the given error message. */
+function describeSaveFailure(error: unknown, baseMessage: string = SAVE_ERROR_MESSAGE): string {
   const response = (error as { response?: { status?: unknown; data?: { detail?: unknown } } } | null)?.response;
   const status = typeof response?.status === "number" ? response.status : null;
-  if (status === null) return SAVE_ERROR_MESSAGE;
+  if (status === null) return baseMessage;
   const detail = typeof response?.data?.detail === "string" ? response.data.detail.trim() : "";
-  return `${SAVE_ERROR_MESSAGE} (${status}${detail ? `: ${detail}` : ""})`;
+  return `${baseMessage} (${status}${detail ? `: ${detail}` : ""})`;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -798,8 +798,8 @@ export function useLiveMatch(
       try {
         if (serverStateRef.current === null) await liveRef.current.ensureCreated();
         await sendSteps(steps);
-      } catch {
-        showSnackbar(ACTION_ERROR_MESSAGE, "error");
+      } catch (error) {
+        showSnackbar(describeSaveFailure(error, ACTION_ERROR_MESSAGE), "error");
       } finally {
         inFlightRef.current -= 1;
         setReconcileTick((tick) => tick + 1);
