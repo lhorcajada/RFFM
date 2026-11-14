@@ -49,7 +49,8 @@ namespace RFFM.Api.Features.Coaches.Availability
                 RuleFor(x => x.ExcuseTypeId)
                     .Must(id => id is null || (ExcuseTypes.FromId(id.Value) is not null
                         && id != ExcuseTypes.TechnicalDecision.Id
-                        && id != ExcuseTypes.SportiveSanction.Id))
+                        && id != ExcuseTypes.SportiveSanction.Id
+                        && id != ExcuseTypes.PostInjuryPrevention.Id))
                     .When(x => !x.Available)
                     .WithMessage("El motivo indicado no es válido.");
             }

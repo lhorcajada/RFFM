@@ -14,6 +14,7 @@ const allExcuseTypes: ExcuseType[] = [
   { id: 7, name: "Decisión técnica", justified: false } as ExcuseType,
   { id: 8, name: "Sanción deportiva", justified: true } as ExcuseType,
   { id: 9, name: "Cita médica", justified: true } as ExcuseType,
+  { id: 11, name: "Prevención después de lesión", justified: true } as ExcuseType,
 ];
 
 describe("DeconvokeDialog - motivos reservados al entrenador", () => {
@@ -30,6 +31,20 @@ describe("DeconvokeDialog - motivos reservados al entrenador", () => {
 
     expect(screen.queryByRole("button", { name: /Decisión técnica/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Sanción deportiva/i })).not.toBeInTheDocument();
+  });
+
+  it("oculta 'Prevención después de lesión' a jugador o familiar", () => {
+    render(
+      <DeconvokeDialog open={true} onClose={vi.fn()} excuseTypes={allExcuseTypes} onConfirm={vi.fn()} hideCoachOnly />
+    );
+
+    expect(screen.queryByRole("button", { name: /Prevención después de lesión/i })).not.toBeInTheDocument();
+  });
+
+  it("muestra 'Prevención después de lesión' al entrenador", () => {
+    render(<DeconvokeDialog open={true} onClose={vi.fn()} excuseTypes={allExcuseTypes} onConfirm={vi.fn()} />);
+
+    expect(screen.getByRole("button", { name: /Prevención después de lesión/i })).toBeInTheDocument();
   });
 
   it("muestra 'Cita médica' a jugador o familiar", () => {

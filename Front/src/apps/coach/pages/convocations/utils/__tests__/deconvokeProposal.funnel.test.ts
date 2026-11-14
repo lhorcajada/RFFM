@@ -97,7 +97,7 @@ describe("buildDeconvokeProposal — protección", () => {
     expect(proposal.selectedIds).not.toContain("mc1");
     expect(find(proposal, "mc1").decision).toMatchObject({
       group: "protected",
-      reason: "Protegido: desconvocado hace 3 jornadas",
+      reason: "Protegido: desconvocado por decisión técnica en la J4, hace 3 jornadas",
     });
   });
 
@@ -111,13 +111,13 @@ describe("buildDeconvokeProposal — protección", () => {
     const proposal = build(team(), { cells: { mc1: { 0: FAMILY } } });
 
     expect(proposal.selectedIds).not.toContain("mc1");
-    expect(find(proposal, "mc1").decision.reason).toBe("Protegido: desconvocado hace 1 jornada por problema familiar");
+    expect(find(proposal, "mc1").decision.reason).toBe("Protegido: desconvocado por problema familiar en la J6, hace 1 jornada");
   });
 
   it("con una técnica antigua y una por problema familiar reciente muestra la reciente", () => {
     const proposal = build(team(), { cells: { mc1: { 0: FAMILY, 4: TECHNICAL } } });
 
-    expect(find(proposal, "mc1").decision.reason).toBe("Protegido: desconvocado hace 1 jornada por problema familiar");
+    expect(find(proposal, "mc1").decision.reason).toBe("Protegido: desconvocado por problema familiar en la J6, hace 1 jornada");
   });
 
   it("una desconvocatoria por otro motivo de hace 5 jornadas ya no protege", () => {
@@ -129,7 +129,7 @@ describe("buildDeconvokeProposal — protección", () => {
   it("la técnica protege hasta 8 jornadas", () => {
     const proposal = build(team(), { cells: { mc1: { 5: TECHNICAL } } });
 
-    expect(find(proposal, "mc1").decision.reason).toBe("Protegido: desconvocado hace 6 jornadas");
+    expect(find(proposal, "mc1").decision.reason).toBe("Protegido: desconvocado por decisión técnica en la J1, hace 6 jornadas");
   });
 
   it("protege a quien no vino la jornada anterior por una lesión leve", () => {
@@ -330,7 +330,7 @@ describe("buildDeconvokeProposal — solo cuentan los partidos de liga", () => {
     // Technical deconvocation in league column e2: it is 2 league matchdays ago (e0, e2), not 3 columns.
     const proposal = buildMixed({ mc1: { 2: TECHNICAL } });
 
-    expect(find(proposal, "mc1").decision.reason).toBe("Protegido: desconvocado hace 2 jornadas");
+    expect(find(proposal, "mc1").decision.reason).toBe("Protegido: desconvocado por decisión técnica en la J4, hace 2 jornadas");
   });
 
   it("el mínimo de convocatorias no cuenta los partidos que no son de liga", () => {

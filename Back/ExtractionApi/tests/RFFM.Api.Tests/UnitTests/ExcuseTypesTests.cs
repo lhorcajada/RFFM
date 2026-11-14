@@ -46,6 +46,17 @@ namespace RFFM.Api.Tests.UnitTests
         }
 
         [Fact]
+        public void FromId_Eleven_ResolvesPostInjuryPrevention()
+        {
+            var excuse = ExcuseTypes.FromId(11);
+
+            Assert.NotNull(excuse);
+            Assert.Equal("Prevención después de lesión", excuse!.Name);
+            Assert.True(excuse.Justified);
+            Assert.Same(ExcuseTypes.PostInjuryPrevention, excuse);
+        }
+
+        [Fact]
         public async Task GetExcuseTypes_ExposesJustifiedFlag()
         {
             var handler = new RFFM.Api.Features.Coaches.Assistances.Queries.GetExcuseTypes.ExcuseTypesRequestHandler();

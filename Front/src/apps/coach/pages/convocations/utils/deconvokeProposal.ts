@@ -218,6 +218,7 @@ export type WeeklyTrainingStats = {
 };
 
 const NOT_CALLED_NAMES = new Set(["Deconvoke", "No disponible"]);
+const POST_INJURY_PREVENTION_EXCUSE_TYPE_ID = 11;
 
 type PlayerInternals = {
   protection: Protection | null;
@@ -226,6 +227,8 @@ type PlayerInternals = {
   injuryAgo: number | null;
   otherAgo: number | null;
   otherReason: string | null;
+  technicalMatch: string | null;
+  otherMatch: string | null;
   calledCount: number;
   minRequiredCalls: number;
   metrics: FairnessMetrics;
@@ -706,15 +709,27 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
       let injuryAgo: number | null = null;
       let otherAgo: number | null = null;
       let otherReason: string | null = null;
+      let technicalMatch: string | null = null;
+      let otherMatch: string | null = null;
+      let injuryPrevention = false;
+      let injuryMatch: string | null = null;
       let consecutive = 0;
       let streakOpen = true;
       seasonColumns.forEach((col, i) => {
         const cell = enrichedGrid.get(col.eventId)?.get(playerId);
-        if (technicalAgo === null && isTechnicalDecision(cell)) technicalAgo = i + 1;
-        if (injuryAgo === null && isInjuryOrIllnessAbsence(cell)) injuryAgo = i + 1;
+        if (technicalAgo === null && isTechnicalDecision(cell)) {
+          technicalAgo = i + 1;
+          technicalMatch = col.label;
+        }
+        if (injuryAgo === null && isInjuryOrIllnessAbsence(cell)) {
+          injuryAgo = i + 1;
+          injuryMatch = col.label;
+          injuryPrevention = cell?.excuseTypeId === POST_INJURY_PREVENTION_EXCUSE_TYPE_ID;
+        }
         if (otherAgo === null && isOtherCauseDeconvocation(cell)) {
           otherAgo = i + 1;
           otherReason = cell?.excuseName ?? null;
+          otherMatch = col.label;
         }
         if (streakOpen && cell?.statusId != null && CALLED_STATUS_IDS_SET.has(cell.statusId)) consecutive++;
         else streakOpen = false;
@@ -820,7 +835,7 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
 
       const protection = forced || isGoalkeeper
         ? null
-        : protectionOf({ technicalAgo, injuryAgo, otherAgo, otherReason, calledCount, minRequiredCalls }, protectionWindows);
+        : protectionOf({ technicalAgo, injuryAgo, injuryPrevention, injuryMatch, otherAgo, otherReason, technicalMatch, otherMatch, calledCount, minRequiredCalls }, protectionWindows);
       internals.set(playerId, {
         protection,
         forcedLabel: forcedLabel ?? unavailability?.reason ?? null,
@@ -828,6 +843,8 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
         injuryAgo,
         otherAgo,
         otherReason,
+        technicalMatch,
+        otherMatch,
         calledCount,
         minRequiredCalls,
         metrics: {
