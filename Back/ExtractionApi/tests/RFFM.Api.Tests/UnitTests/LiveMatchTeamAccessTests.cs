@@ -126,6 +126,37 @@ namespace RFFM.Api.Tests.UnitTests
         }
 
         [Fact]
+        public async Task IsTeamCoachAsync_ClubLevelCoachWithoutTeamRow_ReturnsTrue()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, clubId) = await SeedTeamAsync(db, "ClubCoach");
+            var eventId = await SeedSportEventAsync(db, teamId);
+            var clubCoachId = Guid.NewGuid().ToString();
+            db.UserClubs.Add(new UserClub(clubCoachId, clubId, Membership.Coach.Id));
+            await db.SaveChangesAsync();
+
+            var result = await LiveMatchTeamAccess.IsTeamCoachAsync(db, clubCoachId, eventId, CancellationToken.None);
+
+            Assert.True(result);
+        }
+
+        [Fact]
+        public async Task IsTeamCoachAsync_ClubLevelCoachOfAnotherClub_ReturnsFalse()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, _) = await SeedTeamAsync(db, "ClubCoachOwner");
+            var (_, otherClubId) = await SeedTeamAsync(db, "ClubCoachOther");
+            var eventId = await SeedSportEventAsync(db, teamId);
+            var otherClubCoachId = Guid.NewGuid().ToString();
+            db.UserClubs.Add(new UserClub(otherClubCoachId, otherClubId, Membership.Coach.Id));
+            await db.SaveChangesAsync();
+
+            var result = await LiveMatchTeamAccess.IsTeamCoachAsync(db, otherClubCoachId, eventId, CancellationToken.None);
+
+            Assert.False(result);
+        }
+
+        [Fact]
         public async Task IsTeamCoachAsync_NonCoachMembershipOnSameTeam_ReturnsFalse()
         {
             await using var db = _fixture.CreateDbContext();
