@@ -321,6 +321,12 @@ namespace RFFM.Api.Infrastructure.Migrations
                             Id = 10,
                             Justified = true,
                             Name = "Imprevisto"
+                        },
+                        new
+                        {
+                            Id = 11,
+                            Justified = true,
+                            Name = "Prevención después de lesión"
                         });
                 });
 
