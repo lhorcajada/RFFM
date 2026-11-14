@@ -24,7 +24,7 @@ import PlayerFormLegend from "../../../components/PlayerFormLegend/PlayerFormLeg
 import type { DropZone } from "./convocationMatchDetail.types";
 import type { DeconvokeProposal } from "../utils/deconvokeProposal";
 import type { DeconvocationRuleConfig } from "../utils/rules/ruleCatalog";
-import DeconvocationProposalView from "./DeconvocationProposalView";
+import DeconvocationProposalView, { type FitContext } from "./DeconvocationProposalView";
 import DeconvocationRulesDialog from "./DeconvocationRulesDialog";
 import styles from "./ConvocationTab.module.css";
 
@@ -108,6 +108,8 @@ type Props = {
   teamId?: string;
   /** Rules currently applied to the proposal. */
   rules?: DeconvocationRuleConfig[];
+  /** Fit orders and trait ratings to explain each player's fit in the proposal. */
+  fitContext?: FitContext;
   /** Rodaje/condición física por teamPlayerId (best-effort, puede estar vacío mientras carga). */
   readinessMap?: Record<string, Pick<PlayerStatistics, "readiness" | "fatigue"> & Partial<Pick<PlayerStatistics, "formStatus">>>;
   /** Jugadores en la semana de recuperación tras una baja de dos semanas o más. */
@@ -175,6 +177,7 @@ export default function ConvocationTab({
   onRefreshProposal,
   teamId,
   rules,
+  fitContext,
   readinessMap,
   recoveringIds,
 }: Props) {
@@ -460,6 +463,7 @@ export default function ConvocationTab({
           open={rulesOpen}
           teamId={teamId}
           rules={rules}
+          squadSize={players.length}
           onClose={() => setRulesOpen(false)}
           onSaved={() => void handleRefreshProposal()}
         />
@@ -475,6 +479,7 @@ export default function ConvocationTab({
           onApply={handleApplyProposalClick}
           onRefresh={onRefreshProposal ? handleRefreshProposal : undefined}
           onOpenRules={teamId && rules ? () => setRulesOpen(true) : undefined}
+          fitContext={fitContext}
         />
       )}
 

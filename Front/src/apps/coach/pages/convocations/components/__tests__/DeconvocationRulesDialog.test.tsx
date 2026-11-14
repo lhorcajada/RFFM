@@ -14,10 +14,10 @@ import { buildDefaultRule } from "../../utils/rules/ruleCatalog";
 const mockSave = saveDeconvocationRules as ReturnType<typeof vi.fn>;
 const mockReset = resetDeconvocationRules as ReturnType<typeof vi.fn>;
 
-function renderDialog(rules = DEFAULT_RULES) {
+function renderDialog(rules = DEFAULT_RULES, squadSize?: number) {
   const onClose = vi.fn();
   const onSaved = vi.fn();
-  render(<DeconvocationRulesDialog open teamId="t1" rules={rules} onClose={onClose} onSaved={onSaved} />);
+  render(<DeconvocationRulesDialog open teamId="t1" rules={rules} squadSize={squadSize} onClose={onClose} onSaved={onSaved} />);
   return { onClose, onSaved };
 }
 
@@ -39,6 +39,28 @@ describe("DeconvocationRulesDialog", () => {
     renderDialog();
     expect(within(card("Desconvocado por decisión técnica")).getByText("Ajustes")).toBeInTheDocument();
     expect(within(card("Nivel ponderado")).getByText("Pesos")).toBeInTheDocument();
+  });
+
+  it("muestra qué mínimo de convocatorias resulta según los partidos disponibles", () => {
+    renderDialog(DEFAULT_RULES, 24);
+    const preview = within(card("Mínimo de convocatorias")).getByRole("list", { name: "Vista previa del mínimo" });
+
+    expect(within(preview).getByText("Si pudo jugar 20 partidos: mínimo 15 convocatorias")).toBeInTheDocument();
+    expect(within(preview).getByText("Si pudo jugar 10 partidos: mínimo 7 convocatorias")).toBeInTheDocument();
+  });
+
+  it("la vista previa se recalcula al cambiar el porcentaje", () => {
+    renderDialog(DEFAULT_RULES, 24);
+    const minCalls = within(card("Mínimo de convocatorias"));
+    fireEvent.change(minCalls.getByLabelText("Porcentaje del reparto justo que se exige"), { target: { value: "50" } });
+
+    expect(minCalls.getByText("Si pudo jugar 20 partidos: mínimo 7 convocatorias")).toBeInTheDocument();
+  });
+
+  it("no muestra la vista previa si no se conoce el tamaño de la plantilla", () => {
+    renderDialog(DEFAULT_RULES);
+
+    expect(screen.queryByRole("list", { name: "Vista previa del mínimo" })).not.toBeInTheDocument();
   });
 
   it("no muestra la sección de pesos si la regla no tiene", () => {

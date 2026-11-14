@@ -296,3 +296,67 @@ describe("DeconvocationProposalView", () => {
     expect(screen.getByText(/se ordena primero por el encaje en su puesto/)).toBeInTheDocument();
   });
 });
+
+describe("DeconvocationProposalView — encaje en el puesto", () => {
+  const fitInfo = { share: 0, place: 3, total: 3, positionLabel: "Central", position: "centerBack" as const, value: 3.4 };
+  const fitContext = {
+    positionFit: [
+      {
+        position: "centerBack" as const,
+        confirmedWeekStart: null,
+        isManual: false,
+        weights: { traitOccupiesZone: "key" as const },
+        candidates: [{ teamPlayerId: "p1", name: "Sergio", place: 1, fit: 3.4, trend: "same" as const }],
+      },
+    ],
+    traitRatings: [
+      { id: "r1", teamPlayerId: "p1", ratedAt: "2026-11-01T00:00:00", trend: "same" as const, levels: [{ traitKey: "traitOccupiesZone", level: 4 }] },
+    ],
+  };
+
+  function withFit() {
+    return proposal({
+      players: [
+        player("p1", "Sergio", { group: "proposed", criterion: "fit", reason: "Elegido: peor encaje" }, { fit: fitInfo }),
+        player("p2", "Vargas", { group: "protected", protection: "injuryRest", reason: "Protegido" }, { fit: { ...fitInfo, place: 1 } }),
+        player("p6", "Pedro", { group: "notChosen", reason: "No elegido" }),
+      ],
+    });
+  }
+
+  it("ofrece ver el encaje de los jugadores que tienen orden de encaje", () => {
+    renderView(withFit(), { fitContext });
+
+    expect(screen.getByRole("button", { name: "Ver encaje de Sergio" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Ver encaje de Vargas" })).toBeInTheDocument();
+  });
+
+  it("no ofrece el encaje a quien no tiene orden de encaje", () => {
+    renderView(withFit(), { fitContext });
+
+    expect(screen.queryByRole("button", { name: "Ver encaje de Pedro" })).not.toBeInTheDocument();
+  });
+
+  it("no ofrece el encaje si la vista no recibe los datos de valoraciones", () => {
+    renderView(withFit());
+
+    expect(screen.queryByRole("button", { name: /Ver encaje/ })).not.toBeInTheDocument();
+  });
+
+  it("al pinchar abre el popup con las valoraciones del jugador", () => {
+    renderView(withFit(), { fitContext });
+    fireEvent.click(screen.getByRole("button", { name: "Ver encaje de Sergio" }));
+
+    const dialog = screen.getByRole("dialog", { name: /Encaje de Sergio como Central/i });
+    expect(within(dialog).getByText("Ocupa su zona y da apoyo")).toBeInTheDocument();
+    expect(within(dialog).getByText("Nivel 4 de 5")).toBeInTheDocument();
+  });
+
+  it("el popup se cierra con Cerrar", () => {
+    renderView(withFit(), { fitContext });
+    fireEvent.click(screen.getByRole("button", { name: "Ver encaje de Sergio" }));
+    fireEvent.click(screen.getByRole("button", { name: "Cerrar" }));
+
+    expect(screen.queryByRole("dialog", { name: /Encaje de Sergio/i })).not.toBeInTheDocument();
+  });
+});
