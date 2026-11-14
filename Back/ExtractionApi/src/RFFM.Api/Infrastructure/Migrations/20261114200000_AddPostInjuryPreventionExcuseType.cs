@@ -1,14 +1,10 @@
-﻿using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Migrations;
-using RFFM.Api.Infrastructure.Persistence;
+﻿using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace RFFM.Api.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    [DbContext(typeof(AppDbContext))]
-    [Migration("20261114200000_AddPostInjuryPreventionExcuseType")]
     public partial class AddPostInjuryPreventionExcuseType : Migration
     {
         /// <inheritdoc />
