@@ -169,6 +169,14 @@ export default function LiveMatchManualEditDialog({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
+  // Adding, editing or removing a goal moves the result: keep the form in step with it.
+  useEffect(() => {
+    if (!open) return;
+    setScoreLocalInput(String(scoreLocal));
+    setScoreVisitorInput(String(scoreVisitor));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scoreLocal, scoreVisitor]);
+
   // Goal dialog state
   const [goalDialogOpen, setGoalDialogOpen] = useState(false);
   const [goalDialogMode, setGoalDialogMode] = useState<"add" | "edit">("add");
