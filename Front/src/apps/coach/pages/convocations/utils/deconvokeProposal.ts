@@ -20,6 +20,7 @@ import {
   type RequirementKey,
 } from "./positionRequirements";
 import { isInjuryAbsence } from "./injuryRecovery";
+import type { LastMatchMinutes } from "./lastMatchMinutes";
 import {
   attendanceBucket,
   compareFairness,
@@ -170,6 +171,8 @@ export type BuildProposalInput = {
   rivalDifficulty?: RivalDifficulty;
   /** Matchdays a technical deconvocation / an injury absence protects; 5 and 1 by default. */
   protectionWindows?: ProtectionWindows;
+  /** Minutes of the last played match, to protect those who barely played; absent when unknown. */
+  lastMatchMinutes?: LastMatchMinutes | null;
   /** Fit order of each unified position; positions without a usable order keep the fairness order. */
   positionFit?: PositionFit[];
 };
@@ -225,6 +228,7 @@ type PlayerInternals = {
   forcedLabel: string | null;
   technicalAgo: number | null;
   injuryAgo: number | null;
+  lastMinutes: number | null;
   otherAgo: number | null;
   otherReason: string | null;
   technicalMatch: string | null;
@@ -261,7 +265,7 @@ const CRITERIA_ORDER: Criterion[] = ["fit", "consecutive", "surplus", "technical
 
 /** Every rule evaluated for a player, in funnel order, with its value and outcome. */
 function buildDetail({ proposal, internal, decision, decidingCriterion, positionReason, windows, difficulty }: DetailInput): ProposalDetailRow[] {
-  const { technicalAgo, injuryAgo, otherAgo, otherReason, calledCount, minRequiredCalls, metrics } = internal;
+  const { technicalAgo, injuryAgo, lastMinutes, otherAgo, otherReason, calledCount, minRequiredCalls, metrics } = internal;
   const matchdays = (n: number) => (n === 1 ? "1 jornada" : `${n} jornadas`);
   const protectedBy = internal.protection?.kind;
   const rows: ProposalDetailRow[] = [];
@@ -294,6 +298,20 @@ function buildDetail({ proposal, internal, decision, decidingCriterion, position
           : `Ausencia por lesión hace ${matchdays(injuryAgo)} (ventana ${windows.injuryRest})`,
       result: protectedBy === "injuryRest" ? "protects" : "doesNotProtect",
     },
+    ...((windows.lowMinutes ?? 0) > 0
+      ? [
+          {
+            rule: "Pocos minutos en el último partido",
+            value:
+              lastMinutes == null
+                ? `Sin datos del último partido (umbral ${windows.lowMinutes} min)`
+                : difficulty === "hard"
+                  ? `${lastMinutes} min en el último partido: no se aplica ante un rival difícil`
+                  : `${lastMinutes} min en el último partido (umbral ${windows.lowMinutes} min)`,
+            result: (protectedBy === "lowMinutes" ? "protects" : "doesNotProtect") as ProposalDetailRow["result"],
+          },
+        ]
+      : []),
     {
       rule: "Mínimo de convocatorias",
       value: `${calledCount} de ${minRequiredCalls} exigidas`,
@@ -571,6 +589,7 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
     technical: resolveRule("recentDeconvocation", rules)?.points.window ?? 0,
     injuryRest: resolveRule("injuryRest", rules)?.points.window ?? 0,
     otherCause: resolveRule("otherDeconvocation", rules)?.points.window ?? 0,
+    lowMinutes: resolveRule("lowMinutes", rules)?.points.minutes ?? 0,
   };
 
   // Only league matches count as matchdays: friendlies and tournaments are left out of every count.
@@ -713,6 +732,9 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
       let otherMatch: string | null = null;
       let injuryPrevention = false;
       let injuryMatch: string | null = null;
+      const lastMinutes = input.lastMatchMinutes?.minutes.get(playerId) ?? null;
+      // Against a hard rival the best players are needed: few minutes do not shield anyone.
+      const protectingMinutes = rivalDifficulty === "hard" ? null : lastMinutes;
       let consecutive = 0;
       let streakOpen = true;
       seasonColumns.forEach((col, i) => {
@@ -835,12 +857,13 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
 
       const protection = forced || isGoalkeeper
         ? null
-        : protectionOf({ technicalAgo, injuryAgo, injuryPrevention, injuryMatch, otherAgo, otherReason, technicalMatch, otherMatch, calledCount, minRequiredCalls }, protectionWindows);
+        : protectionOf({ technicalAgo, injuryAgo, injuryPrevention, injuryMatch, lastMinutes: protectingMinutes, lastMinutesMatch: input.lastMatchMinutes?.label, otherAgo, otherReason, technicalMatch, otherMatch, calledCount, minRequiredCalls }, protectionWindows);
       internals.set(playerId, {
         protection,
         forcedLabel: forcedLabel ?? unavailability?.reason ?? null,
         technicalAgo,
         injuryAgo,
+        lastMinutes,
         otherAgo,
         otherReason,
         technicalMatch,

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildDeconvokeProposal, type BuildProposalInput } from "../deconvokeProposal";
+import { DEFAULT_RULES } from "../rules/defaultRules";
 import type { GridCell, MatchColumn } from "../../components/convocationMatchDetail.types";
 import type { PlayerResponse } from "../../../../services/teamplayerService";
 import type { PlayerRating } from "../../../../types/playerRating";
@@ -152,6 +153,62 @@ describe("buildDeconvokeProposal — protección", () => {
 
     expect(find(proposal, "mc1").decision.reason).toContain("para llegar al mínimo exigido");
     expect(proposal.selectedIds).not.toContain("mc1");
+  });
+});
+
+describe("buildDeconvokeProposal — pocos minutos en el último partido", () => {
+  const lastMatchMinutes = (entries: Record<string, number>) => ({
+    label: "J6 · 20 oct",
+    minutes: new Map(Object.entries(entries)),
+  });
+
+  it("protege a quien jugó menos minutos que el umbral de la regla", () => {
+    const proposal = build(team(), { extra: { lastMatchMinutes: lastMatchMinutes({ mc1: 10 }) } });
+
+    expect(find(proposal, "mc1").decision.reason).toBe("Protegido: jugó solo 10 min en la J6 (20 oct)");
+    expect(proposal.selectedIds).not.toContain("mc1");
+  });
+
+  it("usa el umbral configurado en la regla", () => {
+    const rules = DEFAULT_RULES.map((r) => (r.condition === "lowMinutes" ? { ...r, points: { minutes: 5 } } : r));
+    const proposal = build(team(), { extra: { rules, lastMatchMinutes: lastMatchMinutes({ mc1: 10 }) } });
+
+    expect(find(proposal, "mc1").decision.reason).not.toMatch(/jugó solo/);
+  });
+
+  it("no aplica la protección si el equipo quitó la regla", () => {
+    const rules = DEFAULT_RULES.filter((r) => r.condition !== "lowMinutes");
+    const proposal = build(team(), { extra: { rules, lastMatchMinutes: lastMatchMinutes({ mc1: 10 }) } });
+
+    expect(find(proposal, "mc1").decision.reason).not.toMatch(/jugó solo/);
+  });
+
+  it("no protege ante un rival difícil", () => {
+    const proposal = build(team(), { difficulty: "hard", extra: { lastMatchMinutes: lastMatchMinutes({ mc1: 10 }) } });
+
+    expect(find(proposal, "mc1").decision.reason).not.toMatch(/jugó solo/);
+  });
+
+  it("explica en el detalle que no se aplica ante un rival difícil", () => {
+    const proposal = build(team(), { difficulty: "hard", extra: { lastMatchMinutes: lastMatchMinutes({ mc1: 10 }) } });
+    const row = find(proposal, "mc1").detail.find((r) => r.rule === "Pocos minutos en el último partido");
+
+    expect(row?.value).toContain("no se aplica ante un rival difícil");
+    expect(row?.result).toBe("doesNotProtect");
+  });
+
+  it("sigue protegiendo ante un rival de dificultad media o fácil", () => {
+    for (const difficulty of ["medium", "easy"] as const) {
+      const proposal = build(team(), { difficulty, extra: { lastMatchMinutes: lastMatchMinutes({ mc1: 10 }) } });
+
+      expect(find(proposal, "mc1").decision.reason).toBe("Protegido: jugó solo 10 min en la J6 (20 oct)");
+    }
+  });
+
+  it("ignora a los jugadores sin datos del último partido", () => {
+    const proposal = build(team(), { extra: { lastMatchMinutes: lastMatchMinutes({ mc2: 10 }) } });
+
+    expect(find(proposal, "mc1").decision.reason).not.toMatch(/jugó solo|sin jugar/);
   });
 });
 

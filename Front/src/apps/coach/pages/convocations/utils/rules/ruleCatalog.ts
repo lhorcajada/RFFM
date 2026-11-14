@@ -5,6 +5,7 @@ export const RULE_CONDITIONS = [
   "recentDeconvocation",
   "otherDeconvocation",
   "injuryRest",
+  "lowMinutes",
   "rivalDifficulty",
   "rating",
 ] as const;
@@ -90,6 +91,14 @@ export const RULE_CATALOG: Record<RuleCondition, ConditionDefinition> = {
     description: "Una ausencia por lesión o enfermedad, aunque sea leve, cuenta como descanso y protege unas jornadas.",
     defaultText: "No vino por lesión: cuenta como descanso",
     points: [f("window", "Jornadas de protección", 1, 0, 30)],
+    weights: [],
+  },
+  lowMinutes: {
+    title: "Pocos minutos en el último partido",
+    description:
+      "Protege de la desconvocatoria a quien jugó menos de unos minutos en el último partido, incluido quien fue convocado y no llegó a jugar. Solo vale para esta jornada y no se aplica ante un rival difícil.",
+    defaultText: "Jugó pocos minutos en el último partido",
+    points: [f("minutes", "Minutos por debajo de los cuales se protege", 20, 1, 120)],
     weights: [],
   },
   rivalDifficulty: {

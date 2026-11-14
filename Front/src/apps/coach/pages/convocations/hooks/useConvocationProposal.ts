@@ -9,6 +9,7 @@ import type { DeconvokeProposal, WeeklyTrainingStats } from "../utils/deconvokeP
 import { buildDeconvokeProposal } from "../utils/deconvokeProposal";
 import type { MatchUnavailability } from "../utils/matchUnavailability";
 import type { RivalDifficulty } from "../utils/deconvocationFunnel";
+import type { LastMatchMinutes } from "../utils/lastMatchMinutes";
 import type { DeconvocationRuleConfig } from "../utils/rules/ruleCatalog";
 
 type UseConvocationProposalInput = {
@@ -41,6 +42,8 @@ type UseConvocationProposalInput = {
   rivalDifficulty?: RivalDifficulty;
   /** Fit order of each unified position; positions without one keep the fairness order. */
   positionFit?: PositionFit[];
+  /** Minutes of the last played match; players who barely played are protected. */
+  lastMatchMinutes?: LastMatchMinutes | null;
 };
 
 export function useConvocationProposal(input: UseConvocationProposalInput): DeconvokeProposal {
@@ -68,6 +71,7 @@ export function useConvocationProposal(input: UseConvocationProposalInput): Deco
     rules,
     rivalDifficulty,
     positionFit,
+    lastMatchMinutes,
   } = input;
 
   return useMemo(
@@ -97,6 +101,7 @@ export function useConvocationProposal(input: UseConvocationProposalInput): Deco
         rules,
         rivalDifficulty,
         positionFit,
+        lastMatchMinutes,
       }),
     [
       players,
@@ -122,6 +127,7 @@ export function useConvocationProposal(input: UseConvocationProposalInput): Deco
       rules,
       rivalDifficulty,
       positionFit,
+      lastMatchMinutes,
     ],
   );
 }
