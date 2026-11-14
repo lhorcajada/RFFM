@@ -27,6 +27,9 @@ import type { LeaguePlayerStats } from "../../services/leagueStatsService";
 import { getTeamPlayerStatistics } from "../../services/teamPlayerStatisticsService";
 import type { PlayerStatistics } from "../../services/teamPlayerStatisticsService";
 import SquadStatistics from "./components/SquadStatistics";
+import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
+import { buildSquadMatchStatsRows } from "./squadMatchStatsModel";
+import { exportSquadMatchStatsPdf } from "./squadMatchStatsPdfExport";
 import PlayerFormLegend from "../../components/PlayerFormLegend/PlayerFormLegend";
 import type { PlayerRating } from "../../types/playerRating";
 import { useAuditPageAccess } from "../../../../shared/hooks/useAuditPageAccess";
@@ -289,6 +292,23 @@ export default function Squad() {
             >
               Volver
             </Button>
+
+            {!isRestricted && (
+              <Button
+                startIcon={<PictureAsPdfIcon />}
+                onClick={() =>
+                  exportSquadMatchStatsPdf(
+                    buildSquadMatchStatsRows(playerStats, leagueStats),
+                    team?.name
+                  )
+                }
+                disabled={playerStats.length === 0}
+                variant="outlined"
+                size="small"
+              >
+                Imprimir estadísticas
+              </Button>
+            )}
 
             {!isRestricted && (
               <Button
