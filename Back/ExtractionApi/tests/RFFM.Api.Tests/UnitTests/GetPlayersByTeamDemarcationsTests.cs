@@ -60,5 +60,32 @@ namespace RFFM.Api.Tests.UnitTests
             Assert.Null(player.ActivePositionId);
             Assert.Empty(player.PossibleDemarcationIds);
         }
+
+        [Fact]
+        public async Task Player_with_dominant_foot_returns_its_name()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, clubId, seasonId) = await SeedTeamAsync(db);
+            var teamPlayerId = await SeedPlayerAsync(db, teamId, clubId, seasonId);
+            var teamPlayer = await db.TeamPlayers.FindAsync(teamPlayerId);
+            teamPlayer!.SetPhysicalInfo(170m, 60m, 1);
+            await db.SaveChangesAsync();
+
+            var player = await GetPlayerAsync(db, teamId, teamPlayerId);
+
+            Assert.Equal("Zurdo", player.DominantFoot);
+        }
+
+        [Fact]
+        public async Task Player_without_physical_info_returns_null_dominant_foot()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, clubId, seasonId) = await SeedTeamAsync(db);
+            var teamPlayerId = await SeedPlayerAsync(db, teamId, clubId, seasonId);
+
+            var player = await GetPlayerAsync(db, teamId, teamPlayerId);
+
+            Assert.Null(player.DominantFoot);
+        }
     }
 }
