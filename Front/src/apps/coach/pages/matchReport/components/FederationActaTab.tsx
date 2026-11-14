@@ -1,4 +1,4 @@
-import { useEffect, useState, type RefObject } from "react";
+import { useEffect, useState } from "react";
 import { Alert, CircularProgress } from "@mui/material";
 import ActaContent from "../../../../../shared/components/acta/ActaContent/ActaContent";
 import type { Acta } from "../../../../../shared/types/acta";
@@ -8,12 +8,10 @@ import styles from "./FederationActaTab.module.css";
 type Props = {
   eventId: string;
   onPlayerClick?: (playerCode: string, playerName?: string) => void;
-  /** Wraps the acta so the page can export it to PDF */
-  printRef?: RefObject<HTMLDivElement | null>;
   onActaLoaded?: (acta: Acta | null) => void;
 };
 
-export default function FederationActaTab({ eventId, onPlayerClick, printRef, onActaLoaded }: Props) {
+export default function FederationActaTab({ eventId, onPlayerClick, onActaLoaded }: Props) {
   const [acta, setActa] = useState<Acta | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -54,8 +52,6 @@ export default function FederationActaTab({ eventId, onPlayerClick, printRef, on
     return <Alert severity="warning">No se ha podido cargar el acta de federación.</Alert>;
   }
   return (
-    <div ref={printRef}>
-      <ActaContent acta={acta} onPlayerClick={onPlayerClick} />
-    </div>
+    <ActaContent acta={acta} onPlayerClick={onPlayerClick} />
   );
 }

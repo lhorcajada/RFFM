@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Alert, Avatar, Button, CircularProgress, Tab, Tabs } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
@@ -10,7 +10,7 @@ import { useAuditPageAccess } from "../../../../shared/hooks/useAuditPageAccess"
 import { resolveStorageUrl } from "../../../../shared/utils/resolveStorageUrl";
 import ActaContent from "../../../../shared/components/acta/ActaContent/ActaContent";
 import type { Acta } from "../../../../shared/types/acta";
-import { exportElementToPdf } from "../../../../shared/services/pdfService";
+import { downloadActaPdf } from "../../../../shared/services/actaPdfExport";
 import {
   getFederationActaByCode,
   getMatchReport,
@@ -100,7 +100,6 @@ export default function MatchReport() {
   const [selectedTab, setSelectedTab] = useState<ReportTab | null>(null);
   const [eventActa, setEventActa] = useState<Acta | null>(null);
   const [exporting, setExporting] = useState(false);
-  const printRef = useRef<HTMLDivElement>(null);
   const [playerTarget, setPlayerTarget] = useState<{ code: string; name: string | null } | null>(null);
 
   const handlePlayerClick = (playerCode: string, playerName?: string) => {
@@ -143,20 +142,17 @@ export default function MatchReport() {
 
   function renderTab(tab: ReportTab | undefined) {
     if (!report || !tab) return <EmptyState description="No hay acta disponible para este partido." />;
-    if (tab === "federation") return <FederationActaTab eventId={report.eventId} onPlayerClick={handlePlayerClick} printRef={printRef} onActaLoaded={setEventActa} />;
+    if (tab === "federation") return <FederationActaTab eventId={report.eventId} onPlayerClick={handlePlayerClick} onActaLoaded={setEventActa} />;
     return report.live ? <LiveReportTab report={report.live} /> : null;
   }
 
   const printableActa = isFederationOnly ? acta : activeTab === "federation" ? eventActa : null;
 
-  async function handleDownloadPdf() {
-    if (!printRef.current || !printableActa) return;
+  function handleDownloadPdf() {
+    if (!printableActa) return;
     setExporting(true);
     try {
-      await exportElementToPdf(
-        printRef.current,
-        `Acta ${printableActa.equipo_local ?? ""} - ${printableActa.equipo_visitante ?? ""}.pdf`,
-      );
+      downloadActaPdf(printableActa);
     } catch {
       window.dispatchEvent(
         new CustomEvent("rffm.show_snackbar", {
@@ -182,9 +178,7 @@ export default function MatchReport() {
         <>
           <MatchHeader {...actaHeader(acta)} />
           <div className={styles.tabPanel}>
-            <div ref={printRef}>
-              <ActaContent acta={acta} onPlayerClick={handlePlayerClick} />
-            </div>
+            <ActaContent acta={acta} onPlayerClick={handlePlayerClick} />
           </div>
         </>
       );
