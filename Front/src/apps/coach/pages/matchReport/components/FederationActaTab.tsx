@@ -1,23 +1,22 @@
-import { useEffect, useRef, useState } from "react";
-import { Alert, Button, CircularProgress } from "@mui/material";
-import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
+import { useEffect, useState, type RefObject } from "react";
+import { Alert, CircularProgress } from "@mui/material";
 import ActaContent from "../../../../../shared/components/acta/ActaContent/ActaContent";
 import type { Acta } from "../../../../../shared/types/acta";
-import { exportElementToPdf } from "../../../../../shared/services/pdfService";
 import { getEventFederationActa } from "../../../services/matchReportService";
 import styles from "./FederationActaTab.module.css";
 
 type Props = {
   eventId: string;
   onPlayerClick?: (playerCode: string, playerName?: string) => void;
+  /** Wraps the acta so the page can export it to PDF */
+  printRef?: RefObject<HTMLDivElement | null>;
+  onActaLoaded?: (acta: Acta | null) => void;
 };
 
-export default function FederationActaTab({ eventId, onPlayerClick }: Props) {
+export default function FederationActaTab({ eventId, onPlayerClick, printRef, onActaLoaded }: Props) {
   const [acta, setActa] = useState<Acta | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [exporting, setExporting] = useState(false);
-  const printRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -25,17 +24,23 @@ export default function FederationActaTab({ eventId, onPlayerClick }: Props) {
     setError(false);
     getEventFederationActa(eventId)
       .then((data) => {
-        if (mounted) setActa(data);
+        if (!mounted) return;
+        setActa(data);
+        onActaLoaded?.(data);
       })
       .catch(() => {
-        if (mounted) setError(true);
+        if (!mounted) return;
+        setError(true);
+        onActaLoaded?.(null);
       })
       .finally(() => {
         if (mounted) setLoading(false);
       });
     return () => {
       mounted = false;
+      onActaLoaded?.(null);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eventId]);
 
   if (loading) {
@@ -48,32 +53,9 @@ export default function FederationActaTab({ eventId, onPlayerClick }: Props) {
   if (error || !acta) {
     return <Alert severity="warning">No se ha podido cargar el acta de federación.</Alert>;
   }
-  const handleDownloadPdf = async () => {
-    if (!printRef.current) return;
-    setExporting(true);
-    try {
-      await exportElementToPdf(printRef.current, `Acta ${acta.equipo_local ?? ""} - ${acta.equipo_visitante ?? ""}.pdf`);
-    } catch {
-      window.dispatchEvent(
-        new CustomEvent("rffm.show_snackbar", {
-          detail: { message: "No se ha podido generar el PDF del acta.", severity: "error" },
-        }),
-      );
-    } finally {
-      setExporting(false);
-    }
-  };
-
   return (
-    <div>
-      <div className={styles.toolbar}>
-        <Button variant="outlined" size="small" startIcon={<PictureAsPdfIcon />} onClick={handleDownloadPdf} disabled={exporting}>
-          Descargar PDF
-        </Button>
-      </div>
-      <div ref={printRef}>
-        <ActaContent acta={acta} onPlayerClick={onPlayerClick} />
-      </div>
+    <div ref={printRef}>
+      <ActaContent acta={acta} onPlayerClick={onPlayerClick} />
     </div>
   );
 }
