@@ -1,3 +1,4 @@
+import { describeTicketSummary } from "../utils/quinielaMatchResults";
 import type { QuinielaMatchRow, TicketSummary } from "../utils/quinielaMatchResults";
 import { formatKickoff } from "../../quiniela/quinielaHelpers";
 import styles from "./QuinielaMatchList.module.css";
@@ -8,12 +9,6 @@ type Props = {
 };
 
 const OUTCOME_LABEL = { hit: "acierto", miss: "fallo" } as const;
-
-function summaryText(s: TicketSummary): string {
-  const hits = `${s.hits} ${s.hits === 1 ? "acierto" : "aciertos"}`;
-  const played = `${s.played} ${s.played === 1 ? "partido jugado" : "partidos jugados"}`;
-  return `${hits} de ${played}`;
-}
 
 export default function QuinielaMatchList({ rows, summaries }: Props) {
   if (rows.length === 0) return null;
@@ -28,7 +23,7 @@ export default function QuinielaMatchList({ rows, summaries }: Props) {
           {visibleSummaries.map((s) => (
             <li key={s.number} className={styles.summary}>
               {severalTickets ? `Boleto ${s.number}: ` : ""}
-              {summaryText(s)}
+              {describeTicketSummary(s)}
             </li>
           ))}
         </ul>

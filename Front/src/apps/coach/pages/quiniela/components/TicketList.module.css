@@ -1,0 +1,136 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.heading {
+  flex: 1;
+  margin: 0;
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: var(--rffm-text, #f0f0f0);
+}
+
+.create {
+  min-height: 44px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--rffm-primary);
+  color: var(--rffm-standings-on-badge);
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ticket {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--rffm-card-bg, #1c1c30);
+}
+
+.ticketPending {
+  border-color: color-mix(in srgb, var(--rffm-status-pending) 40%, transparent);
+}
+
+.ticketHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ticketTitle {
+  flex: 1;
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--rffm-text, #f0f0f0);
+}
+
+.status {
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.pending {
+  color: var(--rffm-status-pending);
+  background: color-mix(in srgb, var(--rffm-status-pending) 14%, transparent);
+}
+
+.paid {
+  color: var(--rffm-status-accepted);
+  background: color-mix(in srgb, var(--rffm-status-accepted) 14%, transparent);
+}
+
+.expired {
+  color: var(--rffm-status-declined);
+  background: color-mix(in srgb, var(--rffm-status-declined) 14%, transparent);
+}
+
+.meta,
+.note {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--rffm-muted, #a59f9f);
+}
+
+.pay {
+  min-height: 44px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--rffm-primary);
+  color: var(--rffm-standings-on-badge);
+  font-family: inherit;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pay:disabled,
+.remove:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+.edit,
+.remove {
+  flex: 1 1 0;
+  min-height: 44px;
+  border-radius: 12px;
+  background: transparent;
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.edit {
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  color: var(--rffm-text, #f0f0f0);
+}
+
+.remove {
+  border: 1px solid var(--rffm-status-declined);
+  color: var(--rffm-status-declined);
+}

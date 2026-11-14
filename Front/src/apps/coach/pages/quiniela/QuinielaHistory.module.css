@@ -169,3 +169,53 @@
   align-self: center;
   min-height: 44px;
 }
+
+.accordionHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 56px;
+  margin: -4px 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.accordionText {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
+}
+
+.myResult,
+.myResultWin {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--rffm-muted, #a59f9f);
+}
+
+.myResultWin {
+  color: var(--rffm-status-accepted);
+}
+
+.chevron {
+  flex: none;
+  transition: transform 0.15s ease;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+.accordionBody {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}

@@ -75,3 +75,9 @@ export function summarizeTickets(rows: QuinielaMatchRow[], tickets: QuinielaTick
       };
     });
 }
+
+export function describeTicketSummary(s: TicketSummary): string {
+  const hits = `${s.hits} ${s.hits === 1 ? "acierto" : "aciertos"}`;
+  const played = `${s.played} ${s.played === 1 ? "partido jugado" : "partidos jugados"}`;
+  return `${hits} de ${played}`;
+}
