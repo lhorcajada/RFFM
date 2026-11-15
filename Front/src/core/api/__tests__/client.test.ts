@@ -8,6 +8,7 @@ vi.mock("../../../apps/coach/services/authService", () => ({
 }));
 
 import client, { registerNavigate } from "../client";
+import { coachAuthService } from "../../../apps/coach/services/authService";
 
 function getResponseErrorHandler() {
   const handlers = (client.interceptors.response as any).handlers as Array<{
@@ -68,5 +69,51 @@ describe("client response interceptor — suppressErrorRedirect", () => {
     ).rejects.toBeDefined();
 
     expect(navigateMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("client response interceptor — bucle de errores 500", () => {
+  const navigateMock = vi.fn();
+
+  beforeEach(() => {
+    navigateMock.mockClear();
+    sessionStorage.clear();
+    localStorage.clear();
+    vi.mocked(coachAuthService.logout).mockClear();
+    registerNavigate(navigateMock);
+  });
+
+  it("en el primer 500 va a /error-500 sin cerrar la sesión", async () => {
+    const rejected = getResponseErrorHandler();
+
+    await expect(
+      rejected({ response: { status: 500 }, config: {} })
+    ).rejects.toBeDefined();
+
+    expect(navigateMock).toHaveBeenCalledWith(expect.stringContaining("/error-500"));
+    expect(coachAuthService.logout).not.toHaveBeenCalled();
+  });
+
+  it("en el segundo 500 seguido limpia la sesión y va a /login", async () => {
+    localStorage.setItem("rffm_user", "x");
+    const rejected = getResponseErrorHandler();
+
+    await expect(rejected({ response: { status: 500 }, config: {} })).rejects.toBeDefined();
+    await expect(rejected({ response: { status: 500 }, config: {} })).rejects.toBeDefined();
+
+    expect(coachAuthService.logout).toHaveBeenCalled();
+    expect(localStorage.getItem("rffm_user")).toBeNull();
+    expect(navigateMock).toHaveBeenLastCalledWith("/login");
+  });
+
+  it("tras recuperarse, un nuevo 500 vuelve a ir a /error-500", async () => {
+    const rejected = getResponseErrorHandler();
+
+    await expect(rejected({ response: { status: 500 }, config: {} })).rejects.toBeDefined();
+    await expect(rejected({ response: { status: 500 }, config: {} })).rejects.toBeDefined();
+    navigateMock.mockClear();
+    await expect(rejected({ response: { status: 500 }, config: {} })).rejects.toBeDefined();
+
+    expect(navigateMock).toHaveBeenCalledWith(expect.stringContaining("/error-500"));
   });
 });

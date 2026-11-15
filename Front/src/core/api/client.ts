@@ -1,5 +1,10 @@
 import axios from "axios";
 import { coachAuthService } from "../../apps/coach/services/authService";
+import {
+  clearStaleSession,
+  registerErrorRedirect,
+  resetErrorRedirects,
+} from "./sessionRecovery";
 
 // Extend the single Axios instance's config type so callers can opt a specific
 // request out of the global 500/network/timeout redirect (see gotoErrorPage below).
@@ -67,7 +72,14 @@ function notifyAuthExpiredOnce() {
 
 function gotoErrorPage(reason?: string) {
   const suffix = reason ? `?reason=${encodeURIComponent(reason)}` : "";
-  const path = `/error-500${suffix}`;
+  let path = `/error-500${suffix}`;
+  // Repeated error redirects in a short window mean the stored session is likely
+  // stale and the app boots into the same failure every time: reset it once.
+  if (registerErrorRedirect()) {
+    clearStaleSession();
+    resetErrorRedirects();
+    path = "/login";
+  }
   try {
     if (navigateTo) {
       navigateTo(path);

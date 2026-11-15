@@ -2,7 +2,10 @@ import React from "react";
 import { Button } from "@mui/material";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { registerNavigate } from "../../../../core/api/client";
-import { coachAuthService } from "../../../../apps/coach/services/authService";
+import {
+  clearStaleSession,
+  resetErrorRedirects,
+} from "../../../../core/api/sessionRecovery";
 import styles from "./Error500.module.css";
 import ContentLayout from "../ContentLayout/ContentLayout";
 import BaseLayout from "../BaseLayout/BaseLayout";
@@ -16,12 +19,11 @@ const Error500: React.FC = () => {
     registerNavigate((p: string) => navigate(p));
   }, [navigate]);
 
-  // A network/timeout failure can be caused by stale session data kept in the browser,
-  // so going back home from there starts from a clean session.
+  // Any server failure can be caused by stale session data kept in the browser,
+  // so going back home always starts from a clean session.
   const handleGoHome = () => {
-    if (reason === "network" || reason === "timeout") {
-      coachAuthService.logout();
-    }
+    clearStaleSession();
+    resetErrorRedirects();
     navigate("/");
   };
 

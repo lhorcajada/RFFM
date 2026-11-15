@@ -80,14 +80,16 @@ describe("Error500 — Volver al inicio", () => {
     expect(screen.getByText("inicio")).toBeInTheDocument();
   });
 
-  it("conserva la sesión al volver al inicio en un 500 real (sin reason)", async () => {
+  it("limpia también la sesión al volver al inicio en un 500 real (sin reason)", async () => {
     seedSession();
+    localStorage.setItem("rffm_user", "x");
     renderAt("/error-500");
 
     await userEvent.click(
       screen.getByRole("button", { name: /volver al inicio/i }),
     );
 
-    SESSION_KEYS.forEach((k) => expect(localStorage.getItem(k)).toBe("valor"));
+    SESSION_KEYS.forEach((k) => expect(localStorage.getItem(k)).toBeNull());
+    expect(localStorage.getItem("rffm_user")).toBeNull();
   });
 });
