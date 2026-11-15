@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent, within } from "@testing-library/react";
 import DeconvocationProposalView from "../DeconvocationProposalView";
-import type { DeconvokeProposal, PlayerProposal, ProposalDecision } from "../../utils/deconvokeProposal";
+import type { DeconvokeProposal, PlayerProposal, ProposalDecision, ProposalOrderEntry } from "../../utils/deconvokeProposal";
 
 function player(id: string, name: string, decision: ProposalDecision, overrides: Partial<PlayerProposal> = {}): PlayerProposal {
   return {
@@ -73,6 +73,7 @@ function proposal(overrides: Partial<DeconvokeProposal> = {}): DeconvokeProposal
     ],
     positionWarnings: [],
     alreadyDeconvoked: [{ playerId: "x1", displayName: "Marcos M.", position: "Lateral", positionRole: "fullBack" }],
+    order: [],
     ...overrides,
   };
 }
@@ -128,22 +129,6 @@ describe("DeconvocationProposalView", () => {
     expect(screen.getByText("Jornadas seguidas convocado")).toBeInTheDocument();
     expect(screen.getByText("Decide")).toBeInTheDocument();
     expect(screen.getByText("No protege")).toBeInTheDocument();
-  });
-
-  it("compara al propuesto con cada elegible dentro del desplegable", () => {
-    renderView(proposal());
-
-    const section = within(screen.getByRole("group", { name: "Frente a los demás elegibles" }));
-    expect(section.getByText("Pedro")).toBeInTheDocument();
-    expect(section.getByText("Decide: jornadas seguidas (5 frente a 4)")).toBeInTheDocument();
-    expect(section.getByText("Empate en todos los criterios")).toBeInTheDocument();
-    expect(section.getByText("Se queda por el mínimo de su posición")).toBeInTheDocument();
-  });
-
-  it("no muestra la comparación cuando el propuesto no tiene elegibles con los que compararse", () => {
-    renderView(proposal({ players: [player("p1", "Sergio", { group: "proposed", criterion: "mandatory", reason: "Obligatorio: Lesionado" }, { forced: true, detail: [{ rule: "Regla obligatoria", value: "Lesionado", result: "mandatory" }] })], selectedIds: ["p1"] }));
-
-    expect(screen.queryByRole("group", { name: "Frente a los demás elegibles" })).not.toBeInTheDocument();
   });
 
   it("agrupa a los protegidos por motivo", () => {
@@ -283,16 +268,149 @@ describe("DeconvocationProposalView", () => {
     );
     renderView(proposal({ players: [fit], selectedIds: ["p1"] }));
 
-    expect(screen.getByText("Elegido por: encaje en el puesto")).toBeInTheDocument();
+    expect(screen.getByText("Elegido por: encaje por rasgos")).toBeInTheDocument();
     expect(screen.getByText(/3\.º de 3 en Mediocentro defensivo \(3,1\)\)$/)).toBeInTheDocument();
     fireEvent.click(screen.getByText("Ver detalle de reglas"));
     expect(screen.getByText("Encaje en el puesto")).toBeInTheDocument();
     expect(screen.getByText("3.º de 3 en Mediocentro defensivo (3,1)")).toBeInTheDocument();
   });
 
-  it("explica que el encaje en el puesto se mira primero entre los elegibles", () => {
+  it("explica el orden de los criterios entre los elegibles", () => {
     renderView(proposal());
 
-    expect(screen.getByText(/se ordena primero por el encaje en su puesto/)).toBeInTheDocument();
+    expect(screen.getByText(/jornadas seguidas, excedente de convocatorias y encaje por rasgos/)).toBeInTheDocument();
+  });
+});
+
+describe("DeconvocationProposalView — encaje en el puesto", () => {
+  const fitInfo = { share: 0, place: 3, total: 3, positionLabel: "Central", position: "centerBack" as const, value: 3.4 };
+  const fitContext = {
+    positionFit: [
+      {
+        position: "centerBack" as const,
+        confirmedWeekStart: null,
+        isManual: false,
+        weights: { traitOccupiesZone: "key" as const },
+        candidates: [{ teamPlayerId: "p1", name: "Sergio", place: 1, fit: 3.4, trend: "same" as const }],
+      },
+    ],
+    traitRatings: [
+      { id: "r1", teamPlayerId: "p1", ratedAt: "2026-11-01T00:00:00", trend: "same" as const, levels: [{ traitKey: "traitOccupiesZone", level: 4 }] },
+    ],
+  };
+
+  function withFit() {
+    return proposal({
+      players: [
+        player("p1", "Sergio", { group: "proposed", criterion: "fit", reason: "Elegido: peor encaje" }, { fit: fitInfo }),
+        player("p2", "Vargas", { group: "protected", protection: "injuryRest", reason: "Protegido" }, { fit: { ...fitInfo, place: 1 } }),
+        player("p6", "Pedro", { group: "notChosen", reason: "No elegido" }),
+      ],
+    });
+  }
+
+  it("ofrece ver el encaje de los jugadores que tienen orden de encaje", () => {
+    renderView(withFit(), { fitContext });
+
+    expect(screen.getByRole("button", { name: "Ver encaje de Sergio" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Ver encaje de Vargas" })).toBeInTheDocument();
+  });
+
+  it("no ofrece el encaje a quien no tiene orden de encaje", () => {
+    renderView(withFit(), { fitContext });
+
+    expect(screen.queryByRole("button", { name: "Ver encaje de Pedro" })).not.toBeInTheDocument();
+  });
+
+  it("no ofrece el encaje si la vista no recibe los datos de valoraciones", () => {
+    renderView(withFit());
+
+    expect(screen.queryByRole("button", { name: /Ver encaje/ })).not.toBeInTheDocument();
+  });
+
+  it("al pinchar abre el popup con las valoraciones del jugador", () => {
+    renderView(withFit(), { fitContext });
+    fireEvent.click(screen.getByRole("button", { name: "Ver encaje de Sergio" }));
+
+    const dialog = screen.getByRole("dialog", { name: /Encaje de Sergio como Central/i });
+    expect(within(dialog).getByText("Ocupa su zona y da apoyo")).toBeInTheDocument();
+    expect(within(dialog).getByText("Nivel 4 de 5")).toBeInTheDocument();
+  });
+
+  it("el popup se cierra con Cerrar", () => {
+    renderView(withFit(), { fitContext });
+    fireEvent.click(screen.getByRole("button", { name: "Ver encaje de Sergio" }));
+    fireEvent.click(screen.getByRole("button", { name: "Cerrar" }));
+
+    expect(screen.queryByRole("dialog", { name: /Encaje de Sergio/i })).not.toBeInTheDocument();
+  });
+});
+
+function entry(rank: number, name: string, outcome: ProposalOrderEntry["outcome"], extra: Partial<ProposalOrderEntry> = {}): ProposalOrderEntry {
+  return {
+    rank,
+    playerId: `o${rank}`,
+    name,
+    position: "Lateral",
+    outcome,
+    chips: ["5 seguidas", "Excedente 2", "Encaje 2,6", "Técnicas 0", "Asistencia 80%", "Nivel 6"],
+    versusNext: { nextName: "Siguiente", criterion: "fit", text: `Va antes que Siguiente: encaje por rasgos (2,6 como Lateral frente a 3,3 como Mediapunta)` },
+    ...extra,
+  };
+}
+
+describe("DeconvocationProposalView — orden de desconvocatoria", () => {
+  const order = [
+    entry(1, "Vargas", "proposed"),
+    entry(2, "Dani", "positionSkip"),
+    entry(3, "Huguito", "stays", { position: "Mediapunta", versusNext: null }),
+  ];
+
+  it("lista a los elegibles numerados en el orden en que se desconvocan", () => {
+    renderView(proposal({ order }));
+
+    const list = within(screen.getByRole("list", { name: "Orden de desconvocatoria" }));
+    const items = list.getAllByRole("listitem");
+    expect(items).toHaveLength(3);
+    expect(within(items[0]).getByText("Vargas")).toBeInTheDocument();
+    expect(within(items[0]).getByText("1")).toBeInTheDocument();
+    expect(within(items[2]).getByText("Huguito")).toBeInTheDocument();
+  });
+
+  it("muestra los criterios de cada jugador", () => {
+    renderView(proposal({ order }));
+
+    const first = within(screen.getAllByRole("listitem").find((li) => within(li).queryByText("Vargas")) as HTMLElement);
+    expect(first.getByText("Encaje 2,6")).toBeInTheDocument();
+    expect(first.getByText("5 seguidas")).toBeInTheDocument();
+  });
+
+  it("explica por qué cada uno va antes que el siguiente", () => {
+    renderView(proposal({ order }));
+
+    expect(
+      screen.getAllByText("Va antes que Siguiente: encaje por rasgos (2,6 como Lateral frente a 3,3 como Mediapunta)").length,
+    ).toBeGreaterThan(0);
+  });
+
+  it("marca la línea de corte tras el último desconvocado", () => {
+    renderView(proposal({ order }));
+
+    const cut = screen.getByRole("separator", { name: "Línea de corte" });
+    expect(cut).toHaveTextContent("Línea de corte: se quedan los de abajo");
+    expect(cut.previousElementSibling).toHaveTextContent("Vargas");
+    expect(cut.nextElementSibling).toHaveTextContent("Dani");
+  });
+
+  it("indica al que se salta por el mínimo de su posición", () => {
+    renderView(proposal({ order }));
+
+    expect(screen.getByText("Se salta: mínimo de su posición")).toBeInTheDocument();
+  });
+
+  it("no muestra la lista cuando no hay elegibles", () => {
+    renderView(proposal({ order: [] }));
+
+    expect(screen.queryByRole("list", { name: "Orden de desconvocatoria" })).not.toBeInTheDocument();
   });
 });

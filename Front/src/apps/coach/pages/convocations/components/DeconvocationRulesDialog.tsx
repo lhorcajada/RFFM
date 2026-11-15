@@ -16,6 +16,7 @@ import {
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import ConfirmDialog from "../../../../../shared/components/ui/ConfirmDialog/ConfirmDialog";
 import { resetDeconvocationRules, saveDeconvocationRules } from "../../../services/deconvocationRulesService";
+import { DEFAULT_MAX_CALLED_PLAYERS, minimumCalls } from "../utils/minimumCalls";
 import { DEFAULT_RULES } from "../utils/rules/defaultRules";
 import {
   RULE_CATALOG,
@@ -32,12 +33,16 @@ type Props = {
   teamId: string;
   /** Rules currently applied to the team (the default set when none is saved). */
   rules: DeconvocationRuleConfig[];
+  /** Players of the squad; enables the preview of the minimum of calls. */
+  squadSize?: number;
   onClose: () => void;
   /** Called after the configuration was saved or restored, so the proposal can be regenerated. */
   onSaved: () => void;
 };
 
 type NumberGroup = "points" | "weights";
+
+const PREVIEW_PLAYED_MATCHES = [5, 10, 15, 20];
 
 function notify(message: string, severity: "success" | "error") {
   window.dispatchEvent(new CustomEvent("rffm.show_snackbar", { detail: { message, severity } }));
@@ -50,7 +55,7 @@ function withDefaults(rules: DeconvocationRuleConfig[]): DeconvocationRuleConfig
   });
 }
 
-export default function DeconvocationRulesDialog({ open, teamId, rules, onClose, onSaved }: Props) {
+export default function DeconvocationRulesDialog({ open, teamId, rules, squadSize, onClose, onSaved }: Props) {
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down("sm"));
   const [draft, setDraft] = useState<DeconvocationRuleConfig[]>(() => withDefaults(rules));
@@ -144,6 +149,31 @@ export default function DeconvocationRulesDialog({ open, teamId, rules, onClose,
     );
   }
 
+  function renderPreview(rule: DeconvocationRuleConfig) {
+    if (rule.condition !== "minCalls" || !squadSize || squadSize <= 0) return null;
+    const percent = rule.points.percent ?? 100;
+    return (
+      <section className={styles.fieldGroup}>
+        <h4 className={styles.groupTitle}>Vista previa</h4>
+        <ul className={styles.preview} aria-label="Vista previa del mínimo">
+          {PREVIEW_PLAYED_MATCHES.map((played) => {
+            const min = minimumCalls({
+              playedAvailable: played,
+              maxCalledPlayers: DEFAULT_MAX_CALLED_PLAYERS,
+              squadSize,
+              percent,
+            });
+            return (
+              <li key={played}>
+                Si pudo jugar {played} partidos: mínimo {min} {min === 1 ? "convocatoria" : "convocatorias"}
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+    );
+  }
+
   const deleteTitle = deleteTarget ? RULE_CATALOG[deleteTarget].title : "";
   const deleteIsMandatory = deleteTarget ? !!RULE_CATALOG[deleteTarget].mandatory : false;
 
@@ -193,6 +223,7 @@ export default function DeconvocationRulesDialog({ open, teamId, rules, onClose,
                   />
                   {renderFields(rule, "points", def.points)}
                   {renderFields(rule, "weights", def.weights)}
+                  {renderPreview(rule)}
                 </article>
               );
             })}

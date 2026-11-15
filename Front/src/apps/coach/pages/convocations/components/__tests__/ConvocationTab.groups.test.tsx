@@ -21,6 +21,7 @@ const emptyProposal: DeconvokeProposal = {
   previousRivalResult: null,
   players: [],
   alreadyDeconvoked: [],
+  order: [],
 };
 
 function renderTab(isLeagueMatch: boolean) {

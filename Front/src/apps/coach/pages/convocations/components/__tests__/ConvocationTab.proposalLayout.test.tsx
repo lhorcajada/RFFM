@@ -65,6 +65,7 @@ function proposal(overrides: Partial<DeconvokeProposal> = {}): DeconvokeProposal
     players: [proposalPlayer({ playerId: "p2", displayName: "Propuesto Dos", isSelected: true })],
     positionWarnings: [],
     alreadyDeconvoked: [],
+  order: [],
     ...overrides,
   };
 }

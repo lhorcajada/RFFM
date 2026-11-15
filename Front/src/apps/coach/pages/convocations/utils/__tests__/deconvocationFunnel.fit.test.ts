@@ -11,7 +11,7 @@ import {
 } from "../deconvocationFunnel";
 
 function fit(partial: Partial<FitInfo> = {}): FitInfo {
-  return { share: 0.5, place: 2, total: 3, positionLabel: "Mediocentro", value: 3.6, ...partial };
+  return { share: 0.5, place: 2, total: 3, positionLabel: "Mediocentro", position: "midfielder", value: 3.6, ...partial };
 }
 
 function metrics(partial: Partial<FairnessMetrics> = {}): FairnessMetrics {
@@ -43,82 +43,111 @@ describe("formatFitPlace", () => {
 });
 
 describe("compareFairness con encaje", () => {
-  it("desconvoca antes al que tiene peor encaje en su puesto", () => {
-    const worst = metrics({ fit: fit({ share: 0 }) });
-    const best = metrics({ fit: fit({ share: 1 }) });
+  it("desconvoca antes al que tiene peor encaje cuando lo demás empata", () => {
+    const worst = metrics({ fit: fit({ value: 2.6 }) });
+    const best = metrics({ fit: fit({ value: 3.3 }) });
 
     expect(compareFairness(worst, best, "medium")).toMatchObject({ criterion: "fit" });
     expect(compareFairness(worst, best, "medium").order).toBeLessThan(0);
     expect(compareFairness(best, worst, "medium").order).toBeGreaterThan(0);
   });
 
-  it("el encaje decide antes que las jornadas seguidas", () => {
-    const worstFitFewStreak = metrics({ consecutive: 1, fit: fit({ share: 0 }) });
-    const bestFitLongStreak = metrics({ consecutive: 9, fit: fit({ share: 1 }) });
+  it("compara la nota de rasgos y no el lugar en la lista del puesto", () => {
+    const secondOfFive = metrics({ fit: fit({ share: 0.75, place: 2, total: 5, value: 3.3 }) });
+    const lastOfTwo = metrics({ fit: fit({ share: 0, place: 2, total: 2, value: 4.1 }) });
 
-    expect(compareFairness(worstFitFewStreak, bestFitLongStreak, "medium").order).toBeLessThan(0);
+    expect(compareFairness(secondOfFive, lastOfTwo, "medium").order).toBeLessThan(0);
   });
 
-  it("también decide primero contra un rival difícil", () => {
-    const worst = metrics({ fit: fit({ share: 0 }) });
-    const best = metrics({ fit: fit({ share: 1 }) });
+  it("las jornadas seguidas deciden antes que el encaje", () => {
+    const longStreakBestFit = metrics({ consecutive: 9, fit: fit({ value: 4.5 }) });
+    const shortStreakWorstFit = metrics({ consecutive: 1, fit: fit({ value: 2.0 }) });
+
+    expect(compareFairness(longStreakBestFit, shortStreakWorstFit, "medium")).toMatchObject({ criterion: "consecutive" });
+    expect(compareFairness(longStreakBestFit, shortStreakWorstFit, "medium").order).toBeLessThan(0);
+  });
+
+  it("el excedente de convocatorias decide antes que el encaje", () => {
+    const moreSurplus = metrics({ surplus: 4, fit: fit({ value: 4.5 }) });
+    const lessSurplus = metrics({ surplus: 1, fit: fit({ value: 2.0 }) });
+
+    expect(compareFairness(moreSurplus, lessSurplus, "medium")).toMatchObject({ criterion: "surplus" });
+  });
+
+  it("el encaje decide antes que la asistencia y las técnicas", () => {
+    const worst = metrics({ technicalTotal: 0, attendanceBucket: 10, fit: fit({ value: 2.0 }) });
+    const best = metrics({ technicalTotal: 5, attendanceBucket: 2, fit: fit({ value: 4.0 }) });
+
+    expect(compareFairness(worst, best, "medium")).toMatchObject({ criterion: "fit" });
+  });
+
+  it("contra un rival difícil el encaje también va después de las jornadas y el excedente", () => {
+    const worst = metrics({ fit: fit({ value: 2.0 }) });
+    const best = metrics({ fit: fit({ value: 4.0 }) });
 
     expect(compareFairness(worst, best, "hard").criterion).toBe("fit");
+    expect(compareFairness(metrics({ consecutive: 8, fit: fit({ value: 4.0 }) }), metrics({ fit: fit({ value: 2.0 }) }), "hard").criterion).toBe(
+      "consecutive",
+    );
+  });
+
+  it("diferencias menores que la décima mostrada se consideran empate", () => {
+    const a = metrics({ rating: 5, fit: fit({ value: 3.31 }) });
+    const b = metrics({ rating: 7, fit: fit({ value: 3.34 }) });
+
+    expect(compareFairness(a, b, "medium")).toMatchObject({ criterion: "rating" });
+  });
+
+  it("sin nota de encaje usa el lugar del orden confirmado", () => {
+    const worst = metrics({ fit: fit({ share: 0, value: null }) });
+    const best = metrics({ fit: fit({ share: 1, value: null }) });
+
+    expect(compareFairness(worst, best, "medium")).toMatchObject({ criterion: "fit" });
   });
 
   it("sin información de encaje decide la equidad como antes", () => {
-    const a = metrics({ consecutive: 5 });
-    const b = metrics({ consecutive: 2 });
+    const a = metrics({ technicalTotal: 0 });
+    const b = metrics({ technicalTotal: 3 });
 
-    expect(compareFairness(a, b, "medium")).toMatchObject({ criterion: "consecutive" });
+    expect(compareFairness(a, b, "medium")).toMatchObject({ criterion: "technicalTotal" });
   });
 
-  it("un jugador sin encaje cuenta como neutro frente a uno con encaje medio", () => {
-    const noFit = metrics({ consecutive: 5 });
-    const midFit = metrics({ consecutive: 2, fit: fit({ share: 0.5 }) });
+  it("un jugador sin encaje no se compara con la nota de otro", () => {
+    const noFit = metrics({ technicalTotal: 0 });
+    const withFit = metrics({ technicalTotal: 3, fit: fit({ value: 2.0 }) });
 
-    expect(compareFairness(noFit, midFit, "medium")).toMatchObject({ criterion: "consecutive" });
-  });
-
-  it("con el mismo lugar relativo desempata la equidad", () => {
-    const a = metrics({ consecutive: 6, fit: fit({ share: 0 }) });
-    const b = metrics({ consecutive: 2, fit: fit({ share: 0 }) });
-
-    expect(compareFairness(a, b, "medium")).toMatchObject({ criterion: "consecutive" });
+    expect(compareFairness(noFit, withFit, "medium")).toMatchObject({ criterion: "technicalTotal" });
   });
 });
 
 describe("textos del criterio de encaje", () => {
-  const worst = metrics({ fit: fit({ share: 0, place: 3, total: 3, positionLabel: "Mediocentro defensivo", value: 3.1 }) });
-  const best = metrics({ fit: fit({ share: 1, place: 1, total: 3, positionLabel: "Mediocentro defensivo", value: 4.2 }) });
+  const worst = metrics({ fit: fit({ share: 0, place: 3, total: 3, positionLabel: "Lateral", value: 2.6 }) });
+  const best = metrics({ fit: fit({ share: 1, place: 1, total: 3, positionLabel: "Mediapunta", value: 3.3 }) });
 
   it("lo nombra entre los criterios", () => {
-    expect(CRITERION_NAMES.fit).toBe("encaje en el puesto");
+    expect(CRITERION_NAMES.fit).toBe("encaje por rasgos");
   });
 
-  it("explica por qué se elige al de peor encaje", () => {
-    const text = describeCriterion("fit", worst, best, "Bruno", "Araque");
+  it("explica por qué se elige al de peor encaje con la nota de rasgos", () => {
+    const text = describeCriterion("fit", worst, best, "Huguito", "Vargas");
 
-    expect(text.chosen).toContain("3.º de 3 en Mediocentro defensivo (3,1)");
-    expect(text.compare).toContain("Bruno");
-    expect(text.compare).toContain("1.º de 3 en Mediocentro defensivo (4,2)");
+    expect(text.chosen).toBe("tiene peor encaje por rasgos en su puesto (2,6 como Lateral)");
+    expect(text.compare).toBe("Huguito: 3,3 como Mediapunta");
   });
 
   it("explica por qué el otro se queda", () => {
-    const text = describeCriterion("fit", worst, best, "Bruno", "Araque");
+    const text = describeCriterion("fit", worst, best, "Huguito", "Vargas");
 
     expect(text.notChosen).toBe(
-      "Se desconvoca a Araque en su lugar: peor encaje en su puesto (3.º de 3 en Mediocentro defensivo (3,1) frente a 1.º de 3 en Mediocentro defensivo (4,2))",
+      "Se desconvoca a Vargas en su lugar: peor encaje por rasgos en su puesto (2,6 como Lateral frente a 3,3 como Mediapunta)",
     );
   });
 
   it("muestra los valores comparados", () => {
-    expect(formatCriterionValues("fit", worst, best)).toBe(
-      "3.º de 3 en Mediocentro defensivo (3,1) frente a 1.º de 3 en Mediocentro defensivo (4,2)",
-    );
+    expect(formatCriterionValues("fit", worst, best)).toBe("2,6 como Lateral frente a 3,3 como Mediapunta");
   });
 
-  it("cuando uno no tiene orden de encaje lo dice", () => {
-    expect(formatCriterionValues("fit", worst, metrics())).toContain("sin orden de encaje");
+  it("cuando uno no tiene encaje lo dice", () => {
+    expect(formatCriterionValues("fit", worst, metrics())).toContain("sin encaje calculado");
   });
 });

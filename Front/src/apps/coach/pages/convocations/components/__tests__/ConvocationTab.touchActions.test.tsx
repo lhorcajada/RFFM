@@ -18,6 +18,7 @@ const emptyProposal: DeconvokeProposal = {
   players: [],
   positionWarnings: [],
   alreadyDeconvoked: [],
+  order: [],
 };
 
 function renderTab(handlers: {

@@ -146,6 +146,25 @@ describe("buildDeconvokeProposal — protección", () => {
     expect(find(proposal, "mc1").decision.group).not.toBe("protected");
   });
 
+  it("con el mínimo de convocatorias al 0 % ya no protege por la cuota", () => {
+    const rules = DEFAULT_RULES.map((r) => (r.condition === "minCalls" ? { ...r, points: { percent: 0 } } : r));
+    const proposal = build(team(), {
+      extra: { rules },
+      cells: { mc1: { 0: MISSING, 1: MISSING, 2: MISSING, 3: MISSING } },
+    });
+
+    expect(find(proposal, "mc1").decision.reason ?? "").not.toContain("para llegar al mínimo exigido");
+  });
+
+  it("el mínimo de convocatorias se escala con el porcentaje de la regla", () => {
+    const rules = DEFAULT_RULES.map((r) => (r.condition === "minCalls" ? { ...r, points: { percent: 50 } } : r));
+    const base = build(team(), { cells: { mc1: { 0: MISSING, 1: MISSING, 2: MISSING, 3: MISSING } } });
+    const half = build(team(), { extra: { rules }, cells: { mc1: { 0: MISSING, 1: MISSING, 2: MISSING, 3: MISSING } } });
+
+    const required = (proposal: typeof base) => proposal.players.find((p) => p.playerId === "mc1")!.detail.find((r) => r.rule === "Mínimo de convocatorias")!.value;
+    expect(required(half)).not.toBe(required(base));
+  });
+
   it("protege a quien no llega a su cuota de convocatorias", () => {
     const proposal = build(team(), {
       cells: { mc1: { 0: MISSING, 1: MISSING, 2: MISSING, 3: MISSING } },
@@ -292,6 +311,25 @@ describe("buildDeconvokeProposal — posiciones y ya desconvocados", () => {
     expect(proposal.selectedIds).toHaveLength(2);
   });
 
+  it("con un mínimo de laterales más bajo ya se puede proponer a un lateral", () => {
+    const rules = DEFAULT_RULES.map((r) =>
+      r.condition === "positionMinimums" ? { ...r, points: { ...r.points, fullBack: 2 } } : r,
+    );
+    const proposal = build(withMarcos(), { alreadyOutIds: ["lat4"], maxCalledPlayers: 15, extra: { rules } });
+
+    expect(proposal.selectedIds.some((id) => id.startsWith("lat"))).toBe(true);
+  });
+
+  it("el motivo de posición usa el mínimo configurado", () => {
+    const rules = DEFAULT_RULES.map((r) =>
+      r.condition === "positionMinimums" ? { ...r, points: { ...r.points, fullBack: 4 } } : r,
+    );
+    const proposal = build(withMarcos(), { alreadyOutIds: ["lat4"], maxCalledPlayers: 15, extra: { rules } });
+
+    const lateral = proposal.players.filter((p) => p.playerId.startsWith("lat"))[0];
+    expect(lateral.decision.reason).toBe("Protegido: quedan 3 de 4 laterales disponibles");
+  });
+
   it("los jugadores protegidos por la posición explican el mínimo", () => {
     const proposal = build(withMarcos(), { alreadyOutIds: ["lat4"], maxCalledPlayers: 15 });
 
@@ -331,10 +369,10 @@ describe("buildDeconvokeProposal — comparación con todos los elegibles", () =
     expect(find(proposal, "gk1").comparison).toEqual([]);
   });
 
-  it("la razón explica contra cuántos elegibles se ha comparado", () => {
+  it("la razón indica el puesto del jugador en el orden de desconvocatoria", () => {
     const proposal = build(team());
 
-    expect(find(proposal, proposal.selectedIds[0]).decision.compare).toMatch(/^Frente a los otros \d+ elegibles/);
+    expect(find(proposal, proposal.selectedIds[0]).decision.compare).toMatch(/^\d+\.º del orden de desconvocatoria/);
   });
 });
 

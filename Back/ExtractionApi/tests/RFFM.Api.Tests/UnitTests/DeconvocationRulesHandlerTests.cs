@@ -138,6 +138,9 @@ namespace RFFM.Api.Tests.UnitTests
         public void Validator_AcceptsTheLowMinutesCondition() => Assert.True(IsValid(Rule("lowMinutes")));
 
         [Fact]
+        public void Validator_AcceptsTheMinimumConditions() => Assert.True(IsValid(Rule("minCalls"), Rule("positionMinimums")));
+
+        [Fact]
         public void Validator_RejectsAnUnknownCondition() => Assert.False(IsValid(Rule("nope")));
 
         [Fact]

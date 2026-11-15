@@ -1,9 +1,12 @@
+import { Fragment, useState } from "react";
 import { Alert, Button, CircularProgress } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import RuleIcon from "@mui/icons-material/Rule";
 import EmptyState from "../../../../../shared/components/ui/EmptyState/EmptyState";
+import type { PositionFit } from "../../../types/positionFit";
+import type { TraitRating } from "../../../types/traitRating";
 import type { RivalDifficulty } from "../utils/deconvocationFunnel";
 import {
   DETAIL_RESULT_LABELS,
@@ -11,8 +14,10 @@ import {
   type DetailResult,
   type PlayerProposal,
   type ProposalDecision,
+  type ProposalOrderEntry,
 } from "../utils/deconvokeProposal";
 import { formatShortfall, roleLabel } from "../utils/positionRequirements";
+import PlayerFitDialog from "./PlayerFitDialog";
 import styles from "./DeconvocationProposalView.module.css";
 
 type Props = {
@@ -26,10 +31,17 @@ type Props = {
   onRefresh?: () => void;
   /** Opens the rules dialog; the button is hidden when omitted. */
   onOpenRules?: () => void;
+  /** Fit orders and trait ratings; without them the players' fit cannot be explained. */
+  fitContext?: FitContext;
+};
+
+export type FitContext = {
+  positionFit: PositionFit[];
+  traitRatings: TraitRating[];
 };
 
 const CRITERION_LABELS: Record<NonNullable<ProposalDecision["criterion"]>, string> = {
-  fit: "encaje en el puesto",
+  fit: "encaje por rasgos",
   consecutive: "jornadas seguidas",
   surplus: "excedente de convocatorias",
   technicalTotal: "desconvocatorias técnicas",
@@ -73,7 +85,21 @@ function plural(count: number, one: string, many: string): string {
   return `${count} ${count === 1 ? one : many}`;
 }
 
-function ProposedCard({ item }: { item: PlayerProposal }) {
+function FitButton({ item, onShowFit }: { item: PlayerProposal; onShowFit?: (item: PlayerProposal) => void }) {
+  if (!onShowFit || !item.fit) return null;
+  return (
+    <button
+      type="button"
+      className={styles.fitButton}
+      aria-label={`Ver encaje de ${item.displayName}`}
+      onClick={() => onShowFit(item)}
+    >
+      Ver encaje
+    </button>
+  );
+}
+
+function ProposedCard({ item, onShowFit }: { item: PlayerProposal; onShowFit?: (item: PlayerProposal) => void }) {
   const { decision } = item;
   return (
     <article className={styles.card}>
@@ -91,6 +117,7 @@ function ProposedCard({ item }: { item: PlayerProposal }) {
       </div>
       <p className={styles.reason}>{decision.reason}</p>
       {decision.compare && <p className={styles.compare}>{decision.compare}</p>}
+      <FitButton item={item} onShowFit={onShowFit} />
       <div className={styles.chips}>
         <span className={styles.chip}>{item.calledCount} conv.</span>
         {item.startsDataAvailable && <span className={styles.chip}>{item.startsCount} tit.</span>}
@@ -113,29 +140,67 @@ function ProposedCard({ item }: { item: PlayerProposal }) {
               </li>
             ))}
           </ul>
-          {item.comparison.length > 0 && (
-            <div role="group" aria-label="Frente a los demás elegibles" className={styles.comparison}>
-              <h5 className={styles.comparisonTitle}>Frente a los demás elegibles</h5>
-              {item.comparison.map((row) => (
-                <div key={row.playerId} className={styles.comparisonRow}>
-                  <span className={styles.comparisonName}>
-                    <strong>{row.name}</strong>
-                    <span className={styles.position}>{row.position}</span>
-                  </span>
-                  <span className={`${styles.comparisonVerdict} ${row.outcome === "decides" ? styles.toneDecides : styles.toneMuted}`}>
-                    {row.verdict}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
         </details>
       )}
     </article>
   );
 }
 
-function ReasonCard({ item }: { item: PlayerProposal }) {
+const ORDER_OUTCOME_LABELS: Partial<Record<ProposalOrderEntry["outcome"], string>> = {
+  proposed: "Se desconvoca",
+  positionSkip: "Se salta: mínimo de su posición",
+};
+
+function OrderList({ order }: { order: ProposalOrderEntry[] }) {
+  const lastProposed = order.reduce((last, entry, index) => (entry.outcome === "proposed" ? index : last), -1);
+  return (
+    <section className={styles.orderSection} aria-label="Orden en que se desconvoca">
+      <h4 className={styles.sectionLabel}>Orden de desconvocatoria</h4>
+      <p className={styles.orderIntro}>
+        De arriba abajo, el primero es el primero en salir. Cada jugador explica por qué va antes que el siguiente.
+      </p>
+      <ol className={styles.orderList} aria-label="Orden de desconvocatoria">
+        {order.map((entry, index) => (
+          <Fragment key={entry.playerId}>
+            <li
+              className={`${styles.orderItem} ${entry.outcome === "proposed" ? styles.orderItemOut : ""} ${
+                entry.outcome === "stays" ? styles.orderItemStays : ""
+              }`}
+            >
+              <span className={styles.orderRank}>{entry.rank}</span>
+              <div className={styles.orderBody}>
+                <div className={styles.name}>
+                  <strong>{entry.name}</strong>
+                  <span className={styles.position}>{entry.position}</span>
+                  {ORDER_OUTCOME_LABELS[entry.outcome] && (
+                    <span className={entry.outcome === "proposed" ? styles.orderBadgeOut : styles.orderBadgeSkip}>
+                      {ORDER_OUTCOME_LABELS[entry.outcome]}
+                    </span>
+                  )}
+                </div>
+                <div className={styles.chips}>
+                  {entry.chips.map((chip) => (
+                    <span key={chip} className={styles.chip}>
+                      {chip}
+                    </span>
+                  ))}
+                </div>
+                {entry.versusNext && <p className={styles.orderVersus}>{entry.versusNext.text}</p>}
+              </div>
+            </li>
+            {index === lastProposed && index < order.length - 1 && (
+              <li role="separator" aria-label="Línea de corte" className={styles.cutLine}>
+                Línea de corte: se quedan los de abajo
+              </li>
+            )}
+          </Fragment>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
+function ReasonCard({ item, onShowFit }: { item: PlayerProposal; onShowFit?: (item: PlayerProposal) => void }) {
   return (
     <article className={styles.reasonCard}>
       <div className={styles.reasonCardName}>
@@ -145,6 +210,7 @@ function ReasonCard({ item }: { item: PlayerProposal }) {
         </span>
       </div>
       <p className={styles.reasonText}>{item.decision.reason}</p>
+      <FitButton item={item} onShowFit={onShowFit} />
     </article>
   );
 }
@@ -158,7 +224,13 @@ export default function DeconvocationProposalView({
   onApply,
   onRefresh,
   onOpenRules,
+  fitContext,
 }: Props) {
+  const [fitTarget, setFitTarget] = useState<PlayerProposal | null>(null);
+  const onShowFit = fitContext ? setFitTarget : undefined;
+  const fitPosition = fitTarget?.fit ? fitContext?.positionFit.find((p) => p.position === fitTarget.fit?.position) : undefined;
+  const fitLevels = fitContext?.traitRatings.find((r) => r.teamPlayerId === fitTarget?.playerId)?.levels ?? [];
+
   const proposed = proposal.players.filter((p) => p.decision.group === "proposed");
   const protectedPlayers = proposal.players.filter((p) => p.decision.group === "protected");
   const notChosen = proposal.players.filter((p) => p.decision.group === "notChosen");
@@ -180,7 +252,7 @@ export default function DeconvocationProposalView({
     },
     {
       title: "Justicia",
-      text: `Entre los ${eligibleCount} elegibles se ordena primero por el encaje en su puesto (cuando hay orden de encaje) y después por jornadas seguidas convocado sin descansar, excedente de convocatorias, desconvocatorias técnicas y asistencia.`,
+      text: `Entre los ${eligibleCount} elegibles se ordena por jornadas seguidas, excedente de convocatorias y encaje por rasgos (la nota de sus valoraciones en su puesto), y después por desconvocatorias técnicas y asistencia.`,
     },
     {
       title: "Dificultad del rival",
@@ -279,6 +351,8 @@ export default function DeconvocationProposalView({
             </ol>
           </section>
 
+          {proposal.order.length > 0 && <OrderList order={proposal.order} />}
+
           {proposal.players.length > 0 && proposed.length === 0 && (
             <p className={styles.notice}>No hace falta desconvocar jugadores con las reglas actuales.</p>
           )}
@@ -287,7 +361,7 @@ export default function DeconvocationProposalView({
               <h4 className={styles.sectionLabel}>Propuestos para desconvocar</h4>
               <div className={styles.grid}>
                 {proposed.map((item) => (
-                  <ProposedCard key={item.playerId} item={item} />
+                  <ProposedCard key={item.playerId} item={item} onShowFit={onShowFit} />
                 ))}
               </div>
             </>
@@ -325,7 +399,7 @@ export default function DeconvocationProposalView({
                     <div key={group.title} role="group" aria-label={group.title} className={styles.group}>
                       <h5 className={styles.groupTitle}>{group.title}</h5>
                       {members.map((item) => (
-                        <ReasonCard key={item.playerId} item={item} />
+                        <ReasonCard key={item.playerId} item={item} onShowFit={onShowFit} />
                       ))}
                     </div>
                   );
@@ -339,12 +413,23 @@ export default function DeconvocationProposalView({
               <h4 className={`${styles.sectionLabel} ${styles.sectionLabelDim}`}>Elegibles no elegidos</h4>
               <div className={styles.grid}>
                 {notChosen.map((item) => (
-                  <ReasonCard key={item.playerId} item={item} />
+                  <ReasonCard key={item.playerId} item={item} onShowFit={onShowFit} />
                 ))}
               </div>
             </div>
           )}
         </>
+      )}
+      {fitTarget && (
+        <PlayerFitDialog
+          open
+          onClose={() => setFitTarget(null)}
+          playerId={fitTarget.playerId}
+          playerName={fitTarget.displayName}
+          fit={fitTarget.fit}
+          positionFit={fitPosition}
+          levels={fitLevels}
+        />
       )}
     </div>
   );
