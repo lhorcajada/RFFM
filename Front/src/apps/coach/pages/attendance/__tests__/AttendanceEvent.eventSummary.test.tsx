@@ -145,6 +145,8 @@ describe("AttendanceEvent - deriva eventSummary para AttendanceTabs", () => {
   });
 
   it("marca el evento como partido de liga solo cuando la categoría es League", async () => {
+    // El entrenador va directo a la página de partido; la asistencia de liga es la vista del jugador.
+    hasRoleMock.mockReturnValue(false);
     getSportEventByIdMock.mockResolvedValue({
       id: "event-1",
       title: "Jornada 5",

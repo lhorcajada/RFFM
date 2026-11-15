@@ -426,8 +426,7 @@ export default function ConvocationMatchDetail() {
             onDragLeave={() => convocation.setMgmtDragOver(null)}
             onDrop={convocation.handleDrop}
             onCallPlayers={convocation.handleCallPlayers}
-            onDeconvokePlayer={(playerId) => convocation.moveToNotCalled(playerId)}
-            onMarkAvailable={convocation.markAvailable}
+            onDeconvokePlayer={(playerId, excuseId) => convocation.moveToNotCalled(playerId, excuseId)}
             onExcuseChange={(pid, excuseId) =>
               convocation.setMgmtExcuseMap((prev) => ({ ...prev, [pid]: excuseId }))
             }
@@ -470,7 +469,7 @@ export default function ConvocationMatchDetail() {
             enrichedGrid={grid.enrichedGrid}
             isLoading={grid.isLoading}
             teamId={teamId}
-            onDeconvokePlayer={(playerId) => convocation.moveToNotCalled(playerId)}
+            onDeconvokePlayer={(playerId, excuseId) => convocation.moveToNotCalled(playerId, excuseId)}
             currentNotCalled={convocation.mgmtNotCalled}
           />
         )}

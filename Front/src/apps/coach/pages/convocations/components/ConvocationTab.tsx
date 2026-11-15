@@ -19,6 +19,7 @@ import type { ExcuseType } from "../../../services/excuseTypeService";
 import type { PlayerResponse } from "../../../services/teamplayerService";
 import type { PlayerRating } from "../../../types/playerRating";
 import type { PlayerStatistics } from "../../../services/teamPlayerStatisticsService";
+import DeconvocationReasonPicker from "./DeconvocationReasonPicker";
 import ConvocationPlayerRow from "./ConvocationPlayerRow";
 import PlayerFormLegend from "../../../components/PlayerFormLegend/PlayerFormLegend";
 import type { DropZone } from "./convocationMatchDetail.types";
@@ -73,7 +74,7 @@ type Props = {
   mgmtLoadingConv: boolean;
   loadingPlayers: boolean;
   teamAvgRating: number | null;
-  /** League match: adds the waiting and pending-availability lists. */
+  /** League match: coach-only convocation with waiting, called and deconvoked lists. */
   isLeagueMatch?: boolean;
   mgmtWaiting?: string[];
   mgmtAvailabilityPending?: string[];
@@ -94,10 +95,8 @@ type Props = {
   onDrop: (zone: DropZone) => void;
   onExcuseChange: (playerId: string, excuseId: number) => void;
   onCallPlayers?: (playerIds: string[]) => Promise<void>;
-  /** Moves a called player to «Desconvocados» without dragging. */
-  onDeconvokePlayer?: (playerId: string) => Promise<void>;
-  /** League: answers a pending availability request as available on the player's behalf. */
-  onMarkAvailable?: (playerId: string) => Promise<void>;
+  /** Moves a player to «Desconvocados» without dragging; league matches pass the chosen reason. */
+  onDeconvokePlayer?: (playerId: string, excuseId?: number) => Promise<void>;
   playerStreaks?: Map<string, number>;
   proposal: DeconvokeProposal;
   proposalLoading: boolean;
@@ -128,16 +127,19 @@ type ZoneConfig = {
   headerClass: keyof typeof styles;
 };
 
-const LEAGUE_ONLY_ZONES: ZoneConfig[] = [
-  { zone: "waiting", label: "Lista de espera", headerClass: "dropColumnHeaderWaiting" },
-  { zone: "availabilityPending", label: "Pendientes de respuesta", headerClass: "dropColumnHeaderAvailabilityPending" },
-];
+const WAITING_ZONE: ZoneConfig = { zone: "waiting", label: "Lista de espera", headerClass: "dropColumnHeaderWaiting" };
+const CALLED_ZONE: ZoneConfig = { zone: "called", label: "Convocados", headerClass: "dropColumnHeaderCalled" };
+const NOT_CALLED_ZONE: ZoneConfig = { zone: "notCalled", label: "Desconvocados", headerClass: "dropColumnHeaderNotCalled" };
 
+// Friendlies: availability-based lists plus the common ones.
 const COMMON_ZONES: ZoneConfig[] = [
   { zone: "available", label: "Disponibles", headerClass: "dropColumnHeaderAvailable" },
-  { zone: "called", label: "Convocados", headerClass: "dropColumnHeaderCalled" },
-  { zone: "notCalled", label: "Desconvocados", headerClass: "dropColumnHeaderNotCalled" },
+  CALLED_ZONE,
+  NOT_CALLED_ZONE,
 ];
+
+// League matches: only the coach decides, so there is no availability state.
+const LEAGUE_ZONES: ZoneConfig[] = [WAITING_ZONE, CALLED_ZONE, NOT_CALLED_ZONE];
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -167,7 +169,6 @@ export default function ConvocationTab({
   onExcuseChange,
   onCallPlayers,
   onDeconvokePlayer,
-  onMarkAvailable,
   playerStreaks,
   proposal,
   proposalLoading,
@@ -213,15 +214,17 @@ export default function ConvocationTab({
   });
   const [applyingProposal, setApplyingProposal] = useState(false);
   const [collapsedZones, setCollapsedZones] = useState<Partial<Record<DropZone, boolean>>>({});
-  const zones = isLeagueMatch ? [...LEAGUE_ONLY_ZONES, ...COMMON_ZONES] : COMMON_ZONES;
+  const zones = isLeagueMatch ? LEAGUE_ZONES : COMMON_ZONES;
+  // League: whoever has no convocation waits for the coach's decision, whatever an old availability request says.
+  const waitingIds = isLeagueMatch ? [...mgmtWaiting, ...mgmtAvailabilityPending, ...mgmtAvailable] : mgmtWaiting;
   const toggleZone = (zone: DropZone) => setCollapsedZones((prev) => ({ ...prev, [zone]: !prev[zone] }));
   // Zones without players are folded into a pill; the coach can still unfold one to see its drop area.
   const [openedEmptyZones, setOpenedEmptyZones] = useState<Partial<Record<DropZone, boolean>>>({});
   const toggleEmptyZone = (zone: DropZone) => setOpenedEmptyZones((prev) => ({ ...prev, [zone]: !prev[zone] }));
   const zoneCounts: Record<DropZone, number> = {
-    waiting: mgmtWaiting.length,
-    availabilityPending: mgmtAvailabilityPending.length,
-    available: mgmtAvailable.length,
+    waiting: waitingIds.length,
+    availabilityPending: isLeagueMatch ? 0 : mgmtAvailabilityPending.length,
+    available: isLeagueMatch ? 0 : mgmtAvailable.length,
     called: mgmtCalled.length,
     notCalled: mgmtNotCalled.length,
   };
@@ -236,7 +239,7 @@ export default function ConvocationTab({
   }, [zoneCounts.waiting, zoneCounts.availabilityPending, zoneCounts.available, zoneCounts.called, zoneCounts.notCalled]);
   const [selectedToCall, setSelectedToCall] = useState<string[]>([]);
   const [callingPlayers, setCallingPlayers] = useState(false);
-  const [markingAvailable, setMarkingAvailable] = useState<string[]>([]);
+  const [reasonTarget, setReasonTarget] = useState<{ playerId: string; change: boolean } | null>(null);
   const selectedAvailable = selectedToCall.filter((id) => mgmtAvailable.includes(id));
   const toggleSelectedToCall = (playerId: string) =>
     setSelectedToCall((prev) => (prev.includes(playerId) ? prev.filter((id) => id !== playerId) : [...prev, playerId]));
@@ -249,16 +252,6 @@ export default function ConvocationTab({
       setSelectedToCall([]);
     } finally {
       setCallingPlayers(false);
-    }
-  }
-
-  async function handleMarkAvailable(playerId: string) {
-    if (!onMarkAvailable || markingAvailable.includes(playerId)) return;
-    setMarkingAvailable((prev) => [...prev, playerId]);
-    try {
-      await onMarkAvailable(playerId);
-    } finally {
-      setMarkingAvailable((prev) => prev.filter((id) => id !== playerId));
     }
   }
 
@@ -283,7 +276,7 @@ export default function ConvocationTab({
   }
 
   function getZoneIds(zone: DropZone): string[] {
-    if (zone === "waiting") return mgmtWaiting;
+    if (zone === "waiting") return waitingIds;
     if (zone === "availabilityPending") return mgmtAvailabilityPending;
     if (zone === "available") return mgmtAvailable;
     if (zone === "called") return mgmtCalled;
@@ -314,25 +307,38 @@ export default function ConvocationTab({
         </label>
       );
     }
-    if (zone === "availabilityPending" && onMarkAvailable) {
+    if (isLeagueMatch && zone === "waiting") {
       return (
-        <Button
-          size="small"
-          variant="outlined"
-          color="success"
-          onClick={() => handleMarkAvailable(playerId)}
-          disabled={markingAvailable.includes(playerId)}
-          aria-label={`Marcar disponible a ${displayName}`}
-          className={styles.rowActionBtn}
-        >
-          Disponible
-        </Button>
+        <div className={styles.waitingActions}>
+          {onCallPlayers && (
+            <Button
+              size="small"
+              variant="contained"
+              onClick={() => onCallPlayers([playerId])}
+              aria-label={`Convocar a ${displayName}`}
+              className={`${styles.rowActionBtn} ${styles.waitingCallBtn}`}
+            >
+              Convocar
+            </Button>
+          )}
+          {onDeconvokePlayer && (
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={() => setReasonTarget({ playerId, change: false })}
+              aria-label={`Desconvocar a ${displayName}`}
+              className={`${styles.rowActionBtn} ${styles.waitingDeconvokeBtn}`}
+            >
+              Desconvocar
+            </Button>
+          )}
+        </div>
       );
     }
     if (zone === "called" && onDeconvokePlayer) {
       return (
         <IconButton
-          onClick={() => onDeconvokePlayer(playerId)}
+          onClick={() => (isLeagueMatch ? setReasonTarget({ playerId, change: false }) : onDeconvokePlayer(playerId))}
           aria-label={`Desconvocar a ${displayName}`}
           className={styles.deconvokeBtn}
         >
@@ -354,6 +360,11 @@ export default function ConvocationTab({
       );
     }
     return null;
+  }
+
+  function playerNameOf(playerId: string) {
+    const p = players.find((pl) => pl.id === playerId);
+    return p?.alias || ((p?.name ?? "") + " " + (p?.lastName ?? "")).trim() || "Jugador";
   }
 
   function renderPlayerRow(playerId: string, zone: DropZone) {
@@ -393,7 +404,20 @@ export default function ConvocationTab({
           selected={zone === "available" && selectedToCall.includes(playerId)}
           actions={actions ? <div {...stopDrag}>{actions}</div> : undefined}
         />
-        {zone === "notCalled" && excuseTypes.length > 0 && (
+        {isLeagueMatch && zone === "notCalled" && excuseTypes.length > 0 && (
+          <button
+            type="button"
+            className={styles.reasonStrip}
+            onClick={() => setReasonTarget({ playerId, change: true })}
+            {...stopDrag}
+          >
+            <span className={styles.reasonStripText}>
+              Motivo: {excuseTypes.find((et) => et.id === mgmtExcuseMap[playerId])?.name ?? "Sin motivo"}
+            </span>
+            <ExpandMoreIcon fontSize="small" aria-hidden="true" />
+          </button>
+        )}
+        {!isLeagueMatch && zone === "notCalled" && excuseTypes.length > 0 && (
           <FormControl size="small" fullWidth sx={{ mt: 0.5, flexShrink: 0 }} onClick={(e) => e.stopPropagation()} {...stopDrag}>
             <InputLabel sx={{ fontSize: "0.7rem" }}>Motivo</InputLabel>
             <Select
@@ -596,6 +620,22 @@ export default function ConvocationTab({
         })}
       </div>
       </>
+      )}
+
+      {reasonTarget && (
+        <DeconvocationReasonPicker
+          playerName={playerNameOf(reasonTarget.playerId)}
+          excuseTypes={excuseTypes}
+          initialExcuseId={reasonTarget.change ? (mgmtExcuseMap[reasonTarget.playerId] ?? null) : null}
+          confirmLabel={reasonTarget.change ? "Guardar motivo" : "Desconvocar"}
+          onCancel={() => setReasonTarget(null)}
+          onConfirm={(excuseId) => {
+            const { playerId, change } = reasonTarget;
+            setReasonTarget(null);
+            if (change) onExcuseChange(playerId, excuseId);
+            else void onDeconvokePlayer?.(playerId, excuseId);
+          }}
+        />
       )}
     </div>
   );

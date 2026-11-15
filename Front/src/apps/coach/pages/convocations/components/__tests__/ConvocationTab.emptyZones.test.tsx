@@ -70,7 +70,7 @@ describe("ConvocationTab - zonas vacías plegadas", () => {
   it("pinta como botón plegado, con contador 0, cada zona sin jugadores", () => {
     render(tab({ called: ["c1"], notCalled: ["n1"] }));
 
-    for (const name of ["Lista de espera", "Pendientes de respuesta", "Disponibles"]) {
+    for (const name of ["Lista de espera"]) {
       expect(foldedZone(name)).toHaveAttribute("aria-expanded", "false");
     }
   });
@@ -78,7 +78,6 @@ describe("ConvocationTab - zonas vacías plegadas", () => {
   it("no pinta columna para las zonas vacías", () => {
     render(tab({ called: ["c1"], notCalled: ["n1"] }));
 
-    expect(screen.queryByRole("region", { name: "Disponibles" })).not.toBeInTheDocument();
     expect(screen.queryByRole("region", { name: "Lista de espera" })).not.toBeInTheDocument();
   });
 
@@ -91,7 +90,7 @@ describe("ConvocationTab - zonas vacías plegadas", () => {
   });
 
   it("también pliega Convocados y Desconvocados cuando están vacíos", () => {
-    render(tab({ available: ["a1"] }));
+    render(tab({ waiting: ["a1"] }));
 
     expect(foldedZone("Convocados")).toHaveAttribute("aria-expanded", "false");
     expect(foldedZone("Desconvocados")).toHaveAttribute("aria-expanded", "false");
@@ -100,43 +99,43 @@ describe("ConvocationTab - zonas vacías plegadas", () => {
   it("despliega la zona como columna al pulsar su botón", () => {
     render(tab({ called: ["c1"] }));
 
-    fireEvent.click(foldedZone("Disponibles"));
+    fireEvent.click(foldedZone("Lista de espera"));
 
-    const region = screen.getByRole("region", { name: "Disponibles" });
+    const region = screen.getByRole("region", { name: "Lista de espera" });
     expect(within(region).getByRole("button", { expanded: true })).toBeInTheDocument();
     expect(within(region).getByText("Arrastra jugadores aquí")).toBeInTheDocument();
   });
 
   it("vuelve a plegar una zona desplegada al pulsar su cabecera", () => {
     render(tab({ called: ["c1"] }));
-    fireEvent.click(foldedZone("Disponibles"));
+    fireEvent.click(foldedZone("Lista de espera"));
 
-    fireEvent.click(within(screen.getByRole("region", { name: "Disponibles" })).getByRole("button"));
+    fireEvent.click(within(screen.getByRole("region", { name: "Lista de espera" })).getByRole("button"));
 
-    expect(foldedZone("Disponibles")).toHaveAttribute("aria-expanded", "false");
+    expect(foldedZone("Lista de espera")).toHaveAttribute("aria-expanded", "false");
   });
 
   it("muestra como columna una zona plegada en cuanto recibe un jugador", () => {
     const { rerender } = render(tab({ called: ["c1"] }));
 
-    rerender(tab({ called: ["c1"], available: ["a1"] }));
+    rerender(tab({ called: ["c1"], waiting: ["a1"] }));
 
-    expect(screen.getByRole("region", { name: "Disponibles" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /^Disponibles\s*0$/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Lista de espera" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Lista de espera\s*0$/ })).not.toBeInTheDocument();
   });
 
   it("vuelve a plegar una zona abierta cuando se queda otra vez sin jugadores", () => {
-    const { rerender } = render(tab({ called: ["c1"], available: ["a1"] }));
+    const { rerender } = render(tab({ called: ["c1"], waiting: ["a1"] }));
     rerender(tab({ called: ["c1"] }));
 
-    expect(foldedZone("Disponibles")).toHaveAttribute("aria-expanded", "false");
+    expect(foldedZone("Lista de espera")).toHaveAttribute("aria-expanded", "false");
   });
 
   it("permite soltar un jugador sobre una zona plegada", () => {
     onDrop.mockClear();
     onDragOver.mockClear();
     render(tab({ called: ["c1"] }));
-    const folded = foldedZone("Disponibles");
+    const folded = foldedZone("Desconvocados");
     const row = document.querySelector('[data-player-id="c1"]') as HTMLElement;
     document.elementFromPoint = vi.fn(() => folded);
 
@@ -144,11 +143,11 @@ describe("ConvocationTab - zonas vacías plegadas", () => {
     act(() => {
       window.dispatchEvent(new MouseEvent("pointermove", { clientX: 40, clientY: 40 }));
     });
-    expect(onDragOver).toHaveBeenCalledWith("available");
+    expect(onDragOver).toHaveBeenCalledWith("notCalled");
     act(() => {
       window.dispatchEvent(new MouseEvent("pointerup", { clientX: 40, clientY: 40 }));
     });
 
-    expect(onDrop).toHaveBeenCalledWith("available");
+    expect(onDrop).toHaveBeenCalledWith("notCalled");
   });
 });

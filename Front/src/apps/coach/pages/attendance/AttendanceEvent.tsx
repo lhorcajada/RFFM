@@ -75,6 +75,25 @@ export default function AttendanceEvent() {
   const [searchingTraining, setSearchingTraining] = useState(false);
   const [createTrainingOpen, setCreateTrainingOpen] = useState(false);
 
+  const goToMatchPage = (target: SportEventResponse, replace = false) => {
+    const teamIdParam = encodeURIComponent(String(target.teamId ?? ""));
+    const eventIdParam = encodeURIComponent(String(target.id));
+    navigate(`/coach/convocations/match?teamId=${teamIdParam}&eventId=${eventIdParam}`, {
+      state: { match: toMatchState(target) },
+      replace,
+    });
+  };
+
+  // League matches are managed only by the coach: skip the attendance form and land on the match page.
+  const redirectsToMatchPage =
+    event?.matchCategory === "League" &&
+    (coachAuthService.hasRole("Coach") || coachAuthService.hasRole("Administrator"));
+
+  useEffect(() => {
+    if (event && redirectsToMatchPage) goToMatchPage(event, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [event, redirectsToMatchPage]);
+
   // Summary handed to AttendanceTabs (and from there to
   // NotifyPendingConvocationDialog) for building the "Notificar por
   // WhatsApp" message text — derived once here from data already fetched
@@ -345,14 +364,7 @@ export default function AttendanceEvent() {
                   startIcon={<SportsSoccerIcon />}
                   variant="contained"
                   size="small"
-                  onClick={() => {
-                    const teamIdParam = encodeURIComponent(String(event.teamId ?? ""));
-                    const eventIdParam = encodeURIComponent(String(event.id));
-                    navigate(
-                      `/coach/convocations/match?teamId=${teamIdParam}&eventId=${eventIdParam}`,
-                      { state: { match: toMatchState(event) } },
-                    );
-                  }}
+                  onClick={() => goToMatchPage(event)}
                 >
                   Ir al partido
                 </Button>
@@ -383,7 +395,7 @@ export default function AttendanceEvent() {
         }
       >
         <Box className={styles.box}>
-          {loading ? (
+          {loading || redirectsToMatchPage ? (
             <CircularProgress />
           ) : event ? (
             <div className={styles.container}>

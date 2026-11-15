@@ -348,3 +348,50 @@
   opacity: 0.4;
   box-shadow: none;
 }
+
+/* League waiting list: coach decision buttons stacked next to the player */
+.waitingActions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.waitingCallBtn {
+  background: #4d9de0 !important;
+  color: #0d0d1f !important;
+  font-weight: 700 !important;
+}
+
+.waitingDeconvokeBtn {
+  border-color: #f2a65a !important;
+  color: #f2a65a !important;
+  font-weight: 700 !important;
+}
+
+/* League deconvoked card: reason shown as a strip inside the card */
+.reasonStrip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  margin-top: 2px;
+  border: 0;
+  border-radius: 0 0 14px 14px;
+  background: rgba(242, 166, 90, 0.12);
+  color: #f2a65a;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.reasonStripText {
+  flex: 1;
+}
+
+.reasonStrip:focus-visible {
+  outline: 2px solid #f2a65a;
+  outline-offset: -2px;
+}

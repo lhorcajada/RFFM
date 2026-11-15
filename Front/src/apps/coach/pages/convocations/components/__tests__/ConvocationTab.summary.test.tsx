@@ -62,7 +62,7 @@ function renderTab(isLeagueMatch: boolean, zones: Zones) {
 }
 
 describe("ConvocationTab - resumen", () => {
-  it("en liga muestra un contador por cada zona", () => {
+  it("en liga muestra tres contadores y agrupa en la espera a los pendientes y disponibles", () => {
     renderTab(true, {
       waiting: ["w1"],
       pending: ["r1", "r2"],
@@ -72,9 +72,9 @@ describe("ConvocationTab - resumen", () => {
     });
 
     const summary = screen.getByLabelText("Resumen de la convocatoria");
-    expect(within(summary).getByLabelText("Lista de espera: 1")).toBeInTheDocument();
-    expect(within(summary).getByLabelText("Pendientes de respuesta: 2")).toBeInTheDocument();
-    expect(within(summary).getByLabelText("Disponibles: 3")).toBeInTheDocument();
+    expect(within(summary).getByLabelText("Lista de espera: 6")).toBeInTheDocument();
+    expect(within(summary).queryByLabelText(/Pendientes de respuesta/)).not.toBeInTheDocument();
+    expect(within(summary).queryByLabelText(/Disponibles/)).not.toBeInTheDocument();
     expect(within(summary).getByLabelText("Convocados: 4")).toBeInTheDocument();
     expect(within(summary).getByLabelText("Desconvocados: 1")).toBeInTheDocument();
   });

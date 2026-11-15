@@ -58,24 +58,23 @@ function renderTab(isLeagueMatch: boolean) {
 }
 
 describe("ConvocationTab - listas plegables", () => {
-  it("en liga muestra las listas vacías plegadas delante y las demás en el orden espera, pendientes de respuesta, disponibles, convocados", () => {
+  it("en liga muestra las listas vacías plegadas delante y las demás en el orden espera, convocados", () => {
     renderTab(true);
 
     const titles = screen
       .getAllByRole("button")
       .filter((b) => b.hasAttribute("aria-expanded"))
       .map((b) => b.textContent?.replace(/\d+$/, "").trim());
-    expect(titles).toEqual(["Desconvocados", "Lista de espera", "Pendientes de respuesta", "Disponibles", "Convocados"]);
+    expect(titles).toEqual(["Desconvocados", "Lista de espera", "Convocados"]);
   });
 
   it("en liga cada jugador aparece en su lista", () => {
     renderTab(true);
 
-    const pending = screen.getByRole("region", { name: "Pendientes de respuesta" });
-    expect(within(pending).getByText("Jugador Pendiente")).toBeInTheDocument();
-    const available = screen.getByRole("region", { name: "Disponibles" });
-    expect(within(available).getByText("Jugador Disponible")).toBeInTheDocument();
-    expect(within(available).queryByText("Jugador Espera")).not.toBeInTheDocument();
+    const waiting = screen.getByRole("region", { name: "Lista de espera" });
+    expect(within(waiting).getByText("Jugador Espera")).toBeInTheDocument();
+    expect(within(waiting).getByText("Jugador Pendiente")).toBeInTheDocument();
+    expect(within(waiting).getByText("Jugador Disponible")).toBeInTheDocument();
   });
 
   it("fuera de liga no muestra las listas de espera ni de pendientes de respuesta", () => {
@@ -104,15 +103,15 @@ describe("ConvocationTab - listas plegables", () => {
 
   it("se puede plegar y desplegar una lista", async () => {
     renderTab(true);
-    const toggle = screen.getByRole("button", { name: /^Disponibles/ });
+    const toggle = screen.getByRole("button", { name: /^Lista de espera/ });
     expect(toggle).toHaveAttribute("aria-expanded", "true");
 
     await userEvent.click(toggle);
 
     expect(toggle).toHaveAttribute("aria-expanded", "false");
-    expect(screen.queryByText("Jugador Disponible")).not.toBeInTheDocument();
+    expect(screen.queryByText("Jugador Espera")).not.toBeInTheDocument();
 
     await userEvent.click(toggle);
-    expect(screen.getByText("Jugador Disponible")).toBeInTheDocument();
+    expect(screen.getByText("Jugador Espera")).toBeInTheDocument();
   });
 });

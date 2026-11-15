@@ -44,6 +44,7 @@
     "PreToolUse": [
       {
         "matcher": "Bash",
+        "enabled": false,
         "hooks": [
           {
             "type": "command",

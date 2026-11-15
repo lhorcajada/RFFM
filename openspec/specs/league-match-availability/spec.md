@@ -83,27 +83,19 @@ The system SHALL expose `POST /api/events/{eventId}/availability-requests/{reque
 - **THEN** the system returns `409` with code `AvailabilityNotAvailable`
 
 ### Requirement: League match convocation screen shows availability lists
-For league matches, the convocation tab SHALL show, in addition to the existing groups, the groups «Pendientes de respuesta» (players without convocation whose request is `Requested`) and «Disponibles» (players without convocation whose request is `Available`). A player with a convocation SHALL always be shown in the group of their convocation status, except the own player of a Player or FamilyMember, who is shown in the «Tu jugador» card. The waiting list SHALL show the button «Pedir disponibilidad» instead of «Convocar toda la lista de espera». For non-league events the screen SHALL behave as before.
+For league matches, the Coach or Administrator convocation tab of the match page SHALL NOT show the groups «Pendientes de respuesta» nor «Disponibles»; it SHALL show only «Lista de espera», «Convocados» and «Desconvocados» (see capability `league-match-coach-convocation`). The own player of a Player or FamilyMember SHALL still be shown in the «Tu jugador» card of the attendance page and SHALL still be able to answer their availability request there. For non-league events the screen SHALL behave as before.
 
-#### Scenario: Request availability button on league match
-- **WHEN** a coach opens the convocation tab of a league match with players on the waiting list
-- **THEN** the button «Pedir disponibilidad» is shown and «Convocar toda la lista de espera» is not
+#### Scenario: Coach sees no availability groups
+- **WHEN** a coach opens the convocation tab of a league match
+- **THEN** no «Pendientes de respuesta» nor «Disponibles» group is shown
 
-#### Scenario: Friendly keeps bulk convocation
+#### Scenario: Friendly unchanged
 - **WHEN** a coach opens the convocation tab of a friendly match
-- **THEN** the button «Convocar toda la lista de espera» is shown and no availability groups are shown
+- **THEN** the screen behaves as before this change
 
 #### Scenario: Player answers from the event screen
 - **WHEN** a player opens a league match where their request is `Requested`
 - **THEN** the «Tu jugador» card shows «Sí, disponible» and «No disponible», and «No disponible» asks for a mandatory reason that excludes «Decisión técnica» and «Sanción deportiva»
-
-#### Scenario: Coach convokes from available
-- **WHEN** the coach clicks «Convocar» on a player in «Disponibles»
-- **THEN** the player moves to «Convocados»
-
-#### Scenario: Coach deconvokes from available
-- **WHEN** the coach clicks «Desconvocar» on a player in «Disponibles» and confirms
-- **THEN** the player moves to «Desconvocados» with reason «Decisión técnica»
 
 ### Requirement: Player lists are grouped by position
 Every player list in the convocation tab SHALL order its players by position group, in this order: «Porteros», «Defensas» (centrales, laterales, carrileros, líbero), «Medios» (all midfielders, including the attacking midfielder), «Extremos», «Delanteros» (delantero centro and segundo delantero) and players without position last, keeping the original order within a group. Each row SHALL show the tag of its group: «POR», «DEF», «MED», «EXT» or «DEL», and no tag for players without position. The lists SHALL NOT show position headings.
@@ -146,23 +138,4 @@ When a response is given to an availability request in status `Requested` (by a 
 #### Scenario: Changing an answer does not notify again
 - **WHEN** a player who was `Available` changes the answer to not available and no request is pending
 - **THEN** the coaches do not receive the completed notification
-
-### Requirement: Coach manages availability from the convocation tab
-For league matches, the convocation tab of the match page SHALL let the coach act on the availability lists without leaving the page. Each player in «Pendientes de respuesta» SHALL show a «Disponible» button that answers the player's availability request as available on their behalf (`PUT /api/events/{eventId}/availability-requests/{requestId}/response` with `available: true`), and the player SHALL move to «Disponibles». Convoking players from «Disponibles» (selected players or dragging to «Convocados») SHALL use `POST /api/events/{eventId}/availability-requests/{requestId}/decision` with `convoke: true`, so no push notification is sent to the player, the family or the coaches. If a call fails, the player SHALL go back to the previous list and the error SHALL be shown.
-
-#### Scenario: Coach marks a pending player as available
-- **WHEN** the coach clicks «Disponible» on a player in «Pendientes de respuesta»
-- **THEN** the availability request is answered as available and the player moves to «Disponibles»
-
-#### Scenario: Marking available fails
-- **WHEN** the coach clicks «Disponible» and the API returns an error
-- **THEN** the player stays in «Pendientes de respuesta» and the error is shown
-
-#### Scenario: Coach convokes available players
-- **WHEN** the coach convokes a player from «Disponibles» in a league match
-- **THEN** the decision endpoint is called with `convoke: true`, no convocation is created through the convocation endpoints and the player moves to «Convocados»
-
-#### Scenario: Friendly match unchanged
-- **WHEN** the coach convokes an available player of a friendly match
-- **THEN** the convocation is created through the convocation endpoints as before and no «Disponible» button is shown
 
