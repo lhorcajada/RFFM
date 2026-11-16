@@ -34,6 +34,7 @@ function toItem(playerId: string, draft: PlayerTraitDraft, traitOrder: Map<strin
     teamPlayerId: playerId,
     trend: draft.trend,
     levels: Object.entries(draft.levels)
+      .filter(([traitKey]) => traitOrder.has(traitKey))
       .sort(([a], [b]) => (traitOrder.get(a) ?? 0) - (traitOrder.get(b) ?? 0))
       .map(([traitKey, level]) => ({ traitKey, level })),
   };

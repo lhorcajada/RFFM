@@ -9,6 +9,7 @@ vi.mock("../../../../services/teamplayerService", () => ({ getPlayersByTeam }));
 vi.mock("../../../../services/traitRatingService", () => ({ getTeamLatestTraitRatings, createTeamTraitRatings }));
 
 import { useTraitRating } from "../useTraitRating";
+import { TRAIT_CATALOG } from "../ratingTraits";
 import type { TraitRating } from "../../../../types/traitRating";
 
 const players = [
@@ -84,6 +85,20 @@ describe("useTraitRating", () => {
       },
     ]);
     expect(result.current.hasUnsavedChanges).toBe(true);
+  });
+
+  it("no envía niveles de rasgos que ya no son visibles para el equipo", async () => {
+    getPlayersByTeam.mockResolvedValue(players);
+    getTeamLatestTraitRatings.mockResolvedValue([stored("juan", { traitCoverage: 4, traitPressing: 3 })]);
+    const visible = TRAIT_CATALOG.filter((trait) => trait.key !== "traitPressing");
+    const { result } = renderHook(() => useTraitRating("team-1", "season-1", visible));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    act(() => result.current.setLevel("juan", "traitCoverage", 5));
+
+    expect(result.current.plan.items).toEqual([
+      { teamPlayerId: "juan", trend: "same", levels: [{ traitKey: "traitCoverage", level: 5 }] },
+    ]);
   });
 
   it("solo se guardan los jugadores cambiados", async () => {
