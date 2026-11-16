@@ -1,6 +1,6 @@
 import client from "../../../core/api/client";
 
-export type TransactionType = "Sanction" | "Lottery" | "Quiniela" | "WalletTopUp" | "WalletCharge";
+export type TransactionType = "Sanction" | "Lottery" | "Quiniela" | "WalletTopUp" | "WalletCharge" | "QuinielaPrize";
 
 export type TransactionStatus = "Pending" | "Paid";
 

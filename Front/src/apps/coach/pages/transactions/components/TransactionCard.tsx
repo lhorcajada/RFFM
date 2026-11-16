@@ -17,6 +17,7 @@ const TYPE_LABELS: Record<TransactionType, string> = {
   Quiniela: "Quiniela",
   WalletTopUp: "Recarga",
   WalletCharge: "Cargo",
+  QuinielaPrize: "Premio de la quiniela",
 };
 
 const STATUS_LABELS: Record<TransactionStatus, string> = {

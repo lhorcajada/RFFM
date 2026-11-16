@@ -33,6 +33,7 @@ const TYPE_FILTER_OPTIONS: { value: TypeFilter; label: string }[] = [
   { value: "Quiniela", label: "Quiniela" },
   { value: "WalletTopUp", label: "Recargas" },
   { value: "WalletCharge", label: "Cargos" },
+  { value: "QuinielaPrize", label: "Premios" },
 ];
 
 function Spinner() {

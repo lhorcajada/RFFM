@@ -36,7 +36,7 @@ import Transactions from "../Transactions";
 
 type MockFilters = {
   status?: "Pending" | "Paid";
-  type?: "Sanction" | "Lottery" | "Quiniela" | "WalletTopUp" | "WalletCharge";
+  type?: "Sanction" | "Lottery" | "Quiniela" | "WalletTopUp" | "WalletCharge" | "QuinielaPrize";
 };
 
 const paidQuiniela = {
@@ -72,7 +72,18 @@ const paidLottery = {
   status: "Paid",
 };
 
-const ALL_TRANSACTIONS = [paidQuiniela, pendingSanction, paidLottery];
+const quinielaPrize = {
+  id: "quiniela-prize:p1",
+  type: "QuinielaPrize",
+  personName: "Marta Ruiz",
+  amount: 25,
+  pendingAmount: null,
+  date: "2026-03-04T00:00:00Z",
+  description: "Premio jornada 7",
+  status: "Paid",
+};
+
+const ALL_TRANSACTIONS = [paidQuiniela, pendingSanction, paidLottery, quinielaPrize];
 
 function filterTransactions(filters?: MockFilters) {
   return ALL_TRANSACTIONS.filter(
@@ -132,6 +143,28 @@ describe("Transactions — tarjetas, filtros y estados de la página de transacc
 
     await waitFor(() =>
       expect(getTeamTransactionsMock).toHaveBeenLastCalledWith("team-1", { type: "Lottery" })
+    );
+    await waitFor(() => expect(screen.getAllByRole("article")).toHaveLength(1));
+  });
+
+  it("muestra la etiqueta 'Premio de la quiniela' y el estado pagado en la tarjeta de un premio", async () => {
+    getTeamTransactionsMock.mockResolvedValueOnce([quinielaPrize]);
+
+    renderTransactions("/coach/transactions?teamId=team-1");
+
+    const card = await screen.findByRole("article");
+    expect(card.textContent).toContain("Premio de la quiniela");
+    expect(card.textContent).toContain("Pagado");
+  });
+
+  it("el filtro de tipo 'Premios' vuelve a pedir los premios de la quiniela y muestra solo esas tarjetas", async () => {
+    renderTransactions("/coach/transactions?teamId=team-1");
+    await screen.findAllByRole("article");
+
+    await userEvent.click(screen.getByRole("button", { name: /^premios$/i }));
+
+    await waitFor(() =>
+      expect(getTeamTransactionsMock).toHaveBeenLastCalledWith("team-1", { type: "QuinielaPrize" })
     );
     await waitFor(() => expect(screen.getAllByRole("article")).toHaveLength(1));
   });
