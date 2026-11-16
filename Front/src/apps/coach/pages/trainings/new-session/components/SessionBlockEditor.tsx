@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
 import { Box, Button, Chip, IconButton, TextField, Typography } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
+import ContentCopyOutlinedIcon from "@mui/icons-material/ContentCopyOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import SearchIcon from "@mui/icons-material/Search";
 import {
@@ -28,10 +29,11 @@ import TacticalBoardSnapshotPreview, {
 } from "../../../../components/TacticalBoardSnapshotPreview";
 import { exerciseMediaUrl } from "../../exerciseMedia";
 import { TIPO_LABELS } from "../../exerciseTypeLabels";
+import { exerciseToRequest } from "../../new/exerciseRequest";
 import ExercisePickerDialog from "./ExercisePickerDialog";
 import styles from "./SessionBlockEditor.module.css";
 
-function useClubExercises(clubId?: string): Exercise[] {
+function useClubExercises(clubId?: string): [Exercise[], Dispatch<SetStateAction<Exercise[]>>] {
   const [exercises, setExercises] = useState<Exercise[]>([]);
 
   useEffect(() => {
@@ -55,7 +57,7 @@ function useClubExercises(clubId?: string): Exercise[] {
     };
   }, [clubId]);
 
-  return exercises;
+  return [exercises, setExercises];
 }
 
 /** renumbers block `order` 1..N contiguously, preserving array order — same pattern as
@@ -80,9 +82,10 @@ interface ExerciseInfoCardProps {
   teamId?: string;
   onRemove: () => void;
   onEdit?: () => void;
+  onDuplicate?: () => void;
 }
 
-function ExerciseInfoCard({ exerciseId, exercise, teamId, onRemove, onEdit }: ExerciseInfoCardProps) {
+function ExerciseInfoCard({ exerciseId, exercise, teamId, onRemove, onEdit, onDuplicate }: ExerciseInfoCardProps) {
   const name = exercise?.name ?? exerciseId;
   const sections = exercise
     ? [
@@ -102,6 +105,11 @@ function ExerciseInfoCard({ exerciseId, exercise, teamId, onRemove, onEdit }: Ex
         {onEdit && (
           <IconButton size="small" aria-label="Editar ejercicio" onClick={onEdit}>
             <EditOutlinedIcon fontSize="small" />
+          </IconButton>
+        )}
+        {onDuplicate && (
+          <IconButton size="small" aria-label="Duplicar ejercicio" onClick={onDuplicate}>
+            <ContentCopyOutlinedIcon fontSize="small" />
           </IconButton>
         )}
         <IconButton size="small" aria-label="Quitar ejercicio del bloque" onClick={onRemove}>
@@ -200,7 +208,7 @@ export default function SessionBlockEditor({
   onRequestInlineExercise,
   onRequestEditExercise,
 }: SessionBlockEditorProps) {
-  const exercises = useClubExercises(clubId);
+  const [exercises, setExercises] = useClubExercises(clubId);
   const sortedBlocks = [...blocks].sort((a, b) => a.order - b.order);
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
   const [pickerBlockIndex, setPickerBlockIndex] = useState<number | null>(null);
@@ -253,6 +261,45 @@ export default function SessionBlockEditor({
   const removeExercise = (blockIndex: number, exerciseIndex: number) => {
     const block = sortedBlocks[blockIndex];
     updateBlock(blockIndex, { exercises: block.exercises.filter((_, i) => i !== exerciseIndex) });
+  };
+
+  const duplicateExercise = async (blockIndex: number, exerciseIndex: number) => {
+    const block = sortedBlocks[blockIndex];
+    const source = exercises.find((e) => e.id === block.exercises[exerciseIndex].exerciseId);
+    if (!source || !clubId) return;
+
+    try {
+      const request = { ...exerciseToRequest(source, clubId), name: `${source.name} (copia)` };
+      const { id } = await trainingService.createExercise(request);
+      let urlImage: string | null = null;
+      if (source.urlImage) {
+        try {
+          const response = await fetch(exerciseMediaUrl(source.urlImage));
+          if (response.ok) {
+            const blob = await response.blob();
+            const fileName = source.urlImage.split("/").pop() ?? "media";
+            const uploaded = await trainingService.uploadExerciseMedia(
+              id,
+              new File([blob], fileName, { type: blob.type || "application/octet-stream" })
+            );
+            urlImage = uploaded?.url ?? null;
+          }
+        } catch {
+          urlImage = null;
+        }
+      }
+      setExercises((prev) => [...prev, { ...source, id, name: request.name, urlImage }]);
+      const withCopy = [
+        ...block.exercises.slice(0, exerciseIndex + 1),
+        { exerciseId: id, position: 0 },
+        ...block.exercises.slice(exerciseIndex + 1),
+      ].map((ex, i) => ({ ...ex, position: i + 1 }));
+      updateBlock(blockIndex, { exercises: withCopy });
+    } catch {
+      window.dispatchEvent(
+        new CustomEvent("rffm.show_snackbar", { detail: { message: "Error al duplicar el ejercicio", severity: "error" } })
+      );
+    }
   };
 
   const draggingBlock = draggingIndex != null ? sortedBlocks[draggingIndex] : null;
@@ -331,6 +378,7 @@ export default function SessionBlockEditor({
                       teamId={teamId}
                       onRemove={() => removeExercise(blockIndex, exIndex)}
                       onEdit={onRequestEditExercise ? () => onRequestEditExercise(ex.exerciseId) : undefined}
+                      onDuplicate={clubId ? () => void duplicateExercise(blockIndex, exIndex) : undefined}
                     />
                   ))}
                 </Box>

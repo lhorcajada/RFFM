@@ -4,7 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
 vi.mock("../../../../../services/trainingService", () => ({
-  default: { getExercises: vi.fn() },
+  default: { getExercises: vi.fn(), createExercise: vi.fn(), uploadExerciseMedia: vi.fn() },
 }));
 
 import SessionBlockEditor from "../SessionBlockEditor";
@@ -81,6 +81,39 @@ describe("SessionBlockEditor", () => {
     const [blocks] = onChange.mock.calls[0];
     expect(blocks).toHaveLength(1);
     expect(blocks[0].order).toBe(1);
+  });
+
+  it("duplica un ejercicio al instante con '(copia)' y lo coloca justo después del original en su bloque", async () => {
+    (trainingService.createExercise as ReturnType<typeof vi.fn>).mockResolvedValue({ id: "ex-copy" });
+    const { onChange } = setup({ blocks: [block(1, "Bloque 1", ["ex-1", "ex-2"])] });
+
+    const card = await screen.findByRole("article", { name: "Rondo con porterías" });
+    await userEvent.click(within(card).getByRole("button", { name: /duplicar ejercicio/i }));
+
+    await waitFor(() => expect(onChange).toHaveBeenCalled());
+    expect(trainingService.createExercise).toHaveBeenCalledWith(
+      expect.objectContaining({ clubId: "club-1", name: "Rondo con porterías (copia)", objetivo: exercises[0].objetivo })
+    );
+    const [blocks] = onChange.mock.calls[0];
+    expect(blocks[0].exercises).toEqual([
+      { exerciseId: "ex-1", position: 1 },
+      { exerciseId: "ex-copy", position: 2 },
+      { exerciseId: "ex-2", position: 3 },
+    ]);
+  });
+
+  it("avisa con un snackbar de error y no modifica el bloque si falla la duplicación", async () => {
+    (trainingService.createExercise as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("boom"));
+    const snackbar = vi.fn();
+    window.addEventListener("rffm.show_snackbar", snackbar);
+    const { onChange } = setup({ blocks: [block(1, "Bloque 1", ["ex-1"])] });
+
+    const card = await screen.findByRole("article", { name: "Rondo con porterías" });
+    await userEvent.click(within(card).getByRole("button", { name: /duplicar ejercicio/i }));
+
+    await waitFor(() => expect(snackbar).toHaveBeenCalled());
+    window.removeEventListener("rffm.show_snackbar", snackbar);
+    expect(onChange).not.toHaveBeenCalled();
   });
 
   it("no muestra el campo 'Cómo conecta con el anterior'", () => {

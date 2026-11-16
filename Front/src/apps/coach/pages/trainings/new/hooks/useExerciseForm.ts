@@ -4,6 +4,7 @@ import { client } from "../../../../../../core/api/client";
 import trainingService from "../../../../services/trainingService";
 import type { CreateExerciseRequest, Exercise, ExerciseTipo, UpdateExerciseRequest } from "../../../../types/training";
 import { emptyExercise } from "../constants";
+import { exerciseToRequest } from "../exerciseRequest";
 
 interface UseExerciseFormParams {
   clubId: string;
@@ -26,34 +27,7 @@ export function useExerciseForm({ clubId, navigate, returnTo, returnState, getBo
   const [createdExerciseId, setCreatedExerciseId] = useState<string | null>(null);
 
   const applyExercise = async (exercise: Exercise, asCopy: boolean) => {
-    const hasEnoughNiveles = (exercise.niveles?.length ?? 0) >= 2;
-    setForm({
-      clubId,
-      name: exercise.name,
-      tipo: exercise.tipo,
-      subtipo: exercise.subtipo ?? null,
-      objetivo: exercise.objetivo,
-      objetivoPorRol: exercise.objetivoPorRol ?? null,
-      modelRelations: (exercise.modelRelations ?? []).map((r) => ({
-        subprincipioId: r.subprincipioId,
-        isFoco: r.isFoco,
-        habilidadesImprescindibles: r.habilidadesImprescindibles ?? [],
-        items: (r.items ?? []).map((it) => ({
-          subSubPrincipioId: it.subSubPrincipioId,
-          isFoco: it.isFoco,
-          habilidades: it.habilidades ?? [],
-        })),
-      })),
-      ...(hasEnoughNiveles
-        ? { nivelesColumnas: exercise.nivelesColumnas ?? [], niveles: exercise.niveles ?? [] }
-        : { nivelesColumnas: emptyExercise.nivelesColumnas, niveles: emptyExercise.niveles }),
-      logistica: exercise.logistica,
-      durationMinutes: exercise.durationMinutes ?? null,
-      porteros: exercise.porteros ?? null,
-      dibujo: exercise.dibujo ?? null,
-      descripcion: exercise.descripcion,
-      boardStateJson: exercise.boardStateJson ?? null,
-    });
+    setForm(exerciseToRequest(exercise, clubId));
 
     setSavedExerciseId(asCopy ? null : exercise.id);
     setPendingFile(null);
