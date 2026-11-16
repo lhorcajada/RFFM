@@ -240,7 +240,7 @@ describe("TeamDashboard — A la vista section", () => {
     expect(screen.getByText("quick-actions-team-1")).toBeInTheDocument();
   });
 
-  it("no muestra las acciones rápidas al jugador", () => {
+  it("muestra las acciones rápidas al jugador o familiar", () => {
     mockUsePlayerAutoLoad.mockReturnValue({ isPlayer: true });
     mockUseTeamAndClub.mockReturnValue(teamAndClubWithClub);
     render(
@@ -249,7 +249,7 @@ describe("TeamDashboard — A la vista section", () => {
       </MemoryRouter>
     );
 
-    expect(screen.queryByText(/quick-actions/)).not.toBeInTheDocument();
+    expect(screen.getByText("quick-actions-team-1")).toBeInTheDocument();
   });
 
   it("coloca eventos y Liga en la columna principal y acciones y noticias en la secundaria", () => {

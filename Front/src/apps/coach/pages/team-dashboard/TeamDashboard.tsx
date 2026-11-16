@@ -72,11 +72,9 @@ export default function TeamDashboard() {
               </ErrorBoundary>
             </div>
             <div className={teamDashboardStyles.sideColumn}>
-              {!isPlayer && (
-                <ErrorBoundary>
-                  <QuickActions teamId={team?.id ?? null} />
-                </ErrorBoundary>
-              )}
+              <ErrorBoundary>
+                <QuickActions teamId={team?.id ?? null} />
+              </ErrorBoundary>
               <ErrorBoundary>
                 <NewsWidget />
               </ErrorBoundary>

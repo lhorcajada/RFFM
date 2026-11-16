@@ -34,6 +34,23 @@ describe("QuickActions", () => {
     expect(screen.queryByRole("link", { name: "Resumen de asistencias" })).not.toBeInTheDocument();
   });
 
+  it("muestra Resultados, Clasificación y Goleadores con acceso a competición", () => {
+    mockPermissions.mockReturnValue({
+      loading: false,
+      hasFeatureAccess: (route: string) => route === COACH_FEATURE_ROUTES.Convocations,
+    });
+    renderActions();
+    expect(screen.getByRole("link", { name: "Resultados" })).toHaveAttribute("href", "/coach/results?teamId=team-1");
+    expect(screen.getByRole("link", { name: "Clasificación" })).toHaveAttribute("href", "/coach/classification?teamId=team-1");
+    expect(screen.getByRole("link", { name: "Goleadores" })).toHaveAttribute("href", "/coach/scorers?teamId=team-1");
+  });
+
+  it("no muestra la acción rápida Resumen de asistencias", () => {
+    mockPermissions.mockReturnValue({ loading: false, hasFeatureAccess: () => true });
+    renderActions();
+    expect(screen.queryByRole("link", { name: "Resumen de asistencias" })).not.toBeInTheDocument();
+  });
+
   it("muestra la acción rápida Quiniela con permiso y la oculta sin él", () => {
     mockPermissions.mockReturnValue({
       loading: false,

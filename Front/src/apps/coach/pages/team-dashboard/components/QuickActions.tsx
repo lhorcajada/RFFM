@@ -4,7 +4,7 @@ import { usePermissions } from "../../../../../shared/hooks/usePermissions";
 import { buildTeamSections } from "../../../navigation/teamSections";
 import styles from "./QuickActions.module.css";
 
-const QUICK_ACTION_KEYS = ["squad", "injured", "attendance-summary", "quiniela"];
+const QUICK_ACTION_KEYS = ["squad", "injured", "results", "classification", "scorers", "quiniela"];
 const QUICK_ACTION_LABELS: Record<string, string> = { quiniela: "Quiniela" };
 
 export default function QuickActions({ teamId }: { teamId: string | null }) {
