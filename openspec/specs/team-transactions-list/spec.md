@@ -22,15 +22,16 @@ The list SHALL contain transactions of exactly these types, each projected from 
 - `Quiniela`: each `QuinielaTicket` of a quiniela jornada of the team, and each `TeamFundMovement` of the team whose source is `QuinielaFund` or `QuinielaDonation`.
 - `WalletTopUp`: each `QuinielaWalletMovement` of type `TopUp` in a quiniela wallet of the team.
 - `WalletCharge`: each `QuinielaWalletMovement` of type `TicketCharge` in a quiniela wallet of the team.
+- `QuinielaPrize`: each `QuinielaWalletMovement` of type `Prize` in a quiniela wallet of the team.
 
-Quiniela wallet movements of any other type (`Adjustment`, `TicketRefund`, `Prize`, `Donation`) and sanctions without a fine SHALL NOT be listed. The person involved SHALL be the player for `Sanction` and `Lottery`, the participant for a quiniela ticket, and the wallet owner for `WalletTopUp` and `WalletCharge`.
+Quiniela wallet movements of any other type (`Adjustment`, `TicketRefund`, `Donation`) and sanctions without a fine SHALL NOT be listed. The person involved SHALL be the player for `Sanction` and `Lottery`, the participant for a quiniela ticket, and the wallet owner for `WalletTopUp`, `WalletCharge` and `QuinielaPrize`.
 
 The transaction date SHALL come from the source as follows:
 
 - `Sanction`: the sanction `StartDate`.
 - `Lottery`: the book `ReturnedOn` when it is informed, otherwise the book `DeliveredOn`; a date without time counts as the start of that day for ordering.
 - `Quiniela` ticket: the ticket `PaidAt` when it is paid and has one; otherwise (unpaid, or paid with no `PaidAt`) the payment deadline of its jornada's RFFM round. When no deadline can be derived, the transaction has no date and is ordered after every dated transaction.
-- `Quiniela` fund movement, `WalletTopUp` and `WalletCharge`: the movement `OccurredAt`.
+- `Quiniela` fund movement, `WalletTopUp`, `WalletCharge` and `QuinielaPrize`: the movement `OccurredAt`.
 
 #### Scenario: Each type takes its date from its own source field
 - **WHEN** the list contains a sanction with `StartDate` 1 March, a returned lottery book with `ReturnedOn` 2 March and `DeliveredOn` 20 February, a paid ticket with `PaidAt` 3 March, and a wallet top-up with `OccurredAt` 4 March
@@ -44,9 +45,17 @@ The transaction date SHALL come from the source as follows:
 - **WHEN** a team has a sanction whose `Fine` is null or zero
 - **THEN** the transactions list does not contain a transaction for that sanction
 
-#### Scenario: Wallet movements other than top-ups and charges are not listed
-- **WHEN** a team's wallet has movements of type `Prize`, `Adjustment`, `TicketRefund` and `Donation`
+#### Scenario: Wallet movements other than top-ups, charges and prizes are not listed
+- **WHEN** a team's wallet has movements of type `Adjustment`, `TicketRefund` and `Donation`
 - **THEN** none of those movements appears in the transactions list
+
+#### Scenario: Quiniela prize is listed as a quiniela prize transaction
+- **WHEN** a team's wallet has a `Prize` movement of 25 described «Premio jornada 7»
+- **THEN** the list contains one `QuinielaPrize` transaction with the wallet owner as the person involved, amount `25`, the movement `OccurredAt` as its date and description «Premio jornada 7»
+
+#### Scenario: Quiniela prize without a description uses the default label
+- **WHEN** a `Prize` movement has no description
+- **THEN** its `QuinielaPrize` transaction has the description «Premio de la quiniela»
 
 #### Scenario: Quiniela fund movements are listed as Quiniela transactions
 - **WHEN** a team has a `TeamFundMovement` with source `QuinielaFund` or `QuinielaDonation`
@@ -66,7 +75,7 @@ Every transaction SHALL have a status of exactly `Pending` or `Paid`, computed a
 - `Sanction`: `Paid` when `AmountPaid` is at least `Fine`; otherwise `Pending`, including a partial payment. The outstanding amount SHALL be `Fine` minus `AmountPaid` (with a null `AmountPaid` counted as zero).
 - `Lottery`: `Paid` when the book's `AmountReturned` is informed; otherwise `Pending`. The amount SHALL be `AmountReturned` when informed, and the campaign `TicketPrice` multiplied by `TicketsPerBook` otherwise.
 - `Quiniela` ticket: `Paid` when its payment status is paid; otherwise `Pending`, including a ticket whose payment deadline has passed. The amount SHALL be the jornada `Price`.
-- `Quiniela` fund movement, `WalletTopUp` and `WalletCharge`: always `Paid`, because they are movements already made. The amount SHALL be the absolute value of the movement `Amount`.
+- `Quiniela` fund movement, `WalletTopUp`, `WalletCharge` and `QuinielaPrize`: always `Paid`, because they are movements already made. The amount SHALL be the absolute value of the movement `Amount`.
 
 #### Scenario: Partially paid sanction is pending and shows the missing amount
 - **WHEN** a sanction has `Fine: 100` and `AmountPaid: 40`
@@ -100,6 +109,10 @@ Every transaction SHALL have a status of exactly `Pending` or `Paid`, computed a
 - **WHEN** a team's wallet has a `TopUp` and a `TicketCharge` movement
 - **THEN** both transactions have status `Paid`
 
+#### Scenario: Quiniela prize is always paid
+- **WHEN** a team's wallet has a `Prize` movement
+- **THEN** its `QuinielaPrize` transaction has status `Paid` and its amount equals the absolute value of the movement `Amount`
+
 ### Requirement: A sanction payment is listed only once
 A payment recorded on a sanction SHALL appear as part of that sanction's transaction only. A `TeamFundMovement` whose source is `SanctionPayment` SHALL NOT be listed as a separate transaction.
 
@@ -108,7 +121,7 @@ A payment recorded on a sanction SHALL appear as part of that sanction's transac
 - **THEN** the list contains exactly one transaction for the sanction and none for the fund movement
 
 ### Requirement: Transactions are ordered by date and filterable
-The list SHALL be ordered by transaction date, from the most recent to the oldest. The endpoint SHALL accept optional `status` (`Pending` or `Paid`) and `type` (`Sanction`, `Lottery`, `Quiniela`, `WalletTopUp` or `WalletCharge`) query filters, applied together when both are given. A `status` or `type` value outside those sets SHALL return `400 Bad Request` as `ProblemDetails`.
+The list SHALL be ordered by transaction date, from the most recent to the oldest. The endpoint SHALL accept optional `status` (`Pending` or `Paid`) and `type` (`Sanction`, `Lottery`, `Quiniela`, `WalletTopUp`, `WalletCharge` or `QuinielaPrize`) query filters, applied together when both are given. A `status` or `type` value outside those sets SHALL return `400 Bad Request` as `ProblemDetails`.
 
 #### Scenario: Newest transaction comes first
 - **WHEN** a team has transactions dated 1 March, 5 March and 3 March
@@ -129,6 +142,10 @@ The list SHALL be ordered by transaction date, from the most recent to the oldes
 #### Scenario: Filter by type
 - **WHEN** a user calls the endpoint with `type=Lottery`
 - **THEN** the list contains only `Lottery` transactions
+
+#### Scenario: Filter by quiniela prize type
+- **WHEN** a user calls the endpoint with `type=QuinielaPrize`
+- **THEN** the list contains only `QuinielaPrize` transactions
 
 #### Scenario: Filters combine
 - **WHEN** a user calls the endpoint with `status=Paid` and `type=Sanction`
@@ -152,7 +169,7 @@ When the team has no transaction, the endpoint SHALL return `200 OK` with an emp
 ### Requirement: Access is limited to members of the team, and players and family members see only their own transactions
 The endpoint SHALL require authentication and SHALL return the list only to a user who belongs to the requested team: a user linked to the team as Coach, Player or Family member, or a coach or directive of the team's club. For any other team the system SHALL return `403 Forbidden` as `ProblemDetails`, without revealing any transaction. An unauthenticated request SHALL return `401 Unauthorized`.
 
-A user who reaches the team only as Player or Family member (not as Coach of the team and not as coach or directive of the team's club) SHALL receive only their own transactions: the `Quiniela` tickets and the `WalletTopUp` and `WalletCharge` movements whose participant or wallet owner is that user, and the `Sanction` and `Lottery` transactions of the player they are linked to (for a Player, their own player record; for a Family member, the players they are linked to as family). Quiniela fund movements, which identify no person, SHALL NOT be returned to them. The status and type filters SHALL apply on top of this restriction. A Coach of the team and a coach or directive of the team's club SHALL receive the whole team's transactions.
+A user who reaches the team only as Player or Family member (not as Coach of the team and not as coach or directive of the team's club) SHALL receive only their own transactions: the `Quiniela` tickets and the `WalletTopUp`, `WalletCharge` and `QuinielaPrize` movements whose participant or wallet owner is that user, and the `Sanction` and `Lottery` transactions of the player they are linked to (for a Player, their own player record; for a Family member, the players they are linked to as family). Quiniela fund movements, which identify no person, SHALL NOT be returned to them. The status and type filters SHALL apply on top of this restriction. A Coach of the team and a coach or directive of the team's club SHALL receive the whole team's transactions.
 
 #### Scenario: Member of the team can read the list
 - **WHEN** a user linked to the team as Player calls the endpoint for that team
@@ -165,6 +182,10 @@ A user who reaches the team only as Player or Family member (not as Coach of the
 #### Scenario: Player sees their own quiniela and wallet transactions only
 - **WHEN** a team has a quiniela ticket and a wallet top-up of the calling user and the same of another participant
 - **THEN** the system returns the calling user's ticket and top-up and none of the other participant's
+
+#### Scenario: Player sees only their own quiniela prizes
+- **WHEN** a team has a quiniela prize of the calling user and a quiniela prize of another participant
+- **THEN** the system returns the calling user's `QuinielaPrize` transaction and not the other participant's
 
 #### Scenario: Family member sees the transactions of the linked player
 - **WHEN** a user linked to the team as Family member of player A calls the endpoint and the team has sanctions of players A and B
@@ -191,7 +212,7 @@ A user who reaches the team only as Player or Family member (not as Coach of the
 - **THEN** the system returns `401 Unauthorized`
 
 ### Requirement: The coach app shows transactions in a responsive card list
-The coach web app SHALL provide a page at the route `/coach/transactions`, loaded lazily and protected by the same feature-permission guard as the sanctions route. The page SHALL read the team from the `teamId` query parameter and fall back to the current user's resolved team when it is absent. It SHALL show each transaction as a stacked card with the person involved, the type, the amount, the date and the status, and SHALL NOT use a table or fixed-column grid. The status SHALL be shown as «Pendiente de pago» for `Pending` and «Pagado» for `Paid`; a `Pending` card SHALL show the outstanding amount. The page SHALL offer status and type filters. The page SHALL read the data through a service module and SHALL NOT call Axios directly. When loading fails, the page SHALL show an error message.
+The coach web app SHALL provide a page at the route `/coach/transactions`, loaded lazily and protected by the same feature-permission guard as the sanctions route. The page SHALL read the team from the `teamId` query parameter and fall back to the current user's resolved team when it is absent. It SHALL show each transaction as a stacked card with the person involved, the type, the amount, the date and the status, and SHALL NOT use a table or fixed-column grid. The status SHALL be shown as «Pendiente de pago» for `Pending` and «Pagado» for `Paid`; a `Pending` card SHALL show the outstanding amount. The page SHALL offer status and type filters, the type filter including the quiniela prize type. A `QuinielaPrize` card SHALL be labelled «Premio de la quiniela». The page SHALL read the data through a service module and SHALL NOT call Axios directly. When loading fails, the page SHALL show an error message.
 
 #### Scenario: Transactions are shown as cards with translated status
 - **WHEN** the page loads a team with a paid quiniela ticket and a pending sanction
@@ -204,6 +225,14 @@ The coach web app SHALL provide a page at the route `/coach/transactions`, loade
 #### Scenario: Type filter narrows the cards
 - **WHEN** the user selects the lottery type filter
 - **THEN** only lottery cards are shown
+
+#### Scenario: Quiniela prize card is labelled as a quiniela prize
+- **WHEN** the page loads a team with a `QuinielaPrize` transaction
+- **THEN** its card shows the label «Premio de la quiniela» and the status «Pagado»
+
+#### Scenario: Prize type filter narrows the cards
+- **WHEN** the user selects the quiniela prize type filter
+- **THEN** only quiniela prize cards are shown
 
 #### Scenario: Layout works on a narrow screen
 - **WHEN** the page is viewed on a viewport of about 360 px
