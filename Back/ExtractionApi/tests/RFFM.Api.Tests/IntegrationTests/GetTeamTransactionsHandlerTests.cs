@@ -640,7 +640,7 @@ namespace RFFM.Api.Tests.IntegrationTests
         }
 
         [Fact]
-        public async Task Handle_WalletMovementsOtherThanTopUpAndCharge_AreNotListed()
+        public async Task Handle_WalletMovementsOtherThanTopUpChargeAndPrize_AreNotListed()
         {
             var seed = await SeedTeamAsync(_fixture);
             var suffix = Suffix();
@@ -661,7 +661,85 @@ namespace RFFM.Api.Tests.IntegrationTests
 
             var rows = await HandleAsync(seed.TeamId, seed.CoachId);
 
-            Assert.Equal(new[] { "Quiniela", "WalletTopUp" }, rows.Select(row => row.Type).OrderBy(type => type).ToArray());
+            Assert.Equal(new[] { "Quiniela", "QuinielaPrize", "WalletTopUp" }, rows.Select(row => row.Type).OrderBy(type => type).ToArray());
+        }
+
+        [Fact]
+        public async Task Handle_WalletPrize_ListedAsPaidQuinielaPrizeWithOwnerName()
+        {
+            var seed = await SeedTeamAsync(_fixture);
+            var suffix = Suffix();
+            var jornada = await JornadaAsync(seed, suffix);
+            await SaveAsync(db =>
+            {
+                db.UserPersonalData.Add(UserPersonalData.Create(seed.PlayerId, "Marta", "Ruiz", null, null));
+                var wallet = QuinielaWallet.Create(seed.TeamId, seed.PlayerId);
+                db.QuinielaWallets.Add(wallet);
+                var ticket = NewTicket(jornada.Id, seed.PlayerId, suffix);
+                db.QuinielaTickets.Add(ticket);
+                db.QuinielaWalletMovements.Add(wallet.CreditPrize(ticket.Id, 25m, Utc(3, 4), "Premio jornada 7"));
+                return wallet;
+            });
+
+            var rows = await HandleAsync(seed.TeamId, seed.CoachId, type: TransactionType.QuinielaPrize);
+
+            var row = Assert.Single(rows);
+            Assert.Equal("QuinielaPrize", row.Type);
+            Assert.Equal("Paid", row.Status);
+            Assert.Equal(25m, row.Amount);
+            Assert.Null(row.PendingAmount);
+            Assert.Equal<DateTime?>(Utc(3, 4), row.Date);
+            Assert.Equal("Marta Ruiz", row.PersonName);
+            Assert.Equal("Premio jornada 7", row.Description);
+        }
+
+        [Fact]
+        public async Task Handle_WalletPrizeWithoutDescription_UsesDefaultLabel()
+        {
+            var seed = await SeedTeamAsync(_fixture);
+            var suffix = Suffix();
+            var jornada = await JornadaAsync(seed, suffix);
+            await SaveAsync(db =>
+            {
+                var wallet = QuinielaWallet.Create(seed.TeamId, seed.PlayerId);
+                db.QuinielaWallets.Add(wallet);
+                var ticket = NewTicket(jornada.Id, seed.PlayerId, suffix);
+                db.QuinielaTickets.Add(ticket);
+                db.QuinielaWalletMovements.Add(wallet.CreditPrize(ticket.Id, 25m, Utc(3, 4), " "));
+                return wallet;
+            });
+
+            var rows = await HandleAsync(seed.TeamId, seed.CoachId, type: TransactionType.QuinielaPrize);
+
+            Assert.Equal("Premio de la quiniela", Assert.Single(rows).Description);
+        }
+
+        [Fact]
+        public async Task Handle_PlayerOfTheTeam_ReadsOnlyTheirOwnQuinielaPrizes()
+        {
+            var seed = await SeedTeamAsync(_fixture);
+            var suffix = Suffix();
+            var jornada = await JornadaAsync(seed, suffix);
+            await SaveAsync(db =>
+            {
+                var ownWallet = QuinielaWallet.Create(seed.TeamId, seed.PlayerId);
+                var otherWallet = QuinielaWallet.Create(seed.TeamId, seed.FamilyId);
+                db.QuinielaWallets.Add(ownWallet);
+                db.QuinielaWallets.Add(otherWallet);
+                var ownTicket = NewTicket(jornada.Id, seed.PlayerId, suffix);
+                var otherTicket = NewTicket(jornada.Id, seed.FamilyId, suffix + "x");
+                db.QuinielaTickets.Add(ownTicket);
+                db.QuinielaTickets.Add(otherTicket);
+                db.QuinielaWalletMovements.Add(ownWallet.CreditPrize(ownTicket.Id, 10m, Utc(3, 4), "Premio jornada 1"));
+                db.QuinielaWalletMovements.Add(otherWallet.CreditPrize(otherTicket.Id, 20m, Utc(3, 4), "Premio jornada 1"));
+                return 0;
+            });
+
+            var playerRows = await HandleAsync(seed.TeamId, seed.PlayerId, type: TransactionType.QuinielaPrize);
+            var coachRows = await HandleAsync(seed.TeamId, seed.CoachId, type: TransactionType.QuinielaPrize);
+
+            Assert.Equal(10m, Assert.Single(playerRows).Amount);
+            Assert.Equal(2, coachRows.Count);
         }
 
         [Fact]

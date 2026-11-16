@@ -171,6 +171,30 @@ namespace RFFM.Api.Tests.IntegrationTests
         }
 
         [Fact]
+        public async Task Get_FilterByQuinielaPrize_ReturnsOnlyQuinielaPrizeTransactions()
+        {
+            var seed = await SeedAllSourcesAsync();
+            await using (var db = fixture.CreateDbContext())
+            {
+                var wallet = await db.QuinielaWallets.SingleAsync(w => w.TeamId == seed.TeamId);
+                var ticket = await db.QuinielaTickets.FirstAsync(t => db.QuinielaJornadas.Any(j => j.Id == t.JornadaId && j.TeamId == seed.TeamId));
+                db.QuinielaWalletMovements.Add(wallet.CreditPrize(ticket.Id, 25m, new DateTime(2026, 3, 4, 0, 0, 0, DateTimeKind.Utc), "Premio jornada 7"));
+                await db.SaveChangesAsync();
+            }
+            var (host, client) = await StartHostAsync();
+            using var _ = host;
+
+            var response = await client.SendAsync(Request($"/api/catalog/team/{seed.TeamId}/transactions?type=QuinielaPrize", seed.CoachId));
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var body = await response.Content.ReadFromJsonAsync<TeamTransactionDto[]>();
+            Assert.NotNull(body);
+            var row = Assert.Single(body!);
+            Assert.Equal("QuinielaPrize", row.Type);
+            Assert.Equal(25m, row.Amount);
+        }
+
+        [Fact]
         public async Task Get_WithoutCredentials_ReturnsUnauthorized()
         {
             var seed = await SeedWithPendingSanctionAsync();

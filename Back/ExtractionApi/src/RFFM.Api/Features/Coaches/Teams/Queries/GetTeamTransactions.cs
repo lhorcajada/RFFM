@@ -15,7 +15,7 @@ namespace RFFM.Api.Features.Coaches.Teams.Queries
 {
     /// <summary>
     /// GET /api/catalog/team/{teamId}/transactions. Merges the team's sanctions, lottery books, quiniela tickets,
-    /// quiniela fund movements and quiniela wallet top-ups and charges into one read-only list, each with a
+    /// quiniela fund movements and quiniela wallet top-ups, charges and prizes into one read-only list, each with a
     /// Pending or Paid status computed at query time. See openspec/changes/team-transactions-window/design.md.
     /// </summary>
     public class GetTeamTransactions : IFeatureModule
@@ -59,7 +59,7 @@ namespace RFFM.Api.Features.Coaches.Teams.Queries
             return true;
         }
 
-        public enum TransactionType { Sanction, Lottery, Quiniela, WalletTopUp, WalletCharge }
+        public enum TransactionType { Sanction, Lottery, Quiniela, WalletTopUp, WalletCharge, QuinielaPrize }
 
         public enum TransactionStatus { Pending, Paid }
 
@@ -111,7 +111,8 @@ namespace RFFM.Api.Features.Coaches.Teams.Queries
                 }
 
                 var walletMovements = new List<WalletSource>();
-                var wantsWallet = IsRequested(request.Type, TransactionType.WalletTopUp) || IsRequested(request.Type, TransactionType.WalletCharge);
+                var wantsWallet = IsRequested(request.Type, TransactionType.WalletTopUp) || IsRequested(request.Type, TransactionType.WalletCharge)
+                                  || IsRequested(request.Type, TransactionType.QuinielaPrize);
                 if (wantsWallet)
                     walletMovements = await LoadWalletMovementsAsync(teamId, ownUserId, cancellationToken);
 
@@ -231,7 +232,8 @@ namespace RFFM.Api.Features.Coaches.Teams.Queries
                         from movement in db.QuinielaWalletMovements.AsNoTracking()
                         join wallet in db.QuinielaWallets.AsNoTracking() on movement.WalletId equals wallet.Id
                         where wallet.TeamId == teamId && (ownUserId == null || wallet.ApplicationUserId == ownUserId)
-                              && (movement.Type == QuinielaWalletMovementType.TopUp || movement.Type == QuinielaWalletMovementType.TicketCharge)
+                              && (movement.Type == QuinielaWalletMovementType.TopUp || movement.Type == QuinielaWalletMovementType.TicketCharge
+                                  || movement.Type == QuinielaWalletMovementType.Prize)
                         select new WalletSource(movement.Id, wallet.ApplicationUserId, movement.Amount, movement.Type,
                             movement.OccurredAt, movement.Description))
                     .ToListAsync(ct);
@@ -261,9 +263,9 @@ namespace RFFM.Api.Features.Coaches.Teams.Queries
 
             private static Row WalletRow(WalletSource movement, IReadOnlyDictionary<string, QuinielaSupport.Participant> participants)
             {
-                var topUp = movement.Type == QuinielaWalletMovementType.TopUp;
-                var type = topUp ? TransactionType.WalletTopUp : TransactionType.WalletCharge;
-                var prefix = topUp ? "wallet-topup" : "wallet-charge";
+                var (type, prefix) = movement.Type == QuinielaWalletMovementType.TopUp ? (TransactionType.WalletTopUp, "wallet-topup")
+                    : movement.Type == QuinielaWalletMovementType.Prize ? (TransactionType.QuinielaPrize, "quiniela-prize")
+                    : (TransactionType.WalletCharge, "wallet-charge");
                 return new Row($"{prefix}:{movement.Id}", type, participants[movement.UserId].Name, Math.Abs(movement.Amount), null,
                     movement.OccurredAt, Describe(movement.Description, type), TransactionStatus.Paid);
             }
@@ -280,6 +282,7 @@ namespace RFFM.Api.Features.Coaches.Teams.Queries
                 TransactionType.Quiniela => "Quiniela",
                 TransactionType.WalletTopUp => "Recarga del monedero",
                 TransactionType.WalletCharge => "Cobro del monedero",
+                TransactionType.QuinielaPrize => "Premio de la quiniela",
                 _ => type.ToString()
             };
         }
