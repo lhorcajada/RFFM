@@ -21,9 +21,9 @@ namespace RFFM.Api.Features.Coaches.LiveMatch
         {
             var userId = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value
                 ?? Context.User?.FindFirst("sub")?.Value;
-            var userIsTeamCoach = userId is not null
-                && await LiveMatchTeamAccess.IsTeamCoachAsync(_db, userId, eventId, Context.ConnectionAborted);
-            if (!userIsTeamCoach)
+            var userCanRead = userId is not null
+                && await LiveMatchTeamAccess.CanReadAsync(_db, userId, eventId, Context.ConnectionAborted);
+            if (!userCanRead)
                 throw new HubException("No tienes acceso a este partido en directo.");
 
             await Groups.AddToGroupAsync(Context.ConnectionId, GroupName(eventId), Context.ConnectionAborted);

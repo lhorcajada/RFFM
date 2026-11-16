@@ -18,7 +18,7 @@ namespace RFFM.Api.Features.Coaches.LiveMatch
         {
             app.MapGet(
                     "/api/events/{eventId}/live-match",
-                    [Authorize(Roles = "Coach,Administrator")]
+                    [Authorize(Roles = "Coach,Administrator,Player,FamilyPlayer,FamilyMember")]
                     async (string eventId, HttpContext httpContext, IMediator mediator, CancellationToken cancellationToken) =>
                     {
                         var userId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value
@@ -48,8 +48,8 @@ namespace RFFM.Api.Features.Coaches.LiveMatch
 
             public async ValueTask<LiveMatchStateResponse> Handle(GetLiveMatchQuery request, CancellationToken cancellationToken = default)
             {
-                var userIsTeamCoach = await LiveMatchTeamAccess.IsTeamCoachAsync(_db, request.UserId, request.EventId, cancellationToken);
-                if (!userIsTeamCoach)
+                var userCanRead = await LiveMatchTeamAccess.CanReadAsync(_db, request.UserId, request.EventId, cancellationToken);
+                if (!userCanRead)
                     throw new ForbiddenAccessException("No tienes acceso a este partido en directo.");
 
                 var state = await _db.LiveMatchStates

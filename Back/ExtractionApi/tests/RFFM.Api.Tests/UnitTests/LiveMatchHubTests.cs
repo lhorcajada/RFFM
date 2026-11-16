@@ -123,7 +123,7 @@ namespace RFFM.Api.Tests.UnitTests
         }
 
         [Fact]
-        public async Task JoinMatch_SameDecisionAsRestCheck_AllowsCoachAndRejectsPlayer()
+        public async Task JoinMatch_SameDecisionAsRestCheck_AllowsCoachAndPlayerAndRejectsOutsider()
         {
             await using var db = _fixture.CreateDbContext();
             var (teamId, _) = await SeedTeamAsync(db, "HubSameDecision");
@@ -134,10 +134,16 @@ namespace RFFM.Api.Tests.UnitTests
             db.UserTeams.Add(new UserTeam(playerId, teamId, Membership.Player.Id));
             await db.SaveChangesAsync();
 
-            var coachRest = await LiveMatchTeamAccess.IsTeamCoachAsync(db, coachId, eventId, CancellationToken.None);
-            var playerRest = await LiveMatchTeamAccess.IsTeamCoachAsync(db, playerId, eventId, CancellationToken.None);
+            var outsiderId = Guid.NewGuid().ToString();
+
+            var coachRest = await LiveMatchTeamAccess.CanReadAsync(db, coachId, eventId, CancellationToken.None);
+            var playerRest = await LiveMatchTeamAccess.CanReadAsync(db, playerId, eventId, CancellationToken.None);
+            var outsiderRest = await LiveMatchTeamAccess.CanReadAsync(db, outsiderId, eventId, CancellationToken.None);
+            var playerCanAct = await LiveMatchTeamAccess.IsTeamCoachAsync(db, playerId, eventId, CancellationToken.None);
             Assert.True(coachRest);
-            Assert.False(playerRest);
+            Assert.True(playerRest);
+            Assert.False(outsiderRest);
+            Assert.False(playerCanAct);
 
             var (coachContext, coachGroups) = CreateHubMocks(coachId, "conn-same-coach");
             var coachHub = new LiveMatchHub(db) { Context = coachContext.Object, Groups = coachGroups.Object };
@@ -145,7 +151,11 @@ namespace RFFM.Api.Tests.UnitTests
 
             var (playerContext, playerGroups) = CreateHubMocks(playerId, "conn-same-player");
             var playerHub = new LiveMatchHub(db) { Context = playerContext.Object, Groups = playerGroups.Object };
-            await Assert.ThrowsAsync<HubException>(() => playerHub.JoinMatch(eventId));
+            await playerHub.JoinMatch(eventId);
+
+            var (outsiderContext, outsiderGroups) = CreateHubMocks(outsiderId, "conn-same-outsider");
+            var outsiderHub = new LiveMatchHub(db) { Context = outsiderContext.Object, Groups = outsiderGroups.Object };
+            await Assert.ThrowsAsync<HubException>(() => outsiderHub.JoinMatch(eventId));
         }
 
         [Fact]
@@ -226,6 +236,24 @@ namespace RFFM.Api.Tests.UnitTests
 
             Assert.True(hubPath);
             Assert.False(apiPath);
+        }
+
+        [Fact]
+        public async Task JoinMatch_PlayerOfEventTeam_AddsConnectionToEventGroup()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, _) = await SeedTeamAsync(db, "HubJoinPlayer");
+            var eventId = await SeedSportEventAsync(db, teamId);
+            var playerId = Guid.NewGuid().ToString();
+            db.UserTeams.Add(new UserTeam(playerId, teamId, Membership.Player.Id));
+            await db.SaveChangesAsync();
+
+            var (context, groups) = CreateHubMocks(playerId, "conn-player");
+            var hub = new LiveMatchHub(db) { Context = context.Object, Groups = groups.Object };
+
+            await hub.JoinMatch(eventId);
+
+            groups.Verify(g => g.AddToGroupAsync("conn-player", $"liveMatch-{eventId}", It.IsAny<CancellationToken>()), Times.Once);
         }
     }
 }

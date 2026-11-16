@@ -157,5 +157,50 @@ namespace RFFM.Api.Tests.UnitTests
             await Assert.ThrowsAsync<ForbiddenAccessException>(() =>
                 handler.Handle(new GetLiveMatch.GetLiveMatchQuery(eventId, adminId), CancellationToken.None).AsTask());
         }
+
+        [Theory]
+        [InlineData(4)]
+        [InlineData(5)]
+        public async Task Handle_PlayerOrFamilyOfEventTeam_ReturnsState(int membershipId)
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, _) = await SeedTeamAsync(db, "GetPlayerOfTeam");
+            var eventId = await SeedSportEventAsync(db, teamId);
+            var playerUserId = Guid.NewGuid().ToString();
+            db.UserTeams.Add(new UserTeam(playerUserId, teamId, membershipId));
+            await db.SaveChangesAsync();
+            await SeedLiveStateAsync(db, eventId, teamId);
+
+            var handler = new GetLiveMatch.Handler(db);
+
+            var response = await handler.Handle(new GetLiveMatch.GetLiveMatchQuery(eventId, playerUserId), CancellationToken.None);
+
+            Assert.Equal(1, response.Version);
+        }
+
+        [Fact]
+        public async Task Handle_PlayerOfAnotherTeam_ThrowsForbidden()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, clubId) = await SeedTeamAsync(db, "GetPlayerOther");
+            var eventId = await SeedSportEventAsync(db, teamId);
+            var otherTeam = new Team(new TeamModelBase
+            {
+                Name = "GetPlayerOther Team",
+                CategoryId = Category.NationalCategory.Id,
+                ClubId = clubId,
+                SeasonId = (await db.Teams.FindAsync(teamId))!.SeasonId
+            });
+            db.Teams.Add(otherTeam);
+            var playerUserId = Guid.NewGuid().ToString();
+            db.UserTeams.Add(new UserTeam(playerUserId, otherTeam.Id, Membership.Player.Id));
+            await db.SaveChangesAsync();
+            await SeedLiveStateAsync(db, eventId, teamId);
+
+            var handler = new GetLiveMatch.Handler(db);
+
+            await Assert.ThrowsAsync<ForbiddenAccessException>(() =>
+                handler.Handle(new GetLiveMatch.GetLiveMatchQuery(eventId, playerUserId), CancellationToken.None).AsTask());
+        }
     }
 }

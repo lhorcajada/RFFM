@@ -25,6 +25,20 @@ namespace RFFM.Api.Features.Coaches.LiveMatch
             return await IsClubCoachOfTeamAsync(db, userId, eventTeamId, ct);
         }
 
+        public static async Task<bool> CanReadAsync(AppDbContext db, string userId, string eventId, CancellationToken ct)
+        {
+            if (await IsTeamCoachAsync(db, userId, eventId, ct))
+                return true;
+
+            return await db.SportEvents
+                .AsNoTracking()
+                .Where(se => se.Id == eventId)
+                .AnyAsync(se => db.UserTeams.Any(ut =>
+                    ut.ApplicationUserId == userId
+                    && ut.TeamId == se.TeamId
+                    && (ut.RoleId == Membership.Player.Id || ut.RoleId == Membership.FamilyPlayer.Id)), ct);
+        }
+
         private static Task<bool> IsClubCoachOfTeamAsync(AppDbContext db, string userId, string teamId, CancellationToken ct) =>
             db.UserClubs
                 .AsNoTracking()
