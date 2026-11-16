@@ -122,6 +122,30 @@ describe("NewSessionPage — crear ejercicio nuevo inline desde un bloque", () =
     expect(exerciseCard.compareDocumentPosition(blockNames[1]) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
   });
 
+  it("deja en el historial la URL de la sesión con el borrador para que el botón atrás del navegador no pierda el bloque", async () => {
+    const trainingService = (await import("../../../../services/trainingService")).default;
+    vi.mocked(trainingService.getSessionById).mockResolvedValue({
+      id: "s-1",
+      name: "Sesión",
+      description: "",
+      blocks: [],
+      targets: [],
+    } as never);
+    renderPage("clubId=club-1&teamId=team-1&sessionId=s-1", { returnTo: "/coach/trainings" });
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole("button", { name: /Añadir bloque/i }));
+    await user.click(await screen.findByRole("button", { name: /Crear ejercicio nuevo/i }));
+
+    await waitFor(() => expect(navigateMock).toHaveBeenCalledTimes(2));
+    const [firstUrl, firstOptions] = navigateMock.mock.calls[0];
+    expect(firstUrl).toContain("/coach/trainings/new-session");
+    expect(firstUrl).toContain("sessionDraftKey=");
+    expect(firstUrl).toContain("sessionId=s-1");
+    expect(firstOptions).toEqual(expect.objectContaining({ replace: true }));
+    expect(navigateMock.mock.calls[1][0]).toContain("/coach/trainings/new-exercise");
+  });
+
   it("muestra el botón 'Volver' en lugar de 'Cancelar'", () => {
     renderPage();
 

@@ -93,7 +93,7 @@ describe("NewSessionPage — editar un ejercicio de la sesión", () => {
       expect.stringMatching(/^\/coach\/trainings\/new-exercise\?.*exerciseId=ex-1/),
       expect.anything()
     );
-    const [, options] = navigateMock.mock.calls[0];
+    const [, options] = navigateMock.mock.calls[navigateMock.mock.calls.length - 1];
     const returnParams = new URLSearchParams(options.state.returnTo.split("?")[1]);
     expect(returnParams.getAll("sessionDraftKey")).toHaveLength(1);
     const stored = JSON.parse(sessionStorage.getItem(DRAFT_PREFIX + returnParams.get("sessionDraftKey")) ?? "null");

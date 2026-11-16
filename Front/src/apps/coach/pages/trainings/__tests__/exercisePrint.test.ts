@@ -75,6 +75,33 @@ describe("buildExercisePrintHtml", () => {
     expect(html).not.toContain("<table");
   });
 
+  it("no renderiza tabla de niveles cuando ningún nivel tiene valores", () => {
+    const html = buildExercisePrintHtml(
+      buildExercise({
+        nivelesColumnas: ["Palanca 1"],
+        niveles: [
+          { nivel: 1, valores: {} },
+          { nivel: 2, valores: { "Palanca 1": "  " } },
+        ],
+      }),
+    );
+    expect(html).not.toContain("<table");
+  });
+
+  it("omite los niveles sin valores y mantiene los rellenados", () => {
+    const html = buildExercisePrintHtml(
+      buildExercise({
+        nivelesColumnas: ["Palanca 1"],
+        niveles: [
+          { nivel: 1, valores: {} },
+          { nivel: 2, valores: { "Palanca 1": "Más espacio" } },
+        ],
+      }),
+    );
+    expect(html).toContain("Más espacio");
+    expect(html).not.toContain('<td class="nivel-cell">1</td>');
+  });
+
   it("incluye chips de relación con el modelo", () => {
     const html = buildExercisePrintHtml(
       buildExercise({

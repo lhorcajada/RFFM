@@ -45,7 +45,11 @@ export function buildModelRelationsHtml(exercise: Exercise): string {
 export function buildNivelesTableHtml(exercise: Exercise): string {
   if (exercise.nivelesColumnas.length === 0) return "";
 
-  const sortedNiveles = [...exercise.niveles].sort((a, b) => a.nivel - b.nivel);
+  const sortedNiveles = [...exercise.niveles]
+    .filter((row) => exercise.nivelesColumnas.some((col) => (row.valores[col] ?? "").trim() !== ""))
+    .sort((a, b) => a.nivel - b.nivel);
+  if (sortedNiveles.length === 0) return "";
+
   const headerCells = exercise.nivelesColumnas.map((col) => `<th>${escapeHtml(col)}</th>`).join("");
   const rows = sortedNiveles
     .map((row) => {

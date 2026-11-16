@@ -191,6 +191,9 @@ export default function NewSessionPage() {
     const returnParams = new URLSearchParams(params);
     returnParams.set("sessionDraftKey", key);
 
+    // Leave the draft key in this history entry so the browser's back button also restores it.
+    navigate(`${location.pathname}?${returnParams.toString()}`, { replace: true, state: location.state });
+
     exerciseParams.set("clubId", clubId);
     if (teamId) exerciseParams.set("teamId", teamId);
 

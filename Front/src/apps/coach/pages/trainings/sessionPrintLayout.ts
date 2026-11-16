@@ -54,8 +54,15 @@ export function planDrawingFit(measures: DrawingMeasure[], options: DrawingFitOp
 }
 
 const PRINTABLE_PAGE_HEIGHT = "273mm";
-const MIN_DRAWING_HEIGHT_PX = 220;
+const MIN_DRAWING_HEIGHT_PX = 440;
 const SAFETY_PX = 24;
+
+/** Moving the first exercise of a block alone would strand the block heading (an empty framed
+ * box) on the previous page, so for it only the drawing is pushed to the next page. */
+function isFirstInBlock(item: HTMLElement): boolean {
+  const block = item.closest<HTMLElement>(".block");
+  return !!block && block.querySelector(".exercise-item") === item;
+}
 
 /** Applies `planDrawingFit` to a rendered session sheet (see `sessionPrint.ts`): measures each
  * `.exercise-visual` on screen and sets the drawing height / page breaks before printing. */
@@ -100,8 +107,9 @@ export function fitSessionDrawingsToPages(doc: Document): void {
 
   entries.forEach(({ item, visual, drawing, measure }, index) => {
     const plan = plans[index];
-    if (plan.breakBeforeItem) item.classList.add("print-break-before");
-    if (plan.breakBeforeVisual) visual.classList.add("print-break-before");
+    const opensBlock = isFirstInBlock(item);
+    if (plan.breakBeforeItem && !opensBlock) item.classList.add("print-break-before");
+    if (plan.breakBeforeVisual || (plan.breakBeforeItem && opensBlock)) visual.classList.add("print-break-before");
     if (plan.height < measure.drawingHeight) {
       drawing.classList.add("drawing-fitted");
       drawing.style.height = `${Math.floor(plan.height)}px`;
