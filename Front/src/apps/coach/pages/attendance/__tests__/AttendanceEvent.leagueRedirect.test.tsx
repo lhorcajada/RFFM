@@ -129,8 +129,28 @@ describe("AttendanceEvent - partido de liga", () => {
     expect(await screen.findByTestId("match-page")).toBeInTheDocument();
   });
 
-  it("mantiene la página de asistencia para un jugador", async () => {
+  it.each([["Player"], ["FamilyPlayer"], ["FamilyMember"]])(
+    "lleva a %s directamente a la página de partido",
+    async (role) => {
+      setRoles([role]);
+      renderPage();
+
+      expect(await screen.findByTestId("match-page")).toBeInTheDocument();
+      expect(screen.queryByText("attendance-tabs")).not.toBeInTheDocument();
+    },
+  );
+
+  it("mantiene la página de asistencia para un seguidor", async () => {
+    setRoles(["Follower"]);
+    renderPage();
+
+    expect(await screen.findByText("attendance-tabs")).toBeInTheDocument();
+    expect(screen.queryByTestId("match-page")).not.toBeInTheDocument();
+  });
+
+  it("mantiene la página de asistencia para un amistoso de un jugador", async () => {
     setRoles(["Player"]);
+    getSportEventByIdMock.mockResolvedValue({ ...leagueEvent, matchCategory: "Friendly" });
     renderPage();
 
     expect(await screen.findByText("attendance-tabs")).toBeInTheDocument();

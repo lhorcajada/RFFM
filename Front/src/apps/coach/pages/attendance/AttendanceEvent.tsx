@@ -84,10 +84,15 @@ export default function AttendanceEvent() {
     });
   };
 
-  // League matches are managed only by the coach: skip the attendance form and land on the match page.
+  // League matches skip the attendance form: the coach manages them and players/family only
+  // consult them, so everyone lands on the match page.
   const redirectsToMatchPage =
     event?.matchCategory === "League" &&
-    (coachAuthService.hasRole("Coach") || coachAuthService.hasRole("Administrator"));
+    (coachAuthService.hasRole("Coach") ||
+      coachAuthService.hasRole("Administrator") ||
+      coachAuthService.hasRole("Player") ||
+      coachAuthService.hasRole("FamilyPlayer") ||
+      coachAuthService.hasRole("FamilyMember"));
 
   useEffect(() => {
     if (event && redirectsToMatchPage) goToMatchPage(event, true);

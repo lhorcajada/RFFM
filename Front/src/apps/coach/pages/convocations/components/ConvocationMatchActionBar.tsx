@@ -20,6 +20,8 @@ type Props = {
   onViewConvocation: () => void;
   /** Opens the full-screen live match page. When omitted the button is not shown. */
   onOpenLiveMatch?: () => void;
+  /** Player/family view: only "Volver" and, when offered, "Partido en directo". */
+  readOnly?: boolean;
 };
 
 export default function ConvocationMatchActionBar({
@@ -34,13 +36,14 @@ export default function ConvocationMatchActionBar({
   onPrint,
   onViewConvocation,
   onOpenLiveMatch,
+  readOnly = false,
 }: Props) {
   return (
     <>
       <Button startIcon={<ArrowBackIcon />} onClick={onBack} variant="outlined" size="small">
         Volver
       </Button>
-      {eventId && (
+      {eventId && !readOnly && (
         <Button startIcon={<PeopleAltIcon />} variant="outlined" size="small" onClick={onOpenEvent}>
           Ir al evento
         </Button>
@@ -56,12 +59,12 @@ export default function ConvocationMatchActionBar({
           Partido en directo
         </Button>
       )}
-      {tab === CONVOCATION_TAB.Convocatoria && eventId && (
+      {tab === CONVOCATION_TAB.Convocatoria && eventId && !readOnly && (
         <Button variant="contained" size="small" onClick={onSaveConvocation}>
           Guardar
         </Button>
       )}
-      {eventId && (
+      {eventId && !readOnly && (
         <Button
           variant="outlined"
           size="small"
@@ -72,7 +75,7 @@ export default function ConvocationMatchActionBar({
           PDF
         </Button>
       )}
-      {eventId && convocationConfirmed && (
+      {eventId && !readOnly && convocationConfirmed && (
         <Button
           startIcon={<VisibilityIcon />}
           variant="outlined"

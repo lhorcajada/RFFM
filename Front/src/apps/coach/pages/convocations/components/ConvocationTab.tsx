@@ -113,6 +113,8 @@ type Props = {
   readinessMap?: Record<string, Pick<PlayerStatistics, "readiness" | "fatigue"> & Partial<Pick<PlayerStatistics, "formStatus">>>;
   /** Jugadores en la semana de recuperación tras una baja de dos semanas o más. */
   recoveringIds?: ReadonlySet<string>;
+  /** Player/family view: no proposal, no drag-and-drop and no convocation actions. */
+  readOnly?: boolean;
 };
 
 const GROUPS = [
@@ -181,6 +183,7 @@ export default function ConvocationTab({
   fitContext,
   readinessMap,
   recoveringIds,
+  readOnly = false,
 }: Props) {
   const [showProposal, setShowProposal] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
@@ -294,6 +297,7 @@ export default function ConvocationTab({
   };
 
   function renderPlayerActions(playerId: string, zone: DropZone, displayName: string) {
+    if (readOnly) return null;
     if (zone === "available" && onCallPlayers) {
       return (
         <label
@@ -380,7 +384,7 @@ export default function ConvocationTab({
       <div
         key={playerId}
         data-player-id={playerId}
-        {...bindDrag(playerId)}
+        {...(readOnly ? {} : bindDrag(playerId))}
         className={`${styles.draggableCard} ${mgmtDragPlayer === playerId ? styles.draggableCardDragging : ""}`}
       >
         <ConvocationPlayerRow
@@ -407,7 +411,7 @@ export default function ConvocationTab({
           selected={zone === "available" && selectedToCall.includes(playerId)}
           actions={actions ? <div {...stopDrag}>{actions}</div> : undefined}
         />
-        {isLeagueMatch && zone === "notCalled" && excuseTypes.length > 0 && (
+        {!readOnly && isLeagueMatch && zone === "notCalled" && excuseTypes.length > 0 && (
           <button
             type="button"
             className={styles.reasonStrip}
@@ -420,7 +424,7 @@ export default function ConvocationTab({
             <ExpandMoreIcon fontSize="small" aria-hidden="true" />
           </button>
         )}
-        {!isLeagueMatch && zone === "notCalled" && excuseTypes.length > 0 && (
+        {!readOnly && !isLeagueMatch && zone === "notCalled" && excuseTypes.length > 0 && (
           <FormControl size="small" fullWidth sx={{ mt: 0.5, flexShrink: 0 }} onClick={(e) => e.stopPropagation()} {...stopDrag}>
             <InputLabel sx={{ fontSize: "0.7rem" }}>Motivo</InputLabel>
             <Select
@@ -469,16 +473,18 @@ export default function ConvocationTab({
       )}
 
       <div className={styles.proposalBar}>
-        <Button
-          variant="outlined"
-          size="small"
-          startIcon={<AutoFixHighIcon />}
-          onClick={() => setShowProposal(true)}
-          disabled={proposalLoading}
-          className={styles.proposalBtn}
-        >
-          Proponer desconvocados
-        </Button>
+        {!readOnly && (
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<AutoFixHighIcon />}
+            onClick={() => setShowProposal(true)}
+            disabled={proposalLoading}
+            className={styles.proposalBtn}
+          >
+            Proponer desconvocados
+          </Button>
+        )}
         <PlayerFormLegend />
       </div>
 
@@ -570,10 +576,10 @@ export default function ConvocationTab({
 
               {expanded && (
                 <div className={styles.dropColumnBody}>
-                  {ids.length === 0 && (
+                  {ids.length === 0 && !readOnly && (
                     <div className={styles.dropHint}>Arrastra jugadores aquí</div>
                   )}
-                  {zone === "available" && onCallPlayers && ids.length > 0 && (
+                  {!readOnly && zone === "available" && onCallPlayers && ids.length > 0 && (
                     <div className={styles.bulkCallBar}>
                       <Button
                         size="small"

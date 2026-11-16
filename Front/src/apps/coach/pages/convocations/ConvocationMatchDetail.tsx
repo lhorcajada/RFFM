@@ -39,6 +39,8 @@ import { useTeamReadinessMap } from "./hooks/useTeamReadinessMap";
 import type { ClubKit } from "../../services/kitService";
 import { getTeamKits, updateEventKit } from "../../services/kitService";
 import { toMatchState } from "./helpers/convocationUtils";
+import { hasMatchStarted } from "./utils/matchStart";
+import { useIsPlayerRole } from "../../hooks/useIsPlayerRole";
 import styles from "./ConvocationMatchDetail.module.css";
 import ConvocationMatchHeader from "./components/ConvocationMatchHeader";
 import ConvocationMatchActionBar from "./components/ConvocationMatchActionBar";
@@ -60,6 +62,7 @@ function TabLabel({ text, count }: { text: string; count: number | null }) {
 export default function ConvocationMatchDetail() {
   const navigate = useNavigate();
   const location = useLocation();
+  const isPlayer = useIsPlayerRole();
   const stateMatch = (location.state as { match?: MatchState } | null)?.match ?? null;
 
   // Team ID  from URL or fallback to coach configuration
@@ -121,7 +124,7 @@ export default function ConvocationMatchDetail() {
   }, [needsGridData]);
   // La propuesta de convocatoria (temporada, lesiones, starts, entrenos) solo la usa
   // la pestaña Convocatoria; se activa la primera vez que se visita y se mantiene.
-  const needsProposalData = tab === CONVOCATION_TAB.Convocatoria;
+  const needsProposalData = tab === CONVOCATION_TAB.Convocatoria && !isPlayer;
   const [proposalEnabled, setProposalEnabled] = useState(needsProposalData);
   useEffect(() => {
     if (needsProposalData) setProposalEnabled(true);
@@ -375,7 +378,12 @@ export default function ConvocationMatchDetail() {
             onSaveConvocation={convocation.handleSave}
             onPrint={handlePrint}
             onViewConvocation={() => setViewConvocationOpen(true)}
-            onOpenLiveMatch={() => openFullScreen("live")}
+            onOpenLiveMatch={
+              isPlayer && !hasMatchStarted(match?.date ?? "", match?.time ?? "")
+                ? undefined
+                : () => openFullScreen("live")
+            }
+            readOnly={isPlayer}
           />
         }
       >
@@ -398,8 +406,8 @@ export default function ConvocationMatchDetail() {
             label={<TabLabel text="Convocatoria" count={convocation.mgmtCalled.length} />}
             value={CONVOCATION_TAB.Convocatoria}
           />
-          <Tab className={styles.tab} label="Alineación" value={CONVOCATION_TAB.Alineacion} />
-          <Tab className={styles.tab} label="Simular Partido" value={CONVOCATION_TAB.Simulacion} />
+          {!isPlayer && <Tab className={styles.tab} label="Alineación" value={CONVOCATION_TAB.Alineacion} />}
+          {!isPlayer && <Tab className={styles.tab} label="Simular Partido" value={CONVOCATION_TAB.Simulacion} />}
         </Tabs>
 
         {tab === CONVOCATION_TAB.Convocatoria && (
@@ -443,6 +451,7 @@ export default function ConvocationMatchDetail() {
             onApplyProposal={handleApplyProposal}
             readinessMap={readinessMap}
             recoveringIds={recoveringIds}
+            readOnly={isPlayer}
           />
         )}
 
@@ -473,7 +482,7 @@ export default function ConvocationMatchDetail() {
             enrichedGrid={grid.enrichedGrid}
             isLoading={grid.isLoading}
             teamId={teamId}
-            onDeconvokePlayer={(playerId, excuseId) => convocation.moveToNotCalled(playerId, excuseId)}
+            onDeconvokePlayer={isPlayer ? undefined : (playerId, excuseId) => convocation.moveToNotCalled(playerId, excuseId)}
             currentNotCalled={convocation.mgmtNotCalled}
           />
         )}

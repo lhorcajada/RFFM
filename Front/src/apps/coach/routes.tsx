@@ -297,10 +297,7 @@ function CoachRoutesContent() {
             <Route
               path="convocations/match"
               element={
-                <RequireFeaturePermission
-                  featureRoute={COACH_FEATURE_ROUTES.Convocations}
-                  allowPlayerAccess={false}
-                >
+                <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.Convocations}>
                   <ConvocationMatchDetail />
                 </RequireFeaturePermission>
               }
@@ -308,10 +305,7 @@ function CoachRoutesContent() {
             <Route
               path="convocations/live"
               element={
-                <RequireFeaturePermission
-                  featureRoute={COACH_FEATURE_ROUTES.Convocations}
-                  allowPlayerAccess={false}
-                >
+                <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.Convocations}>
                   <LiveMatchPage />
                 </RequireFeaturePermission>
               }
