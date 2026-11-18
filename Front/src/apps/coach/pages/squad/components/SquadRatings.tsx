@@ -8,6 +8,14 @@ import type { RatingSortKey } from "../squadPdfExport";
 import type { PlayerRating } from "../../../types/playerRating";
 import { positionAccent } from "../rating/positionCategory";
 import RatingPlayerCard from "./RatingPlayerCard";
+import ConductFilters from "./ConductFilters";
+import { useConductData } from "../hooks/useConductData";
+import {
+  EMPTY_CONDUCT_FILTERS,
+  filterPlayersByConduct,
+  hasActiveConductFilters,
+  type ConductFilters as ConductFilterState,
+} from "../utils/conductFilter";
 import styles from "./SquadRatings.module.css";
 
 type PlayerEntry = {
@@ -89,16 +97,26 @@ function pickInitialSubRatings(_rating: PlayerRating | undefined) { return {}; }
 function pickInitialKeeperSubRatings(_rating: PlayerRating | undefined) { return {}; }
 function isGoalkeeperPosition(_position?: string | null): boolean { return false; }
 
-export default function SquadRatings({ teamId: _teamId, players, latestRatings, teamName, readOnly = false }: Props) {
+export default function SquadRatings({ teamId, players, latestRatings, teamName, readOnly = false }: Props) {
   const navigate = useNavigate();
   const squadSearch = window.location.search; // preserve ?teamId=...&seasonId=...
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [sortKey, setSortKey] = useState<SortKey>("position");
 
-  const grouped = useMemo(
-    () => groupPlayersByPosition(players, latestRatings, sortKey),
-    [players, latestRatings, sortKey],
+  const [conductFilters, setConductFilters] = useState<ConductFilterState>(EMPTY_CONDUCT_FILTERS);
+  const { conductByPlayer, traits } = useConductData(teamId, !readOnly);
+
+  const visiblePlayers = useMemo(
+    () => filterPlayersByConduct(players, conductByPlayer, conductFilters),
+    [players, conductByPlayer, conductFilters],
   );
+
+  const grouped = useMemo(
+    () => groupPlayersByPosition(visiblePlayers, latestRatings, sortKey),
+    [visiblePlayers, latestRatings, sortKey],
+  );
+
+  const hasConductData = Object.keys(conductByPlayer).length > 0;
 
   function togglePanel(id: string) {
     setExpandedId((prev) => (prev === id ? null : id));
@@ -171,6 +189,19 @@ export default function SquadRatings({ teamId: _teamId, players, latestRatings, 
               PDF individuales
             </Button>
           </div>
+        </div>
+      )}
+      {!readOnly && hasConductData && (
+        <ConductFilters traits={traits} filters={conductFilters} onChange={setConductFilters} />
+      )}
+      {grouped.length === 0 && (
+        <div className={styles.empty}>
+          <p>Ningún jugador coincide con los filtros de conducta.</p>
+          {hasActiveConductFilters(conductFilters) && (
+            <Button variant="outlined" size="small" onClick={() => setConductFilters(EMPTY_CONDUCT_FILTERS)}>
+              Quitar filtros
+            </Button>
+          )}
         </div>
       )}
       {grouped.map(([position, group]) => {

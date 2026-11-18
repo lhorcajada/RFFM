@@ -6,6 +6,11 @@ import { MemoryRouter } from "react-router-dom";
 import SquadRatings from "../SquadRatings";
 import type { PlayerRating } from "../../../types/playerRating";
 
+vi.mock("../../../../services/traitRatingService", () => ({ getTeamLatestTraitRatings: vi.fn().mockResolvedValue([]) }));
+vi.mock("../../../../services/ratingConfigService", () => ({
+  getRatingConfig: vi.fn().mockResolvedValue({ capacities: [], traits: [] }),
+}));
+
 function buildRating(): PlayerRating {
   return {
     id: "rating-1",

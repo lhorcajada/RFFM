@@ -1,10 +1,15 @@
 import React from "react";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 import SquadRatings from "../SquadRatings";
 import type { PlayerRating } from "../../../../types/playerRating";
+
+vi.mock("../../../../services/traitRatingService", () => ({ getTeamLatestTraitRatings: vi.fn().mockResolvedValue([]) }));
+vi.mock("../../../../services/ratingConfigService", () => ({
+  getRatingConfig: vi.fn().mockResolvedValue({ capacities: [], traits: [] }),
+}));
 
 function buildRating(teamPlayerId: string, physical: number, technical: number, tactical: number, competitiveness: number): PlayerRating {
   return {
