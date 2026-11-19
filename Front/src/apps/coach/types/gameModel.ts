@@ -186,6 +186,8 @@ export interface GameModel {
   teamId: string;
   name: string;
   season: string;
+  /** Marker from the server; absent on drafts that have not been saved yet. */
+  version?: string;
   principles: Principle[];
   setPieceRules: SetPieceRule[];
   openIssues: OpenIssue[];

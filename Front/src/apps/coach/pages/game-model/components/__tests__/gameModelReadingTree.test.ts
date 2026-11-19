@@ -361,3 +361,17 @@ describe("cambios pendientes", () => {
     expect(tree.roots[0].children.at(-1)!.address).toBe("nuevo-principio");
   });
 });
+
+describe("cambios pendientes de alta con changeId", () => {
+  it("dos altas bajo el mismo padre crean dos marcadores, cada uno con su changeId", () => {
+    const tree = buildReadingTree(twoPhaseModel, {
+      "alta-c1": { operation: "add", parentAddress: PRINCIPLE_1, changeId: "c1", title: "Primera alta" },
+      "alta-c2": { operation: "add", parentAddress: PRINCIPLE_1, changeId: "c2", title: "Segunda alta" },
+    });
+
+    const placeholders = tree.nodes.filter((n) => n.kind === "placeholder");
+    expect(placeholders).toHaveLength(2);
+    expect(placeholders.map((n) => n.pending?.changeId)).toEqual(["c1", "c2"]);
+    expect(placeholders.every((n) => n.parentAddress === PRINCIPLE_1)).toBe(true);
+  });
+});

@@ -43,6 +43,8 @@ export interface PendingChange {
   number?: string;
   title?: string;
   text?: string;
+  changeId?: string;
+  canAccept?: boolean;
 }
 
 /** Pending changes keyed by node address. */

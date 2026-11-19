@@ -87,11 +87,32 @@ interface ApiOpenIssue {
   status: string;
 }
 
+export type AssistantMessage = { role: "user" | "assistant"; content: string; kind?: "question" | "proposal" };
+
+export type AssistantChange = {
+  id: string;
+  operation: "add" | "change" | "remove";
+  nodeType: "principio" | "subprincipio" | "zona" | "subSubPrincipio" | "habilidad" | "nota" | "setPieceRule";
+  address?: string;
+  parentAddress?: string;
+  parentChangeId?: string;
+  fields: Record<string, unknown>;
+};
+
+export type AssistantReply = {
+  kind: "question" | "proposal";
+  message: string;
+  changes: AssistantChange[];
+  discardedCount: number;
+  version: string;
+};
+
 interface ApiGameModel {
   id: string;
   teamId: string;
   name: string;
   season: string;
+  version: string;
   principles: ApiPrincipio[];
   setPieceRules: ApiSetPieceRule[];
   openIssues: ApiOpenIssue[];
@@ -200,10 +221,33 @@ function mapApiToGameModel(api: ApiGameModel): GameModel {
     teamId: api.teamId,
     name: api.name,
     season: api.season,
+    version: api.version,
     principles: api.principles.map(mapPrincipio),
     setPieceRules: api.setPieceRules.map(mapSetPieceRule),
     openIssues: api.openIssues.map(mapOpenIssue),
   };
+}
+
+/** Surfaces a ProblemDetails response as an Error carrying the backend `code` and `status` at the top
+ * level, so callers branch on `error.code` (e.g. GameModelStale, AiNoActiveProvider). The original
+ * `response` stays on the error, so callers that read `response.data.detail` keep working. Any other
+ * error is returned unchanged. */
+function toServiceError(error: unknown): unknown {
+  if (typeof error !== "object" || error === null || !("response" in error)) return error;
+  const { response } = error as { response?: { status?: number; data?: unknown } };
+  const problem = response?.data;
+  if (typeof problem !== "object" || problem === null) return error;
+
+  const { code, detail, title } = problem as { code?: string; detail?: string; title?: string };
+  const serviceError = new Error(detail ?? title ?? "No se pudo completar la operación.") as Error & {
+    code?: string;
+    status?: number;
+    response?: unknown;
+  };
+  serviceError.code = code;
+  serviceError.status = response?.status;
+  serviceError.response = response;
+  return serviceError;
 }
 
 function isNotFound(error: unknown): boolean {
@@ -403,9 +447,29 @@ const gameModelService = {
     return { ...draft, id: res.data.id };
   },
 
-  async update(draft: GameModel): Promise<GameModel> {
-    await client.put(`/api/game-models/${draft.id}`, mapModelToUpdateRequest(draft));
+  /** Saves the tree. With `expectedVersion`, the backend rejects a save made on a stale marker with
+   * a GameModelStale error; without it the body carries no marker and the save is unconditional. */
+  async update(draft: GameModel, options?: { expectedVersion?: string }): Promise<GameModel> {
+    const body = {
+      ...mapModelToUpdateRequest(draft),
+      ...(options?.expectedVersion !== undefined ? { expectedVersion: options.expectedVersion } : {}),
+    };
+    try {
+      await client.put(`/api/game-models/${draft.id}`, body);
+    } catch (error) {
+      throw toServiceError(error);
+    }
     return draft;
+  },
+
+  /** One turn of the game-model assistant: the whole conversation goes out, nothing is stored. */
+  async assistant(gameModelId: string, messages: AssistantMessage[]): Promise<AssistantReply> {
+    try {
+      const res = await client.post<AssistantReply>(`/api/game-models/${gameModelId}/assistant`, { messages });
+      return res.data;
+    } catch (error) {
+      throw toServiceError(error);
+    }
   },
 
   async delete(id: string): Promise<void> {
