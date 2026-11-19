@@ -26,6 +26,8 @@ namespace RFFM.Api.Features.AiSettings.Services
 
         public abstract AiProviderType Type { get; }
 
+        public virtual bool SupportsForcedJsonSchema => false;
+
         public async Task<AiChatResult> CompleteAsync(
             AiProviderCredentials credentials, AiChatRequest request, CancellationToken cancellationToken)
         {
@@ -102,9 +104,13 @@ namespace RFFM.Api.Features.AiSettings.Services
     /// <summary>OpenAI chat-completions protocol, shared by OpenAI, Gemini, Groq, OpenRouter and similar providers.</summary>
     public sealed class OpenAiCompatibleChatAdapter : AiChatAdapterBase
     {
+        private const string StructuredReplyName = "structured_reply";
+
         public OpenAiCompatibleChatAdapter(HttpClient http) : base(http) { }
 
         public override AiProviderType Type => AiProviderType.OpenAiCompatible;
+
+        public override bool SupportsForcedJsonSchema => true;
 
         protected override HttpRequestMessage BuildRequest(AiProviderCredentials credentials, AiChatRequest request)
         {
@@ -114,12 +120,23 @@ namespace RFFM.Api.Features.AiSettings.Services
                 {
                     Model = credentials.Model,
                     Messages = request.Messages.Select(m => new { m.Role, m.Content }),
-                    request.MaxTokens
+                    request.MaxTokens,
+                    ResponseFormat = ResponseFormatFor(request.ResponseSchema)
                 })
             };
             message.Headers.Authorization = new AuthenticationHeaderValue("Bearer", credentials.ApiKey);
             return message;
         }
+
+        // The schema is embedded as a JSON object, not a string; non-strict mode accepts the schema's optional members.
+        private static object? ResponseFormatFor(string? responseSchema) =>
+            responseSchema is null
+                ? null
+                : new
+                {
+                    Type = "json_schema",
+                    JsonSchema = new { Name = StructuredReplyName, Schema = JsonSerializer.Deserialize<JsonElement>(responseSchema) }
+                };
 
         protected override string? ExtractContent(string responseBody)
         {

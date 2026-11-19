@@ -11,7 +11,7 @@ namespace RFFM.Api.Features.AiSettings.Services
 
     public record AiChatMessage(string Role, string Content);
 
-    public record AiChatRequest(IReadOnlyList<AiChatMessage> Messages, int? MaxTokens = null);
+    public record AiChatRequest(IReadOnlyList<AiChatMessage> Messages, int? MaxTokens = null, string? ResponseSchema = null);
 
     public enum AiChatFailure
     {
@@ -66,6 +66,8 @@ namespace RFFM.Api.Features.AiSettings.Services
     public interface IAiChatAdapter
     {
         AiProviderType Type { get; }
+
+        bool SupportsForcedJsonSchema { get; }
 
         Task<AiChatResult> CompleteAsync(AiProviderCredentials credentials, AiChatRequest request, CancellationToken cancellationToken);
     }

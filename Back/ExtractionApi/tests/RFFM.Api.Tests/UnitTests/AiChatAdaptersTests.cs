@@ -224,6 +224,92 @@ namespace RFFM.Api.Tests.UnitTests
             Assert.Equal(expected, result.Failure);
         }
 
+        private const string SampleSchema = """{"type":"object","properties":{"kind":{"type":"string"}}}""";
+
+        [Fact]
+        public void OpenAiCompatible_DeclaresForcedJsonSchemaSupport()
+        {
+            var adapter = new OpenAiCompatibleChatAdapter(new HttpClient(Responding(HttpStatusCode.OK, "{}")));
+
+            Assert.True(adapter.SupportsForcedJsonSchema);
+        }
+
+        [Fact]
+        public async Task OpenAiCompatible_WithResponseSchema_SendsItAsResponseFormat()
+        {
+            var handler = Responding(HttpStatusCode.OK, """{"choices":[{"message":{"content":"OK"}}]}""");
+            var adapter = new OpenAiCompatibleChatAdapter(new HttpClient(handler));
+            var request = SampleRequest() with { ResponseSchema = SampleSchema };
+
+            await adapter.CompleteAsync(OpenAiCredentials(), request, CancellationToken.None);
+
+            using var body = JsonDocument.Parse(handler.LastBody!);
+            Assert.True(body.RootElement.TryGetProperty("response_format", out var responseFormat));
+            Assert.Equal("json_schema", responseFormat.GetProperty("type").GetString());
+            Assert.True(responseFormat.GetProperty("json_schema").GetProperty("schema").TryGetProperty("properties", out var properties));
+            Assert.True(properties.TryGetProperty("kind", out _));
+        }
+
+        [Fact]
+        public async Task OpenAiCompatible_WithoutResponseSchema_OmitsResponseFormat()
+        {
+            var handler = Responding(HttpStatusCode.OK, """{"choices":[{"message":{"content":"OK"}}]}""");
+            var adapter = new OpenAiCompatibleChatAdapter(new HttpClient(handler));
+
+            await adapter.CompleteAsync(OpenAiCredentials(), SampleRequest(), CancellationToken.None);
+
+            using var body = JsonDocument.Parse(handler.LastBody!);
+            Assert.False(body.RootElement.TryGetProperty("response_format", out _));
+        }
+
+        [Fact]
+        public void Claude_DoesNotDeclareForcedJsonSchemaSupport()
+        {
+            var adapter = new ClaudeChatAdapter(new HttpClient(Responding(HttpStatusCode.OK, "{}")));
+
+            Assert.False(adapter.SupportsForcedJsonSchema);
+        }
+
+        [Fact]
+        public async Task Claude_BodyIsIdenticalWithOrWithoutResponseSchema()
+        {
+            var plainHandler = Responding(HttpStatusCode.OK, """{"content":[{"type":"text","text":"OK"}]}""");
+            var schemaHandler = Responding(HttpStatusCode.OK, """{"content":[{"type":"text","text":"OK"}]}""");
+
+            await new ClaudeChatAdapter(new HttpClient(plainHandler))
+                .CompleteAsync(ClaudeCredentials(), SampleRequest(), CancellationToken.None);
+            await new ClaudeChatAdapter(new HttpClient(schemaHandler))
+                .CompleteAsync(ClaudeCredentials(), SampleRequest() with { ResponseSchema = SampleSchema }, CancellationToken.None);
+
+            Assert.Equal(plainHandler.LastBody, schemaHandler.LastBody);
+            using var body = JsonDocument.Parse(schemaHandler.LastBody!);
+            Assert.False(body.RootElement.TryGetProperty("response_format", out _));
+        }
+
+        [Fact]
+        public async Task OpenAiCompatible_WithMaxTokens4096_SendsThemInTheBody()
+        {
+            var handler = Responding(HttpStatusCode.OK, """{"choices":[{"message":{"content":"OK"}}]}""");
+            var adapter = new OpenAiCompatibleChatAdapter(new HttpClient(handler));
+
+            await adapter.CompleteAsync(OpenAiCredentials(), SampleRequest(maxTokens: 4096), CancellationToken.None);
+
+            using var body = JsonDocument.Parse(handler.LastBody!);
+            Assert.Equal(4096, body.RootElement.GetProperty("max_tokens").GetInt32());
+        }
+
+        [Fact]
+        public async Task Claude_WithMaxTokens4096_SendsThemInTheBody()
+        {
+            var handler = Responding(HttpStatusCode.OK, """{"content":[{"type":"text","text":"OK"}]}""");
+            var adapter = new ClaudeChatAdapter(new HttpClient(handler));
+
+            await adapter.CompleteAsync(ClaudeCredentials(), SampleRequest(maxTokens: 4096), CancellationToken.None);
+
+            using var body = JsonDocument.Parse(handler.LastBody!);
+            Assert.Equal(4096, body.RootElement.GetProperty("max_tokens").GetInt32());
+        }
+
         [Fact]
         public void Credentials_ToString_DoesNotExposeTheKey()
         {
