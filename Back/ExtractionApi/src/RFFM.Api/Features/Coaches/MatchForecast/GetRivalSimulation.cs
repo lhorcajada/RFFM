@@ -51,17 +51,16 @@ namespace RFFM.Api.Features.Coaches.MatchForecast
         public record RivalSimulationResponse(int PlayedMatches, int PendingMatches, bool UsesSquadStrength, string? OwnTeamCode,
             int Iterations, List<MatchPredictionResponse> Matches, List<ProjectedStandingResponse> Standings);
 
-        public class Handler(AppDbContext appDb, FederationDbContext db, IOptions<RffmOptions> rffmOptions)
+        public class Handler(AppDbContext appDb, FederationDbContext db, IOptions<RffmOptions> rffmOptions, OwnTeamForecastService? ownTeamForecast = null)
             : IRequestHandler<RivalSimulationQuery, RivalSimulationResponse?>
         {
             public async ValueTask<RivalSimulationResponse?> Handle(RivalSimulationQuery request, CancellationToken cancellationToken)
             {
-                var league = await RivalStatsLeague.ResolveAsync(appDb, request.TeamId, rffmOptions.Value, cancellationToken);
+                var simulation = await (ownTeamForecast ?? new OwnTeamForecastService(appDb, db, rffmOptions))
+                    .SimulateAsync(request.TeamId, cancellationToken);
+                if (simulation is null) return null;
 
-                var data = await new RivalSimulationInputLoader(db, rffmOptions).LoadAsync(league, cancellationToken);
-                if (data is null) return null;
-
-                var result = SeasonSimulator.Run(data.Input);
+                var (league, data, result) = simulation;
 
                 return new RivalSimulationResponse(
                     result.PlayedMatches,

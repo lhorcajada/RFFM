@@ -170,6 +170,7 @@ namespace RFFM.Api.DependencyInjection
             }
             services.AddScoped<RFFM.Api.Features.Coaches.Players.Services.IPlayerService, RFFM.Api.Features.Coaches.Players.Services.PlayerService>();
             services.AddScoped<RFFM.Api.Features.Coaches.Players.Services.PlayerConditionService>();
+            services.AddScoped<RFFM.Api.Features.Coaches.MatchForecast.Services.OwnTeamForecastService>();
 
             services.AddScoped<CompetitionService>();
             services.AddScoped<ICompetitionService>(sp => new CachedCompetitionService(
