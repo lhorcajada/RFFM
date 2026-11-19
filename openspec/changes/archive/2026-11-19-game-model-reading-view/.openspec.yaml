@@ -1,0 +1,5 @@
+schema: sai-workflow
+created: 2026-11-19
+backfilled: true
+prior_intent: true
+backlog_origin: https://github.com/lhorcajada/RFFM/issues/19

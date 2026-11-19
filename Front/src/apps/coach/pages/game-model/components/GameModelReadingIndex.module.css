@@ -1,0 +1,85 @@
+.nav {
+  display: flex;
+  flex-direction: column;
+  padding: 8px;
+  border-radius: 14px;
+  background: #0e0f2b;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  min-width: 0;
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item .list {
+  padding-left: 14px;
+}
+
+.entry {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  color: #c9c9d4;
+  font-size: 0.85rem;
+  line-height: 1.35;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.entry:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.entry:focus-visible {
+  outline: 2px solid #4d9de0;
+  outline-offset: 2px;
+}
+
+.entryActive {
+  background: rgba(77, 157, 224, 0.16);
+  color: #ffffff;
+}
+
+.level_0 {
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.numero {
+  flex: 0 0 auto;
+  color: #ff7a1a;
+  font-weight: 600;
+}
+
+.title {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.count {
+  flex: 0 0 auto;
+  min-width: 24px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.08);
+  color: #c9c9d4;
+}
+
+.pendingBadge {
+  flex: 0 0 auto;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  background: #f1c40f;
+  color: #1a1400;
+}

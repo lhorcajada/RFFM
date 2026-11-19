@@ -31,7 +31,7 @@ import useTeamDashboardBack from "../../hooks/useTeamDashboardBack";
 import gameModelService from "../../services/gameModelService";
 import seasonService, { type Season } from "../../services/seasonService";
 import type { GameModel as GameModelType } from "../../types/gameModel";
-import GameModelView from "./components/GameModelView";
+import GameModelReadingView from "./components/GameModelReadingView";
 import { exportGameModelPdf } from "./gameModelPdfExport";
 import styles from "./GameModel.module.css";
 
@@ -280,7 +280,7 @@ export default function GameModel() {
             </Box>
 
             <Box className={styles.documentContent}>
-              <GameModelView gameModel={gameModel} />
+              <GameModelReadingView gameModel={gameModel} />
             </Box>
           </Box>
         )}
