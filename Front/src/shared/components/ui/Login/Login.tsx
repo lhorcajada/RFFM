@@ -9,16 +9,24 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { Link as RouterLink, useNavigate } from "react-router-dom";
+import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
 import styles from "./Login.module.css";
 import { useCoachAuthContext } from "../../../../apps/coach/context/CoachAuthContext";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
+import ConfirmDialog from "../ConfirmDialog/ConfirmDialog";
+import { resetClientState } from "../../../../core/diagnostics/resetClientState";
+import { formatAuthTrace, traceAuth } from "../../../../core/diagnostics/authTrace";
 
 type SharedLoginProps = {
   redirectTo?: string;
+  onReload?: () => void;
 };
 
-const SharedLogin: React.FC<SharedLoginProps> = ({ redirectTo }) => {
+const reloadLogin = () => {
+  window.location.replace("/login");
+};
+
+const SharedLogin: React.FC<SharedLoginProps> = ({ redirectTo, onReload = reloadLogin }) => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
@@ -26,6 +34,39 @@ const SharedLogin: React.FC<SharedLoginProps> = ({ redirectTo }) => {
 
   const { login, isSubmitting } = useCoachAuthContext();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const [diagnosticCopied, setDiagnosticCopied] = useState(false);
+
+  const performReset = async () => {
+    setResetting(true);
+    try {
+      await resetClientState();
+    } finally {
+      setResetting(false);
+      setResetOpen(false);
+      onReload();
+    }
+  };
+
+  const copyDiagnostic = async () => {
+    try {
+      await navigator.clipboard.writeText(formatAuthTrace());
+      setDiagnosticCopied(true);
+      setFormError("");
+    } catch {
+      setFormError("No se pudo copiar el diagnóstico.");
+    }
+  };
+
+  useEffect(() => {
+    traceAuth("login.page_shown", { search: location.search });
+    if (new URLSearchParams(location.search).get("reset") === "1") {
+      void performReset();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const usernameRef = useRef<HTMLInputElement | null>(null);
   const passwordRef = useRef<HTMLInputElement | null>(null);
@@ -249,8 +290,30 @@ const SharedLogin: React.FC<SharedLoginProps> = ({ redirectTo }) => {
               ¿Olvidaste tu contraseña?
             </Link>
           </div>
+
+          <div className={styles.recovery}>
+            <Typography variant="caption" color="text.secondary">
+              ¿No consigues entrar o vuelves siempre a esta pantalla?
+            </Typography>
+            <Button size="small" variant="outlined" color="inherit" onClick={() => setResetOpen(true)}>
+              Limpiar sesión y datos
+            </Button>
+            <Button size="small" variant="text" color="inherit" onClick={copyDiagnostic}>
+              {diagnosticCopied ? "Diagnóstico copiado" : "Copiar diagnóstico"}
+            </Button>
+          </div>
         </Paper>
       </Box>
+
+      <ConfirmDialog
+        open={resetOpen}
+        title="Limpiar sesión y datos"
+        description="Se borrarán los datos guardados de la aplicación en este dispositivo (sesión, preferencias y caché). Tendrás que volver a iniciar sesión."
+        confirmText="Limpiar"
+        processing={resetting}
+        onCancel={() => setResetOpen(false)}
+        onConfirm={performReset}
+      />
     </BaseLayout>
   );
 };

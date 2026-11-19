@@ -6,7 +6,7 @@ export const MAX_ERROR_REDIRECTS = 2;
 
 export function clearStaleSession() {
   try {
-    coachAuthService.logout();
+    coachAuthService.logout("stale_session_reset");
   } catch {
     // ignore
   }

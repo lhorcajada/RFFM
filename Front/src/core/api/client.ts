@@ -1,5 +1,6 @@
 import axios from "axios";
 import { coachAuthService } from "../../apps/coach/services/authService";
+import { traceAuth } from "../diagnostics/authTrace";
 import {
   clearStaleSession,
   registerErrorRedirect,
@@ -75,6 +76,7 @@ function gotoErrorPage(reason?: string) {
   let path = `/error-500${suffix}`;
   // Repeated error redirects in a short window mean the stored session is likely
   // stale and the app boots into the same failure every time: reset it once.
+  traceAuth("http.error_redirect", { reason: reason ?? "500" });
   if (registerErrorRedirect()) {
     clearStaleSession();
     resetErrorRedirects();
@@ -101,8 +103,12 @@ client.interceptors.response.use(
       // If unauthorized, notify app so it can ask user to re-authenticate
       if (status === 401) {
         try {
+          traceAuth("http.401", {
+            method: error?.config?.method,
+            url: error?.config?.url,
+          });
           try {
-            coachAuthService.logout();
+            coachAuthService.logout("http_401");
           } catch (e) {}
           notifyAuthExpiredOnce();
         } catch (e) {
@@ -156,7 +162,7 @@ client.interceptors.request.use(
           // proactively remove it and notify the app once so it can log out and prompt for credentials.
           if (!coachAuthService.isAuthenticated()) {
             try {
-              coachAuthService.logout();
+              coachAuthService.logout("request_with_expired_token");
             } catch (e) {}
             try {
               notifyAuthExpiredOnce();
