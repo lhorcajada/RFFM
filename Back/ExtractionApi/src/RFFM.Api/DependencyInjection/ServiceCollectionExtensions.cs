@@ -50,6 +50,8 @@ namespace RFFM.Api.DependencyInjection
             //services.AddIntegrationEvents();
             services.AddHttpClient();
             services.Configure<RffmOptions>(configuration.GetSection("Rffm"));
+            services.Configure<RFFM.Api.Features.Coaches.GameModels.Assistant.GameModelAssistantOptions>(
+                configuration.GetSection(RFFM.Api.Features.Coaches.GameModels.Assistant.GameModelAssistantOptions.SectionName));
             services.AddFeatureFlags();
             // Allow handlers to access HttpContext when needed
             services.AddHttpContextAccessor();
@@ -171,6 +173,7 @@ namespace RFFM.Api.DependencyInjection
             services.AddScoped<RFFM.Api.Features.Coaches.Players.Services.IPlayerService, RFFM.Api.Features.Coaches.Players.Services.PlayerService>();
             services.AddScoped<RFFM.Api.Features.Coaches.Players.Services.PlayerConditionService>();
             services.AddScoped<RFFM.Api.Features.Coaches.MatchForecast.Services.OwnTeamForecastService>();
+            services.AddScoped<RFFM.Api.Features.Coaches.GameModels.Assistant.GameModelAssistantContextBuilder>();
 
             services.AddScoped<CompetitionService>();
             services.AddScoped<ICompetitionService>(sp => new CachedCompetitionService(

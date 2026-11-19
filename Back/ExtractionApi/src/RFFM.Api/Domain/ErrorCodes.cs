@@ -75,6 +75,7 @@ namespace RFFM.Api.Domain
         public const string SkillAccessDenied = "SkillAccessDenied";
         public const string ScenarioNotFound = "ScenarioNotFound";
         public const string GameModelStale = "GameModelStale";
+        public const string GameModelAssistantContextTooLarge = "GameModelAssistantContextTooLarge";
 
         // Teams (Features/Coaches/Teams)
         public const string TeamListAccessDenied = "TeamListAccessDenied";
