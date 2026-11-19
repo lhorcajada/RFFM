@@ -454,3 +454,103 @@ describe("GameModelReadingView — cambios pendientes", () => {
     expect(screen.queryByText(/cambios? propuestos?/)).not.toBeInTheDocument();
   });
 });
+
+describe("GameModelReadingView — aceptar y rechazar tarjetas", () => {
+  const SUB_CHANGE: PendingChanges = {
+    [SUB_1_1]: { operation: "change", text: "Texto propuesto", changeId: "c1", canAccept: true },
+  };
+
+  function renderWithDecisions(
+    pendingChanges: PendingChanges,
+    decisions: { onAcceptChange?: (id: string) => void; onRejectChange?: (id: string) => void } = {}
+  ) {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter initialEntries={["/coach/game-model"]}>
+        <GameModelReadingView gameModel={mockGameModel} pendingChanges={pendingChanges} {...decisions} />
+      </MemoryRouter>
+    );
+    return user;
+  }
+
+  it("un cambio pendiente sobre un subprincipio muestra el texto propuesto y los botones Aceptar y Rechazar en ese nodo", () => {
+    renderWithDecisions(SUB_CHANGE, { onAcceptChange: vi.fn(), onRejectChange: vi.fn() });
+
+    const accept = screen.getByRole("button", { name: "Aceptar" });
+    const reject = screen.getByRole("button", { name: "Rechazar" });
+
+    expect(accept.closest("article")).toHaveTextContent("Texto propuesto");
+    expect(reject.closest("article")).toHaveTextContent("Texto propuesto");
+  });
+
+  it("un alta pendiente se muestra como tarjeta dentro del marcador bajo su principio", () => {
+    renderWithDecisions(
+      {
+        "alta-c1": {
+          operation: "add",
+          parentAddress: PRINCIPLE_1,
+          number: "1.2",
+          title: "Presionar al portero",
+          changeId: "c1",
+          canAccept: true,
+        },
+      },
+      { onAcceptChange: vi.fn(), onRejectChange: vi.fn() }
+    );
+
+    const card = screen.getByRole("button", { name: "Aceptar" }).closest("div");
+    expect(card).toHaveTextContent("Presionar al portero");
+    expect(card!.closest("section")).toHaveTextContent("No permitir progresar al rival");
+  });
+
+  it("con canAccept en falso el botón Aceptar está deshabilitado", () => {
+    renderWithDecisions(
+      { [SUB_1_1]: { operation: "change", text: "Texto propuesto", changeId: "c1", canAccept: false } },
+      { onAcceptChange: vi.fn(), onRejectChange: vi.fn() }
+    );
+
+    expect(screen.getByRole("button", { name: "Aceptar" })).toBeDisabled();
+  });
+
+  it("al pulsar Aceptar llama una vez a onAcceptChange con el changeId de su tarjeta", async () => {
+    const onAcceptChange = vi.fn();
+    const user = renderWithDecisions(SUB_CHANGE, { onAcceptChange, onRejectChange: vi.fn() });
+
+    await user.click(screen.getByRole("button", { name: "Aceptar" }));
+
+    expect(onAcceptChange).toHaveBeenCalledTimes(1);
+    expect(onAcceptChange).toHaveBeenCalledWith("c1");
+  });
+
+  it("al pulsar Rechazar llama a onRejectChange con el changeId de su tarjeta", async () => {
+    const onRejectChange = vi.fn();
+    const user = renderWithDecisions(SUB_CHANGE, { onAcceptChange: vi.fn(), onRejectChange });
+
+    await user.click(screen.getByRole("button", { name: "Rechazar" }));
+
+    expect(onRejectChange).toHaveBeenCalledTimes(1);
+    expect(onRejectChange).toHaveBeenCalledWith("c1");
+  });
+
+  it("varias altas bajo el mismo padre muestran cada una su tarjeta con su botón Aceptar", () => {
+    renderWithDecisions(
+      {
+        "alta-c1": { operation: "add", parentAddress: PRINCIPLE_1, number: "1.2", title: "Primera alta", changeId: "c1", canAccept: true },
+        "alta-c2": { operation: "add", parentAddress: PRINCIPLE_1, number: "1.3", title: "Segunda alta", changeId: "c2", canAccept: true },
+      },
+      { onAcceptChange: vi.fn(), onRejectChange: vi.fn() }
+    );
+
+    const [firstAccept, secondAccept] = screen.getAllByRole("button", { name: "Aceptar" });
+    expect(screen.getAllByRole("button", { name: "Aceptar" })).toHaveLength(2);
+    expect(firstAccept.closest("div")).toHaveTextContent("Primera alta");
+    expect(secondAccept.closest("div")).toHaveTextContent("Segunda alta");
+  });
+
+  it("sin cambios pendientes y sin callbacks la vista no muestra botones Aceptar ni Rechazar", () => {
+    renderView();
+
+    expect(screen.queryByRole("button", { name: "Aceptar" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Rechazar" })).not.toBeInTheDocument();
+  });
+});

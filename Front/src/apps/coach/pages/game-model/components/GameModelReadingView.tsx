@@ -31,6 +31,10 @@ interface Props {
   gameModel: GameModel;
   /** Changes proposed for nodes of the model, by node address. They only decorate the view. */
   pendingChanges?: PendingChanges;
+  /** Called with the changeId of a pending card the coach accepts. */
+  onAcceptChange?: (changeId: string) => void;
+  /** Called with the changeId of a pending card the coach rejects. */
+  onRejectChange?: (changeId: string) => void;
 }
 
 const MAX_DEPTH = READING_DEPTH_LEVELS[READING_DEPTH_LEVELS.length - 1].level;
@@ -57,7 +61,7 @@ function resultsLabel(count: number, position: number): string {
   return `${position + 1} de ${count} ${count === 1 ? "resultado" : "resultados"}`;
 }
 
-export default function GameModelReadingView({ gameModel, pendingChanges }: Props) {
+export default function GameModelReadingView({ gameModel, pendingChanges, onAcceptChange, onRejectChange }: Props) {
   const theme = useTheme();
   const isNarrow = useMediaQuery(theme.breakpoints.down("md"));
   const [searchParams, setSearchParams] = useSearchParams();
@@ -245,6 +249,8 @@ export default function GameModelReadingView({ gameModel, pendingChanges }: Prop
     buildHref,
     onToggle: toggleNode,
     onNavigate: goToNode,
+    onAcceptChange,
+    onRejectChange,
   };
 
   return (

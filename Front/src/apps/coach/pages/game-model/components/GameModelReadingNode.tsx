@@ -1,4 +1,5 @@
 import { createContext, useContext, type MouseEvent } from "react";
+import { Button } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import LinkIcon from "@mui/icons-material/Link";
 import {
@@ -19,6 +20,8 @@ export interface ReadingContextValue {
   buildHref: (address: string) => string;
   onToggle: (address: string) => void;
   onNavigate: (address: string) => void;
+  onAcceptChange?: (changeId: string) => void;
+  onRejectChange?: (changeId: string) => void;
 }
 
 export const ReadingContext = createContext<ReadingContextValue | null>(null);
@@ -85,6 +88,73 @@ function useHighlightTokens(node: ReadingNode): { tokens: string[]; numberTokens
   return { tokens, numberTokens: isResult && numberMatchesQuery(node, context.tokens) ? context.tokens : [] };
 }
 
+/** The proposed text of a node's pending change: its title and text, joined. */
+function proposalText(node: ReadingNode): string {
+  return [node.pending?.title, node.pending?.text].filter(Boolean).join(" · ");
+}
+
+/** The changeId of a pending change that can be decided here: it carries one and a callback is given. */
+function decisionChangeId(node: ReadingNode, context: ReadingContextValue): string | undefined {
+  const changeId = node.pending?.changeId;
+  if (changeId === undefined) return undefined;
+  return context.onAcceptChange || context.onRejectChange ? changeId : undefined;
+}
+
+/** Aceptar and Rechazar for a pending change. Renders nothing without a changeId and a callback. */
+function DecisionActions({ node, showProposedText = false }: { node: ReadingNode; showProposedText?: boolean }) {
+  const context = useReading();
+  const { onAcceptChange, onRejectChange } = context;
+  const changeId = decisionChangeId(node, context);
+  if (changeId === undefined) return null;
+  const text = proposalText(node);
+  return (
+    <span className={styles.decisions}>
+      {showProposedText && text !== "" && (
+        <span className={styles.proposedText}>
+          <strong>Propuesta:</strong> {text}
+        </span>
+      )}
+      {onAcceptChange && (
+        <Button
+          size="small"
+          variant="contained"
+          className={styles.decisionButton}
+          disabled={node.pending?.canAccept === false}
+          onClick={() => onAcceptChange(changeId)}
+        >
+          Aceptar
+        </Button>
+      )}
+      {onRejectChange && (
+        <Button size="small" variant="outlined" className={styles.decisionButton} onClick={() => onRejectChange(changeId)}>
+          Rechazar
+        </Button>
+      )}
+    </span>
+  );
+}
+
+/** The proposed change of a node in its body: the proposed text, plus the Aceptar/Rechazar card when it can be decided. */
+function ProposalBlock({ node }: { node: ReadingNode }) {
+  const context = useReading();
+  const text = proposalText(node);
+  const decidable = decisionChangeId(node, context) !== undefined;
+  if (text === "" && !decidable) return null;
+  const textBlock =
+    text !== "" ? (
+      <p className={styles.proposal}>
+        <strong>Propuesta:</strong> {text}
+      </p>
+    ) : null;
+  if (!decidable) return textBlock;
+  return (
+    <div className={styles.proposalCard}>
+      {textBlock}
+      <DecisionActions node={node} />
+    </div>
+  );
+}
+
 function HabilidadItem({ node }: { node: ReadingNode }) {
   const context = useReading();
   const { tokens } = useHighlightTokens(node);
@@ -107,6 +177,7 @@ function HabilidadItem({ node }: { node: ReadingNode }) {
           Entrenable: <Highlighted text={node.trainable} tokens={tokens} />
         </span>
       )}
+      <DecisionActions node={node} showProposedText />
     </li>
   );
 }
@@ -121,6 +192,7 @@ function NotaCallout({ node }: { node: ReadingNode }) {
         <Highlighted text={node.title} tokens={tokens} />:
       </strong>{" "}
       <Highlighted text={node.text} tokens={tokens} /> <PendingBadge node={node} />
+      <DecisionActions node={node} showProposedText />
     </p>
   );
 }
@@ -136,6 +208,7 @@ function SetPieceRuleCard({ node }: { node: ReadingNode }) {
       <p className={styles.texto}>
         <Highlighted text={node.text} tokens={tokens} />
       </p>
+      <DecisionActions node={node} showProposedText />
     </article>
   );
 }
@@ -161,6 +234,7 @@ function PlaceholderCard({ node }: { node: ReadingNode }) {
           <Highlighted text={node.text} tokens={tokens} />
         </p>
       )}
+      <DecisionActions node={node} />
     </div>
   );
 }
@@ -176,7 +250,6 @@ function CollapsibleNode({ node }: { node: ReadingNode }) {
   const showsNumberInHeading = node.number !== undefined && node.kind !== "principle";
   const skills = node.children.filter((c) => c.kind === "habilidad");
   const others = node.children.filter((c) => c.kind !== "habilidad");
-  const proposal = node.pending?.title || node.pending?.text ? node.pending : undefined;
 
   return (
     <Container
@@ -229,11 +302,7 @@ function CollapsibleNode({ node }: { node: ReadingNode }) {
               <Highlighted text={node.text} tokens={tokens} />
             </p>
           )}
-          {proposal && (
-            <p className={styles.proposal}>
-              <strong>Propuesta:</strong> {[proposal.title, proposal.text].filter(Boolean).join(" · ")}
-            </p>
-          )}
+          <ProposalBlock node={node} />
           {skills.length > 0 && (
             <ul className={styles.skills}>
               {skills.map((skill) => (
