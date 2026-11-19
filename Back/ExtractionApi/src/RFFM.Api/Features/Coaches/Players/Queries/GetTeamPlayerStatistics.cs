@@ -183,12 +183,10 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
 
         // ─── Handler ──────────────────────────────────────────────────────────
 
-        public class Handler(AppDbContext db) : IRequestHandler<Query, List<PlayerStatisticsDto>>
+        public class Handler(AppDbContext db, PlayerConditionService? conditionService = null) : IRequestHandler<Query, List<PlayerStatisticsDto>>
         {
             public async ValueTask<List<PlayerStatisticsDto>> Handle(Query request, CancellationToken cancellationToken)
             {
-                var today = DateTime.UtcNow.Date;
-                var windowStart = today.AddDays(-(DailyLoadModel.ReplayDays - 1));
                 var trainingEventTypeId = SportEventType.FromName("Entrenamiento").Id;
                 var leagueEventTypeId = SportEventsConstants.MatchEventTypeId;    // 1
                 var friendlyEventTypeId = SportEventsConstants.FriendlyEventTypeId; // 4
@@ -219,60 +217,6 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                 var participationsByPlayer = finishedParticipations
                     .GroupBy(mp => mp.TeamPlayerId)
                     .ToDictionary(g => g.Key, g => g.ToList());
-
-                // 84-day replay window for Estado de forma/Rodaje (DailyLoadModel). Any finished match
-                // participation counts here (Partido/Amistoso/Torneo) — a friendly still costs
-                // real physical effort even though it's excluded from official-match season
-                // stats/discipline counters elsewhere (GetSeasonPlayerStats, card suspensions).
-                var matchEventsInWindow = await db.SportEvents
-                    .AsNoTracking()
-                    .Where(se => se.TeamId == request.TeamId && se.EveDateTime >= windowStart)
-                    .Select(se => new { se.Id, se.EveDateTime, se.EventTypeId })
-                    .ToListAsync(cancellationToken);
-                var matchEventDateById = matchEventsInWindow.ToDictionary(e => e.Id, e => e.EveDateTime);
-                var matchEventEventTypeById = matchEventsInWindow.ToDictionary(e => e.Id, e => e.EventTypeId);
-                var matchEventIdsInWindowSet = matchEventDateById.Keys.ToHashSet();
-
-                var participationsInWindow = finishedParticipations
-                    .Where(mp => matchEventIdsInWindowSet.Contains(mp.EventId))
-                    .ToList();
-                // 84-day replay window for the training component of Estado de forma/Rodaje.
-                var trainingEventsInWindow = await db.SportEvents
-                    .AsNoTracking()
-                    .Where(se => se.TeamId == request.TeamId && se.EventTypeId == trainingEventTypeId
-                                 && se.EveDateTime >= windowStart)
-                    .Select(se => new { se.Id, se.EveDateTime, se.TrainingTypes })
-                    .ToListAsync(cancellationToken);
-                var trainingEventDateById = trainingEventsInWindow.ToDictionary(e => e.Id, e => e.EveDateTime);
-                var trainingEventTrainingTypesById = trainingEventsInWindow.ToDictionary(e => e.Id, e => e.TrainingTypes);
-                var trainingEventIds = trainingEventsInWindow.Select(e => e.Id).ToList();
-
-                var trainingConvocationsInWindow = await db.Convocations
-                    .AsNoTracking()
-                    .Where(c => trainingEventIds.Contains(c.SportEventId))
-                    .ToListAsync(cancellationToken);
-
-                // Filas por jugador para PlayerLoadInputsBuilder (Estado de forma, Rodaje y Cansancio).
-                var trainingRowsByPlayer = trainingConvocationsInWindow
-                    .Where(c => trainingEventDateById.TryGetValue(c.SportEventId, out var d) && d is not null)
-                    .GroupBy(c => c.TeamPlayerId)
-                    .ToDictionary(
-                        g => g.Key,
-                        g => g.Select(c => new PlayerLoadInputsBuilder.TrainingConvocationRow(
-                                c.SportEventId,
-                                trainingEventDateById[c.SportEventId]!.Value,
-                                trainingEventTrainingTypesById.TryGetValue(c.SportEventId, out var types) ? types : new List<string>(),
-                                c.AssistanceTypeId, c.ConvocationStatusId, c.ExcuseTypeId))
-                            .ToList());
-
-                var participationRowsInWindowByPlayer = participationsInWindow
-                    .Where(mp => matchEventDateById[mp.EventId] is not null)
-                    .GroupBy(mp => mp.TeamPlayerId)
-                    .ToDictionary(
-                        g => g.Key,
-                        g => g.Select(mp => new PlayerLoadInputsBuilder.MatchParticipationRow(
-                                mp.EventId, matchEventDateById[mp.EventId]!.Value, matchEventEventTypeById[mp.EventId], mp.MinutesPlayed))
-                            .ToList());
 
                 // Season totals (full history, not windowed) — attendance ratios per event type.
                 // Query for all finished events (EveDateTime < DateTime.UtcNow) of the three event types
@@ -422,26 +366,6 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                     .Select(c => new { c.TeamPlayerId, c.SportEventId, c.AssistanceTypeId, c.ConvocationStatusId, c.ExcuseTypeId })
                     .ToListAsync(cancellationToken);
 
-                var matchConvocationsByPlayer = matchLikeConvocations
-                    .GroupBy(c => c.TeamPlayerId)
-                    .ToDictionary(
-                        g => g.Key,
-                        g => (IReadOnlyDictionary<string, PlayerLoadInputsBuilder.MatchConvocationRow>)g
-                            .GroupBy(c => c.SportEventId)
-                            .ToDictionary(
-                                e => e.Key,
-                                e => new PlayerLoadInputsBuilder.MatchConvocationRow(e.Key, e.First().AssistanceTypeId, e.First().ConvocationStatusId, e.First().ExcuseTypeId)));
-
-                // Partidos del equipo reproducidos para Estado de forma/Rodaje: Liga/Amistoso/Torneo
-                // con al menos una participación `finished` dentro de la ventana de 84 días.
-                var replayMatches = participationsInWindow
-                    .Select(mp => mp.EventId)
-                    .Distinct()
-                    .Where(eventId => matchLikeEventTypeIds.Contains(matchEventEventTypeById[eventId])
-                                      && matchEventDateById[eventId] is { } date && date <= DateTime.UtcNow)
-                    .Select(eventId => new PlayerLoadInputsBuilder.TeamMatchRow(eventId, matchEventDateById[eventId]!.Value, matchEventEventTypeById[eventId]))
-                    .ToList();
-
                 var attributableAbsencesByPlayer = matchLikeConvocations
                     .Where(c => AttributableAbsenceCalculator.IsAttributableAbsence(c.AssistanceTypeId, c.ConvocationStatusId, c.ExcuseTypeId))
                     .GroupBy(c => c.TeamPlayerId)
@@ -457,6 +381,9 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                     .GroupBy(i => i.TeamPlayerId)
                     .ToDictionary(g => g.Key, g => g.OrderByDescending(i => i.StartDate).First());
 
+                var conditionsByPlayer = await (conditionService ?? new PlayerConditionService(db))
+                    .GetDetailsAsync(request.TeamId, cancellationToken);
+
                 var result = new List<PlayerStatisticsDto>(teamPlayers.Count);
                 foreach (var player in teamPlayers)
                 {
@@ -468,25 +395,13 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                     var redCards = playerParticipations.Sum(mp => PlayerCardCountService.CountCards(mp.CardsJson, player.Id, "Red"));
                     var minutesPlayed = playerParticipations.Sum(mp => mp.MinutesPlayed);
 
-                    var nowUtc = DateTime.UtcNow;
-                    var playerTrainingRows = trainingRowsByPlayer.TryGetValue(player.Id, out var tRows) ? tRows : new List<PlayerLoadInputsBuilder.TrainingConvocationRow>();
-                    var trainingInputs = PlayerLoadInputsBuilder.Trainings(playerTrainingRows, nowUtc);
-
-                    var minutesByEvent = playerParticipations
-                        .GroupBy(mp => mp.EventId)
-                        .ToDictionary(g => g.Key, g => g.Sum(mp => mp.MinutesPlayed));
-
-                    var matchInputs = PlayerLoadInputsBuilder.Matches(
-                        replayMatches,
-                        minutesByEvent,
-                        matchConvocationsByPlayer.TryGetValue(player.Id, out var playerMatchConvocations)
-                            ? playerMatchConvocations
-                            : new Dictionary<string, PlayerLoadInputsBuilder.MatchConvocationRow>(),
-                        player.JoinedDate,
-                        player.LeftDate,
-                        nowUtc);
-
-                    var readinessResult = PlayerReadinessCalculator.Calculate(trainingInputs, matchInputs, windowStart, today);
+                    // The details include players who left the team, which this list still returns.
+                    // A player missing from them was removed between the two reads: skip it.
+                    if (!conditionsByPlayer.TryGetValue(player.Id, out var condition))
+                        continue;
+                    var fatigueResult = condition.Fatigue;
+                    var readinessResult = condition.Readiness;
+                    var formStatusResult = condition.Form;
 
                     // Attendance ratio helpers
                     int PossibleFor(int eventTypeId) => finishedEvents.Count(e =>
@@ -523,19 +438,6 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                             ? (int)(lastInjury.EndDate.Value - lastInjury.StartDate).TotalDays
                             : null;
                     }
-
-                    var fatigueResult = PlayerFatigueCalculator.Calculate(
-                        PlayerLoadInputsBuilder.FatigueTrainings(playerTrainingRows, nowUtc),
-                        PlayerLoadInputsBuilder.FatigueMatches(
-                            participationRowsInWindowByPlayer.TryGetValue(player.Id, out var pRows) ? pRows : new List<PlayerLoadInputsBuilder.MatchParticipationRow>(),
-                            nowUtc));
-
-                    // Estado de forma: solo para categorías con duración estándar de partido. No
-                    // depende de Cansancio. Ver
-                    // openspec/changes/player-form-readiness-daily-load-model/design.md → Decisión 6.
-                    var formStatusResult = hasStandardMinutes
-                        ? PlayerFormStatusCalculator.Calculate(trainingInputs, matchInputs, windowStart, today, standardMinutes)
-                        : null;
 
                     var playerAttributableAbsenceEventIds = attributableAbsencesByPlayer.TryGetValue(player.Id, out var playerAttributableAbsences)
                         ? playerAttributableAbsences.Select(c => c.SportEventId).ToList()
