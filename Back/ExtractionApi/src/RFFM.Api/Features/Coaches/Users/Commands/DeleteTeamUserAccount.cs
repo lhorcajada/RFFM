@@ -169,6 +169,11 @@ namespace RFFM.Api.Features.Coaches.Users.Commands
                         .ToListAsync(cancellationToken);
                     _db.PushTokens.RemoveRange(pushTokens);
 
+                    var aiProviders = await _db.AiProviderSettings
+                        .Where(p => p.UserId == targetUserId)
+                        .ToListAsync(cancellationToken);
+                    _db.AiProviderSettings.RemoveRange(aiProviders);
+
                     await _db.SaveChangesAsync(cancellationToken);
                     await transaction.CommitAsync(cancellationToken);
                 });

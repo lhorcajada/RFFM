@@ -92,5 +92,7 @@
   "PersonalDataNameRequired": "El nombre y el primer apellido son obligatorios.",
   "PersonalDataRequired": "Guarda primero tus datos personales para poder subir una foto.",
   "CurrentPasswordIncorrect": "La contraseña actual no es correcta.",
-  "PasswordChangeFailed": "La nueva contraseña no cumple los requisitos de seguridad."
+  "PasswordChangeFailed": "La nueva contraseña no cumple los requisitos de seguridad.",
+  "AiProviderNotFound": "No se encontró el proveedor de IA.",
+  "AiProviderBaseUrlInvalid": "La URL base debe ser https y no puede apuntar a una dirección privada, local o de enlace local."
 }

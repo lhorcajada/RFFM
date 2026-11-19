@@ -81,6 +81,7 @@ namespace RFFM.Api.DependencyInjection
             services.AddScoped<FluentValidation.IValidator<RFFM.Api.Features.Audit.DeleteAuditLogEntries.DeleteAuditLogEntriesCommand>, RFFM.Api.Features.Audit.DeleteAuditLogEntries.Validator>();
             RFFM.Api.Features.Coaches.Lottery.LotteryServiceCollectionExtensions.AddLotteryValidators(services);
             RFFM.Api.Features.Coaches.Quiniela.QuinielaServiceCollectionExtensions.AddQuinielaValidators(services);
+            RFFM.Api.Features.AiSettings.AiSettingsServiceCollectionExtensions.AddAiSettings(services, configuration);
 
             // CreateSportEvent is a raw Minimal API request (not a Mediator ICommand), so
             // ValidationBehavior never runs for it — CreateSportEventValidator previously

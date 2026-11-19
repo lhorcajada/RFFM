@@ -222,5 +222,9 @@ namespace RFFM.Api.Domain
         public const string QuinielaTicketNotPayable = "QuinielaTicketNotPayable";
         public const string QuinielaTicketPaidManually = "QuinielaTicketPaidManually";
         public const string QuinielaNotSettled = "QuinielaNotSettled";
+
+        // AI provider settings (Features/AiSettings/*) - openspec change ai-provider-settings.
+        public const string AiProviderNotFound = "AiProviderNotFound";
+        public const string AiProviderBaseUrlInvalid = "AiProviderBaseUrlInvalid";
     }
 }

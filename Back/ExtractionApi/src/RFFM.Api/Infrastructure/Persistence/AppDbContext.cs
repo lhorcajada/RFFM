@@ -9,6 +9,7 @@ using RFFM.Api.Domain.Aggregates.Training;
 using RFFM.Api.Domain.Aggregates.Training.TasksTraining;
 using RFFM.Api.Domain.Aggregates.UserClubs;
 using RFFM.Api.Domain.Entities;
+using RFFM.Api.Domain.Entities.AiProviders;
 using RFFM.Api.Domain.Entities.Audit;
 using RFFM.Api.Domain.Entities.Coaches;
 using RFFM.Api.Domain.Entities.Competitions;
@@ -184,6 +185,9 @@ namespace RFFM.Api.Infrastructure.Persistence
         // Web push notifications (SPA-only, separate from Mobile PushTokens)
         public DbSet<WebPushSubscription> WebPushSubscriptions { get; set; }
         public DbSet<Notification> Notifications { get; set; }
+
+        // Per-user AI provider settings (ai-provider-settings)
+        public DbSet<AiProviderSetting> AiProviderSettings { get; set; }
 
         public AppDbContext(DbContextOptions<AppDbContext> options)
             : base(options)

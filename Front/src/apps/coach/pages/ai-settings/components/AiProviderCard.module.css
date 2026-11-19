@@ -1,0 +1,31 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.active {
+  border-left: 4px solid var(--rffm-primary, #1976d2);
+}
+
+.content {
+  flex: 1 1 auto;
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.url {
+  overflow-wrap: anywhere;
+}
+
+.actions {
+  flex-wrap: wrap;
+  gap: 4px;
+}

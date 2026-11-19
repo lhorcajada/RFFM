@@ -75,6 +75,7 @@ const MyDocuments = lazy(() => import("./pages/my-documents/MyDocuments"));
 const PlayerDocumentsTracking = lazy(() => import("./pages/player-documents/PlayerDocumentsTracking"));
 const AuditLog = lazy(() => import("./pages/audit-log/AuditLog"));
 const Notifications = lazy(() => import("./pages/notifications/Notifications"));
+const AiSettings = lazy(() => import("./pages/ai-settings/AiSettings"));
 
 function LoadingFallback() {
   return (
@@ -118,6 +119,7 @@ function CoachRoutesContent() {
             />
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="notifications" element={<Notifications />} />
+            <Route path="ai-settings" element={<AiSettings />} />
             <Route path="team-dashboard" element={<TeamDashboard />} />
             <Route path="menu" element={<TeamMenu />} />
             <Route path="team-users" element={<TeamUsers />} />

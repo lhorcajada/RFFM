@@ -57,6 +57,11 @@ export default function AppHeader({ title, hideIndicators }: AppHeaderProps) {
     navigate("/federation/settings");
   };
 
+  const handleAiSettings = () => {
+    handleClose();
+    navigate("/coach/ai-settings");
+  };
+
   const handleLogout = () => {
     handleClose();
     try {
@@ -272,6 +277,7 @@ export default function AppHeader({ title, hideIndicators }: AppHeaderProps) {
             transformOrigin={{ vertical: "top", horizontal: "right" }}
           >
             <MenuItem onClick={handleProfile}>Perfil</MenuItem>
+            {!isFederationApp && <MenuItem onClick={handleAiSettings}>Ajustes de IA</MenuItem>}
             <MenuItem onClick={handleLogout}>Cerrar sesión</MenuItem>
             <AppVersionInfo />
           </Menu>

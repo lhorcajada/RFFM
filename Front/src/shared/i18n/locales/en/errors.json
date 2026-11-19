@@ -86,5 +86,7 @@
   "PersonalDataNameRequired": "First name and last name are required.",
   "PersonalDataRequired": "Save your personal details first to upload a photo.",
   "CurrentPasswordIncorrect": "The current password is incorrect.",
-  "PasswordChangeFailed": "The new password does not meet the security requirements."
+  "PasswordChangeFailed": "The new password does not meet the security requirements.",
+  "AiProviderNotFound": "The AI provider was not found.",
+  "AiProviderBaseUrlInvalid": "The base URL must be https and cannot point to a private, loopback or link-local address."
 }

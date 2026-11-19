@@ -1,0 +1,16 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 8px;
+}
+
+.actions {
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 24px 16px;
+}
+
+.spacer {
+  flex: 1 1 auto;
+}
