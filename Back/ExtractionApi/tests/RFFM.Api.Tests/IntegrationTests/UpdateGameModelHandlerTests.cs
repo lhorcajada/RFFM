@@ -269,5 +269,31 @@ namespace RFFM.Api.Tests.IntegrationTests
             var ex = await Assert.ThrowsAsync<DomainException>(() => handler.Handle(command, CancellationToken.None).AsTask());
             Assert.Equal(ErrorCodes.GameModelAccessDenied, ex.Code);
         }
+
+        [Fact]
+        public async Task Update_SavingModel_ChangesStoredVersion()
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var (userId, _, gameModelId, principleId, subprincipioId) = await SeedGameModelAsync(seedDb);
+
+            await using var beforeDb = _fixture.CreateDbContext();
+            var versionBefore = (await beforeDb.GameModels.AsNoTracking().SingleAsync(gm => gm.Id == gameModelId)).Version;
+
+            await using var db = _fixture.CreateDbContext();
+            var handler = new UpdateGameModelHandler(db);
+
+            var command = new UpdateGameModelCommand(
+                "Modelo de prueba",
+                new List<PrincipleRequest> { OriginalPrincipleRequest(principleId, subprincipioId) },
+                NoRules, NoIssues)
+            { Id = gameModelId, UserId = userId };
+
+            await handler.Handle(command, CancellationToken.None);
+
+            await using var verifyDb = _fixture.CreateDbContext();
+            var versionAfter = (await verifyDb.GameModels.AsNoTracking().SingleAsync(gm => gm.Id == gameModelId)).Version;
+
+            Assert.NotEqual(versionBefore, versionAfter);
+        }
     }
 }

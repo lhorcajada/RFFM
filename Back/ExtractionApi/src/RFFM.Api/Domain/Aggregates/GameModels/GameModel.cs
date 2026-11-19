@@ -9,6 +9,8 @@ namespace RFFM.Api.Domain.Aggregates.GameModels
         public string Name { get; private set; } = null!;
         public string Season { get; private set; } = null!;
 
+        public Guid Version { get; private set; } = Guid.NewGuid();
+
         public List<GamePrinciple> Principles { get; private set; } = new();
         public List<Nota> Notas { get; private set; } = new();
         public List<SetPieceRule> SetPieceRules { get; private set; } = new();
@@ -21,6 +23,11 @@ namespace RFFM.Api.Domain.Aggregates.GameModels
             UpdateTeamId(teamId);
             UpdateName(name);
             UpdateSeason(season);
+        }
+
+        public void Touch()
+        {
+            Version = Guid.NewGuid();
         }
 
         public void UpdateName(string name)

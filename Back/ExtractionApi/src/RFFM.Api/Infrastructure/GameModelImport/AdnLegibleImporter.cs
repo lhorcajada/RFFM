@@ -536,6 +536,7 @@ namespace RFFM.Api.Infrastructure.GameModelImport
 
             UpsertNotas(gameModel, imported.Notas);
 
+            gameModel.Touch();
             await db.SaveChangesAsync(ct);
             return gameModel.Id;
         }

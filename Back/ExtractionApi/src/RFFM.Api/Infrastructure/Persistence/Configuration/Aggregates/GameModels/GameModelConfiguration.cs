@@ -28,6 +28,10 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.GameModel
                 .IsRequired()
                 .HasMaxLength(20);
 
+            builder.Property(x => x.Version)
+                .IsRequired()
+                .IsConcurrencyToken();
+
             builder.HasIndex(x => new { x.TeamId, x.Season })
                 .IsUnique();
 

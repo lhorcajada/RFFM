@@ -197,6 +197,7 @@ namespace RFFM.Api.Features.Coaches.GameModels.Commands
             }
             _db.OpenIssues.RemoveRange(model.OpenIssues.Where(o => !matchedOpenIssueIds.Contains(o.Id)).ToList());
 
+            model.Touch();
             await _db.SaveChangesAsync(cancellationToken);
             return Unit.Value;
         }
