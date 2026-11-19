@@ -101,3 +101,12 @@
 .link:hover {
   text-decoration: underline;
 }
+
+.recovery {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-top: 20px;
+  text-align: center;
+}
