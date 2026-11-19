@@ -12,6 +12,7 @@ using RFFM.Api.Domain.Entities.Competitions;
 using RFFM.Api.Domain.Entities.Seasons;
 using RFFM.Api.Domain.Models;
 using RFFM.Api.Features.Coaches.GameModels.Commands;
+using RFFM.Api.Features.Coaches.GameModels.Queries;
 using RFFM.Api.Infrastructure.Persistence;
 using RFFM.Api.Tests.Fixtures;
 using Xunit;
@@ -294,6 +295,74 @@ namespace RFFM.Api.Tests.IntegrationTests
             var versionAfter = (await verifyDb.GameModels.AsNoTracking().SingleAsync(gm => gm.Id == gameModelId)).Version;
 
             Assert.NotEqual(versionBefore, versionAfter);
+        }
+
+        private async Task<GetGameModel.GameModelResponse> ReadModelAsync(string teamId, string userId)
+        {
+            await using var db = _fixture.CreateDbContext();
+            var handler = new GetGameModel.Handler(db);
+            var result = await handler.Handle(
+                new GetGameModel.GameModelQuery(teamId, "2025-2026", userId), CancellationToken.None);
+            return result!;
+        }
+
+        private static UpdateGameModelCommand RenameCommand(string gameModelId, string userId, string name, string? expectedVersion) =>
+            new UpdateGameModelCommand(name, new List<PrincipleRequest>(), NoRules, NoIssues, expectedVersion)
+            { Id = gameModelId, UserId = userId };
+
+        [Fact]
+        public async Task Update_WithMatchingExpectedVersion_AppliesUpdateAndChangesMarker()
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var (userId, teamId, gameModelId, _, _) = await SeedGameModelAsync(seedDb);
+            var current = await ReadModelAsync(teamId, userId);
+
+            await using var db = _fixture.CreateDbContext();
+            var handler = new UpdateGameModelHandler(db);
+            await handler.Handle(RenameCommand(gameModelId, userId, "Modelo editado", current.Version), CancellationToken.None);
+
+            var after = await ReadModelAsync(teamId, userId);
+            Assert.Equal("Modelo editado", after.Name);
+            Assert.NotEqual(current.Version, after.Version);
+        }
+
+        [Fact]
+        public async Task Update_WithOutdatedExpectedVersion_ThrowsConflictWithGameModelStaleCode()
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var (userId, teamId, gameModelId, _, _) = await SeedGameModelAsync(seedDb);
+            var outdated = await ReadModelAsync(teamId, userId);
+
+            await using var saveDb = _fixture.CreateDbContext();
+            await new UpdateGameModelHandler(saveDb).Handle(
+                RenameCommand(gameModelId, userId, "Modelo intermedio", expectedVersion: null), CancellationToken.None);
+
+            await using var db = _fixture.CreateDbContext();
+            var handler = new UpdateGameModelHandler(db);
+            var command = RenameCommand(gameModelId, userId, "Modelo rechazado", outdated.Version);
+
+            var ex = await Assert.ThrowsAsync<ConflictException>(() => handler.Handle(command, CancellationToken.None).AsTask());
+            Assert.Equal(ErrorCodes.GameModelStale, ex.Code);
+
+            await using var verifyDb = _fixture.CreateDbContext();
+            var stored = await verifyDb.GameModels.AsNoTracking().SingleAsync(gm => gm.Id == gameModelId);
+            Assert.Equal("Modelo intermedio", stored.Name);
+        }
+
+        [Fact]
+        public async Task Update_WithoutExpectedVersion_AppliesUpdateAndChangesMarker()
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var (userId, teamId, gameModelId, _, _) = await SeedGameModelAsync(seedDb);
+            var before = await ReadModelAsync(teamId, userId);
+
+            await using var db = _fixture.CreateDbContext();
+            var handler = new UpdateGameModelHandler(db);
+            await handler.Handle(RenameCommand(gameModelId, userId, "Modelo sin marcador", expectedVersion: null), CancellationToken.None);
+
+            var after = await ReadModelAsync(teamId, userId);
+            Assert.Equal("Modelo sin marcador", after.Name);
+            Assert.NotEqual(before.Version, after.Version);
         }
     }
 }

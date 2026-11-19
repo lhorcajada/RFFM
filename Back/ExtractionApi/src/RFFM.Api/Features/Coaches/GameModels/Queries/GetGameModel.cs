@@ -57,6 +57,7 @@ namespace RFFM.Api.Features.Coaches.GameModels.Queries
             string TeamId,
             string Name,
             string Season,
+            string Version,
             IEnumerable<PrincipleResponse> Principles,
             IEnumerable<SetPieceRuleResponse> SetPieceRules,
             IEnumerable<OpenIssueResponse> OpenIssues);
@@ -200,6 +201,7 @@ namespace RFFM.Api.Features.Coaches.GameModels.Queries
                     model.TeamId,
                     model.Name,
                     model.Season,
+                    model.Version.ToString("D"),
                     model.Principles
                         .OrderBy(p => p.GameMomentId)
                         .ThenBy(p => p.Numero)

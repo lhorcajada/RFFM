@@ -282,6 +282,26 @@ namespace RFFM.Api.DependencyInjection
                         Extensions = { ["code"] = exception.Code }
                     });
 
+                // Solo el agregado GameModel traduce la colisión de versión a 409; el resto de
+                // conflictos de concurrencia conservan su 500 genérico.
+                setup.Map<DbUpdateConcurrencyException>(exception =>
+                {
+                    var gameModelChanged = exception.Entries.Any(entry => entry.Entity is RFFM.Api.Domain.Aggregates.GameModels.GameModel);
+                    if (!gameModelChanged)
+                        return new StatusCodeProblemDetails(StatusCodes.Status500InternalServerError)
+                        {
+                            Title = "Error de concurrencia",
+                            Detail = "No se pudieron guardar los cambios por un conflicto de concurrencia."
+                        };
+
+                    return new StatusCodeProblemDetails(StatusCodes.Status409Conflict)
+                    {
+                        Title = "Conflicto",
+                        Detail = "El modelo de juego ha cambiado mientras se guardaba. Vuelve a cargarlo antes de guardar.",
+                        Extensions = { ["code"] = RFFM.Api.Domain.ErrorCodes.GameModelStale }
+                    };
+                });
+
                 setup.Map<SecurityTokenException>(exception =>
                     new StatusCodeProblemDetails(StatusCodes.Status401Unauthorized)
                     {

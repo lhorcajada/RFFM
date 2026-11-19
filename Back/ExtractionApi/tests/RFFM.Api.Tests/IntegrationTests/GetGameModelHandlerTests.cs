@@ -106,5 +106,61 @@ namespace RFFM.Api.Tests.IntegrationTests
                 await handler.Handle(
                     new GetGameModel.GameModelQuery(teamId, "2025-2026", strangerUserId), CancellationToken.None));
         }
+
+        private async Task<GetGameModel.GameModelResponse> ReadModelAsync(string teamId, string coachUserId)
+        {
+            await using var db = _fixture.CreateDbContext();
+            var handler = new GetGameModel.Handler(db);
+            var result = await handler.Handle(
+                new GetGameModel.GameModelQuery(teamId, "2025-2026", coachUserId), CancellationToken.None);
+            return result!;
+        }
+
+        [Fact]
+        public async Task Handle_ReturnsVersionAsGuid_WhenModelIsRead()
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var (coachUserId, teamId) = await SeedTeamWithGameModelAsync(seedDb);
+
+            var model = await ReadModelAsync(teamId, coachUserId);
+
+            Assert.True(Guid.TryParseExact(model.Version, "D", out _));
+        }
+
+        [Fact]
+        public async Task Handle_ReturnsSameVersion_WhenModelIsReadTwiceWithoutSave()
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var (coachUserId, teamId) = await SeedTeamWithGameModelAsync(seedDb);
+
+            var firstRead = await ReadModelAsync(teamId, coachUserId);
+            var secondRead = await ReadModelAsync(teamId, coachUserId);
+
+            Assert.True(Guid.TryParseExact(firstRead.Version, "D", out _));
+            Assert.Equal(firstRead.Version, secondRead.Version);
+        }
+
+        [Fact]
+        public async Task Handle_ReturnsDifferentVersion_WhenModelIsSavedBetweenReads()
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var (coachUserId, teamId) = await SeedTeamWithGameModelAsync(seedDb);
+
+            var before = await ReadModelAsync(teamId, coachUserId);
+
+            await using var db = _fixture.CreateDbContext();
+            var updateHandler = new UpdateGameModelHandler(db);
+            var command = new UpdateGameModelCommand(
+                "Modelo de prueba",
+                new List<PrincipleRequest>(),
+                new List<SetPieceRuleRequest>(),
+                new List<OpenIssueRequest>())
+            { Id = before.Id, UserId = coachUserId };
+            await updateHandler.Handle(command, CancellationToken.None);
+
+            var after = await ReadModelAsync(teamId, coachUserId);
+
+            Assert.NotEqual(before.Version, after.Version);
+        }
     }
 }

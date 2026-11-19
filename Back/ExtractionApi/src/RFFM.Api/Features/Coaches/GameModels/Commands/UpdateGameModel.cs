@@ -42,7 +42,8 @@ namespace RFFM.Api.Features.Coaches.GameModels.Commands
                 .Produces(StatusCodes.Status204NoContent)
                 .Produces(StatusCodes.Status401Unauthorized)
                 .Produces<ProblemDetails>(StatusCodes.Status404NotFound)
-                .Produces<ProblemDetails>(StatusCodes.Status403Forbidden);
+                .Produces<ProblemDetails>(StatusCodes.Status403Forbidden)
+                .Produces<ProblemDetails>(StatusCodes.Status409Conflict);
         }
     }
 
@@ -52,7 +53,8 @@ namespace RFFM.Api.Features.Coaches.GameModels.Commands
         string Name,
         List<PrincipleRequest> Principles,
         List<SetPieceRuleRequest> SetPieceRules,
-        List<OpenIssueRequest> OpenIssues) : IRequest, IRequireFeaturePermission
+        List<OpenIssueRequest> OpenIssues,
+        string? ExpectedVersion = null) : IRequest, IRequireFeaturePermission
     {
         public string Id { get; init; } = string.Empty;
         public string UserId { get; init; } = string.Empty;
@@ -95,6 +97,11 @@ namespace RFFM.Api.Features.Coaches.GameModels.Commands
 
             if (!hasAccess)
                 throw new DomainException("Modelo de Juego", "No tienes acceso a este modelo de juego.", ErrorCodes.GameModelAccessDenied);
+
+            var expectedVersionIsOutdated = request.ExpectedVersion is not null
+                && !string.Equals(request.ExpectedVersion, model.Version.ToString("D"), StringComparison.OrdinalIgnoreCase);
+            if (expectedVersionIsOutdated)
+                throw new ConflictException("El modelo de juego ha cambiado desde que se leyó. Vuelve a cargarlo antes de guardar.", ErrorCodes.GameModelStale);
 
             model.UpdateName(request.Name);
 
