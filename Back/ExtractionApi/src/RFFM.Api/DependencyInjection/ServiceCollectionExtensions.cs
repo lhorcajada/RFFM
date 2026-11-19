@@ -91,6 +91,7 @@ namespace RFFM.Api.DependencyInjection
             // (same manual pattern as above) so the endpoint can resolve it and actually enforce
             // its rules (see nullable-event-datetime-and-inline-rival design.md §5).
             services.AddScoped<FluentValidation.IValidator<RFFM.Api.Features.Coaches.SportEvents.Commands.CreateSportEventRequest>, RFFM.Api.Features.Coaches.SportEvents.Commands.CreateSportEventValidator>();
+            services.AddScoped<FluentValidation.IValidator<RFFM.Api.Features.Coaches.GameModels.Commands.ChatWithGameModelAssistantCommand>, RFFM.Api.Features.Coaches.GameModels.Commands.ChatWithGameModelAssistantValidator>();
 
             // Email template service requires a template path; allow configuration override
             var templatePath = Path.Combine(Directory.GetParent(Directory.GetCurrentDirectory()).FullName,
@@ -283,6 +284,15 @@ namespace RFFM.Api.DependencyInjection
                     new StatusCodeProblemDetails(StatusCodes.Status409Conflict)
                     {
                         Title = "Conflicto",
+                        Detail = exception.Message,
+                        Extensions = { ["code"] = exception.Code }
+                    });
+
+                // Respuesta del asistente de modelo de juego: el código y el estado los fija el handler.
+                setup.Map<RFFM.Api.Features.Coaches.GameModels.Commands.GameModelAssistantFailureException>(exception =>
+                    new StatusCodeProblemDetails(exception.StatusCode)
+                    {
+                        Title = "Asistente de IA",
                         Detail = exception.Message,
                         Extensions = { ["code"] = exception.Code }
                     });

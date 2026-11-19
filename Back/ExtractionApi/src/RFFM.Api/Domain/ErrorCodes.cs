@@ -76,6 +76,10 @@ namespace RFFM.Api.Domain
         public const string ScenarioNotFound = "ScenarioNotFound";
         public const string GameModelStale = "GameModelStale";
         public const string GameModelAssistantContextTooLarge = "GameModelAssistantContextTooLarge";
+        public const string GameModelAssistantInvalidReply = "GameModelAssistantInvalidReply";
+        public const string AiNoActiveProvider = "AiNoActiveProvider";
+        public const string AiProviderQuotaExceeded = "AiProviderQuotaExceeded";
+        public const string AiProviderFailed = "AiProviderFailed";
 
         // Teams (Features/Coaches/Teams)
         public const string TeamListAccessDenied = "TeamListAccessDenied";
