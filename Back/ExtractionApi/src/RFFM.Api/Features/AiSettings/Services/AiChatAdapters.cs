@@ -59,9 +59,64 @@ namespace RFFM.Api.Features.AiSettings.Services
             }
         }
 
+        public async Task<AiModelListResult> ListModelsAsync(AiProviderCredentials credentials, CancellationToken cancellationToken)
+        {
+            try
+            {
+                using var message = BuildModelsRequest(credentials);
+                using var response = await _http.SendAsync(message, cancellationToken);
+                var body = await response.Content.ReadAsStringAsync(cancellationToken);
+
+                if (!response.IsSuccessStatusCode)
+                    return AiModelListResult.Failed(Classify(response.StatusCode, body));
+
+                var models = ExtractModelIds(body);
+                return models is null
+                    ? AiModelListResult.Failed(AiChatFailure.ProviderError)
+                    : AiModelListResult.Success(models);
+            }
+            catch (UriFormatException)
+            {
+                return AiModelListResult.Failed(AiChatFailure.InvalidBaseUrl);
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                return AiModelListResult.Failed(AiChatFailure.Timeout);
+            }
+            catch (HttpRequestException)
+            {
+                return AiModelListResult.Failed(AiChatFailure.Unreachable);
+            }
+        }
+
         protected abstract HttpRequestMessage BuildRequest(AiProviderCredentials credentials, AiChatRequest request);
 
+        protected abstract HttpRequestMessage BuildModelsRequest(AiProviderCredentials credentials);
+
         protected abstract string? ExtractContent(string responseBody);
+
+        // Both supported protocols answer { "data": [ { "id": "..." } ] }.
+        private static IReadOnlyList<string>? ExtractModelIds(string responseBody)
+        {
+            try
+            {
+                using var document = JsonDocument.Parse(responseBody);
+                if (document.RootElement.ValueKind != JsonValueKind.Object
+                    || !document.RootElement.TryGetProperty("data", out var data)
+                    || data.ValueKind != JsonValueKind.Array)
+                    return null;
+
+                return data.EnumerateArray()
+                    .Select(item => TryGetString(item, "id"))
+                    .OfType<string>()
+                    .Where(id => id.Length > 0)
+                    .ToList();
+            }
+            catch (JsonException)
+            {
+                return null;
+            }
+        }
 
         protected static StringContent JsonBody(object payload) =>
             new(JsonSerializer.Serialize(payload, RequestJson), Encoding.UTF8, "application/json");
@@ -128,6 +183,13 @@ namespace RFFM.Api.Features.AiSettings.Services
             return message;
         }
 
+        protected override HttpRequestMessage BuildModelsRequest(AiProviderCredentials credentials)
+        {
+            var message = new HttpRequestMessage(HttpMethod.Get, Endpoint(credentials.BaseUrl, "/models"));
+            message.Headers.Authorization = new AuthenticationHeaderValue("Bearer", credentials.ApiKey);
+            return message;
+        }
+
         // The schema is embedded as a JSON object, not a string; non-strict mode accepts the schema's optional members.
         private static object? ResponseFormatFor(string? responseSchema) =>
             responseSchema is null
@@ -185,6 +247,18 @@ namespace RFFM.Api.Features.AiSettings.Services
                         .Select(m => new { m.Role, m.Content })
                 })
             };
+            message.Headers.Add("x-api-key", credentials.ApiKey);
+            message.Headers.Add("anthropic-version", AnthropicVersion);
+            return message;
+        }
+
+        protected override HttpRequestMessage BuildModelsRequest(AiProviderCredentials credentials)
+        {
+            var path = credentials.BaseUrl.TrimEnd('/').EndsWith("/v1", StringComparison.OrdinalIgnoreCase)
+                ? "/models"
+                : "/v1/models";
+
+            var message = new HttpRequestMessage(HttpMethod.Get, Endpoint(credentials.BaseUrl, path));
             message.Headers.Add("x-api-key", credentials.ApiKey);
             message.Headers.Add("anthropic-version", AnthropicVersion);
             return message;

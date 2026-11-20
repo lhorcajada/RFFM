@@ -27,10 +27,12 @@ namespace RFFM.Api.Features.AiSettings
             services.AddSingleton<IAiBaseUrlGuard, AiBaseUrlGuard>();
             services.AddSingleton<IAiApiKeyProtector, AiApiKeyProtector>();
             services.AddScoped<IAiChatCompletionService, AiChatCompletionService>();
+            services.AddScoped<IAiModelCatalogService, AiModelCatalogService>();
 
             services.AddScoped<IValidator<CreateAiProvider.CreateAiProviderCommand>, CreateAiProvider.Validator>();
             services.AddScoped<IValidator<UpdateAiProvider.UpdateAiProviderCommand>, UpdateAiProvider.Validator>();
             services.AddScoped<IValidator<TestAiProviderConnection.TestAiProviderConnectionCommand>, TestAiProviderConnection.Validator>();
+            services.AddScoped<IValidator<ListAiProviderModels.ListAiProviderModelsCommand>, ListAiProviderModels.Validator>();
 
             return services;
         }

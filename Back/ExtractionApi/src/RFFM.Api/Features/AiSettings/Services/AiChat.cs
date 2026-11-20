@@ -70,6 +70,22 @@ namespace RFFM.Api.Features.AiSettings.Services
         bool SupportsForcedJsonSchema { get; }
 
         Task<AiChatResult> CompleteAsync(AiProviderCredentials credentials, AiChatRequest request, CancellationToken cancellationToken);
+
+        /// <summary>Asks the provider which models the key can use.</summary>
+        Task<AiModelListResult> ListModelsAsync(AiProviderCredentials credentials, CancellationToken cancellationToken);
+    }
+
+    public record AiModelListResult(IReadOnlyList<string>? Models, AiChatFailure? Failure)
+    {
+        public static AiModelListResult Success(IReadOnlyList<string> models) => new(models, null);
+
+        public static AiModelListResult Failed(AiChatFailure failure) => new(null, failure);
+    }
+
+    /// <summary>Lists the models a user can pick for a provider, resolving the adapter and checking the base URL first.</summary>
+    public interface IAiModelCatalogService
+    {
+        Task<AiModelListResult> ListAsync(string template, AiProviderCredentials credentials, CancellationToken cancellationToken);
     }
 
     public static class AiChatFailureMessages
