@@ -7,7 +7,7 @@ vi.mock("../../../core/api/client", () => ({
 }));
 
 import { client } from "../../../core/api/client";
-import { fetchPublicStorageFile } from "../imageService";
+import { fetchImage, fetchPublicStorageFile } from "../imageService";
 
 describe("imageService.fetchPublicStorageFile", () => {
   beforeEach(() => {
@@ -23,6 +23,7 @@ describe("imageService.fetchPublicStorageFile", () => {
     expect(client.get).toHaveBeenCalledWith("/api/public/storage", {
       params: { url: "newsimages/xyz.jpg" },
       responseType: "blob",
+      suppressErrorRedirect: true,
     });
   });
 
@@ -47,5 +48,29 @@ describe("imageService.fetchPublicStorageFile", () => {
     const result = await fetchPublicStorageFile("");
     expect(result).toBeNull();
     expect(client.get).not.toHaveBeenCalled();
+  });
+});
+
+describe("imageService.fetchImage", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("pide la imagen sin mandar a la página de error si falla: una imagen es opcional", async () => {
+    vi.mocked(client.get).mockResolvedValue({ data: new Blob(["x"], { type: "image/png" }) });
+
+    await fetchImage("clubs/escudo.png");
+
+    expect(client.get).toHaveBeenCalledWith("/api/catalog/team/photo", {
+      params: { url: "clubs/escudo.png" },
+      responseType: "blob",
+      suppressErrorRedirect: true,
+    });
+  });
+
+  it("devuelve null sin lanzar cuando la petición falla", async () => {
+    vi.mocked(client.get).mockRejectedValue(new Error("Network Error"));
+
+    await expect(fetchImage("clubs/escudo.png")).resolves.toBeNull();
   });
 });
