@@ -94,6 +94,8 @@ export type ConvocationManagementReturn = {
   handleSave: () => Promise<void>;
   moveToNotCalled: (playerId: string, excuseId?: number | null) => Promise<void>;
   moveToAvailable: (playerId: string) => Promise<void>;
+  /** League match: takes a called player back to the waiting list by deleting his convocation. */
+  moveToWaiting: (playerId: string) => Promise<void>;
   acceptPending: (playerId: string) => Promise<void>;
   /** League only: the coach answers a pending availability request as available on the player's behalf. */
   markAvailable: (playerId: string) => Promise<void>;
@@ -677,6 +679,28 @@ export function useConvocationManagement(
     }
   }
 
+  async function moveToWaiting(playerId: string) {
+    if (!mgmtEventId || !mgmtIsLeagueMatch) return;
+    const pid = playerId;
+    if (!mgmtCalled.includes(pid)) return;
+    const convId = mgmtConvMap[pid];
+
+    setMgmtCalled((prev) => prev.filter((id) => id !== pid));
+    setMgmtWaiting((prev) => (prev.includes(pid) ? prev : [...prev, pid]));
+
+    try {
+      if (convId) await convocationService.deleteConvocation(mgmtEventId, convId);
+      setMgmtConvMap((prev) => {
+        const { [pid]: _removed, ...rest } = prev;
+        return rest;
+      });
+    } catch (err) {
+      setMgmtWaiting((prev) => prev.filter((id) => id !== pid));
+      setMgmtCalled((prev) => (prev.includes(pid) ? prev : [...prev, pid]));
+      emitConvocationBlockedError(err);
+    }
+  }
+
   async function acceptPending(playerId: string) {
     if (!mgmtEventId) return;
     const pid = playerId;
@@ -739,6 +763,7 @@ export function useConvocationManagement(
     handleSave,
     moveToNotCalled,
     moveToAvailable,
+    moveToWaiting,
     acceptPending,
     markAvailable,
     saveMinutesReason,

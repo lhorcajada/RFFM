@@ -484,6 +484,7 @@ export default function ConvocationMatchDetail() {
             onDrop={convocation.handleDrop}
             onCallPlayers={convocation.handleCallPlayers}
             onDeconvokePlayer={(playerId, excuseId) => convocation.moveToNotCalled(playerId, excuseId)}
+            onMoveToWaiting={isPlayer ? undefined : convocation.moveToWaiting}
             onExcuseChange={(pid, excuseId) =>
               convocation.setMgmtExcuseMap((prev) => ({ ...prev, [pid]: excuseId }))
             }
