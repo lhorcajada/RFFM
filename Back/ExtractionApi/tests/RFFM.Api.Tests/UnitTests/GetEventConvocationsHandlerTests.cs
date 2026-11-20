@@ -1,5 +1,6 @@
 #nullable enable
 using Microsoft.EntityFrameworkCore;
+using Moq;
 using RFFM.Api.Domain.Aggregates.Assistances;
 using RFFM.Api.Domain.Aggregates.UserClubs;
 using RFFM.Api.Domain.Entities.Competitions;
@@ -8,6 +9,7 @@ using RFFM.Api.Domain.Entities;
 using RFFM.Api.Domain.Entities.Seasons;
 using RFFM.Api.Domain.Entities.TeamPlayers;
 using RFFM.Api.Domain.Models;
+using RFFM.Api.Domain.Services;
 using RFFM.Api.Features.Coaches.Convocations;
 using RFFM.Api.Infrastructure.Persistence;
 using RFFM.Api.Tests.Fixtures;
@@ -103,6 +105,13 @@ namespace RFFM.Api.Tests.UnitTests
             return (sportEvent.Id, teamPlayer.Id, convocation.Id);
         }
 
+        private static ICurrentUserService CurrentUser(params string[] roles)
+        {
+            var mock = new Mock<ICurrentUserService>();
+            mock.Setup(c => c.Roles).Returns(roles);
+            return mock.Object;
+        }
+
         private static DateTime EventDay => DateTime.UtcNow.AddDays(1).Date;
 
         private async Task<bool> IsInjuredAsync(
@@ -122,7 +131,7 @@ namespace RFFM.Api.Tests.UnitTests
                     eventId, teamId, teamPlayerId, minutesPlayed.Value, true, 0, null, 0, 0, "finished", null, null, null));
             await db.SaveChangesAsync();
 
-            var handler = new GetEventConvocations.Handler(db);
+            var handler = new GetEventConvocations.Handler(db, CurrentUser("Coach"));
             var result = await handler.Handle(
                 new GetEventConvocations.EventConvocationsQuery { EventId = eventId, TeamId = teamId },
                 CancellationToken.None);
@@ -155,7 +164,7 @@ namespace RFFM.Api.Tests.UnitTests
             await using var db = _fixture.CreateDbContext();
             var (eventId, teamId, _) = await SeedConvocationAsync(db, minutesReason: "Portero suplente esta semana");
 
-            var handler = new GetEventConvocations.Handler(db);
+            var handler = new GetEventConvocations.Handler(db, CurrentUser("Coach"));
             var result = await handler.Handle(
                 new GetEventConvocations.EventConvocationsQuery { EventId = eventId, TeamId = teamId },
                 CancellationToken.None);
@@ -170,7 +179,7 @@ namespace RFFM.Api.Tests.UnitTests
             await using var db = _fixture.CreateDbContext();
             var (eventId, teamId, _) = await SeedConvocationAsync(db);
 
-            var handler = new GetEventConvocations.Handler(db);
+            var handler = new GetEventConvocations.Handler(db, CurrentUser("Coach"));
             var result = await handler.Handle(
                 new GetEventConvocations.EventConvocationsQuery { EventId = eventId, TeamId = teamId },
                 CancellationToken.None);
@@ -193,13 +202,71 @@ namespace RFFM.Api.Tests.UnitTests
                 Reason = "Decisión técnica: rotación"
             }, CancellationToken.None);
 
-            var listHandler = new GetEventConvocations.Handler(db);
+            var listHandler = new GetEventConvocations.Handler(db, CurrentUser("Coach"));
             var result = await listHandler.Handle(
                 new GetEventConvocations.EventConvocationsQuery { EventId = eventId, TeamId = teamId },
                 CancellationToken.None);
 
             var row = Assert.Single(result);
             Assert.Equal("Decisión técnica: rotación", row.MinutesReason);
+        }
+
+        [Fact]
+        public async Task Handle_LeagueConvocationNotPublished_PlayerSeesNothing()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (eventId, teamId, _) = await SeedConvocationAsync(db);
+
+            var result = await new GetEventConvocations.Handler(db, CurrentUser("Player")).Handle(
+                new GetEventConvocations.EventConvocationsQuery { EventId = eventId, TeamId = teamId },
+                CancellationToken.None);
+
+            Assert.Empty(result);
+        }
+
+        [Fact]
+        public async Task Handle_LeagueConvocationNotPublished_CoachSeesDraft()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (eventId, teamId, _) = await SeedConvocationAsync(db);
+
+            var result = await new GetEventConvocations.Handler(db, CurrentUser("Coach")).Handle(
+                new GetEventConvocations.EventConvocationsQuery { EventId = eventId, TeamId = teamId },
+                CancellationToken.None);
+
+            Assert.Single(result);
+        }
+
+        [Fact]
+        public async Task Handle_LeagueConvocationPublished_FamilyMemberSeesConvocations()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (eventId, teamId, _) = await SeedConvocationAsync(db);
+            var sportEvent = await db.SportEvents.FirstAsync(e => e.Id == eventId);
+            sportEvent.PublishConvocation();
+            await db.SaveChangesAsync();
+
+            var result = await new GetEventConvocations.Handler(db, CurrentUser("FamilyMember")).Handle(
+                new GetEventConvocations.EventConvocationsQuery { EventId = eventId, TeamId = teamId },
+                CancellationToken.None);
+
+            Assert.Single(result);
+        }
+
+        [Fact]
+        public async Task Handle_FriendlyConvocationNotPublished_PlayerStillSeesConvocations()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (eventId, teamId, _) = await SeedConvocationAsync(db);
+            var sportEvent = await db.SportEvents.FirstAsync(e => e.Id == eventId);
+            sportEvent.EventTypeId = 4;
+            await db.SaveChangesAsync();
+
+            var result = await new GetEventConvocations.Handler(db, CurrentUser("Player")).Handle(
+                new GetEventConvocations.EventConvocationsQuery { EventId = eventId, TeamId = teamId },
+                CancellationToken.None);
+
+            Assert.Single(result);
         }
     }
 }

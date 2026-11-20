@@ -107,6 +107,8 @@ namespace RFFM.Api.Domain
         public const string NewsNotFound = "NewsNotFound";
         public const string NewsAlreadyPublished = "NewsAlreadyPublished";
         public const string NewsNotPublished = "NewsNotPublished";
+        public const string ConvocationNotPublishable = "ConvocationNotPublishable";
+        public const string ConvocationNotPublished = "ConvocationNotPublished";
 
         // Push Notifications (Features/Mobile/PushNotifications)
         public const string PushTokenNotFound = "PushTokenNotFound";

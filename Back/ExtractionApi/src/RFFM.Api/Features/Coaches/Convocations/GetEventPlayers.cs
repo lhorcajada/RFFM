@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Common;
 using RFFM.Api.Domain;
 using RFFM.Api.Domain.Entities;
+using RFFM.Api.Domain.Services;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Infrastructure.Persistence;
 
@@ -42,7 +43,12 @@ namespace RFFM.Api.Features.Coaches.Convocations
         public class Handler : IRequestHandler<EventPlayersQuery, EventPlayerResponse[]>
         {
             private readonly AppDbContext _db;
-            public Handler(AppDbContext db) => _db = db;
+            private readonly ICurrentUserService _currentUser;
+            public Handler(AppDbContext db, ICurrentUserService currentUser)
+            {
+                _db = db;
+                _currentUser = currentUser;
+            }
 
             public async ValueTask<EventPlayerResponse[]> Handle(EventPlayersQuery request, CancellationToken cancellationToken = default)
             {
@@ -51,6 +57,7 @@ namespace RFFM.Api.Features.Coaches.Convocations
                     .FirstOrDefaultAsync(se => se.Id == request.EventId, cancellationToken);
 
                 if (sportEvent == null) return Array.Empty<EventPlayerResponse>();
+                if (ConvocationVisibility.IsHiddenFromViewer(sportEvent, _currentUser)) return Array.Empty<EventPlayerResponse>();
 
                 var teamId = sportEvent.TeamId;
                 var eventDate = sportEvent.EveDateTime?.Date ?? DateTime.UtcNow.Date;

@@ -56,6 +56,7 @@ namespace RFFM.Api.Tests.UnitTests
             var sportEvent = SportEvent.CreateNew(
                 "Partido vs Rival CF", eventDate, eventDate,
                 null, null, null, null, eventTypeId: 1, team.Id, null);
+            sportEvent.PublishConvocation();
             db.SportEvents.Add(sportEvent);
             await db.SaveChangesAsync();
 
@@ -215,6 +216,21 @@ namespace RFFM.Api.Tests.UnitTests
                 new SendConvocationReminders.SendConvocationRemindersCommand("event-1", Array.Empty<string>()));
 
             Assert.False(result.IsValid);
+        }
+
+        [Fact]
+        public async Task Handle_LeagueConvocationNotPublished_ThrowsConflict()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var seed = await SeedTeamAndEventAsync(db);
+            var (teamPlayerId, _, _) = await SeedConvokedPlayerWithFamilyAsync(db, seed, PendingStatusId);
+            var sportEvent = await db.SportEvents.FirstAsync(e => e.Id == seed.EventId);
+            sportEvent.ConvocationPublishedAt = null;
+            await db.SaveChangesAsync();
+
+            await Assert.ThrowsAsync<ConflictException>(() => CreateHandler(db, CurrentUser(Guid.NewGuid().ToString(), "Administrator")).Handle(
+                new SendConvocationReminders.SendConvocationRemindersCommand(seed.EventId, new[] { teamPlayerId }),
+                CancellationToken.None).AsTask());
         }
     }
 }
