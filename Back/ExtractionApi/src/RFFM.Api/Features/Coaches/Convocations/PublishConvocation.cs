@@ -1,3 +1,4 @@
+using FluentValidation;
 using Mediator;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
@@ -38,7 +39,7 @@ namespace RFFM.Api.Features.Coaches.Convocations
 
         public record PublishConvocationCommand(string EventId) : RFFM.Api.Common.ICommand;
 
-        public class Validator : FluentValidation.AbstractValidator<PublishConvocationCommand>
+        public class Validator : AbstractValidator<PublishConvocationCommand>
         {
             public Validator() => RuleFor(x => x.EventId).NotEmpty();
         }
