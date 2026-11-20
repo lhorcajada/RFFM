@@ -20,13 +20,19 @@ import { formatAuthTrace, traceAuth } from "../../../../core/diagnostics/authTra
 type SharedLoginProps = {
   redirectTo?: string;
   onReload?: () => void;
+  /** Full-page navigation used only when the SPA navigation after login did not leave /login. */
+  onHardRedirect?: (target: string) => void;
 };
 
 const reloadLogin = () => {
   window.location.replace("/login");
 };
 
-const SharedLogin: React.FC<SharedLoginProps> = ({ redirectTo, onReload = reloadLogin }) => {
+const hardRedirect = (target: string) => {
+  window.location.href = target;
+};
+
+const SharedLogin: React.FC<SharedLoginProps> = ({ redirectTo, onReload = reloadLogin, onHardRedirect = hardRedirect }) => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
@@ -105,12 +111,15 @@ const SharedLogin: React.FC<SharedLoginProps> = ({ redirectTo, onReload = reload
         navigate(target, { replace: true });
 
         setTimeout(() => {
+          // Only a navigation that never left the login screen needs the hard fallback. A full reload
+          // while the next screen is already loading aborts its in-flight requests, and iOS reports
+          // those aborts as network errors that wipe the fresh session.
           try {
             if (
               typeof window !== "undefined" &&
-              window.location.pathname !== target
+              window.location.pathname.startsWith("/login")
             ) {
-              window.location.href = target;
+              onHardRedirect(target);
             }
           } catch {
             // ignore
