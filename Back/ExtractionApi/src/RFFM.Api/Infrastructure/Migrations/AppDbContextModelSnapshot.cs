@@ -342,6 +342,9 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.Property<string>("CodActa")
                         .HasColumnType("text");
 
+                    b.Property<DateTime?>("ConvocationPublishedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Description")
                         .HasMaxLength(2048)
                         .HasColumnType("character varying(2048)");
