@@ -32,6 +32,7 @@ import { buildLastMatchMinutes } from "./utils/lastMatchMinutes";
 import { usePositionFitOrder } from "./hooks/usePositionFitOrder";
 import { useRivalOutlook } from "./hooks/useRivalDifficulty";
 import { useUpcomingProposals } from "./hooks/useUpcomingProposals";
+import { useManualDeconvocationOrder } from "./hooks/useManualDeconvocationOrder";
 import { leagueTechnicalTotals } from "./utils/technicalTotals";
 import { resolveRule } from "./utils/rules/ruleCatalog";
 import { buildMatchUnavailability } from "./utils/matchUnavailability";
@@ -291,7 +292,7 @@ export default function ConvocationMatchDetail() {
     [convocation.players, grid.matchColumns, grid.enrichedGrid],
   );
 
-  const { difficulty: rivalDifficulty, winProbability: rivalWinProbability, upcoming: upcomingDifficulties, upcomingMatches } = useRivalOutlook(teamId, proposalRivalName, deconvocationRules, match?.date);
+  const { difficulty: rivalDifficulty, winProbability: rivalWinProbability, rivalPosition, upcoming: upcomingDifficulties, upcomingMatches } = useRivalOutlook(teamId, proposalRivalName, deconvocationRules, match?.date);
 
   const squadIds = useMemo(() => convocation.players.map((p) => p.id), [convocation.players]);
   const alreadyOutIds = useMemo(() => new Set(convocation.mgmtNotCalled), [convocation.mgmtNotCalled]);
@@ -322,6 +323,8 @@ export default function ConvocationMatchDetail() {
     upcomingDifficulties,
     rivalWinProbability,
     upcomingWinProbabilities: upcomingMatches.map((m) => m.winProbability),
+    rivalPosition,
+    upcomingRivalPositions: upcomingMatches.map((m) => m.rivalPosition),
     positionFit,
     players: convocation.players,
     squadIds,
@@ -344,7 +347,11 @@ export default function ConvocationMatchDetail() {
     gridStartsCountMap,
     matchUnavailable,
   };
-  const proposal = useConvocationProposal(proposalInput);
+  const automaticProposal = useConvocationProposal(proposalInput);
+  const { proposal, moveInOrder, resetOrder } = useManualDeconvocationOrder(automaticProposal, {
+    players: convocation.players,
+    rules: deconvocationRules,
+  });
   const upcomingProposals = useUpcomingProposals({
     proposalInput,
     proposal,
@@ -363,9 +370,14 @@ export default function ConvocationMatchDetail() {
         if (alreadyNotCalled.has(id)) continue;
         await convocation.moveToNotCalled(id, technicalExcuseId);
       }
+      resetOrder();
     },
-    [convocation],
+    [convocation, resetOrder],
   );
+  const handleRefreshProposal = useCallback(async () => {
+    resetOrder();
+    await reloadDeconvocationRules();
+  }, [resetOrder, reloadDeconvocationRules]);
   // Alineación, Simular Partido y Partido en directo se abren a pantalla completa.
   const openFullScreen = useCallback(
     (screen: "lineup" | "simulation" | "live") => {
@@ -508,7 +520,9 @@ export default function ConvocationMatchDetail() {
             teamId={teamId}
             rules={deconvocationRules}
             fitContext={fitContext}
-            onRefreshProposal={reloadDeconvocationRules}
+            onRefreshProposal={handleRefreshProposal}
+            onMoveInOrder={moveInOrder}
+            onResetOrder={resetOrder}
             onApplyProposal={handleApplyProposal}
             readinessMap={readinessMap}
             recoveringIds={recoveringIds}

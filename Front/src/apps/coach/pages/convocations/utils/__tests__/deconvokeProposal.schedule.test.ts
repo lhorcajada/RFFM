@@ -42,6 +42,8 @@ function build(
     upcoming?: RivalDifficulty[];
     winProbability?: number | null;
     upcomingProbabilities?: Array<number | null>;
+    position?: number | null;
+    upcomingPositions?: Array<number | null>;
     maxCalled?: number;
   } = {},
 ) {
@@ -69,6 +71,8 @@ function build(
     upcomingDifficulties: options.upcoming,
     rivalWinProbability: options.winProbability,
     upcomingWinProbabilities: options.upcomingProbabilities,
+    rivalPosition: options.position,
+    upcomingRivalPositions: options.upcomingPositions,
   };
   return buildDeconvokeProposal(input);
 }
@@ -160,6 +164,55 @@ describe("buildDeconvokeProposal — próximos partidos y reparto", () => {
 
       expect(reserved.length).toBeGreaterThan(0);
       expect(reserved.every((p) => /partido más difícil.*dentro de 2 partidos/.test(p.decision.reason))).toBe(true);
+    });
+
+    it("quien sale porque los anteriores del orden se quedan lo explica con el motivo del salto", () => {
+      const proposal = build(squad(), { levels, difficulty: "medium", upcoming: ["medium", "hard"], upcomingProbabilities: [0.5, 0.2] });
+      const proposed = proposal.players.filter((p) => p.decision.group === "proposed");
+
+      expect(proposed.length).toBeGreaterThan(0);
+      expect(proposed.every((p) => !/necesario para llegar al objetivo/.test(p.decision.reason))).toBe(true);
+      expect(proposed.every((p) => /Los que iban antes se quedan \(.*reservados para un partido más difícil/.test(p.decision.compare ?? ""))).toBe(true);
+    });
+
+    it("entre dos partidos difíciles con una diferencia de probabilidad mínima y sin clasificación no se reserva", () => {
+      const proposal = build(squad(), {
+        levels,
+        difficulty: "hard",
+        winProbability: 0.3,
+        upcoming: ["hard"],
+        upcomingProbabilities: [0.27],
+      });
+
+      expect(proposal.schedule.reservedIn).toBeNull();
+    });
+
+    it("con probabilidades parecidas se reserva para el partido cuyo rival está mejor clasificado", () => {
+      const proposal = build(squad(), {
+        levels,
+        difficulty: "hard",
+        winProbability: 0.3,
+        position: 6,
+        upcoming: ["hard"],
+        upcomingProbabilities: [0.27],
+        upcomingPositions: [1],
+      });
+
+      expect(proposal.schedule.reservedIn).toBe(1);
+    });
+
+    it("con probabilidades parecidas no se reserva si el rival de hoy es el mejor clasificado", () => {
+      const proposal = build(squad(), {
+        levels,
+        difficulty: "hard",
+        winProbability: 0.3,
+        position: 1,
+        upcoming: ["hard"],
+        upcomingProbabilities: [0.27],
+        upcomingPositions: [6],
+      });
+
+      expect(proposal.schedule.reservedIn).toBeNull();
     });
 
     it("entre dos partidos difíciles sin probabilidades no se reserva para el segundo", () => {

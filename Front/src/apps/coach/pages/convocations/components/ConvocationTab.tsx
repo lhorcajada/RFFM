@@ -110,6 +110,10 @@ type Props = {
   onApplyProposal: (ids: string[]) => Promise<void>;
   /** Reloads the team rules and regenerates the proposal. */
   onRefreshProposal?: () => Promise<void>;
+  /** Moves a player up or down the deconvocation order of the proposal. */
+  onMoveInOrder?: (playerId: string, direction: "up" | "down") => void;
+  /** Goes back from the order chosen by hand to the automatic proposal. */
+  onResetOrder?: () => void;
   /** Team whose deconvocation rules are configured from the proposal screen. */
   teamId?: string;
   /** Rules currently applied to the proposal. */
@@ -187,6 +191,8 @@ export default function ConvocationTab({
   proposalLoading,
   onApplyProposal,
   onRefreshProposal,
+  onMoveInOrder,
+  onResetOrder,
   teamId,
   rules,
   fitContext,
@@ -546,6 +552,8 @@ export default function ConvocationTab({
           onRefresh={onRefreshProposal ? handleRefreshProposal : undefined}
           onOpenRules={teamId && rules ? () => setRulesOpen(true) : undefined}
           fitContext={fitContext}
+          onMoveInOrder={onMoveInOrder}
+          onResetOrder={onResetOrder}
         />
       )}
 

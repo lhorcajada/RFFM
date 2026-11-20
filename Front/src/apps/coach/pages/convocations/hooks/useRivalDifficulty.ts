@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { getRivalSimulation, type RivalSimulation } from "../../../services/matchForecastService";
 import { classifyRivalDifficulty, type RivalDifficulty } from "../utils/deconvocationFunnel";
-import { difficultyThresholdsFromRules, ownWinProbabilityAgainst, upcomingMatchesAfter, type UpcomingMatch } from "../utils/rivalDifficulty";
+import {
+  difficultyThresholdsFromRules,
+  ownWinProbabilityAgainst,
+  rivalPositionAgainst,
+  upcomingMatchesAfter,
+  type UpcomingMatch,
+} from "../utils/rivalDifficulty";
 import type { DeconvocationRuleConfig } from "../utils/rules/ruleCatalog";
 
 export type RivalOutlook = {
@@ -9,6 +15,8 @@ export type RivalOutlook = {
   difficulty: RivalDifficulty;
   /** Own win probability against the next rival; null while loading or without forecast. */
   winProbability: number | null;
+  /** League table position of the next rival; null while loading or without forecast. */
+  rivalPosition: number | null;
   /** Difficulty of the matches after it (the next five); empty while loading, without forecast or without the rule. */
   upcoming: RivalDifficulty[];
   /** The next league matches with rival, date and difficulty; same availability as `upcoming`. */
@@ -42,12 +50,14 @@ export function useRivalOutlook(
 
   return useMemo(() => {
     const thresholds = difficultyThresholdsFromRules(rules);
-    if (!thresholds) return { difficulty: "medium", winProbability: null, upcoming: [], upcomingMatches: [] };
+    if (!thresholds) return { difficulty: "medium", winProbability: null, rivalPosition: null, upcoming: [], upcomingMatches: [] };
     const winProbability = ownWinProbabilityAgainst(simulation, rivalName, matchDate);
+    const rivalPosition = rivalPositionAgainst(simulation, rivalName, matchDate);
     const upcomingMatches = upcomingMatchesAfter(simulation, rivalName, thresholds, undefined, matchDate);
     return {
       difficulty: classifyRivalDifficulty(winProbability, thresholds),
       winProbability,
+      rivalPosition,
       upcoming: upcomingMatches.map((m) => m.difficulty),
       upcomingMatches,
     };

@@ -74,6 +74,26 @@ export function ownWinProbabilityAgainst(
   return ownWinProbability(ownMatchesOf(simulation)[index], simulation.ownTeamCode);
 }
 
+function rivalTeamCode(match: MatchPrediction, own: string): string {
+  return match.localTeamCode === own ? match.visitorTeamCode : match.localTeamCode;
+}
+
+function leaguePositionOf(simulation: RivalSimulation, teamCode: string): number | null {
+  return simulation.standings?.find((s) => s.teamCode === teamCode)?.currentPosition ?? null;
+}
+
+/** League table position of the rival of the nearest own match against it, or null when unknown. */
+export function rivalPositionAgainst(
+  simulation: RivalSimulation | null | undefined,
+  rivalName: string | null | undefined,
+  currentDate?: string | null,
+): number | null {
+  if (!simulation || !simulation.ownTeamCode || (!clubKey(rivalName) && !isoDay(currentDate))) return null;
+  const index = currentMatchIndex(simulation, rivalName, currentDate);
+  if (index < 0) return null;
+  return leaguePositionOf(simulation, rivalTeamCode(ownMatchesOf(simulation)[index], simulation.ownTeamCode));
+}
+
 /** How many matches after the current one the proposal looks ahead. */
 export const UPCOMING_MATCHES_LOOKAHEAD = 5;
 
@@ -88,6 +108,8 @@ export type UpcomingMatch = {
   difficulty: RivalDifficulty;
   /** Probability that the own team wins the match, from the forecast. */
   winProbability: number;
+  /** League table position of the rival; null when it is not in the standings. */
+  rivalPosition: number | null;
 };
 
 /**
@@ -115,6 +137,7 @@ export function upcomingMatchesAfter(
       rival: m.localTeamCode === own ? m.visitorTeamName : m.localTeamName,
       difficulty: classifyRivalDifficulty(ownWinProbability(m, own), thresholds),
       winProbability: ownWinProbability(m, own),
+      rivalPosition: leaguePositionOf(simulation, rivalTeamCode(m, own)),
     }));
 }
 

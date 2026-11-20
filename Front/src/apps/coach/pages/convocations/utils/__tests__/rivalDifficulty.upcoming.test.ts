@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { MatchPrediction, RivalSimulation } from "../../../../services/matchForecastService";
 import { DEFAULT_DIFFICULTY_THRESHOLDS } from "../deconvocationFunnel";
-import { ownWinProbabilityAgainst, upcomingDifficulties, upcomingMatchesAfter } from "../rivalDifficulty";
+import { ownWinProbabilityAgainst, rivalPositionAgainst, upcomingDifficulties, upcomingMatchesAfter } from "../rivalDifficulty";
 
 function own(round: number, rival: string, ownWin: number, home = true): MatchPrediction {
   return {
@@ -52,6 +52,31 @@ describe("upcomingDifficulties", () => {
   });
 });
 
+describe("posición del rival en la clasificación", () => {
+  const withStandings = (matches: MatchPrediction[]): RivalSimulation =>
+    ({
+      ownTeamCode: "own",
+      matches,
+      standings: [
+        { teamCode: "a", currentPosition: 4 },
+        { teamCode: "b", currentPosition: 1 },
+      ],
+    }) as RivalSimulation;
+
+  it("expone la posición del rival de cada partido posterior", () => {
+    const sim = withStandings([own(1, "a", 0.5), own(2, "b", 0.2), own(3, "z", 0.2)]);
+
+    expect(upcomingMatchesAfter(sim, "a", T, 5).map((m) => m.rivalPosition)).toEqual([1, null]);
+  });
+
+  it("expone la posición del rival del partido actual", () => {
+    const sim = withStandings([own(1, "a", 0.5), own(2, "b", 0.2)]);
+
+    expect(rivalPositionAgainst(sim, "a")).toBe(4);
+    expect(rivalPositionAgainst(null, "a")).toBeNull();
+  });
+});
+
 describe("localización del partido actual en el pronóstico", () => {
   it("encuentra al rival aunque el nombre difiera en siglas o puntuación (C.F., CD, UD)", () => {
     const sim = simulation([own(2, "C.D. Vallecas", 0.5), own(3, "b", 0.2)]);
@@ -89,8 +114,8 @@ describe("upcomingMatchesAfter", () => {
     const matches = upcomingMatchesAfter(sim, "Vallecas CF", T, 5);
 
     expect(matches).toEqual([
-      { eventId: "upcoming-3", round: 3, label: "J3", date: "2026-10-28", rival: "Getafe", difficulty: "hard", winProbability: 0.2 },
-      { eventId: "upcoming-4", round: 4, label: "J4", date: "2026-11-04", rival: "Alcorcón", difficulty: "easy", winProbability: 0.9 },
+      { eventId: "upcoming-3", round: 3, label: "J3", date: "2026-10-28", rival: "Getafe", difficulty: "hard", winProbability: 0.2, rivalPosition: null },
+      { eventId: "upcoming-4", round: 4, label: "J4", date: "2026-11-04", rival: "Alcorcón", difficulty: "easy", winProbability: 0.9, rivalPosition: null },
     ]);
   });
 

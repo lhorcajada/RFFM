@@ -101,8 +101,10 @@ export type ProposalOrderEntry = {
   outcome: "proposed" | "positionSkip" | "balanceSkip" | "stays";
   /** Values of every criterion, in the order they are applied. */
   chips: string[];
-  /** Why he goes before the next player of the order; null for the last one. */
+  /** Why he goes before the next player of the order; null for the last one and in a manual order. */
   versusNext: { nextName: string; criterion: Criterion | null; text: string } | null;
+  /** Reason of the protection that keeps him called; only in a manual order, where protected players can also be chosen. */
+  heldReason?: string;
 };
 
 export type DetailResult = "protects" | "doesNotProtect" | "allows" | "decides" | "tie" | "noEffect" | "mandatory";
@@ -175,6 +177,10 @@ export type DeconvokeProposal = {
   alreadyDeconvoked: AlreadyDeconvokedPlayer[];
   /** Eligible players from first to last to be deconvoked, each justified against the next one. */
   order: ProposalOrderEntry[];
+  /** The coach chose the order by hand (see `applyManualOrder`); absent in the automatic proposal. */
+  isManual?: boolean;
+  /** Protected players the coach chose in a manual order. */
+  manualWarnings?: string[];
 };
 
 export type BuildProposalInput = {
@@ -211,6 +217,9 @@ export type BuildProposalInput = {
   /** Own win probability in this match and in the following ones, from the forecast; null or absent when unknown. */
   rivalWinProbability?: number | null;
   upcomingWinProbabilities?: Array<number | null>;
+  /** League table position of the rival of this match and of the following ones; null or absent when unknown. */
+  rivalPosition?: number | null;
+  upcomingRivalPositions?: Array<number | null>;
   /** Matchdays a technical deconvocation / an injury absence protects; 5 and 1 by default. */
   protectionWindows?: ProtectionWindows;
   /** Minutes of the last played match, to protect those who barely played; absent when unknown. */
@@ -322,6 +331,25 @@ function balanceVerdict(key: BalanceSkip | "cover", reservedIn: number | null): 
     case "cover":
       return "Se queda: debe haber al menos dos jugadores que puedan jugar su posición";
   }
+}
+
+type SkipCause = BalanceSkip | "position";
+
+const SKIP_CAUSE_LABELS: Record<SkipCause, string> = {
+  position: "mínimo de su posición",
+  line: "reparto por líneas",
+  strong: "jugadores importantes",
+  reserved: "reservados para un partido más difícil",
+};
+
+function skipCauseOf(
+  playerId: string,
+  protectedBy: Map<string, RequirementKey>,
+  coverRemaining: Map<string, number>,
+  balanceSkipped: Map<string, BalanceSkip>,
+): SkipCause {
+  if (protectedBy.has(playerId) || coverRemaining.has(playerId)) return "position";
+  return balanceSkipped.get(playerId) ?? "position";
 }
 
 /** Criteria in the order `compareFairness` applies them. */
@@ -735,19 +763,44 @@ function hardestMatchAhead(
   currentProbability: number | null,
   upcoming: RivalDifficulty[],
   upcomingProbabilities: Array<number | null>,
+  currentPosition: number | null = null,
+  upcomingPositions: Array<number | null> = [],
 ): number {
   let best = -1;
   upcoming.forEach((difficulty, index) => {
     if (difficulty !== "hard") return;
     const probability = upcomingProbabilities[index] ?? null;
+    const position = upcomingPositions[index] ?? null;
     const harderThanCurrent =
-      current !== "hard" || (currentProbability != null && probability != null && probability < currentProbability);
+      current !== "hard" || isHarderMatch(probability, position, currentProbability, currentPosition);
     if (!harderThanCurrent) return;
     const bestProbability = best < 0 ? null : (upcomingProbabilities[best] ?? null);
-    const harderThanBest = best < 0 || (probability != null && (bestProbability == null || probability < bestProbability));
+    const bestPosition = best < 0 ? null : (upcomingPositions[best] ?? null);
+    const harderThanBest = best < 0 || isHarderMatch(probability, position, bestProbability, bestPosition);
     if (harderThanBest) best = index;
   });
   return best;
+}
+
+/** Probability gap between two matches from which the one with the lower probability is clearly the harder. */
+export const HARDER_MATCH_MARGIN = 0.1;
+
+/**
+ * Whether a match is harder than another: its win probability is lower by more than the margin; within the
+ * margin the rival better placed in the league table (lower position) makes it harder. Without both
+ * probabilities, or without both positions inside the margin, it is not considered harder.
+ */
+function isHarderMatch(
+  probability: number | null,
+  position: number | null,
+  otherProbability: number | null,
+  otherPosition: number | null,
+): boolean {
+  if (probability == null || otherProbability == null) return false;
+  const gap = otherProbability - probability;
+  if (gap > HARDER_MATCH_MARGIN) return true;
+  if (gap < -HARDER_MATCH_MARGIN) return false;
+  return position != null && otherPosition != null && position < otherPosition;
 }
 
 export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProposal {
@@ -1121,7 +1174,14 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
   // The weakest players are the ones to deconvoke in the hardest match. If a harder match is coming, the
   // weakest are kept called now (a deconvocation now would protect them there and a better player would
   // have to go instead) and this match is decided by fairness.
-  const harderIndex = hardestMatchAhead(rivalDifficulty, rivalWinProbability, upcomingDifficulties, upcomingWinProbabilities);
+  const harderIndex = hardestMatchAhead(
+    rivalDifficulty,
+    rivalWinProbability,
+    upcomingDifficulties,
+    upcomingWinProbabilities,
+    input.rivalPosition ?? null,
+    input.upcomingRivalPositions ?? [],
+  );
   const reservedPlayers =
     harderIndex < 0
       ? []
@@ -1242,10 +1302,20 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
       const peer = eligible.slice(rank).find((o) => !protectedBy.has(o.playerId));
       const ties = peer && compareFairnessOrder(own, metricsOf(peer.playerId)).criterion === null ? [peer] : [];
       const field = `${rank}.º del orden de desconvocatoria`;
+      const skippedCauses = new Set(
+        eligible
+          .slice(0, rank - 1)
+          .filter((o) => !selectedSet.has(o.playerId))
+          .map((o) => SKIP_CAUSE_LABELS[skipCauseOf(o.playerId, protectedBy, coverRemaining, balanceSkipped)]),
+      );
       if (!peer) {
+        const causes = skippedCauses;
         decision = {
           group: "proposed",
-          reason: "Elegido: necesario para llegar al objetivo respetando los mínimos por posición",
+          reason:
+            causes.size > 0
+              ? `Elegido: los que iban antes se quedan (${[...causes].join(", ")}) y es el siguiente del orden que puede salir`
+              : "Elegido: necesario para llegar al objetivo respetando los mínimos por posición",
         };
       } else if (ties.length > 0) {
         decision = {
@@ -1270,6 +1340,9 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
           reason: `Elegido: ${text.chosen}`,
           compare: `${field}. Va antes que ${peer.displayName}: ${text.compare}`,
         };
+      }
+      if (skippedCauses.size > 0) {
+        decision.compare = `${decision.compare ?? field}. Los que iban antes se quedan (${[...skippedCauses].join(", ")})`;
       }
     } else if (coverRemaining.has(p.playerId) && !internal.protection) {
       decision = {
