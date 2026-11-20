@@ -58,7 +58,7 @@ function proposal(overrides: Partial<DeconvokeProposal> = {}): DeconvokeProposal
   return {
     generatedAt: "2026-10-14T10:00:00.000Z",
     rivalDifficulty: "medium",
-    schedule: { upcoming: [], keepStrong: false, strongCount: 0, maxStrong: 1 },
+    schedule: { upcoming: [], reservedIn: null, reservedNames: [], strongCount: 0, maxStrong: 1 },
     targetCount: 1,
     calledCount: 2,
     selectedIds: ["p2"],

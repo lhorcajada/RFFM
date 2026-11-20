@@ -39,7 +39,7 @@ function proposal(overrides: Partial<DeconvokeProposal> = {}): DeconvokeProposal
   return {
     generatedAt: "2026-10-14T10:00:00.000Z",
     rivalDifficulty: "hard",
-    schedule: { upcoming: [], keepStrong: false, strongCount: 0, maxStrong: 0 },
+    schedule: { upcoming: [], reservedIn: null, reservedNames: [], strongCount: 0, maxStrong: 0 },
     targetCount: 2,
     calledCount: 20,
     selectedIds: ["p1"],
@@ -200,18 +200,37 @@ describe("DeconvocationProposalView", () => {
     renderView(
       proposal({
         rivalDifficulty: "easy",
-        schedule: { upcoming: ["medium", "hard", "medium", "easy", "hard"], keepStrong: true, strongCount: 3, maxStrong: 1 },
+        schedule: { upcoming: ["medium", "hard", "medium", "easy", "hard"], reservedIn: null, reservedNames: [], strongCount: 3, maxStrong: 1 },
       }),
     );
 
     expect(screen.getByText(/De los 6 partidos \(el actual y los 5 siguientes\), 2 son difíciles/)).toBeInTheDocument();
   });
 
+  it("explica que se reservan los de menor nivel para el partido más difícil que viene", () => {
+    renderView(
+      proposal({
+        rivalDifficulty: "hard",
+        schedule: { upcoming: ["medium", "hard"], reservedIn: 2, reservedNames: ["Vargas", "Joao", "Fernando"], strongCount: 3, maxStrong: 0 },
+      }),
+    );
+
+    expect(
+      screen.getByText(/para el partido más difícil, dentro de 2 partidos, se reservan los jugadores de menor nivel \(Vargas, Joao, Fernando\)/i),
+    ).toBeInTheDocument();
+  });
+
+  it("no habla de reservas cuando no hay partido más difícil por delante", () => {
+    renderView(proposal({ schedule: { upcoming: ["medium", "easy"], reservedIn: null, reservedNames: [], strongCount: 3, maxStrong: 1 } }));
+
+    expect(screen.queryByText(/se reservan los jugadores de menor nivel/i)).not.toBeInTheDocument();
+  });
+
   it("cuenta como difícil el partido actual dentro de la ventana", () => {
     renderView(
       proposal({
         rivalDifficulty: "hard",
-        schedule: { upcoming: ["medium", "medium", "medium", "medium", "medium"], keepStrong: false, strongCount: 3, maxStrong: 0 },
+        schedule: { upcoming: ["medium", "medium", "medium", "medium", "medium"], reservedIn: null, reservedNames: [], strongCount: 3, maxStrong: 0 },
       }),
     );
 

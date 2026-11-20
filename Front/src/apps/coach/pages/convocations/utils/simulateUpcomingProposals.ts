@@ -117,6 +117,8 @@ export function simulateUpcomingProposals({ base, baseProposal, matches, injuryR
       matchUnavailable: new Map(),
       rivalDifficulty: match.difficulty,
       upcomingDifficulties: matches.slice(index + 1).map((m) => m.difficulty),
+      rivalWinProbability: match.winProbability,
+      upcomingWinProbabilities: matches.slice(index + 1).map((m) => m.winProbability),
       lastMatchMinutes: null,
     });
     result.push({ match, proposal });

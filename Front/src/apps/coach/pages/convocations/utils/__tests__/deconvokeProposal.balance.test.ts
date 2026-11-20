@@ -93,12 +93,12 @@ describe("selectDeconvocations — jugadores fuertes", () => {
   });
 });
 
-describe("selectDeconvocations — cobertura de delantero", () => {
+describe("selectDeconvocations — cobertura de posición", () => {
   const withForwards = (forwards: Entry[]): Entry[] => [...BASE.filter(([, role]) => role !== "forward"), ...forwards];
 
   it("no quita a un delantero si quedarían menos de dos jugadores que puedan jugar de delantero", () => {
     const entries = withForwards([["dc1", "forward"], ["dc2", "forward"]]);
-    const options = { forwardCover: 2 };
+    const options = { positionCover: 2 };
     const result = selectDeconvocations(ordered(["dc1", ...entries.map(([id]) => id).filter((id) => id !== "dc1")]), squad(entries), 1, undefined, options);
 
     expect(result.selectedIds).not.toContain("dc1");
@@ -106,7 +106,7 @@ describe("selectDeconvocations — cobertura de delantero", () => {
 
   it("cuentan los jugadores con delantero entre sus posiciones posibles", () => {
     const entries = withForwards([["dc1", "forward"], ["dc2", "forward"], ["b9", "wide", ["wide", "forward"]]]);
-    const options = { forwardCover: 2 };
+    const options = { positionCover: 2 };
     const result = selectDeconvocations(ordered(["dc1", ...entries.map(([id]) => id).filter((id) => id !== "dc1")]), squad(entries), 1, undefined, options);
 
     expect(result.selectedIds).toEqual(["dc1"]);
@@ -114,7 +114,7 @@ describe("selectDeconvocations — cobertura de delantero", () => {
 
   it("con tres delanteros permite quitar a uno", () => {
     const entries = withForwards([["dc1", "forward"], ["dc2", "forward"], ["dc3", "forward"]]);
-    const options = { forwardCover: 2 };
+    const options = { positionCover: 2 };
     const result = selectDeconvocations(ordered(["dc1", ...entries.map(([id]) => id).filter((id) => id !== "dc1")]), squad(entries), 1, undefined, options);
 
     expect(result.selectedIds).toEqual(["dc1"]);
@@ -122,9 +122,70 @@ describe("selectDeconvocations — cobertura de delantero", () => {
 
   it("registra la protección con los jugadores que quedarían", () => {
     const entries = withForwards([["dc1", "forward"], ["dc2", "forward"]]);
-    const options = { forwardCover: 2 };
+    const options = { positionCover: 2 };
     const result = selectDeconvocations(ordered(["dc1", ...entries.map(([id]) => id).filter((id) => id !== "dc1")]), squad(entries), 1, undefined, options);
 
-    expect(result.forwardCoverRemaining.get("dc1")).toBe(1);
+    expect(result.coverRemaining.get("dc1")).toBe(1);
+  });
+});
+
+describe("selectDeconvocations — la cobertura vale para todas las líneas", () => {
+  const LOW_MINIMUMS = { goalkeeper: 2, fullBack: 1, centreBack: 1, centralMid: 1, wide: 1, forward: 1 };
+
+  it("no quita a un central si quedaría menos de dos que puedan jugar de central", () => {
+    const entries = BASE.filter(([, role]) => role !== "centreBack");
+    entries.push(["dfc1", "centreBack"], ["dfc2", "centreBack"]);
+    const order = ordered(["dfc1", ...entries.map(([id]) => id).filter((id) => id !== "dfc1")]);
+
+    const result = selectDeconvocations(order, squad(entries), 1, LOW_MINIMUMS, { positionCover: 2 });
+
+    expect(result.selectedIds).not.toContain("dfc1");
+    expect(result.coverRemaining.get("dfc1")).toBe(1);
+  });
+
+  it("cuenta a un lateral que puede jugar de central como cobertura del central", () => {
+    const entries = BASE.filter(([, role]) => role !== "centreBack");
+    entries.push(["dfc1", "centreBack"], ["dfc2", "centreBack"], ["lat9", "fullBack", ["fullBack", "centreBack"]]);
+    const order = ordered(["dfc1", ...entries.map(([id]) => id).filter((id) => id !== "dfc1")]);
+
+    const result = selectDeconvocations(order, squad(entries), 1, LOW_MINIMUMS, { positionCover: 2 });
+
+    expect(result.selectedIds).toEqual(["dfc1"]);
+  });
+
+  it("no quita a un banda si quedaría menos de dos que puedan jugar de banda", () => {
+    const entries = BASE.filter(([, role]) => role !== "wide");
+    entries.push(["b1", "wide"], ["b2", "wide"]);
+    const order = ordered(["b1", ...entries.map(([id]) => id).filter((id) => id !== "b1")]);
+
+    const result = selectDeconvocations(order, squad(entries), 1, LOW_MINIMUMS, { positionCover: 2 });
+
+    expect(result.selectedIds).not.toContain("b1");
+  });
+});
+
+describe("selectDeconvocations — jugadores reservados para un partido más difícil", () => {
+  const reservedIds = new Set(["lat1", "mc2"]);
+
+  it("no desconvoca a los reservados si hay otros elegibles", () => {
+    const result = selectDeconvocations(ordered(rest(["lat1", "mc2", "b1", "dc1", "mc1"])), squad(BASE), 2, undefined, { reservedIds });
+
+    expect(result.selectedIds).toEqual(["b1", "dc1"]);
+    expect(result.balanceSkipped.get("lat1")).toBe("reserved");
+    expect(result.balanceSkipped.get("mc2")).toBe("reserved");
+  });
+
+  it("si no queda otra forma de llegar al objetivo, desconvoca a un reservado", () => {
+    const only = BASE.filter(([id]) => ["gk1", "gk2", "lat1", "lat2", "lat3", "lat4"].includes(id));
+    const result = selectDeconvocations(ordered(only.map(([id]) => id)), squad(only), 1, undefined, { reservedIds: new Set(["lat1", "lat2", "lat3", "lat4"]) });
+
+    expect(result.selectedIds).toHaveLength(1);
+  });
+
+  it("entre los reservados prefiere al que va antes en el orden cuando hay que usar uno", () => {
+    const only = BASE.filter(([id]) => ["gk1", "gk2", "lat1", "lat2", "lat3", "lat4"].includes(id));
+    const result = selectDeconvocations(ordered(["lat2", "lat1", "lat3", "lat4", "gk1", "gk2"]), squad(only), 1, undefined, { reservedIds: new Set(["lat1", "lat2", "lat3", "lat4"]) });
+
+    expect(result.selectedIds).toEqual(["lat2"]);
   });
 });
