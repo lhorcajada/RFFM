@@ -57,14 +57,19 @@ const DIFFICULTY_LABELS: Record<RivalDifficulty, string> = {
   hard: "Rival difícil",
 };
 
-function scheduleText({ upcoming, restStrong, maxStrong }: DeconvokeProposal["schedule"]): string {
-  const hardAhead = upcoming.filter((d) => d === "hard").length;
+function scheduleText(
+  { upcoming, restStrong, maxStrong }: DeconvokeProposal["schedule"],
+  current: RivalDifficulty,
+): string {
+  const window = [current, ...upcoming];
+  const hardCount = window.filter((d) => d === "hard").length;
+  const scope = `De los ${window.length} partidos (el actual y los ${upcoming.length} siguientes)`;
   const outlook =
     upcoming.length === 0
       ? "No hay previsión de los próximos partidos."
-      : hardAhead > 0
-        ? `De los ${upcoming.length} partidos siguientes, ${hardAhead === 1 ? "1 es difícil" : `${hardAhead} son difíciles`}${restStrong ? ": descansan antes los jugadores importantes para llegar frescos" : ""}.`
-        : `Ninguno de los ${upcoming.length} partidos siguientes es difícil.`;
+      : hardCount > 0
+        ? `${scope}, ${hardCount === 1 ? "1 es difícil" : `${hardCount} son difíciles`}${restStrong ? ": descansan antes los jugadores importantes para llegar frescos" : ""}.`
+        : `${scope}, ninguno es difícil.`;
   const strongCap = maxStrong === 0 ? "No se desconvoca a jugadores importantes" : `Como mucho ${maxStrong} importante(s)`;
   return `${outlook} ${strongCap}, no se quita a dos jugadores de la misma línea si hay alternativa y, si sale un delantero, quedan al menos dos que puedan jugar de delantero.`;
 }
@@ -276,7 +281,7 @@ export default function DeconvocationProposalView({
     },
     {
       title: "Reparto y próximos partidos",
-      text: scheduleText(proposal.schedule),
+      text: scheduleText(proposal.schedule, proposal.rivalDifficulty),
     },
   ];
 

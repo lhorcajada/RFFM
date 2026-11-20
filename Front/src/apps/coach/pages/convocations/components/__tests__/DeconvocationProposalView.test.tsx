@@ -196,6 +196,28 @@ describe("DeconvocationProposalView", () => {
     expect(screen.getByText(/nivel de los jugadores no influye/)).toBeInTheDocument();
   });
 
+  it("cuenta el partido actual y los 5 siguientes al hablar de los partidos difíciles", () => {
+    renderView(
+      proposal({
+        rivalDifficulty: "easy",
+        schedule: { upcoming: ["medium", "hard", "medium", "easy", "hard"], restStrong: true, strongCount: 3, maxStrong: 1 },
+      }),
+    );
+
+    expect(screen.getByText(/De los 6 partidos \(el actual y los 5 siguientes\), 2 son difíciles/)).toBeInTheDocument();
+  });
+
+  it("cuenta como difícil el partido actual dentro de la ventana", () => {
+    renderView(
+      proposal({
+        rivalDifficulty: "hard",
+        schedule: { upcoming: ["medium", "medium", "medium", "medium", "medium"], restStrong: false, strongCount: 3, maxStrong: 0 },
+      }),
+    );
+
+    expect(screen.getByText(/De los 6 partidos \(el actual y los 5 siguientes\), 1 es difícil/)).toBeInTheDocument();
+  });
+
   it("cuenta cuántos jugadores protege cada paso del embudo", () => {
     renderView(proposal());
 
