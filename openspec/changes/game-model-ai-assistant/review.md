@@ -43,7 +43,7 @@ None.
 
 ### Low
 
-#### L8 — The statistics handler now loads match-like convocations twice
+#### L8 — The statistics handler now loads match-like convocations twice (EXCLUDED: bounded extra query for one team; changing the service overload risks the statistics handler; the performance audit covers it)
 - **Location:** `Back/ExtractionApi/src/RFFM.Api/Features/Coaches/Players/Queries/GetTeamPlayerStatistics.cs:363-384`, `Back/ExtractionApi/src/RFFM.Api/Features/Coaches/Players/Services/PlayerConditionService.cs`
 - **Problem:** After extracting `PlayerConditionService`, the handler still runs its own `matchLikeConvocations` query (line 363, used for absences at 369 and 461) and then calls `conditionService.GetForTeamAsync` (line 384), which loads the same convocation data again for fatigue and readiness. Each statistics request now pays the query twice; the data is one team's season, so the cost is bounded. The dedicated performance audit covers the rest.
 - **Suggested fix:** Let the service accept the already-loaded convocations (an overload), or return them together with the conditions so the handler reuses one load.
@@ -63,12 +63,12 @@ None.
 - **Problem:** A player without an alias is labelled `$"Jugador {index + 1}"`, where `index` is the position in the result of `conditions.GetForTeamAsync`, which has no explicit order. The same player can get another label on the next turn of the same conversation, so earlier assistant messages can refer to the wrong player.
 - **Suggested fix:** Order the players deterministically (for example by team player id) before numbering them.
 
-#### L4 — Optional service parameters hide missing DI registrations
+#### L4 — Optional service parameters hide missing DI registrations (EXCLUDED: deliberate choice so other tests that build these handlers keep compiling; the services are registered and covered by tests)
 - **Location:** `Back/ExtractionApi/src/RFFM.Api/Features/Coaches/Players/Queries/GetTeamPlayerStatistics.cs:186`, `:384`
 - **Problem:** `Handler(AppDbContext db, PlayerConditionService? conditionService = null)` falls back to `new PlayerConditionService(db)`. A missing registration is never detected, and the handler builds its own instance outside DI. The same pattern is used for the forecast service in `GetRivalSimulation.cs`.
 - **Suggested fix:** Make the service a required constructor parameter and build it explicitly in the tests.
 
-#### L5 — `SupportsForcedJsonSchema` is declared but never read
+#### L5 — `SupportsForcedJsonSchema` is declared but never read (EXCLUDED: the flag is part of the approved plan interface, harmless, and Q3 may decide how it is used)
 - **Location:** `Back/ExtractionApi/src/RFFM.Api/Features/AiSettings/Services/AiChat.cs:70`, `Back/ExtractionApi/src/RFFM.Api/Features/AiSettings/Services/AiChatAdapters.cs:29`, `:113`
 - **Problem:** No code consults the flag: the handler always sets `ResponseSchema`, the OpenAI-compatible adapter always sends it, and the Claude adapter ignores it. The flag is dead code that suggests a branch that does not exist.
 - **Suggested fix:** Remove the flag, or use it in the handler to decide whether to send the schema, and cover that with a test.
