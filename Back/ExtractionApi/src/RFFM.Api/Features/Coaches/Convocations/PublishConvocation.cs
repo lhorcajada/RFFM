@@ -36,7 +36,7 @@ namespace RFFM.Api.Features.Coaches.Convocations
                 .Produces(StatusCodes.Status409Conflict);
         }
 
-        public record PublishConvocationCommand(string EventId) : RFFM.Api.Common.ICommand<Unit>;
+        public record PublishConvocationCommand(string EventId) : RFFM.Api.Common.ICommand;
 
         public class Validator : FluentValidation.AbstractValidator<PublishConvocationCommand>
         {
