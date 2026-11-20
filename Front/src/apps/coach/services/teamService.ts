@@ -146,6 +146,7 @@ export async function fetchTeamPhoto(url: string): Promise<string | null> {
     const resp = await client.get(`/api/catalog/team/photo`, {
       params: { url },
       responseType: "blob",
+      suppressErrorRedirect: true,
     } as any);
     const blob = resp.data as Blob;
     const objectUrl = URL.createObjectURL(blob);
