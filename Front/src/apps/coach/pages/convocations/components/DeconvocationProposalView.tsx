@@ -61,7 +61,7 @@ const DIFFICULTY_LABELS: Record<RivalDifficulty, string> = {
 };
 
 function scheduleText(
-  { upcoming, restStrong, maxStrong }: DeconvokeProposal["schedule"],
+  { upcoming, keepStrong, maxStrong }: DeconvokeProposal["schedule"],
   current: RivalDifficulty,
 ): string {
   const window = [current, ...upcoming];
@@ -71,7 +71,7 @@ function scheduleText(
     upcoming.length === 0
       ? "No hay previsión de los próximos partidos."
       : hardCount > 0
-        ? `${scope}, ${hardCount === 1 ? "1 es difícil" : `${hardCount} son difíciles`}${restStrong ? ": descansan antes los jugadores importantes para llegar frescos" : ""}.`
+        ? `${scope}, ${hardCount === 1 ? "1 es difícil" : `${hardCount} son difíciles`}${keepStrong ? ": se evita desconvocar a los jugadores importantes para tenerlos en ese partido" : ""}.`
         : `${scope}, ninguno es difícil.`;
   const strongCap = maxStrong === 0 ? "No se desconvoca a jugadores importantes" : `Como mucho ${maxStrong} importante(s)`;
   return `${outlook} ${strongCap}, no se quita a dos jugadores de la misma línea si hay alternativa y, si sale un delantero, quedan al menos dos que puedan jugar de delantero.`;
@@ -289,7 +289,7 @@ export default function DeconvocationProposalView({
     {
       title: "Dificultad del rival",
       text: hard
-        ? "En caso de empate salen primero los de menor nivel."
+        ? "Contra un rival difícil salen primero los de menor nivel, salvo los protegidos; la justicia solo desempata."
         : "El nivel de los jugadores no influye en el orden.",
     },
     {

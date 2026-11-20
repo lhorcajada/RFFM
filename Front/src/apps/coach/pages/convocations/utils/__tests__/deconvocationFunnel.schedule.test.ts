@@ -10,28 +10,29 @@ const metrics = (partial: Partial<FairnessMetrics>): FairnessMetrics => ({
   ...partial,
 });
 
-describe("compareFairness — calendario próximo", () => {
+describe("compareFairness — partido difícil por delante", () => {
   const strong = metrics({ strong: true, rating: 8 });
   const normal = metrics({ strong: false, rating: 5 });
 
-  it("con descanso de fuertes, el fuerte va antes que el normal", () => {
-    const { order, criterion } = compareFairness(strong, normal, "easy", { restStrong: true });
+  it("con un partido difícil por delante, el que no es importante va antes que el importante", () => {
+    const { order, criterion } = compareFairness(normal, strong, "easy", { keepStrong: true });
 
     expect(order).toBeLessThan(0);
     expect(criterion).toBe("schedule");
+    expect(compareFairness(strong, normal, "easy", { keepStrong: true }).order).toBeGreaterThan(0);
   });
 
   it("no pasa por delante de las jornadas seguidas ni del excedente", () => {
-    const { criterion } = compareFairness(metrics({ strong: true, consecutive: 2 }), metrics({ strong: false, consecutive: 5 }), "easy", { restStrong: true });
+    const { criterion } = compareFairness(metrics({ strong: true, consecutive: 5 }), metrics({ strong: false, consecutive: 2 }), "easy", { keepStrong: true });
 
     expect(criterion).toBe("consecutive");
   });
 
-  it("sin descanso de fuertes el criterio no se aplica", () => {
-    expect(compareFairness(strong, normal, "easy").criterion).not.toBe("schedule");
+  it("sin partido difícil por delante el criterio no se aplica", () => {
+    expect(compareFairness(normal, strong, "easy").criterion).not.toBe("schedule");
   });
 
-  it("entre dos fuertes o dos normales no decide", () => {
-    expect(compareFairness(strong, metrics({ strong: true, rating: 8 }), "easy", { restStrong: true }).criterion).toBeNull();
+  it("entre dos importantes o dos normales no decide", () => {
+    expect(compareFairness(strong, metrics({ strong: true, rating: 8 }), "easy", { keepStrong: true }).criterion).toBeNull();
   });
 });

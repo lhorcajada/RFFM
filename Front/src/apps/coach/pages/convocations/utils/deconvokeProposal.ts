@@ -59,8 +59,8 @@ export type ProposalFactor = {
 export type ScheduleInfo = {
   /** Difficulty of the following matches, in order; empty when unknown. */
   upcoming: RivalDifficulty[];
-  /** Strong players are preferred to rest now, so they arrive fresh to the hard matches that follow. */
-  restStrong: boolean;
+  /** A hard match is coming: the strong players stay called and the weaker ones rest first. */
+  keepStrong: boolean;
   /** Players considered strong (the squad's most important). */
   strongCount: number;
   /** Most strong players the proposal deconvokes; more only when the target cannot be reached otherwise. */
@@ -298,7 +298,7 @@ type DetailInput = {
   positionReason: string | null;
   windows: ProtectionWindows;
   difficulty: RivalDifficulty;
-  restStrong: boolean;
+  keepStrong: boolean;
 };
 
 /** Players able to play forward that must remain when a forward is deconvoked. */
@@ -310,10 +310,15 @@ const BALANCE_VERDICTS: Record<BalanceSkip | "forward", string> = {
   forward: "Se queda: debe haber al menos dos jugadores que puedan jugar de delantero",
 };
 
-const CRITERIA_ORDER: Criterion[] = ["schedule", "fit", "consecutive", "surplus", "technicalTotal", "attendance", "rating"];
+/** Criteria in the order `compareFairness` applies them. */
+function criteriaOrder(difficulty: RivalDifficulty): Criterion[] {
+  return difficulty === "hard"
+    ? ["rating", "consecutive", "surplus", "fit", "technicalTotal", "attendance"]
+    : ["consecutive", "surplus", "schedule", "fit", "technicalTotal", "attendance", "rating"];
+}
 
 /** Every rule evaluated for a player, in funnel order, with its value and outcome. */
-function buildDetail({ proposal, internal, decision, decidingCriterion, positionReason, windows, difficulty, restStrong }: DetailInput): ProposalDetailRow[] {
+function buildDetail({ proposal, internal, decision, decidingCriterion, positionReason, windows, difficulty, keepStrong }: DetailInput): ProposalDetailRow[] {
   const { technicalAgo, injuryAgo, lastMinutes, otherAgo, otherReason, calledCount, minRequiredCalls, metrics } = internal;
   const matchdays = (n: number) => (n === 1 ? "1 jornada" : `${n} jornadas`);
   const protectedBy = internal.protection?.kind;
@@ -375,7 +380,7 @@ function buildDetail({ proposal, internal, decision, decidingCriterion, position
 
   if (!proposal.forced && !internal.protection && !positionReason && !proposal.locked) {
     const values: Record<Criterion, [string, string]> = {
-      schedule: ["Partidos difíciles próximos", metrics.strong ? "Jugador importante: descansa antes de los partidos difíciles" : "Jugador no importante"],
+      schedule: ["Partidos difíciles próximos", metrics.strong ? "Jugador importante: se evita desconvocarlo antes de un partido difícil" : "No es de los más importantes"],
       fit: [
         "Encaje en el puesto",
         metrics.fit ? formatFitPlace(metrics.fit) : "Sin orden de encaje para su puesto",
@@ -386,10 +391,11 @@ function buildDetail({ proposal, internal, decision, decidingCriterion, position
       attendance: ["Asistencia a entrenamientos", `${metrics.attendanceBucket * 10}%`],
       rating: ["Nivel ante rival difícil", metrics.rating.toFixed(1).replace(".", ",")],
     };
-    const decidingIndex = decidingCriterion ? CRITERIA_ORDER.indexOf(decidingCriterion) : -1;
-    CRITERIA_ORDER.forEach((criterion, index) => {
+    const order = criteriaOrder(difficulty);
+    const decidingIndex = decidingCriterion ? order.indexOf(decidingCriterion) : -1;
+    order.forEach((criterion, index) => {
       if (criterion === "rating" && difficulty !== "hard") return;
-      if (criterion === "schedule" && !restStrong) return;
+      if (criterion === "schedule" && !keepStrong) return;
       let result: DetailResult = "noEffect";
       if (criterion === "fit" && !metrics.fit) {
         rows.push({ rule: values[criterion][0], value: values[criterion][1], result });
@@ -1063,9 +1069,9 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
   strongIds.forEach((id) => {
     internals.get(id)!.metrics.strong = true;
   });
-  // Against a hard rival the best play; with a hard match ahead, they rest now.
+  // Against a hard rival the weakest rest first; with a hard match ahead, the strong players stay called now too.
   const scheduleContext: ScheduleContext = {
-    restStrong: rivalDifficulty !== "hard" && upcomingDifficulties.includes("hard"),
+    keepStrong: rivalDifficulty !== "hard" && upcomingDifficulties.includes("hard"),
   };
   const compareWithSchedule = (a: FairnessMetrics, b: FairnessMetrics) => compareFairness(a, b, rivalDifficulty, scheduleContext);
 
@@ -1083,7 +1089,7 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
   const forcedCount = forcedPlayers.length;
   const targetCount = Math.max(forcedCount, calledIds.length - maxCalledPlayers, 0);
 
-  const maxStrong = rivalDifficulty === "hard" ? 0 : Math.max(1, Math.floor(targetCount / 2));
+  const maxStrong = rivalDifficulty === "hard" || scheduleContext.keepStrong ? 0 : Math.max(1, Math.floor(targetCount / 2));
   const { selectedIds, protectedBy, protectedRemaining, forwardCoverRemaining, balanceSkipped, shortfalls } = selectDeconvocations(
     orderedProposals.map((p) => ({
       playerId: p.playerId,
@@ -1266,7 +1272,7 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
         positionReason,
         windows: protectionWindows,
         difficulty: rivalDifficulty,
-        restStrong: scheduleContext.restStrong,
+        keepStrong: scheduleContext.keepStrong,
       }),
     };
   });
@@ -1304,7 +1310,7 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
   return {
     generatedAt: new Date().toISOString(),
     rivalDifficulty,
-    schedule: { upcoming: upcomingDifficulties, restStrong: scheduleContext.restStrong, strongCount: strongIds.size, maxStrong },
+    schedule: { upcoming: upcomingDifficulties, keepStrong: scheduleContext.keepStrong, strongCount: strongIds.size, maxStrong },
     targetCount,
     calledCount: calledIds.length,
     selectedIds,

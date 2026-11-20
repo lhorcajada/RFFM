@@ -185,8 +185,8 @@ export type FairnessMetrics = {
 
 /** What the next matches ask of the order. */
 export type ScheduleContext = {
-  /** The current match is not hard but a hard one is coming: strong players rest now to arrive fresh. */
-  restStrong: boolean;
+  /** The current match is not hard but a hard one is coming: strong players stay called, the weaker ones rest first. */
+  keepStrong: boolean;
 };
 
 /** The values every criterion compares, in the order they are applied, for the order list chips. */
@@ -218,20 +218,24 @@ export function compareFairness(
   difficulty: RivalDifficulty,
   schedule?: ScheduleContext,
 ): { order: number; criterion: Criterion | null } {
-  const strongFirst: [Criterion, number] = [
+  const weakFirst: [Criterion, number] = [
     "schedule",
-    schedule?.restStrong ? Number(Boolean(b.strong)) - Number(Boolean(a.strong)) : 0,
+    schedule?.keepStrong ? Number(Boolean(a.strong)) - Number(Boolean(b.strong)) : 0,
   ];
   const fit: [Criterion, number] = ["fit", fitDifference(a.fit, b.fit)];
   const consecutive: [Criterion, number] = ["consecutive", b.consecutive - a.consecutive];
   const surplus: [Criterion, number] = ["surplus", b.surplus - a.surplus];
   const technicalTotal: [Criterion, number] = ["technicalTotal", a.technicalTotal - b.technicalTotal];
   const attendance: [Criterion, number] = ["attendance", a.attendanceBucket - b.attendanceBucket];
-  const rating: [Criterion, number] = ["rating", a.rating - b.rating];
+  // Against a hard rival the level is compared in steps of half a point, so near-equal players fall back to fairness.
+  const rating: [Criterion, number] = [
+    "rating",
+    difficulty === "hard" ? Math.round(a.rating * 2) - Math.round(b.rating * 2) : a.rating - b.rating,
+  ];
   const steps =
     difficulty === "hard"
-      ? [consecutive, surplus, fit, rating, technicalTotal, attendance]
-      : [consecutive, surplus, strongFirst, fit, technicalTotal, attendance, rating];
+      ? [rating, consecutive, surplus, fit, technicalTotal, attendance]
+      : [consecutive, surplus, weakFirst, fit, technicalTotal, attendance, rating];
   for (const [criterion, diff] of steps) {
     if (diff !== 0) return { order: diff, criterion };
   }
@@ -261,9 +265,9 @@ export function describeCriterion(
   switch (criterion) {
     case "schedule":
       return {
-        chosen: "es de los jugadores más importantes y descansa ahora para llegar fresco a los partidos difíciles que vienen",
-        compare: `${peerName} no es de los más importantes`,
-        notChosen: `Se desconvoca a ${chosenName} en su lugar: descansa ahora un jugador importante antes de los partidos difíciles`,
+        chosen: "no es de los jugadores más importantes y se quiere tener a los importantes en el partido difícil que viene",
+        compare: `${peerName} es de los más importantes`,
+        notChosen: `Se desconvoca a ${chosenName} en su lugar: no es de los más importantes y viene un partido difícil`,
       };
     case "fit":
       return {
