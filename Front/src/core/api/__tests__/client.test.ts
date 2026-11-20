@@ -72,6 +72,45 @@ describe("client response interceptor — suppressErrorRedirect", () => {
   });
 });
 
+describe("client response interceptor — peticiones abortadas al descargar la página", () => {
+  const navigateMock = vi.fn();
+
+  beforeEach(() => {
+    navigateMock.mockClear();
+    sessionStorage.clear();
+    localStorage.clear();
+    vi.mocked(coachAuthService.logout).mockClear();
+    registerNavigate(navigateMock);
+  });
+
+  it("no cuenta como error de red ni cierra sesión si la página se está descargando", async () => {
+    const rejected = getResponseErrorHandler();
+    window.dispatchEvent(new Event("pagehide"));
+
+    await expect(
+      rejected({ message: "Network Error", code: "ERR_NETWORK", config: {} })
+    ).rejects.toBeDefined();
+    await expect(
+      rejected({ message: "Network Error", code: "ERR_NETWORK", config: {} })
+    ).rejects.toBeDefined();
+
+    expect(navigateMock).not.toHaveBeenCalled();
+    expect(coachAuthService.logout).not.toHaveBeenCalled();
+  });
+
+  it("vuelve a gestionar errores de red si la página se restaura (bfcache)", async () => {
+    const rejected = getResponseErrorHandler();
+    window.dispatchEvent(new Event("pagehide"));
+    window.dispatchEvent(new Event("pageshow"));
+
+    await expect(
+      rejected({ message: "Network Error", code: "ERR_NETWORK", config: {} })
+    ).rejects.toBeDefined();
+
+    expect(navigateMock).toHaveBeenCalledWith(expect.stringContaining("reason=network"));
+  });
+});
+
 describe("client response interceptor — bucle de errores 500", () => {
   const navigateMock = vi.fn();
 
