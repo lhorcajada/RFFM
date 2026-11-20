@@ -97,6 +97,38 @@ function hasAuthorizationHeader(config: any): boolean {
   return Boolean(headers.Authorization ?? headers.authorization ?? headers.get?.("Authorization"));
 }
 
+/** Full URL of a request, query string included, as the browser asked for it. */
+function fullRequestUrl(config: any): string {
+  const base = String(config?.baseURL ?? "");
+  const path = String(config?.url ?? "");
+  const root = /^https?:\/\//i.test(path) ? path : `${base.replace(/\/$/, "")}/${path.replace(/^\//, "")}`;
+  try {
+    const query = new URLSearchParams();
+    Object.entries((config?.params ?? {}) as Record<string, unknown>).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) query.append(key, String(value));
+    });
+    const text = query.toString();
+    return text ? `${root}${root.includes("?") ? "&" : "?"}${text}` : root;
+  } catch {
+    return root;
+  }
+}
+
+/** Optional file/image requests never redirect on failure, so their failures are only visible in the trace. */
+function traceFileError(error: any) {
+  const config = error?.config;
+  const binary = config?.responseType === "blob" || config?.responseType === "arraybuffer";
+  if (!binary || config?.suppressErrorRedirect !== true) return;
+  traceAuth("http.file_error", {
+    method: config?.method,
+    fullUrl: fullRequestUrl(config),
+    code: error?.code,
+    status: error?.response?.status ?? null,
+    hasAuthHeader: hasAuthorizationHeader(config),
+    online: typeof navigator !== "undefined" ? navigator.onLine : null,
+  });
+}
+
 function gotoErrorPage(reason?: string, error?: any) {
   if (pageUnloading) return;
   const suffix = reason ? `?reason=${encodeURIComponent(reason)}` : "";
@@ -136,6 +168,7 @@ client.interceptors.response.use(
   (resp) => resp,
   (error) => {
     try {
+      traceFileError(error);
       const status = error?.response?.status;
       // If unauthorized, notify app so it can ask user to re-authenticate
       if (status === 401) {

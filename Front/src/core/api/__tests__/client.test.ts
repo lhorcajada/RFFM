@@ -249,4 +249,47 @@ describe("client response interceptor — fallos de red de una ráfaga (iOS)", (
     const entry = getAuthTrace().find((e) => e.event === "http.error_redirect");
     expect(entry?.data).toMatchObject({ hasAuthHeader: true, online: true });
   });
+
+  it("anota en el diagnóstico la URL completa de una imagen o archivo que no se ha podido cargar, aunque no redirija", async () => {
+    const { getAuthTrace, clearAuthTrace } = await import("../../diagnostics/authTrace");
+    clearAuthTrace();
+    const rejected = getResponseErrorHandler();
+
+    await expect(
+      rejected({
+        message: "Network Error",
+        code: "ERR_NETWORK",
+        config: {
+          method: "get",
+          url: "/api/catalog/team/photo",
+          baseURL: "https://api.example.test/",
+          params: { url: "clubs/escudo 1.png" },
+          responseType: "blob",
+          suppressErrorRedirect: true,
+          headers: { Authorization: "Bearer t" },
+        },
+      }),
+    ).rejects.toBeDefined();
+
+    const entry = getAuthTrace().find((e) => e.event === "http.file_error");
+    expect(entry?.data).toMatchObject({
+      method: "get",
+      fullUrl: "https://api.example.test/api/catalog/team/photo?url=clubs%2Fescudo+1.png",
+      code: "ERR_NETWORK",
+      hasAuthHeader: true,
+    });
+    expect(navigateMock).not.toHaveBeenCalled();
+  });
+
+  it("no anota como error de archivo las peticiones normales suprimidas", async () => {
+    const { getAuthTrace, clearAuthTrace } = await import("../../diagnostics/authTrace");
+    clearAuthTrace();
+    const rejected = getResponseErrorHandler();
+
+    await expect(
+      rejected(networkError({ method: "get", url: "/api/x", suppressErrorRedirect: true })),
+    ).rejects.toBeDefined();
+
+    expect(getAuthTrace().some((e) => e.event === "http.file_error")).toBe(false);
+  });
 });
