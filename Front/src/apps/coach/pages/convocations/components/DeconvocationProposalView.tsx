@@ -41,6 +41,7 @@ export type FitContext = {
 };
 
 const CRITERION_LABELS: Record<NonNullable<ProposalDecision["criterion"]>, string> = {
+  schedule: "partidos difíciles próximos",
   fit: "encaje por rasgos",
   consecutive: "jornadas seguidas",
   surplus: "excedente de convocatorias",
@@ -55,6 +56,18 @@ const DIFFICULTY_LABELS: Record<RivalDifficulty, string> = {
   medium: "Rival medio",
   hard: "Rival difícil",
 };
+
+function scheduleText({ upcoming, restStrong, maxStrong }: DeconvokeProposal["schedule"]): string {
+  const hardAhead = upcoming.filter((d) => d === "hard").length;
+  const outlook =
+    upcoming.length === 0
+      ? "No hay previsión de los próximos partidos."
+      : hardAhead > 0
+        ? `De los ${upcoming.length} partidos siguientes, ${hardAhead === 1 ? "1 es difícil" : `${hardAhead} son difíciles`}${restStrong ? ": descansan antes los jugadores importantes para llegar frescos" : ""}.`
+        : `Ninguno de los ${upcoming.length} partidos siguientes es difícil.`;
+  const strongCap = maxStrong === 0 ? "No se desconvoca a jugadores importantes" : `Como mucho ${maxStrong} importante(s)`;
+  return `${outlook} ${strongCap}, no se quita a dos jugadores de la misma línea si hay alternativa y, si sale un delantero, quedan al menos dos que puedan jugar de delantero.`;
+}
 
 const RESULT_TONE: Record<DetailResult, string> = {
   protects: styles.toneProtect,
@@ -149,6 +162,7 @@ function ProposedCard({ item, onShowFit }: { item: PlayerProposal; onShowFit?: (
 const ORDER_OUTCOME_LABELS: Partial<Record<ProposalOrderEntry["outcome"], string>> = {
   proposed: "Se desconvoca",
   positionSkip: "Se salta: mínimo de su posición",
+  balanceSkip: "Se salta: reparto entre líneas",
 };
 
 function OrderList({ order }: { order: ProposalOrderEntry[] }) {
@@ -259,6 +273,10 @@ export default function DeconvocationProposalView({
       text: hard
         ? "En caso de empate salen primero los de menor nivel."
         : "El nivel de los jugadores no influye en el orden.",
+    },
+    {
+      title: "Reparto y próximos partidos",
+      text: scheduleText(proposal.schedule),
     },
   ];
 

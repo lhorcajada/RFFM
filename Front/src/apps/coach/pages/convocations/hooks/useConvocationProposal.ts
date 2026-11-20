@@ -41,6 +41,8 @@ type UseConvocationProposalInput = {
   rules?: DeconvocationRuleConfig[];
   /** Difficulty of the rival; medium when omitted. */
   rivalDifficulty?: RivalDifficulty;
+  /** Difficulty of the matches after this one; empty or omitted when unknown. */
+  upcomingDifficulties?: RivalDifficulty[];
   /** Fit order of each unified position; positions without one keep the fairness order. */
   positionFit?: PositionFit[];
   /** Minutes of the last played match; players who barely played are protected. */
@@ -71,6 +73,7 @@ export function useConvocationProposal(input: UseConvocationProposalInput): Deco
     matchUnavailable,
     rules,
     rivalDifficulty,
+    upcomingDifficulties,
     positionFit,
     lastMatchMinutes,
   } = input;
@@ -101,6 +104,7 @@ export function useConvocationProposal(input: UseConvocationProposalInput): Deco
         matchUnavailable,
         rules,
         rivalDifficulty,
+        upcomingDifficulties,
         positionFit,
         lastMatchMinutes,
       }),
@@ -127,6 +131,7 @@ export function useConvocationProposal(input: UseConvocationProposalInput): Deco
       matchUnavailable,
       rules,
       rivalDifficulty,
+      upcomingDifficulties,
       positionFit,
       lastMatchMinutes,
     ],

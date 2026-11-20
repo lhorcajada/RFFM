@@ -1,15 +1,23 @@
 import { useEffect, useMemo, useState } from "react";
 import { getRivalSimulation, type RivalSimulation } from "../../../services/matchForecastService";
 import { classifyRivalDifficulty, type RivalDifficulty } from "../utils/deconvocationFunnel";
-import { difficultyThresholdsFromRules, ownWinProbabilityAgainst } from "../utils/rivalDifficulty";
+import { difficultyThresholdsFromRules, ownWinProbabilityAgainst, upcomingDifficulties } from "../utils/rivalDifficulty";
 import type { DeconvocationRuleConfig } from "../utils/rules/ruleCatalog";
 
-/** Difficulty of the next rival from the league forecast; medium while loading, without forecast or without the rule. */
-export function useRivalDifficulty(
+export type RivalOutlook = {
+  /** Difficulty of the next rival; medium while loading, without forecast or without the rule. */
+  difficulty: RivalDifficulty;
+  /** Difficulty of the matches after it (the next five); empty while loading, without forecast or without the rule. */
+  upcoming: RivalDifficulty[];
+};
+
+/** Difficulty of the next rival and of the matches that follow, from the league forecast. */
+export function useRivalOutlook(
   teamId: string,
   rivalName: string | null,
   rules: DeconvocationRuleConfig[],
-): RivalDifficulty {
+  matchDate?: string | null,
+): RivalOutlook {
   const [simulation, setSimulation] = useState<RivalSimulation | null>(null);
 
   useEffect(() => {
@@ -30,7 +38,19 @@ export function useRivalDifficulty(
 
   return useMemo(() => {
     const thresholds = difficultyThresholdsFromRules(rules);
-    if (!thresholds) return "medium";
-    return classifyRivalDifficulty(ownWinProbabilityAgainst(simulation, rivalName), thresholds);
-  }, [simulation, rivalName, rules]);
+    if (!thresholds) return { difficulty: "medium", upcoming: [] };
+    return {
+      difficulty: classifyRivalDifficulty(ownWinProbabilityAgainst(simulation, rivalName, matchDate), thresholds),
+      upcoming: upcomingDifficulties(simulation, rivalName, thresholds, undefined, matchDate),
+    };
+  }, [simulation, rivalName, rules, matchDate]);
+}
+
+/** Difficulty of the next rival from the league forecast; medium while loading, without forecast or without the rule. */
+export function useRivalDifficulty(
+  teamId: string,
+  rivalName: string | null,
+  rules: DeconvocationRuleConfig[],
+): RivalDifficulty {
+  return useRivalOutlook(teamId, rivalName, rules).difficulty;
 }
