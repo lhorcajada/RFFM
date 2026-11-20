@@ -122,7 +122,7 @@ export function protectionOf(
   return null;
 }
 
-export type Criterion = "fit" | "consecutive" | "surplus" | "technicalTotal" | "attendance" | "rating";
+export type Criterion = "schedule" | "fit" | "consecutive" | "surplus" | "technicalTotal" | "attendance" | "rating";
 
 /** Where a player stands in the fit order of his position, among the players called. */
 export type FitInfo = {
@@ -179,6 +179,14 @@ export type FairnessMetrics = {
   rating: number;
   /** Place in the fit order of the player's position; absent when the position has no usable order. */
   fit?: FitInfo;
+  /** One of the squad's strongest players (top third by rating). */
+  strong?: boolean;
+};
+
+/** What the next matches ask of the order. */
+export type ScheduleContext = {
+  /** The current match is not hard but a hard one is coming: strong players rest now to arrive fresh. */
+  restStrong: boolean;
 };
 
 /** The values every criterion compares, in the order they are applied, for the order list chips. */
@@ -208,7 +216,12 @@ export function compareFairness(
   a: FairnessMetrics,
   b: FairnessMetrics,
   difficulty: RivalDifficulty,
+  schedule?: ScheduleContext,
 ): { order: number; criterion: Criterion | null } {
+  const strongFirst: [Criterion, number] = [
+    "schedule",
+    schedule?.restStrong ? Number(Boolean(b.strong)) - Number(Boolean(a.strong)) : 0,
+  ];
   const fit: [Criterion, number] = ["fit", fitDifference(a.fit, b.fit)];
   const consecutive: [Criterion, number] = ["consecutive", b.consecutive - a.consecutive];
   const surplus: [Criterion, number] = ["surplus", b.surplus - a.surplus];
@@ -218,7 +231,7 @@ export function compareFairness(
   const steps =
     difficulty === "hard"
       ? [consecutive, surplus, fit, rating, technicalTotal, attendance]
-      : [consecutive, surplus, fit, technicalTotal, attendance, rating];
+      : [consecutive, surplus, strongFirst, fit, technicalTotal, attendance, rating];
   for (const [criterion, diff] of steps) {
     if (diff !== 0) return { order: diff, criterion };
   }
@@ -246,6 +259,12 @@ export function describeCriterion(
   difficulty: RivalDifficulty = "medium",
 ): { chosen: string; compare: string; notChosen: string } {
   switch (criterion) {
+    case "schedule":
+      return {
+        chosen: "es de los jugadores más importantes y descansa ahora para llegar fresco a los partidos difíciles que vienen",
+        compare: `${peerName} no es de los más importantes`,
+        notChosen: `Se desconvoca a ${chosenName} en su lugar: descansa ahora un jugador importante antes de los partidos difíciles`,
+      };
     case "fit":
       return {
         chosen: `tiene peor encaje por rasgos en su puesto (${formatFitValue(a.fit)})`,
@@ -291,6 +310,8 @@ export function describeCriterion(
 /** Values of a criterion for the player proposed (a) and a peer (b), e.g. "6 frente a 4". */
 export function formatCriterionValues(criterion: Criterion, a: FairnessMetrics, b: FairnessMetrics): string {
   switch (criterion) {
+    case "schedule":
+      return `${a.strong ? "importante" : "normal"} frente a ${b.strong ? "importante" : "normal"}`;
     case "fit":
       return `${formatFitValue(a.fit)} frente a ${formatFitValue(b.fit)}`;
     case "consecutive":
@@ -307,6 +328,7 @@ export function formatCriterionValues(criterion: Criterion, a: FairnessMetrics, 
 }
 
 export const CRITERION_NAMES: Record<Criterion, string> = {
+  schedule: "partidos difíciles próximos",
   fit: "encaje por rasgos",
   consecutive: "jornadas seguidas",
   surplus: "excedente de convocatorias",

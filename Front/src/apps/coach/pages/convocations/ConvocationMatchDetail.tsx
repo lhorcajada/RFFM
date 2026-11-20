@@ -30,7 +30,7 @@ import { useLatestTraitRatings } from "./hooks/useLatestTraitRatings";
 import { useMatchMinutes } from "./hooks/useMatchMinutes";
 import { buildLastMatchMinutes } from "./utils/lastMatchMinutes";
 import { usePositionFitOrder } from "./hooks/usePositionFitOrder";
-import { useRivalDifficulty } from "./hooks/useRivalDifficulty";
+import { useRivalOutlook } from "./hooks/useRivalDifficulty";
 import { leagueTechnicalTotals } from "./utils/technicalTotals";
 import { resolveRule } from "./utils/rules/ruleCatalog";
 import { buildMatchUnavailability } from "./utils/matchUnavailability";
@@ -289,7 +289,7 @@ export default function ConvocationMatchDetail() {
     [convocation.players, grid.matchColumns, grid.enrichedGrid],
   );
 
-  const rivalDifficulty = useRivalDifficulty(teamId, proposalRivalName, deconvocationRules);
+  const { difficulty: rivalDifficulty, upcoming: upcomingDifficulties } = useRivalOutlook(teamId, proposalRivalName, deconvocationRules, match?.date);
 
   const squadIds = useMemo(() => convocation.players.map((p) => p.id), [convocation.players]);
   const alreadyOutIds = useMemo(() => new Set(convocation.mgmtNotCalled), [convocation.mgmtNotCalled]);
@@ -317,6 +317,7 @@ export default function ConvocationMatchDetail() {
     lastMatchMinutes,
     rules: deconvocationRules,
     rivalDifficulty,
+    upcomingDifficulties,
     positionFit,
     players: convocation.players,
     squadIds,
