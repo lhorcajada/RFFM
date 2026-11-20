@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { MatchPrediction, RivalSimulation } from "../../../../services/matchForecastService";
 import { DEFAULT_DIFFICULTY_THRESHOLDS } from "../deconvocationFunnel";
-import { ownWinProbabilityAgainst, upcomingDifficulties } from "../rivalDifficulty";
+import { ownWinProbabilityAgainst, upcomingDifficulties, upcomingMatchesAfter } from "../rivalDifficulty";
 
 function own(round: number, rival: string, ownWin: number, home = true): MatchPrediction {
   return {
@@ -78,5 +78,29 @@ describe("localización del partido actual en el pronóstico", () => {
     const sim = simulation([own(2, "otro", 0.5)]);
 
     expect(ownWinProbabilityAgainst(sim, "Nombre distinto")).toBeNull();
+  });
+});
+
+describe("upcomingMatchesAfter", () => {
+  const dated = (round: number, rival: string, date: string, win: number, home = true) => ({ ...own(round, rival, win, home), date });
+
+  it("devuelve ronda, fecha, rival, dificultad y una etiqueta de cada partido siguiente", () => {
+    const sim = simulation([dated(2, "Vallecas CF", "2026-10-21", 0.5), dated(3, "Getafe", "2026-10-28", 0.2), dated(4, "Alcorcón", "2026-11-04", 0.9, false)]);
+    const matches = upcomingMatchesAfter(sim, "Vallecas CF", T, 5);
+
+    expect(matches).toEqual([
+      { eventId: "upcoming-3", round: 3, label: "J3", date: "2026-10-28", rival: "Getafe", difficulty: "hard" },
+      { eventId: "upcoming-4", round: 4, label: "J4", date: "2026-11-04", rival: "Alcorcón", difficulty: "easy" },
+    ]);
+  });
+
+  it("el rival es el contrario del equipo, juegue en casa o fuera", () => {
+    const sim = simulation([dated(2, "A", "2026-10-21", 0.5), dated(3, "B", "2026-10-28", 0.5, false)]);
+
+    expect(upcomingMatchesAfter(sim, "A", T, 5)[0].rival).toBe("B");
+  });
+
+  it("devuelve una lista vacía si no localiza el partido actual", () => {
+    expect(upcomingMatchesAfter(simulation([dated(2, "A", "2026-10-21", 0.5)]), "Otro", T, 5)).toEqual([]);
   });
 });

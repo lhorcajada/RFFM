@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { getRivalSimulation, type RivalSimulation } from "../../../services/matchForecastService";
 import { classifyRivalDifficulty, type RivalDifficulty } from "../utils/deconvocationFunnel";
-import { difficultyThresholdsFromRules, ownWinProbabilityAgainst, upcomingDifficulties } from "../utils/rivalDifficulty";
+import { difficultyThresholdsFromRules, ownWinProbabilityAgainst, upcomingMatchesAfter, type UpcomingMatch } from "../utils/rivalDifficulty";
 import type { DeconvocationRuleConfig } from "../utils/rules/ruleCatalog";
 
 export type RivalOutlook = {
@@ -9,6 +9,8 @@ export type RivalOutlook = {
   difficulty: RivalDifficulty;
   /** Difficulty of the matches after it (the next five); empty while loading, without forecast or without the rule. */
   upcoming: RivalDifficulty[];
+  /** The next league matches with rival, date and difficulty; same availability as `upcoming`. */
+  upcomingMatches: UpcomingMatch[];
 };
 
 /** Difficulty of the next rival and of the matches that follow, from the league forecast. */
@@ -38,10 +40,12 @@ export function useRivalOutlook(
 
   return useMemo(() => {
     const thresholds = difficultyThresholdsFromRules(rules);
-    if (!thresholds) return { difficulty: "medium", upcoming: [] };
+    if (!thresholds) return { difficulty: "medium", upcoming: [], upcomingMatches: [] };
+    const upcomingMatches = upcomingMatchesAfter(simulation, rivalName, thresholds, undefined, matchDate);
     return {
       difficulty: classifyRivalDifficulty(ownWinProbabilityAgainst(simulation, rivalName, matchDate), thresholds),
-      upcoming: upcomingDifficulties(simulation, rivalName, thresholds, undefined, matchDate),
+      upcoming: upcomingMatches.map((m) => m.difficulty),
+      upcomingMatches,
     };
   }, [simulation, rivalName, rules, matchDate]);
 }

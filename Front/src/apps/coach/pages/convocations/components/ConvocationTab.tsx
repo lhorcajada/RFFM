@@ -25,6 +25,7 @@ import ConvocationPlayerRow from "./ConvocationPlayerRow";
 import PlayerFormLegend from "../../../components/PlayerFormLegend/PlayerFormLegend";
 import type { DropZone } from "./convocationMatchDetail.types";
 import type { DeconvokeProposal } from "../utils/deconvokeProposal";
+import type { SimulatedProposal } from "../utils/simulateUpcomingProposals";
 import type { DeconvocationRuleConfig } from "../utils/rules/ruleCatalog";
 import DeconvocationProposalView, { type FitContext } from "./DeconvocationProposalView";
 import DeconvocationRulesDialog from "./DeconvocationRulesDialog";
@@ -103,6 +104,8 @@ type Props = {
   onMoveToWaiting?: (playerId: string) => Promise<void>;
   playerStreaks?: Map<string, number>;
   proposal: DeconvokeProposal;
+  /** Estimated proposals for the next league matches, chained from `proposal`. */
+  upcomingProposals?: SimulatedProposal[];
   proposalLoading: boolean;
   onApplyProposal: (ids: string[]) => Promise<void>;
   /** Reloads the team rules and regenerates the proposal. */
@@ -180,6 +183,7 @@ export default function ConvocationTab({
   onMoveToWaiting,
   playerStreaks,
   proposal,
+  upcomingProposals,
   proposalLoading,
   onApplyProposal,
   onRefreshProposal,
@@ -533,6 +537,7 @@ export default function ConvocationTab({
       {showProposal && (
         <DeconvocationProposalView
           proposal={proposal}
+          upcoming={upcomingProposals}
           loading={proposalLoading}
           refreshing={refreshingProposal}
           applying={applyingProposal}

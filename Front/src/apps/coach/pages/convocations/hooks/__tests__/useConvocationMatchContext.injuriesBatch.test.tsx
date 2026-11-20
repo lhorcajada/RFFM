@@ -87,4 +87,26 @@ describe("useConvocationMatchContext - lesiones", () => {
     expect(getTeamInjuriesMock).not.toHaveBeenCalled();
     expect(getPlayersByTeamMock).not.toHaveBeenCalled();
   });
+
+  it("expone la fecha estimada de regreso de la lesión abierta de cada jugador", async () => {
+    getTeamInjuriesMock.mockResolvedValue([
+      {
+        teamPlayerId: "p1",
+        injuries: [
+          { id: "i0", startDate: "2026-01-01", injuryType: "Muscular", endDate: "2026-01-10", estimatedRecovery: "2026-01-09" },
+          { id: "i1", startDate: "2026-10-10", injuryType: "Rodilla", estimatedRecovery: "2026-11-03" },
+        ],
+      },
+      { teamPlayerId: "p2", injuries: [{ id: "i2", startDate: "2026-10-12", injuryType: "Tobillo" }] },
+      { teamPlayerId: "p3", injuries: [{ id: "i3", startDate: "2026-01-01", injuryType: "Muscular", endDate: "2026-01-10" }] },
+    ]);
+    const players = [buildPlayer("p1"), buildPlayer("p2"), buildPlayer("p3")];
+
+    const { result } = renderHook(() => useConvocationMatchContext("team-1", undefined, null, players));
+
+    await waitFor(() => expect(result.current.injuryReturnMap.size).toBe(2));
+    expect(result.current.injuryReturnMap.get("p1")).toBe("2026-11-03");
+    expect(result.current.injuryReturnMap.get("p2")).toBeNull();
+    expect(result.current.injuryReturnMap.has("p3")).toBe(false);
+  });
 });

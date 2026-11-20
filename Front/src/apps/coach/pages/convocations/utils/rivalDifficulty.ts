@@ -77,10 +77,45 @@ export function ownWinProbabilityAgainst(
 /** How many matches after the current one the proposal looks ahead. */
 export const UPCOMING_MATCHES_LOOKAHEAD = 5;
 
+export type UpcomingMatch = {
+  /** Synthetic id of a match that is not a real event yet. */
+  eventId: string;
+  round: number;
+  /** Short label of the matchday, e.g. "J12". */
+  label: string;
+  date: string;
+  rival: string;
+  difficulty: RivalDifficulty;
+};
+
 /**
- * Difficulty of the own team's next matches after the current one, in matchday order; empty when
- * the forecast or the current match is unknown.
+ * The own team's league matches after the current one, in matchday order, with their rival and difficulty;
+ * empty when the forecast or the current match is unknown.
  */
+export function upcomingMatchesAfter(
+  simulation: RivalSimulation | null | undefined,
+  rivalName: string | null | undefined,
+  thresholds: DifficultyThresholds,
+  count: number = UPCOMING_MATCHES_LOOKAHEAD,
+  currentDate?: string | null,
+): UpcomingMatch[] {
+  if (!simulation || !simulation.ownTeamCode || (!clubKey(rivalName) && !isoDay(currentDate))) return [];
+  const index = currentMatchIndex(simulation, rivalName, currentDate);
+  if (index < 0) return [];
+  const own = simulation.ownTeamCode;
+  return ownMatchesOf(simulation)
+    .slice(index + 1, index + 1 + count)
+    .map((m) => ({
+      eventId: `upcoming-${m.round}`,
+      round: m.round,
+      label: `J${m.round}`,
+      date: isoDay(m.date) ?? "",
+      rival: m.localTeamCode === own ? m.visitorTeamName : m.localTeamName,
+      difficulty: classifyRivalDifficulty(ownWinProbability(m, own), thresholds),
+    }));
+}
+
+/** Difficulty of the matches after the current one, in matchday order; empty when unknown. */
 export function upcomingDifficulties(
   simulation: RivalSimulation | null | undefined,
   rivalName: string | null | undefined,
@@ -88,13 +123,7 @@ export function upcomingDifficulties(
   count: number = UPCOMING_MATCHES_LOOKAHEAD,
   currentDate?: string | null,
 ): RivalDifficulty[] {
-  if (!simulation || !simulation.ownTeamCode || (!clubKey(rivalName) && !isoDay(currentDate))) return [];
-  const index = currentMatchIndex(simulation, rivalName, currentDate);
-  if (index < 0) return [];
-  const own = simulation.ownTeamCode;
-  return ownMatchesOf(simulation)
-    .slice(index + 1, index + 1 + count)
-    .map((m) => classifyRivalDifficulty(ownWinProbability(m, own), thresholds));
+  return upcomingMatchesAfter(simulation, rivalName, thresholds, count, currentDate).map((m) => m.difficulty);
 }
 
 /** Thresholds of the team's difficulty rule as probabilities; null when the rule was removed. */

@@ -31,6 +31,7 @@ import { useMatchMinutes } from "./hooks/useMatchMinutes";
 import { buildLastMatchMinutes } from "./utils/lastMatchMinutes";
 import { usePositionFitOrder } from "./hooks/usePositionFitOrder";
 import { useRivalOutlook } from "./hooks/useRivalDifficulty";
+import { useUpcomingProposals } from "./hooks/useUpcomingProposals";
 import { leagueTechnicalTotals } from "./utils/technicalTotals";
 import { resolveRule } from "./utils/rules/ruleCatalog";
 import { buildMatchUnavailability } from "./utils/matchUnavailability";
@@ -235,6 +236,7 @@ export default function ConvocationMatchDetail() {
     lastInjuryEndMap,
     lastInjuryStartMap,
     lastInjuryMissedEventsMap,
+    injuryReturnMap,
     weekTrainingStatsMap,
     weekTrainingCount,
     loadingProposalContext,
@@ -289,7 +291,7 @@ export default function ConvocationMatchDetail() {
     [convocation.players, grid.matchColumns, grid.enrichedGrid],
   );
 
-  const { difficulty: rivalDifficulty, upcoming: upcomingDifficulties } = useRivalOutlook(teamId, proposalRivalName, deconvocationRules, match?.date);
+  const { difficulty: rivalDifficulty, upcoming: upcomingDifficulties, upcomingMatches } = useRivalOutlook(teamId, proposalRivalName, deconvocationRules, match?.date);
 
   const squadIds = useMemo(() => convocation.players.map((p) => p.id), [convocation.players]);
   const alreadyOutIds = useMemo(() => new Set(convocation.mgmtNotCalled), [convocation.mgmtNotCalled]);
@@ -313,7 +315,7 @@ export default function ConvocationMatchDetail() {
     [matchMinutes, grid.matchColumns],
   );
 
-  const proposal = useConvocationProposal({
+  const proposalInput = {
     lastMatchMinutes,
     rules: deconvocationRules,
     rivalDifficulty,
@@ -339,6 +341,14 @@ export default function ConvocationMatchDetail() {
     weekTrainingCount,
     gridStartsCountMap,
     matchUnavailable,
+  };
+  const proposal = useConvocationProposal(proposalInput);
+  const upcomingProposals = useUpcomingProposals({
+    proposalInput,
+    proposal,
+    upcomingMatches,
+    injuryReturn: injuryReturnMap,
+    enabled: proposalEnabled,
   });
 
   const handleApplyProposal = useCallback(
@@ -491,6 +501,7 @@ export default function ConvocationMatchDetail() {
             }
             playerStreaks={playerStreaks}
             proposal={proposal}
+            upcomingProposals={upcomingProposals}
             proposalLoading={loadingProposalContext || grid.isLoading || convocation.loadingPlayers}
             teamId={teamId}
             rules={deconvocationRules}
