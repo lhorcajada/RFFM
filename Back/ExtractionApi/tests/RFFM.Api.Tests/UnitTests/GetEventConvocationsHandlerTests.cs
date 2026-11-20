@@ -211,13 +211,16 @@ namespace RFFM.Api.Tests.UnitTests
             Assert.Equal("Decisión técnica: rotación", row.MinutesReason);
         }
 
-        [Fact]
-        public async Task Handle_LeagueConvocationNotPublished_PlayerSeesNothing()
+        [Theory]
+        [InlineData("Player")]
+        [InlineData("FamilyMember")]
+        [InlineData("FamilyPlayer")]
+        public async Task Handle_LeagueConvocationNotPublished_PlayerOrFamilySeesNothing(string role)
         {
             await using var db = _fixture.CreateDbContext();
             var (eventId, teamId, _) = await SeedConvocationAsync(db);
 
-            var result = await new GetEventConvocations.Handler(db, CurrentUser("Player")).Handle(
+            var result = await new GetEventConvocations.Handler(db, CurrentUser(role)).Handle(
                 new GetEventConvocations.EventConvocationsQuery { EventId = eventId, TeamId = teamId },
                 CancellationToken.None);
 

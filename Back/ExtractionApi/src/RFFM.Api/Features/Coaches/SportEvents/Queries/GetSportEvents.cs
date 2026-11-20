@@ -5,7 +5,9 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Common;
 using RFFM.Api.Domain.Entities;
+using RFFM.Api.Domain.Services;
 using RFFM.Api.FeatureModules;
+using RFFM.Api.Features.Coaches.Convocations;
 using RFFM.Api.Infrastructure.Persistence;
 
 namespace RFFM.Api.Features.Coaches.SportEvents.Queries
@@ -82,11 +84,13 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Queries
         {
             private readonly AppDbContext _db;
             private readonly IHttpContextAccessor _httpContextAccessor;
+            private readonly ICurrentUserService? _currentUser;
 
-            public GetSportEventsRequestHandler(AppDbContext db, IHttpContextAccessor httpContextAccessor)
+            public GetSportEventsRequestHandler(AppDbContext db, IHttpContextAccessor httpContextAccessor, ICurrentUserService? currentUser = null)
             {
                 _db = db;
                 _httpContextAccessor = httpContextAccessor;
+                _currentUser = currentUser;
             }
 
             public async ValueTask<SportEventResponse[]> Handle(SportEventsQuery request, CancellationToken cancellationToken = default)
@@ -114,6 +118,8 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Queries
                     // ignore if no http context available
                 }
 
+                // League-match convocations are a coach-only draft until published.
+                var hideDrafts = _currentUser is not null && ConvocationVisibility.IsPlayerOrFamilyViewer(_currentUser);
                 var ordered = request.Descending ? query.OrderByDescending(s => s.EveDateTime) : query.OrderBy(s => s.EveDateTime);
 
                 var items = await ordered
@@ -142,7 +148,10 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Queries
                         LocalGoals = sportEvent.LocalGoals,
                         VisitorGoals = sportEvent.VisitorGoals,
                         SelectedKitNumber = sportEvent.SelectedKitNumber,
-                        HasConvokedPlayers = _db.Convocations.Any(c => c.SportEventId == sportEvent.Id),
+                        HasConvokedPlayers = _db.Convocations.Any(c => c.SportEventId == sportEvent.Id)
+                            && (!hideDrafts
+                                || sportEvent.EventTypeId != SportEventsConstants.MatchEventTypeId
+                                || sportEvent.ConvocationPublishedAt != null),
                         MatchCategory = sportEvent.EventTypeId == SportEventsConstants.MatchEventTypeId ? "League"
                             : sportEvent.EventTypeId == SportEventsConstants.FriendlyEventTypeId ? "Friendly"
                             : sportEvent.EventTypeId == SportEventsConstants.TournamentEventTypeId ? "Tournament"
