@@ -2,6 +2,19 @@
 
 **Reviewed:** `b9968c6e` 63c86d2b..48ec0169 · 2026-11-20
 
+<!-- sai-inherent-risk:start -->
+## Inherent Risk
+
+Merge-base: `b9968c6e3878c5a6db1c09a70f4485a403efa07a` | Code fingerprint: `ff0266cad4c4e16938754f8358f6b400f6516d62ca8e40a8c86b06b7ee176855`
+
+| Rating | Level | Justification |
+|--------|-------|---------------|
+| Security | high | New authenticated endpoint that sends injury and physical-condition health data to the user's external AI provider and parses untrusted provider output (`Back/ExtractionApi/src/RFFM.Api/Features/Coaches/GameModels/Commands/ChatWithGameModelAssistant.cs:32`). |
+| Reversibility | high | Schema migration adds a non-null `Version` column to `GameModels` with a data back-fill (`Back/ExtractionApi/src/RFFM.Api/Infrastructure/Migrations/20261119142445_AddGameModelVersion.cs:14`). |
+| Critical sections | medium | Optimistic-concurrency check on the game-model save and the extraction of the statistics and forecast flows into shared services (`Back/ExtractionApi/src/RFFM.Api/Features/Coaches/GameModels/Commands/UpdateGameModel.cs:101`, `Back/ExtractionApi/src/RFFM.Api/Features/Coaches/Players/Queries/GetTeamPlayerStatistics.cs:384`). |
+| Blast radius | high | 58 changed files and about 14,400 changed lines across backend and frontend, with shared services and DI wiring touched (`Back/ExtractionApi/src/RFFM.Api/DependencyInjection/ServiceCollectionExtensions.cs`). |
+<!-- sai-inherent-risk:end -->
+
 ## Security Surface Triage
 
 - **Surface touched:** Yes — new authenticated endpoint (`POST /api/game-models/{gameModelId}/assistant`) guarded by feature permission and team membership, deserialization of untrusted provider output (`GameModelAssistantEnvelope`), outbound health data (injury type and dates, physical condition) to the coach's own AI provider, and a new optimistic-concurrency token on update.
