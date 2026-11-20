@@ -193,3 +193,8 @@ export default {
   updateConvocationMinutesReason,
   getPlayerConvocationSummary,
 };
+
+/** League matches: the coach finishes the convocation, making it visible and notifying the called-up players. */
+export async function publishConvocation(eventId: string): Promise<void> {
+  await client.post(`/api/events/${encodeURIComponent(eventId)}/convocations/publish`);
+}
