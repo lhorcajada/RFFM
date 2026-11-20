@@ -57,6 +57,8 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Queries
             public string? LocalGoals { get; set; }
             public string? VisitorGoals { get; set; }
             public int? SelectedKitNumber { get; set; }
+            /// <summary>True once the coach published the convocation (only meaningful for league matches).</summary>
+            public bool ConvocationPublished { get; set; }
             /// <summary>"League" | "Friendly" | "Tournament" | null, derived from EventTypeId.</summary>
             public string? MatchCategory { get; set; }
             public List<string> TrainingTypes { get; set; } = new();
@@ -99,6 +101,7 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Queries
                     LocalGoals = sportEvent.LocalGoals,
                     VisitorGoals = sportEvent.VisitorGoals,
                     SelectedKitNumber = sportEvent.SelectedKitNumber,
+                    ConvocationPublished = sportEvent.IsConvocationPublished,
                     MatchCategory = sportEvent.EventTypeId == SportEventsConstants.MatchEventTypeId ? "League"
                         : sportEvent.EventTypeId == SportEventsConstants.FriendlyEventTypeId ? "Friendly"
                         : sportEvent.EventTypeId == SportEventsConstants.TournamentEventTypeId ? "Tournament"

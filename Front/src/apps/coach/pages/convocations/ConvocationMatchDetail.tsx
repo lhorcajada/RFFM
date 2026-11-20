@@ -12,6 +12,8 @@ import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import configurationCoachService from "../../services/configurationCoachService";
 import { getSportEventById } from "../../services/sportEventService";
+import { publishConvocation } from "../../services/convocationService";
+import ConfirmDialog from "../../../../shared/components/ui/ConfirmDialog/ConfirmDialog";
 import ConvocationTab from "./components/ConvocationTab";
 import DesconvocatoriasTab from "./components/DesconvocatoriasTab";
 import ConvocatoriaPrint, { type ConvocatoriaPrintHandle } from "./components/ConvocatoriaPrint";
@@ -168,6 +170,38 @@ export default function ConvocationMatchDetail() {
   // Data hooks
   const convocation = useConvocationManagement(teamId, match?.date);
 
+  // League matches only: the convocation is a coach-only draft until the coach publishes it.
+  const [leaguePublication, setLeaguePublication] = useState<{ published: boolean } | null>(null);
+  const isLeagueDraft = leaguePublication !== null && !leaguePublication.published;
+  const hideDraftFromViewer = isPlayer && isLeagueDraft;
+  const [publishConfirmOpen, setPublishConfirmOpen] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+
+  const handlePublishConfirmed = useCallback(async () => {
+    const eventId = convocation.mgmtEventId;
+    if (!eventId) return;
+    setPublishing(true);
+    try {
+      await publishConvocation(eventId);
+      setLeaguePublication({ published: true });
+      window.dispatchEvent(
+        new CustomEvent("rffm.show_snackbar", {
+          detail: { message: "Convocatoria publicada", severity: "success" },
+        }),
+      );
+    } catch {
+      window.dispatchEvent(
+        new CustomEvent("rffm.show_snackbar", {
+          detail: { message: "No se pudo publicar la convocatoria. Inténtalo de nuevo.", severity: "error" },
+        }),
+      );
+    } finally {
+      setPublishing(false);
+      setPublishConfirmOpen(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [convocation.mgmtEventId]);
+
   useEffect(() => {
     if (!convocation.mgmtEventId) return;
     let mounted = true;
@@ -178,6 +212,9 @@ export default function ConvocationMatchDetail() {
         // to (router state) — refresh it from the server so a kit saved in a previous
         // visit isn't lost when the page is re-entered.
         setSelectedKitNumber(event?.selectedKitNumber ?? null);
+        setLeaguePublication(
+          event?.matchCategory === "League" ? { published: event.convocationPublished === true } : null,
+        );
       })
       .catch(() => {});
     return () => {
@@ -384,6 +421,9 @@ export default function ConvocationMatchDetail() {
                 : () => openFullScreen("live")
             }
             readOnly={isPlayer}
+            onPublishConvocation={
+              !isPlayer && isLeagueDraft ? () => setPublishConfirmOpen(true) : undefined
+            }
           />
         }
       >
@@ -403,14 +443,20 @@ export default function ConvocationMatchDetail() {
           />
           <Tab
             className={styles.tab}
-            label={<TabLabel text="Convocatoria" count={convocation.mgmtCalled.length} />}
+            label={<TabLabel text="Convocatoria" count={hideDraftFromViewer ? null : convocation.mgmtCalled.length} />}
             value={CONVOCATION_TAB.Convocatoria}
           />
           {!isPlayer && <Tab className={styles.tab} label="Alineación" value={CONVOCATION_TAB.Alineacion} />}
           {!isPlayer && <Tab className={styles.tab} label="Simular Partido" value={CONVOCATION_TAB.Simulacion} />}
         </Tabs>
 
-        {tab === CONVOCATION_TAB.Convocatoria && (
+        {tab === CONVOCATION_TAB.Convocatoria && hideDraftFromViewer && (
+          <Alert severity="info" sx={{ mt: 2 }}>
+            La convocatoria aún no está publicada. Podrás verla cuando el entrenador la publique.
+          </Alert>
+        )}
+
+        {tab === CONVOCATION_TAB.Convocatoria && !hideDraftFromViewer && (
           <ConvocationTab
             mgmtEventId={convocation.mgmtEventId}
             mgmtLoadingConv={convocation.mgmtLoadingConv}
@@ -486,6 +532,16 @@ export default function ConvocationMatchDetail() {
             currentNotCalled={convocation.mgmtNotCalled}
           />
         )}
+
+        <ConfirmDialog
+          open={publishConfirmOpen}
+          title="Publicar convocatoria"
+          description="Los jugadores y sus familias podrán ver la convocatoria y recibirán un aviso. ¿Quieres publicarla?"
+          confirmText="Publicar"
+          processing={publishing}
+          onCancel={() => setPublishConfirmOpen(false)}
+          onConfirm={handlePublishConfirmed}
+        />
 
         {/* "Ver convocatoria" dialog — on-screen version of the WhatsApp export */}
         <ConvocationDetailsDialog

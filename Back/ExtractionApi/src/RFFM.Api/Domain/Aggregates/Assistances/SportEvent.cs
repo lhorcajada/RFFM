@@ -25,6 +25,9 @@ namespace RFFM.Api.Domain.Aggregates.Assistances
         public int? MatchDurationMinutes { get; set; }
         /// <summary>Kit number selected for this match (1 = primera, 2 = segunda, null = not selected).</summary>
         public int? SelectedKitNumber { get; set; }
+        /// <summary>UTC instant when the coach published the convocation; null while it is still a draft.
+        /// Only meaningful for league matches, where players and families see nothing until it is set.</summary>
+        public DateTime? ConvocationPublishedAt { get; set; }
         public string? RecurrenceId { get; set; }
         public bool IsRecurrenceMaster { get; set; }
         public EventRecurrence? Recurrence { get; set; }
@@ -91,6 +94,13 @@ namespace RFFM.Api.Domain.Aggregates.Assistances
                 VisitorGoals = visitorGoals,
                 TrainingTypes = trainingTypes ?? new(),
             };
+        }
+
+        public bool IsConvocationPublished => ConvocationPublishedAt.HasValue;
+
+        public void PublishConvocation()
+        {
+            ConvocationPublishedAt ??= DateTime.UtcNow;
         }
 
         public void SetName(string name)

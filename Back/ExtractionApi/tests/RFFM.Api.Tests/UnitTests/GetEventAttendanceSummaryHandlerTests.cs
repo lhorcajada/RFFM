@@ -85,6 +85,7 @@ namespace RFFM.Api.Tests.UnitTests
                 DateTime.UtcNow.AddDays(1),
                 null, null, null, null, null,
                 1, team.Id, null);
+            sportEvent.PublishConvocation();
             db.SportEvents.Add(sportEvent);
             await db.SaveChangesAsync();
 
@@ -492,6 +493,52 @@ namespace RFFM.Api.Tests.UnitTests
             Assert.Equal("Pending", summary.MyStatus);
             Assert.Equal(ConvocationStatus.FromName("Pending").Id, summary.MyStatusId);
             Assert.Equal(convocationId, summary.MyConvocationId);
+        }
+
+        [Fact]
+        public async Task Handle_LeagueConvocationNotPublished_PlayerSeesNoCountsNorOwnStatus()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, teamPlayerId, sportEventId) = await SeedTeamPlayerAndEventAsync(db);
+            await SeedConvocationAsync(db, sportEventId, teamPlayerId, ConvocationStatus.FromName("Pending").Id);
+            var sportEvent = await db.SportEvents.FirstAsync(e => e.Id == sportEventId);
+            sportEvent.ConvocationPublishedAt = null;
+            await db.SaveChangesAsync();
+
+            var userId = Guid.NewGuid().ToString();
+            var userTeam = new UserTeam(userId, teamId, Membership.Player.Id);
+            db.Set<UserTeam>().Add(userTeam);
+            await db.SaveChangesAsync();
+            userTeam.LinkPlayer(teamPlayerId);
+            await db.SaveChangesAsync();
+
+            var handler = new GetEventAttendanceSummary.Handler(db, new MockCurrentUserService(userId, new[] { "Player" }));
+            var result = await handler.Handle(
+                new GetEventAttendanceSummary.EventAttendanceSummaryQuery { TeamId = teamId, EventIds = new[] { sportEventId } },
+                CancellationToken.None);
+
+            var summary = result.First(r => r.EventId == sportEventId);
+            Assert.Equal(0, summary.Convocados);
+            Assert.Null(summary.MyStatus);
+            Assert.Null(summary.MyConvocationId);
+        }
+
+        [Fact]
+        public async Task Handle_LeagueConvocationNotPublished_CoachStillSeesCounts()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, teamPlayerId, sportEventId) = await SeedTeamPlayerAndEventAsync(db);
+            await SeedConvocationAsync(db, sportEventId, teamPlayerId, ConvocationStatus.FromName("Pending").Id);
+            var sportEvent = await db.SportEvents.FirstAsync(e => e.Id == sportEventId);
+            sportEvent.ConvocationPublishedAt = null;
+            await db.SaveChangesAsync();
+
+            var handler = new GetEventAttendanceSummary.Handler(db, new MockCurrentUserService(Guid.NewGuid().ToString(), new[] { "Coach" }));
+            var result = await handler.Handle(
+                new GetEventAttendanceSummary.EventAttendanceSummaryQuery { TeamId = teamId, EventIds = new[] { sportEventId } },
+                CancellationToken.None);
+
+            Assert.Equal(1, result.First(r => r.EventId == sportEventId).Convocados);
         }
 
         [Fact]
