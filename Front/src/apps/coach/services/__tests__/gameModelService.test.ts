@@ -259,3 +259,44 @@ describe("gameModelService.update — error del backend conservado", () => {
     });
   });
 });
+
+describe("gameModelService.assistant — campos opcionales null (C1)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("C1 — una respuesta del asistente con null en address, parentAddress y parentChangeId devuelve esos campos ausentes", async () => {
+    mockPost.mockResolvedValue({
+      data: {
+        kind: "proposal",
+        message: "Propuesta",
+        changes: [
+          {
+            id: "c1",
+            operation: "add",
+            nodeType: "subprincipio",
+            address: null,
+            parentAddress: "defensa-organizada-1",
+            parentChangeId: null,
+            fields: { numero: "1.2", titulo: "Nuevo" },
+          },
+        ],
+        discardedCount: 0,
+        version: "v1",
+      },
+    });
+
+    const reply = await gameModelService.assistant("id", [{ role: "user", content: "Hola" }]);
+    const [change] = reply.changes;
+
+    expect(change).toEqual({
+      id: "c1",
+      operation: "add",
+      nodeType: "subprincipio",
+      parentAddress: "defensa-organizada-1",
+      fields: { numero: "1.2", titulo: "Nuevo" },
+    });
+    expect("parentChangeId" in change).toBe(false);
+    expect("address" in change).toBe(false);
+  });
+});

@@ -27,8 +27,9 @@ export type TrackedChange = AssistantChange & { status: ProposalStatus };
 
 type Fields = Record<string, unknown>;
 
-/** Address of a node created by an add: the change id is its key, so a dependent can point at it. */
-function pendingKey(changeId: string): string {
+/** Address of a node created by an add: the change id is its key, so a dependent can point at it. The one
+ * definition of this format; the pending-change mapping reuses it for the placeholder address. */
+export function pendingKey(changeId: string): string {
   return `pending:${changeId}`;
 }
 

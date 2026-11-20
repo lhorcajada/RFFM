@@ -24,7 +24,7 @@
 
 ### Critical
 
-#### C1 — No proposal card can be accepted against the real backend: `null` optional fields are treated as present
+#### C1 — No proposal card can be accepted against the real backend: `null` optional fields are treated as present (FIXED)
 - **Location:** `Front/src/apps/coach/pages/game-model/components/gameModelProposalTree.ts:355-360` (`canAccept`), `Front/src/apps/coach/pages/game-model/components/gameModelProposalTree.ts:388-395` (`isOrphan`), `Front/src/apps/coach/pages/game-model/components/gameModelAssistantPending.ts:26-31` (`parentAddressOf`), `Front/src/apps/coach/services/gameModelService.ts:92-100` (`AssistantChange`)
 - **Problem:** The backend reply DTO `AssistantChangeDto(string Id, string Operation, string NodeType, string? Address, string? ParentAddress, string? ParentChangeId, ...)` (`Back/ExtractionApi/src/RFFM.Api/Features/Coaches/GameModels/Commands/ChatWithGameModelAssistant.cs:63-70`) is returned with `Results.Ok(reply)` under the default ASP.NET Core web JSON options; no `DefaultIgnoreCondition = WhenWritingNull` is configured for HTTP responses (the only one is the private adapter request serializer in `AiChatAdapters.cs:17-21`). So every change arrives with `"parentChangeId": null`, and change/remove arrive with `"parentAddress": null`. The front types these as optional (`parentChangeId?: string`) and compares with `!== undefined`:
   - `canAccept`: `if (change.parentChangeId === undefined) return true;` is false for `null`, the parent lookup finds nothing, and it returns `false` for every change. `GameModelReadingNode.tsx:122` then renders every accept button disabled (`disabled={node.pending?.canAccept === false}`), so the coach cannot accept any card.
@@ -78,7 +78,7 @@ None.
 - **Problem:** The stale-rejection test asserts that the name is unchanged but not that the stored `Version` is unchanged. The `Touch()` added to the importer has no test, so removing it fails nothing.
 - **Suggested fix:** Assert the stored version after a refused update, and add a re-import test that checks the version changes.
 
-#### L7 — The `pending:{id}` key format is defined twice
+#### L7 — The `pending:{id}` key format is defined twice (FIXED)
 - **Location:** `Front/src/apps/coach/pages/game-model/components/gameModelProposalTree.ts:31`, `Front/src/apps/coach/pages/game-model/components/gameModelAssistantPending.ts:5-6`
 - **Problem:** `pendingKey` and `proposedAddAddress` build the same placeholder key on their own. The comment in `gameModelAssistantPending.ts:4` says it must match the key the proposal tree gives the new node. A change to one breaks accepting dependents silently.
 - **Suggested fix:** Export one helper from `gameModelProposalTree.ts` and reuse it.

@@ -1,7 +1,24 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { assistantPendingChanges, proposedAddAddress } from "../gameModelAssistantPending";
-import type { TrackedChange } from "../gameModelProposalTree";
-import type { AssistantChange } from "../../../../services/gameModelService";
+import { applyChange, type TrackedChange } from "../gameModelProposalTree";
+import gameModelService, { type AssistantChange } from "../../../../services/gameModelService";
+import { mockGameModel } from "../../../../services/gameModelMock";
+
+const mockPost = vi.fn();
+vi.mock("../../../../../../core/api/client", () => ({
+  client: {
+    post: (...args: unknown[]) => mockPost(...args),
+  },
+}));
+
+/** Changes exactly as the backend serializes them: missing optional fields arrive as null. */
+async function changesFromService(changes: unknown[]): Promise<AssistantChange[]> {
+  mockPost.mockResolvedValueOnce({
+    data: { kind: "proposal", message: "Propuesta", changes, discardedCount: 0, version: "v1" },
+  });
+  const reply = await gameModelService.assistant("model-1", [{ role: "user", content: "Propón" }]);
+  return reply.changes;
+}
 
 const PRINCIPLE_1 = "defensa-organizada-1";
 const SUB_1_1 = "defensa-organizada-1.1";
@@ -133,5 +150,33 @@ describe("assistantPendingChanges", () => {
     ]);
 
     expect(Object.keys(pending)).toEqual([]);
+  });
+
+  it("C1 — un alta dependiente que llega del servicio con null se muestra bajo el parentAddress de su cambio padre", async () => {
+    const [parent, dependent] = await changesFromService([
+      { id: "c1", operation: "add", nodeType: "subprincipio", address: null, parentAddress: PRINCIPLE_1, parentChangeId: null, fields: { numero: "1.2", titulo: "Nuevo" } },
+      { id: "c2", operation: "add", nodeType: "zona", address: null, parentAddress: null, parentChangeId: "c1", fields: { zoneKeysCsv: "iniciacion" } },
+    ]);
+
+    const pending = assistantPendingChanges([tracked(parent), tracked(dependent)]);
+
+    expect(pending["pending:c2"].parentAddress).toBe(PRINCIPLE_1);
+  });
+
+  it("L7 — la clave del marcador de un alta coincide en el árbol de propuestas y en las tarjetas", () => {
+    const add: AssistantChange = {
+      id: "c1",
+      operation: "add",
+      nodeType: "subprincipio",
+      parentAddress: PRINCIPLE_1,
+      fields: { numero: "1.2", titulo: "Nuevo subprincipio", texto: "Texto" },
+    };
+
+    const tree = applyChange(mockGameModel, add);
+    const created = tree.principles[0].subprincipios.find((s) => s.key === proposedAddAddress("c1"));
+    const pending = assistantPendingChanges([tracked(add)]);
+
+    expect(created).toBeDefined();
+    expect(Object.keys(pending)).toEqual([proposedAddAddress("c1")]);
   });
 });

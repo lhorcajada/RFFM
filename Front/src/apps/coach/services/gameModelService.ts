@@ -107,6 +107,26 @@ export type AssistantReply = {
   version: string;
 };
 
+/** A change as the backend serializes it: an optional member it does not have arrives as JSON null. */
+type WireAssistantChange = Omit<AssistantChange, "address" | "parentAddress" | "parentChangeId"> & {
+  address?: string | null;
+  parentAddress?: string | null;
+  parentChangeId?: string | null;
+};
+
+type WireAssistantReply = Omit<AssistantReply, "changes"> & { changes: WireAssistantChange[] };
+
+/** Leaves out the optional members sent as null, so a member the change does not have is absent everywhere in the front. */
+function normalizeAssistantChange(change: WireAssistantChange): AssistantChange {
+  const { address, parentAddress, parentChangeId, ...rest } = change;
+  return {
+    ...rest,
+    ...(typeof address === "string" ? { address } : {}),
+    ...(typeof parentAddress === "string" ? { parentAddress } : {}),
+    ...(typeof parentChangeId === "string" ? { parentChangeId } : {}),
+  };
+}
+
 interface ApiGameModel {
   id: string;
   teamId: string;
@@ -465,8 +485,8 @@ const gameModelService = {
   /** One turn of the game-model assistant: the whole conversation goes out, nothing is stored. */
   async assistant(gameModelId: string, messages: AssistantMessage[]): Promise<AssistantReply> {
     try {
-      const res = await client.post<AssistantReply>(`/api/game-models/${gameModelId}/assistant`, { messages });
-      return res.data;
+      const res = await client.post<WireAssistantReply>(`/api/game-models/${gameModelId}/assistant`, { messages });
+      return { ...res.data, changes: res.data.changes.map(normalizeAssistantChange) };
     } catch (error) {
       throw toServiceError(error);
     }

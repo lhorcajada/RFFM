@@ -1,9 +1,9 @@
-import { canAccept, type TrackedChange } from "./gameModelProposalTree";
+import { canAccept, pendingKey, type TrackedChange } from "./gameModelProposalTree";
 import type { PendingChange, PendingChanges } from "./gameModelReadingTree";
 
-/** Address of the placeholder an add shows under its parent. It is the key the proposal tree gives the node the add creates. */
+/** Address of the placeholder an add shows under its parent: the key the proposal tree gives the node the add creates. */
 export function proposedAddAddress(changeId: string): string {
-  return `pending:${changeId}`;
+  return pendingKey(changeId);
 }
 
 type Fields = Record<string, unknown>;

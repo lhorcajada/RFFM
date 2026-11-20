@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   applyChange,
   canAccept,
@@ -6,9 +6,25 @@ import {
   rejectWithDependents,
   type TrackedChange,
 } from "../gameModelProposalTree";
-import type { AssistantChange } from "../../../../services/gameModelService";
+import gameModelService, { type AssistantChange } from "../../../../services/gameModelService";
 import { mockGameModel } from "../../../../services/gameModelMock";
 import type { GameModel } from "../../../../types/gameModel";
+
+const mockPost = vi.fn();
+vi.mock("../../../../../../core/api/client", () => ({
+  client: {
+    post: (...args: unknown[]) => mockPost(...args),
+  },
+}));
+
+/** Changes exactly as the backend serializes them: missing optional fields arrive as null. */
+async function changesFromService(changes: unknown[]): Promise<AssistantChange[]> {
+  mockPost.mockResolvedValueOnce({
+    data: { kind: "proposal", message: "Propuesta", changes, discardedCount: 0, version: "v1" },
+  });
+  const reply = await gameModelService.assistant("model-1", [{ role: "user", content: "Propón" }]);
+  return reply.changes;
+}
 
 const PRINCIPLE_1 = "defensa-organizada-1";
 const SUB_1_1 = "defensa-organizada-1.1";
@@ -359,5 +375,53 @@ describe("canAccept con cambios que no están pendientes", () => {
 
     expect(canAccept({ ...change, status: "accepted" }, [])).toBe(false);
     expect(canAccept({ ...change, status: "rejected" }, [])).toBe(false);
+  });
+});
+
+function nullAdd(id: string, parentAddress: string | null, parentChangeId: string | null) {
+  return {
+    id,
+    operation: "add",
+    nodeType: "subprincipio",
+    address: null,
+    parentAddress,
+    parentChangeId,
+    fields: { numero: "1.2", titulo: "Nuevo", texto: "Texto" },
+  };
+}
+
+function nullZonaUnder(id: string, parentChangeId: string) {
+  return {
+    id,
+    operation: "add",
+    nodeType: "zona",
+    address: null,
+    parentAddress: null,
+    parentChangeId,
+    fields: { zoneKeysCsv: "iniciacion", texto: "Texto" },
+  };
+}
+
+describe("cambios que llegan del servicio con null (C1)", () => {
+  it("C1 — un cambio independiente con null en sus campos opcionales se puede aceptar", async () => {
+    const [independent] = await changesFromService([nullAdd("c1", PRINCIPLE_1, null)]);
+
+    expect(canAccept(tracked(independent), [tracked(independent)])).toBe(true);
+  });
+
+  it("C1 — un cambio dependiente que llega del servicio solo se puede aceptar cuando su padre está aceptado", async () => {
+    const [parent, dependent] = await changesFromService([nullAdd("c1", PRINCIPLE_1, null), nullZonaUnder("c2", "c1")]);
+
+    expect(canAccept(tracked(dependent), [tracked(parent), tracked(dependent)])).toBe(false);
+    expect(canAccept(tracked(dependent), [tracked(parent, "accepted"), tracked(dependent)])).toBe(true);
+  });
+
+  it("C1 — descartar huérfanos no elimina un alta pendiente cuyo padre existe en el modelo", async () => {
+    const [independent] = await changesFromService([nullAdd("c1", PRINCIPLE_1, null)]);
+
+    const result = discardOrphans(mockGameModel, [tracked(independent)]);
+
+    expect(result.changes).toHaveLength(1);
+    expect(result.discarded).toBe(0);
   });
 });
