@@ -154,12 +154,9 @@ export const CoachAuthProvider: React.FC<{ children: React.ReactNode }> = ({
         );
       } catch (e) {}
 
-      try {
-        if (typeof window !== "undefined") {
-          window.location.href = "/appSelector";
-        }
-      } catch (e) {}
-
+      // La navegación a la pantalla siguiente la hace el componente de login (SPA);
+      // una recarga completa aquí aborta las peticiones en vuelo y en iOS se
+      // interpretan como errores de red.
       return { success: true };
     } catch (error: any) {
       setIsAuthenticated(false);

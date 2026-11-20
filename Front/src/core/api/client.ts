@@ -71,12 +71,31 @@ function notifyAuthExpiredOnce() {
   }
 }
 
-function gotoErrorPage(reason?: string) {
+// Mobile WebKit (iOS) rejects in-flight XHRs without a response when the page is
+// being unloaded (e.g. a full-page redirect right after login). Those aborts are not
+// real network failures and must not feed the error-redirect / session-reset loop.
+let pageUnloading = false;
+if (typeof window !== "undefined") {
+  window.addEventListener("pagehide", () => {
+    pageUnloading = true;
+  });
+  window.addEventListener("pageshow", () => {
+    pageUnloading = false;
+  });
+}
+
+function gotoErrorPage(reason?: string, error?: any) {
+  if (pageUnloading) return;
   const suffix = reason ? `?reason=${encodeURIComponent(reason)}` : "";
   let path = `/error-500${suffix}`;
   // Repeated error redirects in a short window mean the stored session is likely
   // stale and the app boots into the same failure every time: reset it once.
-  traceAuth("http.error_redirect", { reason: reason ?? "500" });
+  traceAuth("http.error_redirect", {
+    reason: reason ?? "500",
+    method: error?.config?.method,
+    url: error?.config?.url,
+    code: error?.code,
+  });
   if (registerErrorRedirect()) {
     clearStaleSession();
     resetErrorRedirects();
@@ -122,15 +141,15 @@ client.interceptors.response.use(
       if (!error?.response) {
         // axios uses code 'ECONNABORTED' for timeouts
         if (error?.code === "ECONNABORTED") {
-          if (!suppressRedirect) gotoErrorPage("timeout");
+          if (!suppressRedirect) gotoErrorPage("timeout", error);
         } else {
-          if (!suppressRedirect) gotoErrorPage("network");
+          if (!suppressRedirect) gotoErrorPage("network", error);
         }
         return Promise.reject(error);
       }
 
       if (status === 500) {
-        if (!suppressRedirect) gotoErrorPage();
+        if (!suppressRedirect) gotoErrorPage(undefined, error);
         return Promise.reject(error);
       }
     } catch (e) {
