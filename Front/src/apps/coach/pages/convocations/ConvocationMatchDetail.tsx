@@ -291,7 +291,7 @@ export default function ConvocationMatchDetail() {
     [convocation.players, grid.matchColumns, grid.enrichedGrid],
   );
 
-  const { difficulty: rivalDifficulty, upcoming: upcomingDifficulties, upcomingMatches } = useRivalOutlook(teamId, proposalRivalName, deconvocationRules, match?.date);
+  const { difficulty: rivalDifficulty, winProbability: rivalWinProbability, upcoming: upcomingDifficulties, upcomingMatches } = useRivalOutlook(teamId, proposalRivalName, deconvocationRules, match?.date);
 
   const squadIds = useMemo(() => convocation.players.map((p) => p.id), [convocation.players]);
   const alreadyOutIds = useMemo(() => new Set(convocation.mgmtNotCalled), [convocation.mgmtNotCalled]);
@@ -320,6 +320,8 @@ export default function ConvocationMatchDetail() {
     rules: deconvocationRules,
     rivalDifficulty,
     upcomingDifficulties,
+    rivalWinProbability,
+    upcomingWinProbabilities: upcomingMatches.map((m) => m.winProbability),
     positionFit,
     players: convocation.players,
     squadIds,

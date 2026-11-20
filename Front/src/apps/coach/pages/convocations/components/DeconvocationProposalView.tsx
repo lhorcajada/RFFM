@@ -44,7 +44,6 @@ export type FitContext = {
 };
 
 const CRITERION_LABELS: Record<NonNullable<ProposalDecision["criterion"]>, string> = {
-  schedule: "partidos difíciles próximos",
   fit: "encaje por rasgos",
   consecutive: "jornadas seguidas",
   surplus: "excedente de convocatorias",
@@ -61,7 +60,7 @@ const DIFFICULTY_LABELS: Record<RivalDifficulty, string> = {
 };
 
 function scheduleText(
-  { upcoming, keepStrong, maxStrong }: DeconvokeProposal["schedule"],
+  { upcoming, reservedIn, reservedNames, maxStrong }: DeconvokeProposal["schedule"],
   current: RivalDifficulty,
 ): string {
   const window = [current, ...upcoming];
@@ -71,10 +70,14 @@ function scheduleText(
     upcoming.length === 0
       ? "No hay previsión de los próximos partidos."
       : hardCount > 0
-        ? `${scope}, ${hardCount === 1 ? "1 es difícil" : `${hardCount} son difíciles`}${keepStrong ? ": se evita desconvocar a los jugadores importantes para tenerlos en ese partido" : ""}.`
+        ? `${scope}, ${hardCount === 1 ? "1 es difícil" : `${hardCount} son difíciles`}.`
         : `${scope}, ninguno es difícil.`;
+  const reserve =
+    reservedIn != null && reservedNames.length > 0
+      ? ` Para el partido más difícil, ${reservedIn === 1 ? "el siguiente" : `dentro de ${reservedIn} partidos`}, se reservan los jugadores de menor nivel (${reservedNames.join(", ")}): ahora se desconvoca por justicia.`
+      : "";
   const strongCap = maxStrong === 0 ? "No se desconvoca a jugadores importantes" : `Como mucho ${maxStrong} importante(s)`;
-  return `${outlook} ${strongCap}, no se quita a dos jugadores de la misma línea si hay alternativa y, si sale un delantero, quedan al menos dos que puedan jugar de delantero.`;
+  return `${outlook}${reserve} ${strongCap}, no se quita a dos jugadores de la misma línea si hay alternativa y, si sale un jugador de una posición, quedan al menos dos que puedan jugarla.`;
 }
 
 const RESULT_TONE: Record<DetailResult, string> = {
@@ -170,7 +173,7 @@ function ProposedCard({ item, onShowFit }: { item: PlayerProposal; onShowFit?: (
 const ORDER_OUTCOME_LABELS: Partial<Record<ProposalOrderEntry["outcome"], string>> = {
   proposed: "Se desconvoca",
   positionSkip: "Se salta: mínimo de su posición",
-  balanceSkip: "Se salta: reparto entre líneas",
+  balanceSkip: "Se salta: reparto o reserva",
 };
 
 function OrderList({ order }: { order: ProposalOrderEntry[] }) {

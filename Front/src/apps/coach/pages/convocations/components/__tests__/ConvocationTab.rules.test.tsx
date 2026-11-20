@@ -17,7 +17,7 @@ import type { DeconvokeProposal } from "../../utils/deconvokeProposal";
 
 const proposal: DeconvokeProposal = {
   generatedAt: "2026-10-14T10:00:00.000Z",
-  schedule: { upcoming: [], keepStrong: false, strongCount: 0, maxStrong: 1 },
+  schedule: { upcoming: [], reservedIn: null, reservedNames: [], strongCount: 0, maxStrong: 1 },
   targetCount: 0,
   calledCount: 0,
   selectedIds: [],

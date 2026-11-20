@@ -81,5 +81,7 @@ describe("useRivalDifficulty", () => {
     await waitFor(() => expect(result.current.upcomingMatches).toHaveLength(1));
     expect(result.current.upcomingMatches[0]).toMatchObject({ round: 4, rival: "Getafe", date: "2026-10-28", difficulty: "hard" });
     expect(result.current.upcoming).toEqual(["hard"]);
+    expect(result.current.winProbability).toBe(0.5);
+    expect(result.current.upcomingMatches[0].winProbability).toBe(0.2);
   });
 });

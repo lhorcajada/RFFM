@@ -7,6 +7,8 @@ import type { DeconvocationRuleConfig } from "../utils/rules/ruleCatalog";
 export type RivalOutlook = {
   /** Difficulty of the next rival; medium while loading, without forecast or without the rule. */
   difficulty: RivalDifficulty;
+  /** Own win probability against the next rival; null while loading or without forecast. */
+  winProbability: number | null;
   /** Difficulty of the matches after it (the next five); empty while loading, without forecast or without the rule. */
   upcoming: RivalDifficulty[];
   /** The next league matches with rival, date and difficulty; same availability as `upcoming`. */
@@ -40,10 +42,12 @@ export function useRivalOutlook(
 
   return useMemo(() => {
     const thresholds = difficultyThresholdsFromRules(rules);
-    if (!thresholds) return { difficulty: "medium", upcoming: [], upcomingMatches: [] };
+    if (!thresholds) return { difficulty: "medium", winProbability: null, upcoming: [], upcomingMatches: [] };
+    const winProbability = ownWinProbabilityAgainst(simulation, rivalName, matchDate);
     const upcomingMatches = upcomingMatchesAfter(simulation, rivalName, thresholds, undefined, matchDate);
     return {
-      difficulty: classifyRivalDifficulty(ownWinProbabilityAgainst(simulation, rivalName, matchDate), thresholds),
+      difficulty: classifyRivalDifficulty(winProbability, thresholds),
+      winProbability,
       upcoming: upcomingMatches.map((m) => m.difficulty),
       upcomingMatches,
     };

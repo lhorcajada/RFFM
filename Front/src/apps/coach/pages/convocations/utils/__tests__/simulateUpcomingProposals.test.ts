@@ -33,9 +33,9 @@ const COLUMNS: MatchColumn[] = Array.from({ length: 4 }, (_, i) => ({
 }));
 
 const MATCHES: UpcomingMatch[] = [
-  { eventId: "upcoming-6", round: 6, label: "J6", date: "2026-10-28", rival: "Getafe", difficulty: "medium" },
-  { eventId: "upcoming-7", round: 7, label: "J7", date: "2026-11-04", rival: "Alcorcón", difficulty: "hard" },
-  { eventId: "upcoming-8", round: 8, label: "J8", date: "2026-11-11", rival: "Rayo", difficulty: "easy" },
+  { eventId: "upcoming-6", round: 6, label: "J6", date: "2026-10-28", rival: "Getafe", difficulty: "medium", winProbability: 0.5 },
+  { eventId: "upcoming-7", round: 7, label: "J7", date: "2026-11-04", rival: "Alcorcón", difficulty: "hard", winProbability: 0.2 },
+  { eventId: "upcoming-8", round: 8, label: "J8", date: "2026-11-11", rival: "Rayo", difficulty: "easy", winProbability: 0.8 },
 ];
 
 function baseInput(players: PlayerResponse[], alreadyOutIds?: Set<string>): BuildProposalInput {
@@ -163,5 +163,30 @@ describe("simulateUpcomingProposals", () => {
 
     expect(input.seasonColumns).toHaveLength(columnsBefore);
     expect(input.enrichedGrid.size).toBe(gridBefore);
+  });
+
+  it("reserva a los más débiles para el partido más difícil: no salen antes y salen en él", () => {
+    const players = squad();
+    const input = baseInput(players);
+    const levels: Record<string, number> = { dfc2: 2, mc2: 2.5, b2: 3, mc1: 9, dfc1: 9, b1: 9, dc1: 9 };
+    input.ratings = Object.fromEntries(
+      players.map((p) => [p.id, { competitiveness: levels[p.id] ?? 5, physical: levels[p.id] ?? 5, tactical: levels[p.id] ?? 5, technical: levels[p.id] ?? 5 } as never]),
+    );
+    input.rivalDifficulty = "medium";
+    input.rivalWinProbability = 0.5;
+    const matches: UpcomingMatch[] = [
+      { eventId: "u1", round: 6, label: "J6", date: "2026-10-28", rival: "A", difficulty: "medium", winProbability: 0.5 },
+      { eventId: "u2", round: 7, label: "J7", date: "2026-11-04", rival: "Carrascal", difficulty: "hard", winProbability: 0.1 },
+    ];
+    input.upcomingDifficulties = matches.map((m) => m.difficulty);
+    input.upcomingWinProbabilities = matches.map((m) => m.winProbability);
+    const baseProposal = buildDeconvokeProposal(input);
+
+    const result = simulateUpcomingProposals({ base: input, baseProposal, matches });
+    const weak = ["dfc2", "mc2", "b2"];
+
+    expect(baseProposal.selectedIds.some((id) => weak.includes(id))).toBe(false);
+    expect(result[0].proposal.selectedIds.some((id) => weak.includes(id))).toBe(false);
+    expect([...result[1].proposal.selectedIds].sort()).toEqual([...weak].sort());
   });
 });

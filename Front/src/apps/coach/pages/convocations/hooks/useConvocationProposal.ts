@@ -43,6 +43,9 @@ export type UseConvocationProposalInput = {
   rivalDifficulty?: RivalDifficulty;
   /** Difficulty of the matches after this one; empty or omitted when unknown. */
   upcomingDifficulties?: RivalDifficulty[];
+  /** Own win probability in this match and the following ones; omitted when unknown. */
+  rivalWinProbability?: number | null;
+  upcomingWinProbabilities?: Array<number | null>;
   /** Fit order of each unified position; positions without one keep the fairness order. */
   positionFit?: PositionFit[];
   /** Minutes of the last played match; players who barely played are protected. */
@@ -76,6 +79,8 @@ export function toBuildProposalInput(input: UseConvocationProposalInput): BuildP
     rules: input.rules,
     rivalDifficulty: input.rivalDifficulty,
     upcomingDifficulties: input.upcomingDifficulties,
+    rivalWinProbability: input.rivalWinProbability,
+    upcomingWinProbabilities: input.upcomingWinProbabilities,
     positionFit: input.positionFit,
     lastMatchMinutes: input.lastMatchMinutes,
   };
@@ -106,6 +111,8 @@ export function useConvocationProposal(input: UseConvocationProposalInput): Deco
     rules,
     rivalDifficulty,
     upcomingDifficulties,
+    rivalWinProbability,
+    upcomingWinProbabilities,
     positionFit,
     lastMatchMinutes,
   } = input;
@@ -137,6 +144,8 @@ export function useConvocationProposal(input: UseConvocationProposalInput): Deco
       rules,
       rivalDifficulty,
       upcomingDifficulties,
+      rivalWinProbability,
+      upcomingWinProbabilities,
       positionFit,
       lastMatchMinutes,
     ],

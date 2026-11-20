@@ -89,8 +89,8 @@ describe("upcomingMatchesAfter", () => {
     const matches = upcomingMatchesAfter(sim, "Vallecas CF", T, 5);
 
     expect(matches).toEqual([
-      { eventId: "upcoming-3", round: 3, label: "J3", date: "2026-10-28", rival: "Getafe", difficulty: "hard" },
-      { eventId: "upcoming-4", round: 4, label: "J4", date: "2026-11-04", rival: "Alcorcón", difficulty: "easy" },
+      { eventId: "upcoming-3", round: 3, label: "J3", date: "2026-10-28", rival: "Getafe", difficulty: "hard", winProbability: 0.2 },
+      { eventId: "upcoming-4", round: 4, label: "J4", date: "2026-11-04", rival: "Alcorcón", difficulty: "easy", winProbability: 0.9 },
     ]);
   });
 

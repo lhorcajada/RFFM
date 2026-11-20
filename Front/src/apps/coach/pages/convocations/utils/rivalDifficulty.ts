@@ -86,6 +86,8 @@ export type UpcomingMatch = {
   date: string;
   rival: string;
   difficulty: RivalDifficulty;
+  /** Probability that the own team wins the match, from the forecast. */
+  winProbability: number;
 };
 
 /**
@@ -112,6 +114,7 @@ export function upcomingMatchesAfter(
       date: isoDay(m.date) ?? "",
       rival: m.localTeamCode === own ? m.visitorTeamName : m.localTeamName,
       difficulty: classifyRivalDifficulty(ownWinProbability(m, own), thresholds),
+      winProbability: ownWinProbability(m, own),
     }));
 }
 
