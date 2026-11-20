@@ -46,7 +46,7 @@ namespace RFFM.Api.Features.Coaches.GameModels.Assistant
                 .Select(n => n.Texto.Trim())
                 .ToList();
             var sessions = await LoadSessionsAsync(teamId, settings.SessionWindowDays, ct);
-            var players = await LoadPlayersAsync(teamId, ct);
+            var players = await LoadPlayersAsync(teamId, settings.SessionWindowDays, ct);
             var forecast = await LoadForecastAsync(teamId, ct);
 
             var text = Format(model, nodes, objectives, sessions, players, forecast, settings.SessionWindowDays);
@@ -119,7 +119,7 @@ namespace RFFM.Api.Features.Coaches.GameModels.Assistant
                 .ToList();
         }
 
-        private async Task<IReadOnlyList<AssistantPlayerContext>> LoadPlayersAsync(string teamId, CancellationToken ct)
+        private async Task<IReadOnlyList<AssistantPlayerContext>> LoadPlayersAsync(string teamId, int windowDays, CancellationToken ct)
         {
             var active = await conditions.GetForTeamAsync(teamId, ct);
             if (active.Count == 0)
@@ -133,10 +133,12 @@ namespace RFFM.Api.Features.Coaches.GameModels.Assistant
                     .ToListAsync(ct))
                 .ToDictionary(x => x.Id, x => x.Alias);
 
-            // Projected fields only: the injury description is never selected.
+            // Projected fields only: the injury description is never selected. Open injuries and injuries that ended
+            // inside the sessions' window are sent; an injury that ended before the window is left out.
+            var injuryCutoff = DateTime.UtcNow.Date.AddDays(-windowDays);
             var injuriesByPlayer = (await db.TeamPlayerInjuries
                     .AsNoTracking()
-                    .Where(i => teamPlayerIds.Contains(i.TeamPlayerId))
+                    .Where(i => teamPlayerIds.Contains(i.TeamPlayerId) && (i.EndDate == null || i.EndDate >= injuryCutoff))
                     .Select(i => new { i.TeamPlayerId, i.InjuryType, i.StartDate, i.EndDate, i.EstimatedRecovery })
                     .ToListAsync(ct))
                 .GroupBy(i => i.TeamPlayerId)
@@ -151,14 +153,17 @@ namespace RFFM.Api.Features.Coaches.GameModels.Assistant
                             i.EstimatedRecovery))
                         .ToList());
 
+            // Players are visited in team-player-id order, so the "Jugador N" labels do not move between turns.
             var players = new List<AssistantPlayerContext>(active.Count);
-            for (var index = 0; index < active.Count; index++)
+            var unnamedCount = 0;
+            foreach (var condition in active.OrderBy(c => c.TeamPlayerId, StringComparer.Ordinal))
             {
-                var condition = active[index];
                 // Alias only: the neutral label stands in when a player has none.
-                var alias = aliasByPlayer.TryGetValue(condition.TeamPlayerId, out var storedAlias) && !string.IsNullOrWhiteSpace(storedAlias)
-                    ? storedAlias.Trim()
-                    : $"Jugador {index + 1}";
+                var alias = aliasByPlayer.TryGetValue(condition.TeamPlayerId, out var storedAlias)
+                    ? (storedAlias ?? string.Empty).Trim()
+                    : string.Empty;
+                if (alias.Length == 0)
+                    alias = $"Jugador {++unnamedCount}";
                 var injuries = injuriesByPlayer.TryGetValue(condition.TeamPlayerId, out var found)
                     ? found
                     : Array.Empty<AssistantInjuryContext>();

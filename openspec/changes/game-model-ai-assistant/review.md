@@ -48,17 +48,17 @@ None.
 - **Problem:** After extracting `PlayerConditionService`, the handler still runs its own `matchLikeConvocations` query (line 363, used for absences at 369 and 461) and then calls `conditionService.GetForTeamAsync` (line 384), which loads the same convocation data again for fatigue and readiness. Each statistics request now pays the query twice; the data is one team's season, so the cost is bounded. The dedicated performance audit covers the rest.
 - **Suggested fix:** Let the service accept the already-loaded convocations (an overload), or return them together with the conditions so the handler reuses one load.
 
-#### L1 — The identifying-data test checks the full name only as one combined string
+#### L1 — The identifying-data test checks the full name only as one combined string (FIXED)
 - **Location:** `Back/ExtractionApi/tests/RFFM.Api.Tests/IntegrationTests/GameModelAssistantContextBuilderTests.cs:164-169`
 - **Problem:** The player is seeded with `Name = "Juan"` and `LastName = "Perez Lopez"` (`:75-76`), but the test asserts `Assert.DoesNotContain(FullName, context.Text)` for the combined value only. A leak of the first name or the last name alone would pass. The spec asks the test to assert that the full name is absent.
 - **Suggested fix:** Also assert that the first name and the last name are absent, each on its own.
 
-#### L2 — All injuries of each player are sent, with no date window
+#### L2 — All injuries of each player are sent, with no date window (FIXED)
 - **Location:** `Back/ExtractionApi/src/RFFM.Api/Features/Coaches/GameModels/Assistant/GameModelAssistantContextBuilder.cs:137-141`
 - **Problem:** Injuries are selected for every active team player with no date filter, while sessions are bounded by `SessionWindowDays`. Old health data goes to the provider and counts against `MaxContextCharacters`.
 - **Suggested fix:** Keep only open injuries and those that ended inside the session window, or add a dedicated option.
 
-#### L3 — The fallback player label is not stable between turns
+#### L3 — The fallback player label is not stable between turns (FIXED)
 - **Location:** `Back/ExtractionApi/src/RFFM.Api/Features/Coaches/GameModels/Assistant/GameModelAssistantContextBuilder.cs:154-161`
 - **Problem:** A player without an alias is labelled `$"Jugador {index + 1}"`, where `index` is the position in the result of `conditions.GetForTeamAsync`, which has no explicit order. The same player can get another label on the next turn of the same conversation, so earlier assistant messages can refer to the wrong player.
 - **Suggested fix:** Order the players deterministically (for example by team player id) before numbering them.
@@ -73,7 +73,7 @@ None.
 - **Problem:** No code consults the flag: the handler always sets `ResponseSchema`, the OpenAI-compatible adapter always sends it, and the Claude adapter ignores it. The flag is dead code that suggests a branch that does not exist.
 - **Suggested fix:** Remove the flag, or use it in the handler to decide whether to send the schema, and cover that with a test.
 
-#### L6 — Version marker tests miss two paths
+#### L6 — Version marker tests miss two paths (FIXED)
 - **Location:** `Back/ExtractionApi/tests/RFFM.Api.Tests/IntegrationTests/UpdateGameModelHandlerTests.cs` (stale-rejection test), `Back/ExtractionApi/src/RFFM.Api/Infrastructure/GameModelImport/AdnLegibleImporter.cs` (`Touch()` call)
 - **Problem:** The stale-rejection test asserts that the name is unchanged but not that the stored `Version` is unchanged. The `Touch()` added to the importer has no test, so removing it fails nothing.
 - **Suggested fix:** Assert the stored version after a refused update, and add a re-import test that checks the version changes.

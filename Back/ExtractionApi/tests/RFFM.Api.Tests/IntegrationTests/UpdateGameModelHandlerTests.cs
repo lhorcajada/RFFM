@@ -337,6 +337,9 @@ namespace RFFM.Api.Tests.IntegrationTests
             await new UpdateGameModelHandler(saveDb).Handle(
                 RenameCommand(gameModelId, userId, "Modelo intermedio", expectedVersion: null), CancellationToken.None);
 
+            await using var beforeDb = _fixture.CreateDbContext();
+            var versionBefore = (await beforeDb.GameModels.AsNoTracking().SingleAsync(gm => gm.Id == gameModelId)).Version;
+
             await using var db = _fixture.CreateDbContext();
             var handler = new UpdateGameModelHandler(db);
             var command = RenameCommand(gameModelId, userId, "Modelo rechazado", outdated.Version);
@@ -347,6 +350,7 @@ namespace RFFM.Api.Tests.IntegrationTests
             await using var verifyDb = _fixture.CreateDbContext();
             var stored = await verifyDb.GameModels.AsNoTracking().SingleAsync(gm => gm.Id == gameModelId);
             Assert.Equal("Modelo intermedio", stored.Name);
+            Assert.Equal(versionBefore, stored.Version);
         }
 
         [Fact]

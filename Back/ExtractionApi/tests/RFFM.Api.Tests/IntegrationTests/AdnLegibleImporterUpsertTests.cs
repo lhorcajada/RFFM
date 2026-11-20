@@ -98,6 +98,27 @@ namespace RFFM.Api.Tests.IntegrationTests
         }
 
         [Fact]
+        public async Task UpsertAsync_L6_ReimportIntoExistingModelChangesItsStoredVersion()
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var teamId = await SeedTeamAsync(seedDb);
+
+            var importer = new AdnLegibleImporter();
+            await using var db1 = _fixture.CreateDbContext();
+            var gameModelId = await importer.UpsertAsync(db1, importer.Parse(FixtureMarkdown), teamId, "Modelo ADN", "2025-2026", CancellationToken.None);
+
+            await using var beforeDb = _fixture.CreateDbContext();
+            var versionBefore = (await beforeDb.GameModels.AsNoTracking().SingleAsync(gm => gm.Id == gameModelId)).Version;
+
+            await using var db2 = _fixture.CreateDbContext();
+            await importer.UpsertAsync(db2, importer.Parse(FixtureMarkdown), teamId, "Modelo ADN", "2025-2026", CancellationToken.None);
+
+            await using var verifyDb = _fixture.CreateDbContext();
+            var versionAfter = (await verifyDb.GameModels.AsNoTracking().SingleAsync(gm => gm.Id == gameModelId)).Version;
+            Assert.NotEqual(versionBefore, versionAfter);
+        }
+
+        [Fact]
         public async Task UpsertAsync_PersistsFullTree()
         {
             await using var seedDb = _fixture.CreateDbContext();

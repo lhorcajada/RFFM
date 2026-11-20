@@ -1,5 +1,6 @@
 #nullable enable
 using System.Reflection;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -301,6 +302,87 @@ namespace RFFM.Api.Tests.IntegrationTests
             var context = await builder.BuildAsync(model, seeded.TeamId, CancellationToken.None);
 
             Assert.Contains(SeasonNoteText, context.Text);
+        }
+
+        private static async Task SeedInjuryOfTypeAsync(AppDbContext db, string teamPlayerId, string injuryType, DateTime start, DateTime? end)
+        {
+            var injury = TeamPlayerInjury.Create(teamPlayerId, start, injuryType, InjuryDescription, EstimatedRecovery);
+            if (end is { } endDate)
+                injury.Update(start, injuryType, InjuryDescription, EstimatedRecovery, endDate);
+            db.TeamPlayerInjuries.Add(injury);
+            await db.SaveChangesAsync();
+        }
+
+        [Fact]
+        public async Task BuildAsync_L1_FirstNameAndLastNameAreAbsentEachOnItsOwnAndTheAliasIsPresent()
+        {
+            await using var appDb = _fixture.CreateDbContext();
+            await using var fedDb = _fixture.CreateFederationDbContext();
+            var seeded = await SeedTeamAsync(appDb);
+            var alias = $"Alias-{Guid.NewGuid():N}";
+            await SeedPersonalPlayerAsync(appDb, seeded, alias);
+            var (monitor, _) = OptionsFromConfiguration();
+
+            var context = await CreateBuilder(appDb, fedDb, monitor).BuildAsync(BuildModel(seeded.TeamId), seeded.TeamId, CancellationToken.None);
+
+            Assert.Contains(alias, context.Text);
+            Assert.DoesNotContain("Juan", context.Text);
+            Assert.DoesNotContain("Perez", context.Text);
+            Assert.DoesNotContain("Lopez", context.Text);
+        }
+
+        [Fact]
+        public async Task BuildAsync_L2_InjuryEndedBeforeTheWindowIsLeftOut_OpenAndRecentInjuriesAreIncluded()
+        {
+            await using var appDb = _fixture.CreateDbContext();
+            await using var fedDb = _fixture.CreateFederationDbContext();
+            var seeded = await SeedTeamAsync(appDb);
+            var teamPlayerId = await SeedPersonalPlayerAsync(appDb, seeded, $"Alias-{Guid.NewGuid():N}");
+            var today = DateTime.UtcNow.Date;
+            await SeedInjuryOfTypeAsync(appDb, teamPlayerId, "Lesion antigua", today.AddDays(-200), today.AddDays(-150));
+            await SeedInjuryOfTypeAsync(appDb, teamPlayerId, "Lesion reciente", today.AddDays(-40), today.AddDays(-5));
+            await SeedInjuryOfTypeAsync(appDb, teamPlayerId, "Lesion abierta", today.AddDays(-10), null);
+            var (monitor, _) = OptionsFromConfiguration();
+
+            var context = await CreateBuilder(appDb, fedDb, monitor).BuildAsync(BuildModel(seeded.TeamId), seeded.TeamId, CancellationToken.None);
+
+            Assert.DoesNotContain("Lesion antigua", context.Text);
+            Assert.Contains("Lesion reciente", context.Text);
+            Assert.Contains("Lesion abierta", context.Text);
+        }
+
+        [Fact]
+        public async Task BuildAsync_L3_PlayersWithoutAliasAreNumberedInTeamPlayerIdOrder()
+        {
+            await using var appDb = _fixture.CreateDbContext();
+            await using var fedDb = _fixture.CreateFederationDbContext();
+            var seeded = await SeedTeamAsync(appDb);
+            var players = new List<(string TeamPlayerId, string Injury)>();
+            foreach (var injury in new[] { "Lesion jugador A", "Lesion jugador B", "Lesion jugador C" })
+            {
+                var alias = $"Alias-{Guid.NewGuid():N}";
+                var teamPlayerId = await SeedPersonalPlayerAsync(appDb, seeded, alias);
+                // Blank aliases still differ from each other (the alias index is unique); the builder trims them to empty.
+                var blankAlias = new string(' ', players.Count + 1);
+                await appDb.Players.Where(p => p.Alias == alias).ExecuteUpdateAsync(s => s.SetProperty(p => p.Alias, blankAlias));
+                await SeedInjuryOfTypeAsync(appDb, teamPlayerId, injury, DateTime.UtcNow.Date.AddDays(-10), null);
+                players.Add((teamPlayerId, injury));
+            }
+            var (monitor, _) = OptionsFromConfiguration();
+            var builder = CreateBuilder(appDb, fedDb, monitor);
+            var model = BuildModel(seeded.TeamId);
+
+            var first = await builder.BuildAsync(model, seeded.TeamId, CancellationToken.None);
+            var second = await builder.BuildAsync(model, seeded.TeamId, CancellationToken.None);
+
+            var idOrder = players.OrderBy(p => p.TeamPlayerId, StringComparer.Ordinal).ToList();
+            var lines = first.Text.Split('\n').Select(l => l.TrimEnd('\r')).ToList();
+            var jugador1 = lines.FindIndex(l => l.StartsWith("- Jugador 1:", StringComparison.Ordinal));
+            var jugador2 = lines.FindIndex(l => l.StartsWith("- Jugador 2:", StringComparison.Ordinal));
+            Assert.True(jugador1 >= 0 && jugador2 >= 0);
+            Assert.Contains(idOrder[0].Injury, lines[jugador1 + 1]);
+            Assert.Contains(idOrder[1].Injury, lines[jugador2 + 1]);
+            Assert.Equal(first.Text, second.Text);
         }
     }
 }
