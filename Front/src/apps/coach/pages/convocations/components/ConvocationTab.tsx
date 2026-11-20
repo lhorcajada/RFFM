@@ -11,6 +11,7 @@ import {
 import { useEffect, useState, type MouseEvent, type PointerEvent } from "react";
 import CloseIcon from "@mui/icons-material/Close";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import HourglassEmptyIcon from "@mui/icons-material/HourglassEmpty";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import PlaylistAddCheckIcon from "@mui/icons-material/PlaylistAddCheck";
 import EmptyState from "../../../../../shared/components/ui/EmptyState/EmptyState";
@@ -27,6 +28,7 @@ import type { DeconvokeProposal } from "../utils/deconvokeProposal";
 import type { DeconvocationRuleConfig } from "../utils/rules/ruleCatalog";
 import DeconvocationProposalView, { type FitContext } from "./DeconvocationProposalView";
 import DeconvocationRulesDialog from "./DeconvocationRulesDialog";
+import PlayerProposalDataDialog from "./PlayerProposalDataDialog";
 import styles from "./ConvocationTab.module.css";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -97,6 +99,8 @@ type Props = {
   onCallPlayers?: (playerIds: string[]) => Promise<void>;
   /** Moves a player to «Desconvocados» without dragging; league matches pass the chosen reason. */
   onDeconvokePlayer?: (playerId: string, excuseId?: number) => Promise<void>;
+  /** League matches: takes a called player back to «Lista de espera». */
+  onMoveToWaiting?: (playerId: string) => Promise<void>;
   playerStreaks?: Map<string, number>;
   proposal: DeconvokeProposal;
   proposalLoading: boolean;
@@ -173,6 +177,7 @@ export default function ConvocationTab({
   onExcuseChange,
   onCallPlayers,
   onDeconvokePlayer,
+  onMoveToWaiting,
   playerStreaks,
   proposal,
   proposalLoading,
@@ -245,6 +250,9 @@ export default function ConvocationTab({
   }, [zoneCounts.waiting, zoneCounts.availabilityPending, zoneCounts.available, zoneCounts.called, zoneCounts.notCalled]);
   const [selectedToCall, setSelectedToCall] = useState<string[]>([]);
   const [callingPlayers, setCallingPlayers] = useState(false);
+  const [dataTargetId, setDataTargetId] = useState<string | null>(null);
+  const proposalById = new Map(proposal.players.map((item) => [item.playerId, item]));
+  const dataTarget = dataTargetId ? proposalById.get(dataTargetId) : undefined;
   const [reasonTarget, setReasonTarget] = useState<{ playerId: string; change: boolean } | null>(null);
   const selectedAvailable = selectedToCall.filter((id) => mgmtAvailable.includes(id));
   const toggleSelectedToCall = (playerId: string) =>
@@ -344,13 +352,24 @@ export default function ConvocationTab({
     }
     if (zone === "called" && onDeconvokePlayer) {
       return (
-        <IconButton
-          onClick={() => (isLeagueMatch ? setReasonTarget({ playerId, change: false }) : onDeconvokePlayer(playerId))}
-          aria-label={`Desconvocar a ${displayName}`}
-          className={styles.deconvokeBtn}
-        >
-          <CloseIcon fontSize="small" />
-        </IconButton>
+        <div className={styles.calledActions}>
+          {isLeagueMatch && onMoveToWaiting && (
+            <IconButton
+              onClick={() => onMoveToWaiting(playerId)}
+              aria-label={`Pasar a la lista de espera a ${displayName}`}
+              className={styles.deconvokeBtn}
+            >
+              <HourglassEmptyIcon fontSize="small" />
+            </IconButton>
+          )}
+          <IconButton
+            onClick={() => (isLeagueMatch ? setReasonTarget({ playerId, change: false }) : onDeconvokePlayer(playerId))}
+            aria-label={`Desconvocar a ${displayName}`}
+            className={styles.deconvokeBtn}
+          >
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </div>
       );
     }
     if (zone === "notCalled" && onCallPlayers) {
@@ -411,6 +430,18 @@ export default function ConvocationTab({
           selected={zone === "available" && selectedToCall.includes(playerId)}
           actions={actions ? <div {...stopDrag}>{actions}</div> : undefined}
         />
+        {!readOnly && (zone === "called" || zone === "waiting") && proposalById.has(playerId) && (
+          <button
+            type="button"
+            className={styles.dataStrip}
+            aria-label={`Ver datos de ${displayName}`}
+            onClick={() => setDataTargetId(playerId)}
+            {...stopDrag}
+          >
+            <span className={styles.dataStripText}>Ver datos</span>
+            <ExpandMoreIcon fontSize="small" aria-hidden="true" />
+          </button>
+        )}
         {!readOnly && isLeagueMatch && zone === "notCalled" && excuseTypes.length > 0 && (
           <button
             type="button"
@@ -631,6 +662,10 @@ export default function ConvocationTab({
         })}
       </div>
       </>
+      )}
+
+      {dataTarget && (
+        <PlayerProposalDataDialog open onClose={() => setDataTargetId(null)} item={dataTarget} fitContext={fitContext} />
       )}
 
       {reasonTarget && (
