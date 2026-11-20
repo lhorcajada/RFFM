@@ -39,7 +39,7 @@ function proposal(overrides: Partial<DeconvokeProposal> = {}): DeconvokeProposal
   return {
     generatedAt: "2026-10-14T10:00:00.000Z",
     rivalDifficulty: "hard",
-    schedule: { upcoming: [], restStrong: false, strongCount: 0, maxStrong: 0 },
+    schedule: { upcoming: [], keepStrong: false, strongCount: 0, maxStrong: 0 },
     targetCount: 2,
     calledCount: 20,
     selectedIds: ["p1"],
@@ -200,7 +200,7 @@ describe("DeconvocationProposalView", () => {
     renderView(
       proposal({
         rivalDifficulty: "easy",
-        schedule: { upcoming: ["medium", "hard", "medium", "easy", "hard"], restStrong: true, strongCount: 3, maxStrong: 1 },
+        schedule: { upcoming: ["medium", "hard", "medium", "easy", "hard"], keepStrong: true, strongCount: 3, maxStrong: 1 },
       }),
     );
 
@@ -211,7 +211,7 @@ describe("DeconvocationProposalView", () => {
     renderView(
       proposal({
         rivalDifficulty: "hard",
-        schedule: { upcoming: ["medium", "medium", "medium", "medium", "medium"], restStrong: false, strongCount: 3, maxStrong: 0 },
+        schedule: { upcoming: ["medium", "medium", "medium", "medium", "medium"], keepStrong: false, strongCount: 3, maxStrong: 0 },
       }),
     );
 

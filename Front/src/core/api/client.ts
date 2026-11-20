@@ -12,6 +12,8 @@ import {
 declare module "axios" {
   export interface AxiosRequestConfig {
     suppressErrorRedirect?: boolean;
+    /** Network-error retries already made for this request (see the response interceptor). */
+    retryCount?: number;
   }
 }
 
@@ -84,19 +86,35 @@ if (typeof window !== "undefined") {
   });
 }
 
+// A burst of GETs right after login can fail all at once on mobile Safari (dropped or reset
+// connection): a short retry recovers them without bothering the user.
+const NETWORK_RETRIES = 2;
+const NETWORK_RETRY_DELAY_MS = 400;
+
+function hasAuthorizationHeader(config: any): boolean {
+  const headers = config?.headers;
+  if (!headers) return false;
+  return Boolean(headers.Authorization ?? headers.authorization ?? headers.get?.("Authorization"));
+}
+
 function gotoErrorPage(reason?: string, error?: any) {
   if (pageUnloading) return;
   const suffix = reason ? `?reason=${encodeURIComponent(reason)}` : "";
   let path = `/error-500${suffix}`;
-  // Repeated error redirects in a short window mean the stored session is likely
-  // stale and the app boots into the same failure every time: reset it once.
   traceAuth("http.error_redirect", {
     reason: reason ?? "500",
     method: error?.config?.method,
     url: error?.config?.url,
     code: error?.code,
+    hasAuthHeader: hasAuthorizationHeader(error?.config),
+    retryCount: error?.config?.retryCount ?? 0,
+    online: typeof navigator !== "undefined" ? navigator.onLine : null,
   });
-  if (registerErrorRedirect()) {
+  // Repeated server-error redirects in a short window mean the stored session is likely
+  // stale and the app boots into the same failure every time: reset it once. A network or
+  // timeout failure says nothing about the session, so it never wipes a valid token.
+  const transportFailure = reason === "network" || reason === "timeout";
+  if (!transportFailure && registerErrorRedirect()) {
     clearStaleSession();
     resetErrorRedirects();
     path = "/login";
@@ -143,6 +161,18 @@ client.interceptors.response.use(
         if (error?.code === "ECONNABORTED") {
           if (!suppressRedirect) gotoErrorPage("timeout", error);
         } else {
+          const config = error?.config;
+          const attempts: number = config?.retryCount ?? 0;
+          const retryable =
+            String(config?.method ?? "").toLowerCase() === "get" &&
+            !suppressRedirect &&
+            !pageUnloading &&
+            attempts < NETWORK_RETRIES;
+          if (retryable) {
+            return new Promise((resolve) => setTimeout(resolve, NETWORK_RETRY_DELAY_MS * (attempts + 1))).then(() =>
+              client.request({ ...config, retryCount: attempts + 1 }),
+            );
+          }
           if (!suppressRedirect) gotoErrorPage("network", error);
         }
         return Promise.reject(error);

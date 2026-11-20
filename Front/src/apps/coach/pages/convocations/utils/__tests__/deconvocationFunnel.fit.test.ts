@@ -81,7 +81,7 @@ describe("compareFairness con encaje", () => {
     expect(compareFairness(worst, best, "medium")).toMatchObject({ criterion: "fit" });
   });
 
-  it("contra un rival difícil el encaje también va después de las jornadas y el excedente", () => {
+  it("contra un rival difícil, con el mismo nivel, el encaje va después de las jornadas y el excedente", () => {
     const worst = metrics({ fit: fit({ value: 2.0 }) });
     const best = metrics({ fit: fit({ value: 4.0 }) });
 

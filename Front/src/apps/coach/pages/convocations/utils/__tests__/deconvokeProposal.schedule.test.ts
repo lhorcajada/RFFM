@@ -72,14 +72,14 @@ describe("buildDeconvokeProposal — próximos partidos y reparto", () => {
     const proposal = build(squad(), { levels: STARS, upcoming: ["easy", "hard", "medium"] });
 
     expect(proposal.schedule.upcoming).toEqual(["easy", "hard", "medium"]);
-    expect(proposal.schedule.restStrong).toBe(true);
+    expect(proposal.schedule.keepStrong).toBe(true);
     expect(proposal.schedule.strongCount).toBeGreaterThan(0);
   });
 
   it("sin partidos difíciles próximos no activa el descanso de fuertes", () => {
     const proposal = build(squad(), { levels: STARS, upcoming: ["easy", "medium"] });
 
-    expect(proposal.schedule.restStrong).toBe(false);
+    expect(proposal.schedule.keepStrong).toBe(false);
   });
 
   it("ante un rival difícil no desconvoca a ningún fuerte si hay alternativa", () => {
@@ -90,12 +90,21 @@ describe("buildDeconvokeProposal — próximos partidos y reparto", () => {
     expect(proposal.selectedIds.some((id) => strong.has(id))).toBe(false);
   });
 
-  it("con un partido difícil por delante y rival fácil, descansa a un fuerte pero no a todos", () => {
-    const proposal = build(squad(), { levels: STARS, difficulty: "easy", upcoming: ["medium", "hard"] });
-    const strongOut = proposal.selectedIds.filter((id) => id in STARS);
+  it("con un partido difícil por delante no desconvoca a los importantes en el partido actual", () => {
+    const proposal = build(squad(), { levels: STARS, difficulty: "medium", upcoming: ["medium", "hard"] });
 
-    expect(strongOut).toHaveLength(1);
     expect(proposal.selectedIds).toHaveLength(3);
+    expect(proposal.selectedIds.some((id) => id in STARS)).toBe(false);
+  });
+
+  it("ante un rival difícil desconvoca a los de menor nivel aunque lleven menos jornadas seguidas", () => {
+    const levels = { ...STARS, lat1: 2, mc2: 2, b2: 2, dc2: 2 };
+    const players = squad();
+    const grid = build(players, { levels, difficulty: "hard", upcoming: [] });
+
+    expect(grid.selectedIds).toHaveLength(3);
+    expect(grid.selectedIds.every((id) => levels[id as keyof typeof levels] <= 2 || !(id in STARS))).toBe(true);
+    expect(grid.selectedIds.some((id) => id in STARS)).toBe(false);
   });
 
   it("no desconvoca a dos jugadores de la misma línea si hay alternativa", () => {
