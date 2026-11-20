@@ -4,6 +4,14 @@ Monorepo: React 19 SPA + ASP.NET Core Minimal API for football management.
 
 ---
 
+## Shell
+
+- This is a Windows machine: use the **PowerShell** tool for every shell command (git, node, npm, dotnet, file checks). Do not use Bash/Git Bash or POSIX syntax (`tr`, `sort`, `$TMPDIR`, `/dev/null`); Git Bash rewrites paths and breaks tools such as `transfer.js verify`.
+- This applies to subagents and workers too: say so in their orders.
+- Multi-line commit messages: write them to a UTF-8 (no BOM) file with a here-string and run `git commit -F <file>`.
+
+---
+
 ## Project Structure
 
 ```
