@@ -39,6 +39,8 @@ export type ConvocationMatchContext = {
   lastInjuryEndMap: Map<string, string | null>;
   lastInjuryStartMap: Map<string, string | null>;
   lastInjuryMissedEventsMap: Map<string, number>;
+  /** Players with an open injury → its estimated recovery date (null when there is none). */
+  injuryReturnMap: Map<string, string | null>;
   weekTrainingStatsMap: Map<string, WeeklyTrainingStats>;
   weekTrainingCount: number;
   loadingProposalContext: boolean;
@@ -59,6 +61,7 @@ export function useConvocationMatchContext(
   const [gridStartsCountMap, setGridStartsCountMap] = useState<Map<string, number>>(new Map());
   const [lastInjuryEndMap, setLastInjuryEndMap] = useState<Map<string, string | null>>(new Map());
   const [lastInjuryWindowMap, setLastInjuryWindowMap] = useState<Map<string, InjuryWindow>>(new Map());
+  const [injuryReturnMap, setInjuryReturnMap] = useState<Map<string, string | null>>(new Map());
   const [trainingAbsenceDaysMap, setTrainingAbsenceDaysMap] = useState<Map<string, string[]> | null>(null);
   const [matchDays, setMatchDays] = useState<string[]>([]);
   const [weekTrainingStatsMap, setWeekTrainingStatsMap] = useState<Map<string, WeeklyTrainingStats>>(new Map());
@@ -420,6 +423,7 @@ export function useConvocationMatchContext(
     if (!teamId || !enabled || convocationPlayers.length === 0) {
       setLastInjuryEndMap(new Map());
       setLastInjuryWindowMap(new Map());
+      setInjuryReturnMap(new Map());
       return;
     }
     let mounted = true;
@@ -429,8 +433,13 @@ export function useConvocationMatchContext(
         const injuriesByPlayer = new Map(teamInjuries.map((t) => [t.teamPlayerId, t.injuries]));
         const map = new Map<string, string | null>();
         const windows = new Map<string, InjuryWindow>();
+        const returns = new Map<string, string | null>();
         for (const p of convocationPlayers) {
           const injuries = injuriesByPlayer.get(p.id) ?? [];
+          const open = injuries
+            .filter((inj) => !inj.endDate)
+            .sort((a, b) => String(b.startDate).localeCompare(String(a.startDate)))[0];
+          if (open) returns.set(p.id, open.estimatedRecovery ?? null);
           const latest = injuries
             .filter((inj) => !!inj.endDate)
             .sort((a, b) => String(b.endDate).localeCompare(String(a.endDate)))[0];
@@ -440,11 +449,13 @@ export function useConvocationMatchContext(
         if (mounted) {
           setLastInjuryEndMap(map);
           setLastInjuryWindowMap(windows);
+          setInjuryReturnMap(returns);
         }
       } catch {
         if (mounted) {
           setLastInjuryEndMap(new Map());
           setLastInjuryWindowMap(new Map());
+          setInjuryReturnMap(new Map());
         }
       }
     })();
@@ -478,6 +489,7 @@ export function useConvocationMatchContext(
     lastInjuryEndMap,
     lastInjuryStartMap,
     lastInjuryMissedEventsMap,
+    injuryReturnMap,
     weekTrainingStatsMap,
     weekTrainingCount,
     loadingProposalContext,

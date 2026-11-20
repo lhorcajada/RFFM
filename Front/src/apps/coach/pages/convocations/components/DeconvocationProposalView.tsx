@@ -1,5 +1,5 @@
 import { Fragment, useState } from "react";
-import { Alert, Button, CircularProgress } from "@mui/material";
+import { Alert, Button, CircularProgress, Tab, Tabs } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import RefreshIcon from "@mui/icons-material/Refresh";
@@ -17,11 +17,14 @@ import {
   type ProposalOrderEntry,
 } from "../utils/deconvokeProposal";
 import { formatShortfall, roleLabel } from "../utils/positionRequirements";
+import type { SimulatedProposal } from "../utils/simulateUpcomingProposals";
 import PlayerFitDialog from "./PlayerFitDialog";
 import styles from "./DeconvocationProposalView.module.css";
 
 type Props = {
   proposal: DeconvokeProposal;
+  /** Estimated proposals for the next league matches; the tabs are hidden when empty or omitted. */
+  upcoming?: SimulatedProposal[];
   loading: boolean;
   refreshing: boolean;
   applying: boolean;
@@ -234,8 +237,14 @@ function ReasonCard({ item, onShowFit }: { item: PlayerProposal; onShowFit?: (it
   );
 }
 
+function matchDay(date: string): string {
+  const parsed = new Date(`${date}T00:00:00`);
+  return Number.isNaN(parsed.getTime()) ? date : new Intl.DateTimeFormat("es-ES", { day: "numeric", month: "short" }).format(parsed);
+}
+
 export default function DeconvocationProposalView({
-  proposal,
+  proposal: currentProposal,
+  upcoming = [],
   loading,
   refreshing,
   applying,
@@ -246,6 +255,10 @@ export default function DeconvocationProposalView({
   fitContext,
 }: Props) {
   const [fitTarget, setFitTarget] = useState<PlayerProposal | null>(null);
+  const [tab, setTab] = useState(0);
+  const activeTab = tab <= upcoming.length ? tab : 0;
+  const estimate = activeTab > 0 ? upcoming[activeTab - 1] : null;
+  const proposal = estimate?.proposal ?? currentProposal;
   const onShowFit = fitContext ? setFitTarget : undefined;
   const fitPosition = fitTarget?.fit ? fitContext?.positionFit.find((p) => p.position === fitTarget.fit?.position) : undefined;
   const fitLevels = fitContext?.traitRatings.find((r) => r.teamPlayerId === fitTarget?.playerId)?.levels ?? [];
@@ -321,6 +334,7 @@ export default function DeconvocationProposalView({
               Reglas
             </Button>
           )}
+          {!estimate && (
           <Button
             variant="contained"
             size="small"
@@ -330,8 +344,33 @@ export default function DeconvocationProposalView({
           >
             Aplicar propuesta
           </Button>
+          )}
         </div>
       </div>
+
+      {upcoming.length > 0 && (
+        <Tabs
+          value={activeTab}
+          onChange={(_, value: number) => setTab(value)}
+          variant="scrollable"
+          scrollButtons="auto"
+          aria-label="Propuesta por partido"
+          className={styles.tabs}
+        >
+          <Tab label="Actual" />
+          {upcoming.map(({ match }) => (
+            <Tab key={match.eventId} label={`${match.label} · ${match.rival}`} />
+          ))}
+        </Tabs>
+      )}
+
+      {estimate && (
+        <Alert severity="info" className={styles.warning}>
+          Estimación para la {estimate.match.label} contra {estimate.match.rival} ({matchDay(estimate.match.date)}): se da por
+          aplicada la propuesta de cada partido anterior, se supone que todos entrenan y los lesionados siguen fuera hasta su
+          regreso. Es solo una previsión y no se puede aplicar.
+        </Alert>
+      )}
 
       {(proposal.positionWarnings ?? []).length > 0 && (
         <Alert severity="warning" className={styles.warning}>

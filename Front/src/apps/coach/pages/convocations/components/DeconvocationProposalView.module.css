@@ -524,3 +524,8 @@
   text-align: center;
   color: #ffb300;
 }
+
+.tabs {
+  min-height: 40px;
+  margin-bottom: 8px;
+}

@@ -436,4 +436,76 @@ describe("DeconvocationProposalView — orden de desconvocatoria", () => {
 
     expect(screen.queryByRole("list", { name: "Orden de desconvocatoria" })).not.toBeInTheDocument();
   });
+
+  describe("pestañas con la estimación de los partidos siguientes", () => {
+    const estimated = (round: number, rival: string, date: string, difficulty: "easy" | "medium" | "hard", name: string) => ({
+      match: { eventId: `upcoming-${round}`, round, label: `J${round}`, date, rival, difficulty },
+      proposal: proposal({
+        rivalDifficulty: difficulty,
+        selectedIds: ["e1"],
+        players: [
+          player("e1", name, { group: "proposed", reason: `Elegido: ${name} descansa en la J${round}` }),
+        ],
+        alreadyDeconvoked: [],
+      }),
+    });
+    const upcoming = [
+      estimated(7, "Getafe", "2026-11-04", "hard", "Ramos"),
+      estimated(8, "Rayo", "2026-11-11", "easy", "Cano"),
+    ];
+
+    it("no muestra pestañas si no hay partidos siguientes", () => {
+      renderView(proposal());
+
+      expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
+    });
+
+    it("muestra la propuesta actual y una pestaña por cada partido siguiente", () => {
+      renderView(proposal(), { upcoming });
+
+      const tabs = within(screen.getByRole("tablist", { name: "Propuesta por partido" })).getAllByRole("tab");
+      expect(tabs.map((tab) => tab.textContent)).toEqual(["Actual", "J7 · Getafe", "J8 · Rayo"]);
+      expect(screen.getByRole("tab", { name: "Actual" })).toHaveAttribute("aria-selected", "true");
+    });
+
+    it("al abrir una pestaña muestra su propuesta estimada con el aviso de estimación", () => {
+      renderView(proposal(), { upcoming });
+
+      fireEvent.click(screen.getByRole("tab", { name: "J7 · Getafe" }));
+
+      expect(screen.getByText("Ramos")).toBeInTheDocument();
+      expect(screen.queryByText("Sergio")).not.toBeInTheDocument();
+      expect(screen.getByText(/Estimación para la J7 contra Getafe \(4 nov\)/)).toBeInTheDocument();
+      expect(screen.getByText("Rival difícil")).toBeInTheDocument();
+    });
+
+    it("las pestañas estimadas no permiten aplicar la propuesta", () => {
+      const handlers = renderView(proposal(), { upcoming });
+
+      expect(screen.getByRole("button", { name: "Aplicar propuesta" })).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("tab", { name: "J8 · Rayo" }));
+
+      expect(screen.queryByRole("button", { name: "Aplicar propuesta" })).not.toBeInTheDocument();
+      expect(handlers.onApply).not.toHaveBeenCalled();
+    });
+
+    it("al volver a Actual se muestra la propuesta real con su acción de aplicar", () => {
+      renderView(proposal(), { upcoming });
+
+      fireEvent.click(screen.getByRole("tab", { name: "J7 · Getafe" }));
+      fireEvent.click(screen.getByRole("tab", { name: "Actual" }));
+
+      expect(screen.getByText("Sergio")).toBeInTheDocument();
+      expect(screen.queryByText(/Estimación para/)).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Aplicar propuesta" })).toBeInTheDocument();
+    });
+
+    it("no usa tablas", () => {
+      const { container } = render(
+        <DeconvocationProposalView proposal={proposal()} upcoming={upcoming} loading={false} refreshing={false} applying={false} onBack={vi.fn()} onApply={vi.fn()} />,
+      );
+
+      expect(container.querySelector("table")).toBeNull();
+    });
+  });
 });
