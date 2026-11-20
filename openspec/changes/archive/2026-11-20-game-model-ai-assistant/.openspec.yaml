@@ -1,0 +1,7 @@
+schema: sai-workflow
+created: 2026-11-19
+backlog_origin: https://github.com/lhorcajada/RFFM/issues/20
+approval:
+  specs:
+    approved_at: 2026-11-19
+    notes: ""
