@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import {
   Alert,
+  Autocomplete,
   Button,
   CircularProgress,
   Dialog,
@@ -14,6 +15,7 @@ import {
 } from "@mui/material";
 import {
   createAiProvider,
+  listAiProviderModels,
   testAiProviderConnection,
   updateAiProvider,
   type AiProvider,
@@ -58,12 +60,17 @@ export default function AiProviderFormDialog({ open, provider, onClose, onSaved 
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testOutcome, setTestOutcome] = useState<TestOutcome | null>(null);
+  const [models, setModels] = useState<string[]>([]);
+  const [loadingModels, setLoadingModels] = useState(false);
+  const [modelsError, setModelsError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
     setForm(toForm(provider));
     setErrors({});
     setTestOutcome(null);
+    setModels([]);
+    setModelsError(null);
   }, [open, provider]);
 
   const isEditing = provider !== null;
@@ -85,6 +92,8 @@ export default function AiProviderFormDialog({ open, provider, onClose, onSaved 
     }));
     setErrors({});
     setTestOutcome(null);
+    setModels([]);
+    setModelsError(null);
   };
 
   const validate = (): FieldErrors => {
@@ -142,7 +151,36 @@ export default function AiProviderFormDialog({ open, provider, onClose, onSaved 
     }
   };
 
-  const busy = saving || testing;
+  const handleLoadModels = async () => {
+    const { model: _model, ...connectionErrors } = validate();
+    setErrors(connectionErrors);
+    if (Object.keys(connectionErrors).length > 0 || !form.template) return;
+
+    setLoadingModels(true);
+    setModelsError(null);
+    try {
+      const result = await listAiProviderModels({
+        id: provider?.id ?? null,
+        template: form.template,
+        baseUrl: form.baseUrl.trim(),
+        apiKey: form.apiKey.trim() || null,
+      });
+      if (result.success) {
+        setModels(result.models);
+        if (result.models.length === 0) setModelsError("El proveedor no devolvió modelos. Escribe el nombre del modelo a mano.");
+      } else {
+        setModels([]);
+        setModelsError(result.message);
+      }
+    } catch (error) {
+      setModels([]);
+      setModelsError(mapApiErrorToMessage(error));
+    } finally {
+      setLoadingModels(false);
+    }
+  };
+
+  const busy = saving || testing || loadingModels;
 
   return (
     <Dialog open={open} onClose={busy ? undefined : onClose} fullWidth maxWidth="sm" fullScreen={fullScreen}>
@@ -196,17 +234,40 @@ export default function AiProviderFormDialog({ open, provider, onClose, onSaved 
               required={!isEditing}
               inputProps={{ maxLength: 500 }}
             />
-            <TextField
-              label="Modelo"
-              value={form.model}
-              onChange={(event) => updateField("model", event.target.value)}
-              error={Boolean(errors.model)}
-              helperText={errors.model ?? " "}
-              fullWidth
-              size="small"
-              required
-              inputProps={{ maxLength: 200 }}
+            <Autocomplete
+              freeSolo
+              openOnFocus
+              options={models}
+              filterOptions={(options) => options}
+              inputValue={form.model}
+              onInputChange={(_event, value) => updateField("model", value)}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Modelo"
+                  error={Boolean(errors.model)}
+                  helperText={
+                    errors.model ??
+                    (models.length > 0
+                      ? `${models.length} modelos disponibles para tu clave.`
+                      : "Pulsa «Ver modelos disponibles» para elegir uno, o escríbelo.")
+                  }
+                  size="small"
+                  required
+                  inputProps={{ ...params.inputProps, maxLength: 200 }}
+                />
+              )}
             />
+            <Button
+              onClick={() => void handleLoadModels()}
+              disabled={busy}
+              size="small"
+              variant="outlined"
+              startIcon={loadingModels ? <CircularProgress size={16} color="inherit" /> : undefined}
+            >
+              Ver modelos disponibles
+            </Button>
+            {modelsError && <Alert severity="warning">{modelsError}</Alert>}
             {testOutcome && <Alert severity={testOutcome.success ? "success" : "error"}>{testOutcome.message}</Alert>}
           </div>
         </DialogContent>

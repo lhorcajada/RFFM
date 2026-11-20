@@ -7,10 +7,12 @@ vi.mock("../../../../services/aiProviderService", () => ({
   createAiProvider: vi.fn(),
   updateAiProvider: vi.fn(),
   testAiProviderConnection: vi.fn(),
+  listAiProviderModels: vi.fn(),
 }));
 
 import {
   createAiProvider,
+  listAiProviderModels,
   testAiProviderConnection,
   updateAiProvider,
   type AiProvider,
@@ -21,6 +23,7 @@ const mocked = {
   create: vi.mocked(createAiProvider),
   update: vi.mocked(updateAiProvider),
   test: vi.mocked(testAiProviderConnection),
+  listModels: vi.mocked(listAiProviderModels),
 };
 
 const existing: AiProvider = {
@@ -55,7 +58,62 @@ describe("AiProviderFormDialog", () => {
     await chooseTemplate(/gemini/i);
 
     expect(screen.getByLabelText(/url base/i)).toHaveValue("https://generativelanguage.googleapis.com/v1beta/openai");
-    expect(screen.getByLabelText(/modelo/i)).toHaveValue("gemini-2.0-flash");
+    expect(screen.getByLabelText(/modelo/i)).toHaveValue("gemini-2.5-flash");
+  });
+
+  it("carga los modelos del proveedor con la clave escrita y permite elegir uno", async () => {
+    mocked.listModels.mockResolvedValue({
+      success: true,
+      failure: null,
+      message: "",
+      models: ["gemini-2.0-flash-lite", "gemini-2.5-flash"],
+    });
+    renderDialog();
+    await chooseTemplate(/gemini/i);
+    await userEvent.type(screen.getByLabelText(/clave de api/i), "AIza-1234567890");
+
+    await userEvent.click(screen.getByRole("button", { name: /ver modelos disponibles/i }));
+    await userEvent.click(await screen.findByRole("combobox", { name: /modelo/i }));
+    await userEvent.click(await screen.findByRole("option", { name: "gemini-2.0-flash-lite" }));
+
+    expect(mocked.listModels).toHaveBeenCalledWith({
+      id: null,
+      template: "gemini",
+      baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai",
+      apiKey: "AIza-1234567890",
+    });
+    expect(screen.getByLabelText(/modelo/i)).toHaveValue("gemini-2.0-flash-lite");
+  });
+
+  it("muestra el fallo del proveedor al cargar los modelos y deja escribir el modelo a mano", async () => {
+    mocked.listModels.mockResolvedValue({ success: false, failure: "InvalidKey", message: "La clave de API no es válida.", models: [] });
+    renderDialog(existing);
+
+    await userEvent.click(screen.getByRole("button", { name: /ver modelos disponibles/i }));
+
+    expect(await screen.findByText("La clave de API no es válida.")).toBeInTheDocument();
+    await userEvent.clear(screen.getByLabelText(/modelo/i));
+    await userEvent.type(screen.getByLabelText(/modelo/i), "mi-modelo");
+    expect(screen.getByLabelText(/modelo/i)).toHaveValue("mi-modelo");
+  });
+
+  it("al ver los modelos de un proveedor guardado sin clave nueva envía su id", async () => {
+    mocked.listModels.mockResolvedValue({ success: true, failure: null, message: "", models: ["gpt-4o"] });
+    renderDialog(existing);
+
+    await userEvent.click(screen.getByRole("button", { name: /ver modelos disponibles/i }));
+
+    await waitFor(() => expect(mocked.listModels).toHaveBeenCalledWith(expect.objectContaining({ id: "p1", apiKey: null })));
+  });
+
+  it("no pide los modelos si falta la clave en un proveedor nuevo", async () => {
+    renderDialog();
+    await chooseTemplate(/gemini/i);
+
+    await userEvent.click(screen.getByRole("button", { name: /ver modelos disponibles/i }));
+
+    expect(mocked.listModels).not.toHaveBeenCalled();
+    expect(screen.getByText("La clave de API es obligatoria.")).toBeInTheDocument();
   });
 
   it("la plantilla personalizada conserva lo que ya estaba escrito", async () => {

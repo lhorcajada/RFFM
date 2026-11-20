@@ -28,6 +28,16 @@ export type AiConnectionTestResult = {
   message: string;
 };
 
+/** `id` points at a saved provider whose stored key is used when `apiKey` is blank. */
+export type AiModelsRequest = Omit<AiProviderRequest, "model"> & { id: string | null };
+
+export type AiModelsResult = {
+  success: boolean;
+  failure: string | null;
+  message: string;
+  models: string[];
+};
+
 export async function getAiProviders(): Promise<AiProvider[]> {
   const res = await client.get<AiProvider[]>("/api/ai-providers");
   return res.data;
@@ -49,6 +59,11 @@ export async function deleteAiProvider(id: string): Promise<void> {
 
 export async function activateAiProvider(id: string): Promise<void> {
   await client.post(`/api/ai-providers/${id}/activate`);
+}
+
+export async function listAiProviderModels(request: AiModelsRequest): Promise<AiModelsResult> {
+  const res = await client.post<AiModelsResult>("/api/ai-providers/models", request);
+  return res.data;
 }
 
 export async function testAiProviderConnection(request: AiConnectionTestRequest): Promise<AiConnectionTestResult> {

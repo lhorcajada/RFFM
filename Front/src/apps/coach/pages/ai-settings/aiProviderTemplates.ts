@@ -27,7 +27,7 @@ export const AI_PROVIDER_TEMPLATES: AiProviderTemplate[] = [
     id: "gemini",
     label: "Gemini (gratuito)",
     baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai",
-    model: "gemini-2.0-flash",
+    model: "gemini-2.5-flash",
     hint: "El plan gratuito tiene cuota limitada y sus condiciones pueden cambiar sin aviso.",
   },
   {
