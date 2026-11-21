@@ -1,0 +1,63 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.windows {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 8px;
+}
+
+.window {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.windowHeader {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.windowTitle {
+  font-weight: 700;
+}
+
+.minute {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.8;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.swap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.swapIn {
+  color: #4caf50;
+  overflow-wrap: anywhere;
+}
+
+.swapOut {
+  color: #ef5350;
+  overflow-wrap: anywhere;
+}
