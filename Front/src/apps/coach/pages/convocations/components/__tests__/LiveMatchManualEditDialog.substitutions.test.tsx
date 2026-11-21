@@ -188,6 +188,82 @@ describe("LiveMatchManualEditDialog - ventanas de cambios", () => {
     expect(onSaveMinutes.mock.calls[0][0]).toEqual({ p0: 85, p1: 90, p2: 0, p3: 0 });
   });
 
+  it("permite crear una ventana de cambios cuando no hay ninguna", async () => {
+    const user = userEvent.setup();
+    const { onSetWindows } = renderDialog({ windows: [] });
+
+    await user.click(screen.getByRole("button", { name: "Añadir ventana" }));
+    expect(screen.getByText("Ventanas de cambios (1)")).toBeInTheDocument();
+    await user.type(screen.getByLabelText("Minuto"), "60");
+    await chooseOption(user, /parte/i, /2ª parte/);
+    await chooseOption(user, /entra/i, /Medio Tres/);
+    await chooseOption(user, /sale/i, /Defensa Dos/);
+    await save(user);
+
+    expect(onSetWindows).toHaveBeenCalledWith([
+      expect.objectContaining({
+        minute: 60,
+        half: 2,
+        windowIndex: 1,
+        swaps: [{ inPlayerId: "p2", outPlayerId: "p1", slotIndex: 1 }],
+      }),
+    ]);
+  });
+
+  it("recalcula los minutos con la ventana creada", async () => {
+    const user = userEvent.setup();
+    const { onSaveMinutes } = renderDialog({ windows: [], currentMinutes: { p0: 90, p1: 90, p2: 0, p3: 0 } });
+
+    await user.click(screen.getByRole("button", { name: "Añadir ventana" }));
+    await user.type(screen.getByLabelText("Minuto"), "60");
+    await chooseOption(user, /entra/i, /Medio Tres/);
+    await chooseOption(user, /sale/i, /Defensa Dos/);
+    await save(user);
+
+    expect(onSaveMinutes.mock.calls[0][0]).toEqual({ p0: 90, p1: 60, p2: 30, p3: 0 });
+  });
+
+  it("permite añadir una ventana junto a las ya registradas", async () => {
+    const user = userEvent.setup();
+    renderDialog();
+
+    await user.click(screen.getByRole("button", { name: "Añadir ventana" }));
+
+    expect(screen.getByText("Ventanas de cambios (2)")).toBeInTheDocument();
+  });
+
+  it("no deja guardar una ventana nueva sin jugadores seleccionados", async () => {
+    const user = userEvent.setup();
+    const { onSetWindows } = renderDialog({ windows: [] });
+
+    await user.click(screen.getByRole("button", { name: "Añadir ventana" }));
+    await user.type(screen.getByLabelText("Minuto"), "60");
+    await save(user);
+
+    expect(screen.getByRole("alert")).toHaveTextContent(/selecciona los jugadores/i);
+    expect(onSetWindows).not.toHaveBeenCalled();
+  });
+
+  it("no deja guardar una ventana nueva sin minuto", async () => {
+    const user = userEvent.setup();
+    const { onSetWindows } = renderDialog({ windows: [] });
+
+    await user.click(screen.getByRole("button", { name: "Añadir ventana" }));
+    await save(user);
+
+    expect(screen.getByRole("alert")).toHaveTextContent(/minuto de las ventanas de cambios/i);
+    expect(onSetWindows).not.toHaveBeenCalled();
+  });
+
+  it("permite añadir un cambio a una ventana existente", async () => {
+    const user = userEvent.setup();
+    renderDialog();
+
+    await user.click(screen.getByRole("button", { name: "Añadir cambio" }));
+
+    expect(screen.getAllByRole("button", { name: "Eliminar cambio" })).toHaveLength(2);
+  });
+
   it("no aplica las correcciones si se cancela", async () => {
     const user = userEvent.setup();
     const { onSetWindows } = renderDialog();

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Button,
   MenuItem,
@@ -37,7 +37,9 @@ interface ManualMinutes {
 
 /** A substitution window being corrected; the minute stays a string so the input works uncontrolled */
 interface WindowDraft {
-  sourceIndex: number;
+  /** Stable identity of the draft; windows added by the coach have no source window */
+  key: string;
+  sourceIndex: number | null;
   minute: string;
   period: WindowPeriod;
   swaps: SubstitutionSwap[];
@@ -46,6 +48,8 @@ interface WindowDraft {
 const MAX_MINUTE = 200;
 const NO_WINDOWS: SubstitutionWindow[] = [];
 const NO_STARTERS: string[] = [];
+/** Swap of a window the coach has just added: nobody chosen yet */
+const EMPTY_SWAP: SubstitutionSwap = { inPlayerId: "", outPlayerId: "", slotIndex: 0 };
 
 const PERIOD_OPTIONS: { value: WindowPeriod; label: string }[] = [
   { value: "firstHalf", label: "1ª parte" },
@@ -62,6 +66,7 @@ const windowFieldSx = {
 
 function toWindowDrafts(windows: SubstitutionWindow[]): WindowDraft[] {
   return windows.map((window, sourceIndex) => ({
+    key: `source-${sourceIndex}`,
     sourceIndex,
     minute: String(window.minute),
     period: getWindowPeriod(window),
@@ -152,6 +157,7 @@ export default function LiveMatchManualEditDialog({
   const initialDuration = () => String(matchDurationMinutes ?? defaultMatchDurationMinutes);
   const [durationInput, setDurationInput] = useState(initialDuration);
   const [windowDrafts, setWindowDrafts] = useState<WindowDraft[]>(() => toWindowDrafts(windows));
+  const newWindowCounter = useRef(0);
   // Part of the recalculated minutes a player already had when the coach typed their minutes by hand
   const [minuteOffsets, setMinuteOffsets] = useState<Record<string, number>>({});
 
@@ -203,7 +209,7 @@ export default function LiveMatchManualEditDialog({
   function toEditedWindows(drafts: WindowDraft[]): EditedWindow[] {
     return drafts.map((draft) => ({
       sourceIndex: draft.sourceIndex,
-      minute: parseWindowMinute(draft.minute) ?? windows[draft.sourceIndex].minute,
+      minute: parseWindowMinute(draft.minute) ?? (draft.sourceIndex === null ? 0 : windows[draft.sourceIndex].minute),
       period: draft.period,
       swaps: draft.swaps,
     }));
@@ -245,35 +251,58 @@ export default function LiveMatchManualEditDialog({
     setError(null);
   }
 
-  function updateWindowDraft(sourceIndex: number, patch: Partial<Omit<WindowDraft, "sourceIndex">>) {
-    setWindowDrafts((prev) => prev.map((draft) => (draft.sourceIndex === sourceIndex ? { ...draft, ...patch } : draft)));
+  function updateWindowDraft(key: string, patch: Partial<Omit<WindowDraft, "key" | "sourceIndex">>) {
+    setWindowDrafts((prev) => prev.map((draft) => (draft.key === key ? { ...draft, ...patch } : draft)));
     setError(null);
   }
 
+  function addWindow() {
+    newWindowCounter.current += 1;
+    setWindowDrafts((prev) => [
+      ...prev,
+      {
+        key: `new-${newWindowCounter.current}`,
+        sourceIndex: null,
+        minute: "",
+        period: "firstHalf",
+        swaps: [{ ...EMPTY_SWAP }],
+      },
+    ]);
+    setError(null);
+  }
+
+  function addSwap(draft: WindowDraft) {
+    updateWindowDraft(draft.key, { swaps: [...draft.swaps, { ...EMPTY_SWAP }] });
+  }
+
   function updateSwap(draft: WindowDraft, swapIndex: number, patch: Partial<SubstitutionSwap>) {
-    updateWindowDraft(draft.sourceIndex, {
+    updateWindowDraft(draft.key, {
       swaps: draft.swaps.map((swap, i) => (i === swapIndex ? { ...swap, ...patch } : swap)),
     });
   }
 
-  function removeWindow(sourceIndex: number) {
-    setWindowDrafts((prev) => prev.filter((draft) => draft.sourceIndex !== sourceIndex));
+  function removeWindow(key: string) {
+    setWindowDrafts((prev) => prev.filter((draft) => draft.key !== key));
     setError(null);
   }
 
   function removeSwap(draft: WindowDraft, swapIndex: number) {
     const remainingSwaps = draft.swaps.filter((_, i) => i !== swapIndex);
     if (remainingSwaps.length === 0) {
-      removeWindow(draft.sourceIndex);
+      removeWindow(draft.key);
       return;
     }
-    updateWindowDraft(draft.sourceIndex, { swaps: remainingSwaps });
+    updateWindowDraft(draft.key, { swaps: remainingSwaps });
   }
 
   function findWindowsError(): string | null {
     for (const draft of windowDrafts) {
       if (parseWindowMinute(draft.minute) === null) {
         return `Revisa el minuto de las ventanas de cambios (debe ser un número entre 0 y ${MAX_MINUTE}).`;
+      }
+      const swapIncomplete = draft.swaps.some((swap) => !swap.inPlayerId || swap.outPlayerId === "");
+      if (swapIncomplete) {
+        return "Selecciona los jugadores que entran y salen en cada cambio.";
       }
       const samePlayerInAndOut = draft.swaps.some((swap) => swap.inPlayerId === swap.outPlayerId);
       if (samePlayerInAndOut) {
@@ -393,7 +422,7 @@ export default function LiveMatchManualEditDialog({
   }
 
   function renderPlayerSelect(id: string, label: string, playerId: string, onSelect: (playerId: string) => void) {
-    const isInLineup = lineupPlayers.some((p) => p.id === playerId);
+    const isInLineup = playerId === "" || lineupPlayers.some((p) => p.id === playerId);
     return (
       <TextField
         id={id}
@@ -493,7 +522,17 @@ export default function LiveMatchManualEditDialog({
 
         {/* Substitution windows section — corrections here recalculate the minutes below */}
         <div className={styles.section}>
-          <div className={styles.sectionTitle}>Ventanas de cambios ({windowDrafts.length})</div>
+          <div className={styles.sectionHeader}>
+            <div className={styles.sectionTitle}>Ventanas de cambios ({windowDrafts.length})</div>
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<AddIcon sx={{ fontSize: 16 }} />}
+              onClick={addWindow}
+            >
+              Añadir ventana
+            </Button>
+          </div>
           {windowDrafts.length > 0 && (
             <div className={styles.sectionHint}>
               Al corregir un cambio se recalculan los minutos de los jugadores afectados.
@@ -501,9 +540,9 @@ export default function LiveMatchManualEditDialog({
           )}
           <div className={styles.itemsList}>
             {windowDrafts.map((draft) => {
-              const fieldId = `substitution-window-${draft.sourceIndex}`;
+              const fieldId = `substitution-window-${draft.key}`;
               return (
-                <div key={draft.sourceIndex} className={styles.windowCard}>
+                <div key={draft.key} className={styles.windowCard}>
                   <div className={styles.windowHeader}>
                     <TextField
                       id={`${fieldId}-minute`}
@@ -512,7 +551,7 @@ export default function LiveMatchManualEditDialog({
                       label="Minuto"
                       inputProps={{ min: 0, max: MAX_MINUTE, step: 1 }}
                       value={draft.minute}
-                      onChange={(e) => updateWindowDraft(draft.sourceIndex, { minute: e.target.value })}
+                      onChange={(e) => updateWindowDraft(draft.key, { minute: e.target.value })}
                       className={styles.windowMinuteField}
                       sx={windowFieldSx}
                     />
@@ -522,7 +561,7 @@ export default function LiveMatchManualEditDialog({
                       size="small"
                       label="Parte"
                       value={draft.period}
-                      onChange={(e) => updateWindowDraft(draft.sourceIndex, { period: e.target.value as WindowPeriod })}
+                      onChange={(e) => updateWindowDraft(draft.key, { period: e.target.value as WindowPeriod })}
                       className={styles.windowPeriodField}
                       sx={windowFieldSx}
                     >
@@ -535,7 +574,7 @@ export default function LiveMatchManualEditDialog({
                     <IconButton
                       size="small"
                       aria-label="Eliminar ventana"
-                      onClick={() => removeWindow(draft.sourceIndex)}
+                      onClick={() => removeWindow(draft.key)}
                       sx={{ color: "#ef4444", marginLeft: "auto" }}
                     >
                       <DeleteIcon sx={{ fontSize: 18 }} />
@@ -563,6 +602,15 @@ export default function LiveMatchManualEditDialog({
                       </IconButton>
                     </div>
                   ))}
+                  <Button
+                    size="small"
+                    variant="text"
+                    startIcon={<AddIcon sx={{ fontSize: 16 }} />}
+                    onClick={() => addSwap(draft)}
+                    sx={{ alignSelf: "flex-start" }}
+                  >
+                    Añadir cambio
+                  </Button>
                 </div>
               );
             })}
