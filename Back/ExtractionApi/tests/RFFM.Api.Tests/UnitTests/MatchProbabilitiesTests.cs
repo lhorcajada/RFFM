@@ -70,7 +70,7 @@ namespace RFFM.Api.Tests.UnitTests
         [Fact]
         public void Si_el_empate_es_el_resultado_favorito_el_marcador_mostrado_es_un_empate()
         {
-            var outcome = MatchProbabilities.Calculate(1.0, 1.0);
+            var outcome = MatchProbabilities.Calculate(0.5, 0.5);
 
             Assert.True(outcome.Draw > outcome.Home && outcome.Draw > outcome.Away);
             Assert.Equal(outcome.MostLikelyLocalGoals, outcome.MostLikelyVisitorGoals);
