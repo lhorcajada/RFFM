@@ -48,5 +48,32 @@ namespace RFFM.Api.Tests.UnitTests
 
             Assert.Equal((3, 0), (outcome.MostLikelyLocalGoals, outcome.MostLikelyVisitorGoals));
         }
+
+        [Fact]
+        public void Si_el_local_es_el_resultado_favorito_el_marcador_mostrado_es_una_victoria_local()
+        {
+            var outcome = MatchProbabilities.Calculate(2.6, 2.0);
+
+            Assert.True(outcome.Home > outcome.Draw && outcome.Home > outcome.Away);
+            Assert.True(outcome.MostLikelyLocalGoals > outcome.MostLikelyVisitorGoals);
+        }
+
+        [Fact]
+        public void Si_el_visitante_es_el_resultado_favorito_el_marcador_mostrado_es_una_victoria_visitante()
+        {
+            var outcome = MatchProbabilities.Calculate(2.0, 2.6);
+
+            Assert.True(outcome.Away > outcome.Home && outcome.Away > outcome.Draw);
+            Assert.True(outcome.MostLikelyVisitorGoals > outcome.MostLikelyLocalGoals);
+        }
+
+        [Fact]
+        public void Si_el_empate_es_el_resultado_favorito_el_marcador_mostrado_es_un_empate()
+        {
+            var outcome = MatchProbabilities.Calculate(1.0, 1.0);
+
+            Assert.True(outcome.Draw > outcome.Home && outcome.Draw > outcome.Away);
+            Assert.Equal(outcome.MostLikelyLocalGoals, outcome.MostLikelyVisitorGoals);
+        }
     }
 }
