@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { buildSessionPrintHtml } from "../sessionPrint";
-import type { Exercise, TrainingSessionDetail } from "../../../types/training";
-import boardStyles from "../../../components/TacticalBoardSnapshotPreview.module.css";
+import { buildSessionPrintHtml, listSessionSheets } from "../sessionPrint";
+import type { Exercise, SessionBlock, TrainingSessionDetail } from "../../../types/training";
 
 function buildExercise(overrides: Partial<Exercise> = {}): Exercise {
   return {
@@ -12,9 +11,19 @@ function buildExercise(overrides: Partial<Exercise> = {}): Exercise {
     modelRelations: [],
     nivelesColumnas: [],
     niveles: [],
-    logistica: "4 conos, 2 balones",
+    logistica: "",
     descripcion: "",
     isAssociatedToGameModel: false,
+    ...overrides,
+  };
+}
+
+function buildBlock(overrides: Partial<SessionBlock> = {}): SessionBlock {
+  return {
+    id: "b1",
+    order: 1,
+    nombre: "Activación",
+    exercises: [{ id: "be1", exerciseId: "ex1", position: 1, exerciseName: "Rondo 4v2" }],
     ...overrides,
   };
 }
@@ -29,339 +38,199 @@ function buildSession(overrides: Partial<TrainingSessionDetail> = {}): TrainingS
     endTime: "19:30:00",
     location: "Campo 2",
     isAssociatedToPlan: false,
-    blocks: [],
+    blocks: [buildBlock()],
     targets: [],
     ...overrides,
   };
 }
 
+const sheetsIn = (html: string) => html.match(/<section class="ficha">/g)?.length ?? 0;
+
 describe("buildSessionPrintHtml", () => {
-  it("incluye el nombre y el horario de la sesión", () => {
-    const html = buildSessionPrintHtml(buildSession());
-    expect(html).toContain("Sesión de presión alta");
-    expect(html).toContain("18:00");
-    expect(html).toContain("19:30");
-    expect(html).toContain("Campo 2");
+  it("imprime en hojas A4 apaisadas", () => {
+    const html = buildSessionPrintHtml(buildSession(), new Map([["ex1", buildExercise()]]));
+    expect(html).toContain("@page { size: A4 landscape");
   });
 
-  it("indica sesión sin programar cuando no tiene fecha", () => {
-    const html = buildSessionPrintHtml(buildSession({ date: null, startTime: null, endTime: null }));
-    expect(html).toContain("Sin fecha (sin programar)");
-  });
-
-  it("incluye el evento deportivo solo cuando está presente", () => {
-    const withEvent = buildSessionPrintHtml(buildSession({ sportEventName: "Jornada 3 vs CD Rival" }));
-    expect(withEvent).toContain("Jornada 3 vs CD Rival");
-
-    const withoutEvent = buildSessionPrintHtml(buildSession({ sportEventName: null }));
-    expect(withoutEvent).not.toContain('<span class="pill">');
-  });
-
-  it("incluye el objetivo general y el mapa de campo solo cuando están presentes", () => {
-    const html = buildSessionPrintHtml(
-      buildSession({ objetivoGeneral: "Mejorar la salida de balón", mapaCampoTexto: "Ver anexo táctico" }),
-    );
-    expect(html).toContain("Mejorar la salida de balón");
-    expect(html).toContain("Ver anexo táctico");
-
-    const empty = buildSessionPrintHtml(buildSession({ objetivoGeneral: null, mapaCampoTexto: null }));
-    expect(empty).not.toContain("Objetivo general");
-    expect(empty).not.toContain("Mapa de campo");
-  });
-
-  it("renderiza los bloques con su rotación y sus ejercicios, sin 'Conexión con el bloque anterior'", () => {
-    const html = buildSessionPrintHtml(
-      buildSession({
-        blocks: [
-          {
-            id: "b1",
-            order: 1,
-            nombre: "Activación",
-            rotacionEntreEjercicios: "Cambio cada 8 minutos",
-            exercises: [
-              { id: "be1", exerciseId: "ex1", position: 1, exerciseName: "Rondo 4v2", exerciseDurationMinutes: 15 },
-            ],
-          },
-        ],
-      }),
-    );
-    expect(html).toContain("Activación");
-    expect(html).not.toContain("Conexión con el bloque anterior");
-    expect(html).toContain("Cambio cada 8 minutos");
-    expect(html).toContain("Rondo 4v2");
-    expect(html).toContain("15 min");
-  });
-
-  it("no renderiza la sección de bloques cuando no hay bloques", () => {
-    const html = buildSessionPrintHtml(buildSession({ blocks: [] }));
-    expect(html).not.toContain("Bloques");
-  });
-
-  it("renderiza los objetivos ADN agrupados por fase/principio/subprincipio", () => {
-    const html = buildSessionPrintHtml(
-      buildSession({
-        targets: [
-          {
-            subSubPrincipioId: "ssp-1",
-            rol: "Central",
-            numero: "1.1.1",
-            subprincipioId: "sp-1",
-            subprincipioTitulo: "Presión alta",
-            principioId: "p-1",
-            principioTitulo: "Presión",
-            gameMomentId: 1,
-            gameMomentName: "Fase defensiva",
-          },
-        ],
-      }),
-    );
-    expect(html).toContain("Objetivos ADN");
-    expect(html).toContain("Fase defensiva");
-    expect(html).toContain("Presión");
-    expect(html).toContain("Presión alta");
-    expect(html).toContain("Central (1.1.1)");
-  });
-
-  it("no renderiza la sección de objetivos ADN cuando no hay targets", () => {
-    const html = buildSessionPrintHtml(buildSession({ targets: [] }));
-    expect(html).not.toContain("Objetivos ADN");
-  });
-
-  it("escapa HTML en campos de texto libre", () => {
-    const html = buildSessionPrintHtml(buildSession({ objetivoGeneral: "<script>alert(1)</script>" }));
-    expect(html).not.toContain("<script>alert(1)</script>");
-    expect(html).toContain("&lt;script&gt;");
-  });
-
-  it("renderiza el contenido completo de un ejercicio cuando se provee su detalle", () => {
+  it("genera una hoja por ejercicio, sin portada ni resumen", () => {
     const session = buildSession({
+      objetivoGeneral: "Objetivo general de la sesión",
+      mapaCampoTexto: "Mapa de campo",
       blocks: [
-        {
-          id: "b1",
-          order: 1,
-          nombre: "Activación",
-          exercises: [{ id: "be1", exerciseId: "ex1", position: 1, exerciseName: "Rondo 4v2" }],
-        },
+        buildBlock({
+          exercises: [
+            { id: "be1", exerciseId: "ex1", position: 1 },
+            { id: "be2", exerciseId: "ex2", position: 2 },
+          ],
+        }),
+        buildBlock({ id: "b2", order: 2, nombre: "Principal", exercises: [{ id: "be3", exerciseId: "ex3", position: 1 }] }),
       ],
     });
     const exercisesById = new Map([
-      [
-        "ex1",
-        buildExercise({
-          objetivo: "Mantener la posesión bajo presión",
-          nivelesColumnas: ["Nivel 1", "Nivel 2"],
-          niveles: [{ nivel: 1, valores: { "Nivel 1": "3 toques", "Nivel 2": "2 toques" } }],
-          modelRelations: [
-            {
-              id: "rel1",
-              subprincipioId: "sp-1",
-              subprincipioNumero: "1.1",
-              subprincipioTitulo: "Presión alta",
-              isFoco: true,
-              habilidadesImprescindibles: ["Anticipación"],
-              items: [],
-            },
+      ["ex1", buildExercise({ id: "ex1", name: "Uno" })],
+      ["ex2", buildExercise({ id: "ex2", name: "Dos" })],
+      ["ex3", buildExercise({ id: "ex3", name: "Tres" })],
+    ]);
+
+    const html = buildSessionPrintHtml(session, exercisesById);
+
+    expect(sheetsIn(html)).toBe(3);
+    expect(html).not.toContain("Objetivo general de la sesión");
+    expect(html).not.toContain("Mapa de campo");
+  });
+
+  it("da su propia hoja a un ejercicio repetido en la sesión", () => {
+    const session = buildSession({
+      blocks: [
+        buildBlock({
+          exercises: [
+            { id: "be1", exerciseId: "ex1", position: 1 },
+            { id: "be2", exerciseId: "ex1", position: 2 },
           ],
         }),
       ],
-    ]);
+    });
 
-    const html = buildSessionPrintHtml(session, exercisesById);
+    const html = buildSessionPrintHtml(session, new Map([["ex1", buildExercise()]]));
 
-    expect(html).toContain("Mantener la posesión bajo presión");
-    expect(html).toContain("3 toques");
-    expect(html).toContain("Presión alta");
-    expect(html).toContain("Anticipación");
+    expect(sheetsIn(html)).toBe(2);
   });
 
-  it("incluye la descripción del ejercicio cuando se provee su detalle", () => {
+  it("ordena las hojas por bloque y por posición dentro del bloque", () => {
     const session = buildSession({
       blocks: [
-        {
-          id: "b1",
-          order: 1,
-          nombre: "Activación",
-          exercises: [{ id: "be1", exerciseId: "ex1", position: 1, exerciseName: "Rondo 4v2" }],
-        },
+        buildBlock({ id: "b2", order: 2, nombre: "Principal", exercises: [{ id: "be3", exerciseId: "ex3", position: 1 }] }),
+        buildBlock({
+          exercises: [
+            { id: "be2", exerciseId: "ex2", position: 2 },
+            { id: "be1", exerciseId: "ex1", position: 1 },
+          ],
+        }),
       ],
     });
     const exercisesById = new Map([
-      ["ex1", buildExercise({ descripcion: "Cuatro jugadores forman un cuadrado con dos defensores dentro" })],
+      ["ex1", buildExercise({ id: "ex1", name: "Uno" })],
+      ["ex2", buildExercise({ id: "ex2", name: "Dos" })],
+      ["ex3", buildExercise({ id: "ex3", name: "Tres" })],
+    ]);
+
+    const names = listSessionSheets(session, exercisesById).map((sheet) => sheet.exercise.name);
+
+    expect(names).toEqual(["Uno", "Dos", "Tres"]);
+  });
+
+  it("muestra en el pie de cada hoja el nombre de la sesión y su bloque", () => {
+    const session = buildSession({
+      blocks: [
+        buildBlock({ nombre: "Activación" }),
+        buildBlock({ id: "b2", order: 2, nombre: "Principal", exercises: [{ id: "be2", exerciseId: "ex2", position: 1 }] }),
+      ],
+    });
+    const exercisesById = new Map([
+      ["ex1", buildExercise({ id: "ex1" })],
+      ["ex2", buildExercise({ id: "ex2", name: "Dos" })],
     ]);
 
     const html = buildSessionPrintHtml(session, exercisesById);
 
-    expect(html).toContain("Cuatro jugadores forman un cuadrado con dos defensores dentro");
+    expect(html).toContain("Sesión: Sesión de presión alta · Bloque: Activación");
+    expect(html).toContain("Sesión: Sesión de presión alta · Bloque: Principal");
+  });
+
+  it("incluye el contenido estructurado de cada ejercicio", () => {
+    const html = buildSessionPrintHtml(
+      buildSession(),
+      new Map([
+        [
+          "ex1",
+          buildExercise({
+            espacio: "20x30 m",
+            secuencia: ["Pase y desmarque"],
+            reglas: ["Dos toques"],
+            queSeVe: ["Ritmo alto"],
+            jugadores: [{ color: "blue", nombre: "Azules", cantidad: 4, roles: null, objetivos: ["Mantener la posesión"] }],
+          }),
+        ],
+      ]),
+    );
+
+    expect(html).toContain("Espacio: 20x30 m");
+    expect(html).toContain("Pase y desmarque");
+    expect(html).toContain("Dos toques");
+    expect(html).toContain("Ritmo alto");
+    expect(html).toContain("Azules");
+    expect(html).toContain("Mantener la posesión");
+  });
+
+  it("recorta el dibujo de la pizarra al medio campo cuando solo se usa una mitad", () => {
+    const boardStateJson = JSON.stringify({ placedChapas: { p1: { x: 30, y: 30 }, p2: { x: 70, y: 60 } } });
+
+    const html = buildSessionPrintHtml(buildSession(), new Map([["ex1", buildExercise({ boardStateJson })]]));
+
+    expect(html).toContain("ficha-drawing--half");
+    expect(html).toContain('data-viewport="right"');
+  });
+
+  it("imprime el campo completo cuando el dibujo usa las dos mitades", () => {
+    const boardStateJson = JSON.stringify({ placedChapas: { p1: { x: -30, y: 30 }, p2: { x: 30, y: 60 } } });
+
+    const html = buildSessionPrintHtml(buildSession(), new Map([["ex1", buildExercise({ boardStateJson })]]));
+
+    expect(html).toContain("ficha-drawing--full");
+    expect(html).not.toContain("data-viewport=");
   });
 
   it("incluye la imagen del ejercicio cuando tiene urlImage", () => {
-    const session = buildSession({
-      blocks: [
-        {
-          id: "b1",
-          order: 1,
-          nombre: "Activación",
-          exercises: [{ id: "be1", exerciseId: "ex1", position: 1, exerciseName: "Rondo 4v2" }],
-        },
-      ],
-    });
-    const exercisesById = new Map([["ex1", buildExercise({ urlImage: "exercises/rondo.png" })]]);
-
-    const html = buildSessionPrintHtml(session, exercisesById);
+    const html = buildSessionPrintHtml(
+      buildSession(),
+      new Map([["ex1", buildExercise({ urlImage: "exercises/rondo.png" })]]),
+    );
 
     expect(html).toContain("<img");
     expect(html).toContain("rondo.png");
   });
 
-  it("pinta el dibujo real de la pizarra cuando el ejercicio no tiene imagen", () => {
-    const session = buildSession({
-      blocks: [
-        {
-          id: "b1",
-          order: 1,
-          nombre: "Activación",
-          exercises: [{ id: "be1", exerciseId: "ex1", position: 1, exerciseName: "Rondo 4v2" }],
-        },
-      ],
-    });
-    const boardStateJson = JSON.stringify({
-      placedChapas: { p1: { x: 10, y: 10 } },
-    });
-    const exercisesById = new Map([["ex1", buildExercise({ boardStateJson })]]);
+  it("resuelve dorsal y alias del jugador en el dibujo cuando se provee el roster", () => {
+    const boardStateJson = JSON.stringify({ placedChapas: { "player-1": { x: 10, y: 10 } } });
+    const playersById = new Map([["player-1", { id: "player-1", name: "Ana", alias: "Ani", dorsal: 9 } as never]]);
 
-    const html = buildSessionPrintHtml(session, exercisesById);
-
-    expect(html).toContain("Vista previa de la pizarra");
-    expect(html).not.toContain("pizarra táctica disponible al editar el ejercicio");
-    expect(html).not.toContain("<img");
-  });
-
-  it("recorta el dibujo de la pizarra al medio campo cuando solo se usa una mitad", () => {
-    const session = buildSession({
-      blocks: [
-        {
-          id: "b1",
-          order: 1,
-          nombre: "Activación",
-          exercises: [{ id: "be1", exerciseId: "ex1", position: 1, exerciseName: "Rondo 4v2" }],
-        },
-      ],
-    });
-    const boardStateJson = JSON.stringify({
-      placedChapas: { p1: { x: 30, y: 30 }, p2: { x: 70, y: 60 } },
-    });
-    const exercisesById = new Map([["ex1", buildExercise({ boardStateJson })]]);
-
-    const html = buildSessionPrintHtml(session, exercisesById);
-
-    expect(html).toContain('class="board-drawing board-drawing--half"');
-    expect(html).toContain('data-viewport="right"');
-  });
-
-  it("imprime el campo completo cuando el dibujo usa las dos mitades", () => {
-    const session = buildSession({
-      blocks: [
-        {
-          id: "b1",
-          order: 1,
-          nombre: "Activación",
-          exercises: [{ id: "be1", exerciseId: "ex1", position: 1, exerciseName: "Rondo 4v2" }],
-        },
-      ],
-    });
-    const boardStateJson = JSON.stringify({
-      placedChapas: { p1: { x: -30, y: 30 }, p2: { x: 30, y: 60 } },
-    });
-    const exercisesById = new Map([["ex1", buildExercise({ boardStateJson })]]);
-
-    const html = buildSessionPrintHtml(session, exercisesById);
-
-    expect(html).toContain('class="board-drawing board-drawing--full"');
-    expect(html).not.toContain("data-viewport=");
-  });
-
-  it("imprime el campo de la pizarra con fondo blanco y líneas negras", () => {
-    const session = buildSession({
-      blocks: [
-        {
-          id: "b1",
-          order: 1,
-          nombre: "Activación",
-          exercises: [{ id: "be1", exerciseId: "ex1", position: 1, exerciseName: "Rondo 4v2" }],
-        },
-      ],
-    });
-    const boardStateJson = JSON.stringify({ placedChapas: { p1: { x: 10, y: 10 } } });
-    const exercisesById = new Map([["ex1", buildExercise({ boardStateJson })]]);
-
-    const html = buildSessionPrintHtml(session, exercisesById);
-
-    expect(html).toContain(`.${boardStyles.pitch}, .${boardStyles.mirrorHalf} { background: #fff`);
-    expect(html).toContain(`.${boardStyles.midLine}, .${boardStyles.goalLine} { background: #000`);
-    expect(html).toContain(`.${boardStyles.centerCircle}`);
-  });
-
-  it("imprime con borde negro los objetos de la pizarra para que se distingan sobre fondo blanco", () => {
-    const session = buildSession({
-      blocks: [
-        {
-          id: "b1",
-          order: 1,
-          nombre: "Activación",
-          exercises: [{ id: "be1", exerciseId: "ex1", position: 1, exerciseName: "Rondo 4v2" }],
-        },
-      ],
-    });
-    const boardStateJson = JSON.stringify({ placedChapas: { p1: { x: 10, y: 10 } } });
-    const exercisesById = new Map([["ex1", buildExercise({ boardStateJson })]]);
-
-    const html = buildSessionPrintHtml(session, exercisesById);
-
-    expect(html).toContain(`.${boardStyles.spaceStroke} { stroke: #000 !important`);
-    expect(html).toContain(`.${boardStyles.chapa} { border-color: #000`);
-    expect(html).toContain(`.${boardStyles.materialOnField}, .${boardStyles.linesSvg}, .${boardStyles.placedText} { filter:`);
-  });
-
-  it("resuelve dorsal/alias del jugador en el dibujo de pizarra cuando se provee el roster", () => {
-    const session = buildSession({
-      blocks: [
-        {
-          id: "b1",
-          order: 1,
-          nombre: "Activación",
-          exercises: [{ id: "be1", exerciseId: "ex1", position: 1, exerciseName: "Rondo 4v2" }],
-        },
-      ],
-    });
-    const boardStateJson = JSON.stringify({
-      placedChapas: { "player-1": { x: 10, y: 10 } },
-    });
-    const exercisesById = new Map([["ex1", buildExercise({ boardStateJson })]]);
-    const playersById = new Map([["player-1", { id: "player-1", name: "Ana", alias: "Ani", dorsal: 9 } as any]]);
-
-    const html = buildSessionPrintHtml(session, exercisesById, playersById);
+    const html = buildSessionPrintHtml(buildSession(), new Map([["ex1", buildExercise({ boardStateJson })]]), playersById);
 
     expect(html).toContain("Ani");
     expect(html).toContain(">9<");
   });
 
-  it("recurre al resumen del ejercicio cuando no se provee su detalle completo", () => {
+  it("recurre al nombre del ejercicio cuando no se provee su detalle completo", () => {
     const session = buildSession({
       blocks: [
-        {
-          id: "b1",
-          order: 1,
-          nombre: "Activación",
-          exercises: [
-            { id: "be1", exerciseId: "ex1", position: 1, exerciseName: "Rondo 4v2", exerciseDurationMinutes: 15 },
-          ],
-        },
+        buildBlock({
+          exercises: [{ id: "be1", exerciseId: "ex1", position: 1, exerciseName: "Rondo 4v2", exerciseDurationMinutes: 15 }],
+        }),
       ],
     });
 
     const html = buildSessionPrintHtml(session);
 
+    expect(sheetsIn(html)).toBe(1);
     expect(html).toContain("Rondo 4v2");
     expect(html).toContain("15 min");
+    expect(html).toContain("Sin dibujo");
+  });
+
+  it("avisa cuando la sesión no tiene ejercicios", () => {
+    const html = buildSessionPrintHtml(buildSession({ blocks: [] }));
+
+    expect(sheetsIn(html)).toBe(0);
+    expect(html).toContain("Esta sesión no tiene ejercicios.");
+  });
+
+  it("escapa HTML en los campos de texto libre", () => {
+    const html = buildSessionPrintHtml(
+      buildSession({ name: "<script>alert(1)</script>" }),
+      new Map([["ex1", buildExercise()]]),
+    );
+
+    expect(html).not.toContain("<script>alert(1)</script>");
+    expect(html).toContain("&lt;script&gt;");
   });
 });

@@ -63,9 +63,17 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
         string? BoardStateJson,
         List<ExerciseModelRelationRequest>? ModelRelations = null,
         string? Subtipo = null
-    ) : IRequest<string>, IRequireFeaturePermission
+    ) : IRequest<string>, IRequireFeaturePermission, IExerciseSheetFields
     {
         public string UserId { get; init; } = string.Empty;
+
+        public string? Espacio { get; init; }
+        public int? TurnoMinutos { get; init; }
+        public int? NivelDibujo { get; init; }
+        public List<string> Secuencia { get; init; } = new();
+        public List<string> Reglas { get; init; } = new();
+        public List<string> QueSeVe { get; init; } = new();
+        public List<ExerciseTeamRequest> Jugadores { get; init; } = new();
 
         public string FeatureRoute => CoachFeatureRoutes.Trainings;
         public string RequiredPermission => "ReadWrite";
@@ -73,6 +81,23 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
 
     /// <summary>One row of the "Niveles" table.</summary>
     public record NivelRowRequest(int Nivel, Dictionary<string, string> Valores);
+
+    /// <summary>One team of the exercise sheet: palette color (or none), name, player count, roles
+    /// as free text and objective lines.</summary>
+    public record ExerciseTeamRequest(string? Color, string Nombre, int? Cantidad, string? Roles, List<string> Objetivos);
+
+    /// <summary>The structured sheet fields shared by the create and update commands.</summary>
+    public interface IExerciseSheetFields
+    {
+        string? Espacio { get; }
+        int? TurnoMinutos { get; }
+        int? NivelDibujo { get; }
+        List<string> Secuencia { get; }
+        List<string> Reglas { get; }
+        List<string> QueSeVe { get; }
+        List<ExerciseTeamRequest> Jugadores { get; }
+        List<NivelRowRequest> Niveles { get; }
+    }
 
     /// <summary>A single "Relación con el modelo de juego" row: the Fase/Principio/Subprincipio
     /// the exercise trains, tagged FOCO/INTEGRADO, with its own Habilidades imprescindibles and
@@ -116,6 +141,8 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
                 BoardStateJson = request.BoardStateJson,
             };
 
+            ExerciseSheetMapper.Apply(exercise, request);
+
             exercise.UpdateNiveles(
                 request.NivelesColumnas,
                 request.Niveles.Select(n => new ExerciseLevelRow(n.Nivel, n.Valores)));
@@ -152,11 +179,88 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
             RuleFor(x => x.Subtipo).Must(ExerciseSubtipoRule.IsValid)
                 .WithMessage(ExerciseSubtipoRule.Message);
             RuleFor(x => x.Objetivo).NotEmpty();
-            RuleFor(x => x.Logistica).NotEmpty();
-            RuleFor(x => x.Descripcion).NotEmpty();
             RuleFor(x => x.Niveles).Must(n => n.Count is >= 2 and <= 5)
                 .WithMessage("Niveles must have between 2 and 5 rows.");
             RuleForEach(x => x.ModelRelations).SetValidator(new ExerciseModelRelationRequestValidator());
+            Include(new ExerciseSheetFieldsValidator());
+        }
+    }
+
+    /// <summary>Finite caps on the structured sheet fields. They are a safety net only: whether the
+    /// content fits one printed sheet is measured by the client, never decided here.</summary>
+    public static class ExerciseSheetLimits
+    {
+        public const int MaxTeams = 6;
+        public const int MaxLines = 30;
+        public const int MaxLineLength = 1000;
+        public const int MaxTeamNameLength = 100;
+        public const int MaxRolesLength = 500;
+        public const int MaxPlayersPerTeam = 50;
+        public const int MaxEspacioLength = ValidationConstants.TaskTrainingBaseSpaceMaxLength;
+        public const int MaxTurnoMinutos = 240;
+    }
+
+    /// <summary>Shared by <see cref="CreateExerciseValidator"/> and <c>UpdateExerciseValidator</c>.</summary>
+    public class ExerciseSheetFieldsValidator : AbstractValidator<IExerciseSheetFields>
+    {
+        public ExerciseSheetFieldsValidator()
+        {
+            RuleFor(x => x.Espacio).MaximumLength(ExerciseSheetLimits.MaxEspacioLength);
+            RuleFor(x => x.TurnoMinutos).InclusiveBetween(1, ExerciseSheetLimits.MaxTurnoMinutos)
+                .When(x => x.TurnoMinutos.HasValue);
+            RuleFor(x => x.NivelDibujo)
+                .Must((fields, nivel) => nivel is >= 1 && nivel <= fields.Niveles.Count)
+                .When(x => x.NivelDibujo.HasValue)
+                .WithMessage("NivelDibujo must be one of the Niveles rows.");
+
+            RuleFor(x => x.Secuencia).SetValidator(new ExerciseLinesValidator());
+            RuleFor(x => x.Reglas).SetValidator(new ExerciseLinesValidator());
+            RuleFor(x => x.QueSeVe).SetValidator(new ExerciseLinesValidator());
+
+            RuleFor(x => x.Jugadores).Must(t => t is null || t.Count <= ExerciseSheetLimits.MaxTeams)
+                .WithMessage($"Jugadores must have at most {ExerciseSheetLimits.MaxTeams} teams.");
+            RuleForEach(x => x.Jugadores).SetValidator(new ExerciseTeamRequestValidator());
+        }
+    }
+
+    public class ExerciseLinesValidator : AbstractValidator<List<string>>
+    {
+        public ExerciseLinesValidator()
+        {
+            RuleFor(x => x.Count).LessThanOrEqualTo(ExerciseSheetLimits.MaxLines)
+                .WithMessage($"A list must have at most {ExerciseSheetLimits.MaxLines} lines.");
+            RuleForEach(x => x).MaximumLength(ExerciseSheetLimits.MaxLineLength);
+        }
+    }
+
+    public class ExerciseTeamRequestValidator : AbstractValidator<ExerciseTeamRequest>
+    {
+        public ExerciseTeamRequestValidator()
+        {
+            RuleFor(x => x.Color).Must(c => c is null || ExerciseTeam.Colors.Contains(c))
+                .WithMessage("Color must be empty or one of: blue, yellow, gray.");
+            RuleFor(x => x.Nombre).NotNull().MaximumLength(ExerciseSheetLimits.MaxTeamNameLength);
+            RuleFor(x => x.Cantidad).InclusiveBetween(0, ExerciseSheetLimits.MaxPlayersPerTeam)
+                .When(x => x.Cantidad.HasValue);
+            RuleFor(x => x.Roles).MaximumLength(ExerciseSheetLimits.MaxRolesLength);
+            RuleFor(x => x.Objetivos).NotNull().SetValidator(new ExerciseLinesValidator());
+        }
+    }
+
+    internal static class ExerciseSheetMapper
+    {
+        /// <summary>Copies the structured sheet fields of a command onto the exercise.</summary>
+        public static void Apply(TaskTrainingBase exercise, IExerciseSheetFields fields)
+        {
+            exercise.Espacio = fields.Espacio;
+            exercise.TurnoMinutos = fields.TurnoMinutos;
+            exercise.NivelDibujo = fields.NivelDibujo;
+            exercise.Secuencia = fields.Secuencia?.ToList() ?? new();
+            exercise.Reglas = fields.Reglas?.ToList() ?? new();
+            exercise.QueSeVe = fields.QueSeVe?.ToList() ?? new();
+            exercise.Jugadores = (fields.Jugadores ?? new())
+                .Select(t => new ExerciseTeam(t.Color, t.Nombre, t.Cantidad, t.Roles, t.Objetivos?.ToList() ?? new()))
+                .ToList();
         }
     }
 

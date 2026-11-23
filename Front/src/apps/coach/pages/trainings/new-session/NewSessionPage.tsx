@@ -22,6 +22,7 @@ import type { SportEventResponse } from "../../../services/sportEventService";
 import { normalizeDateStr } from "../../convocations/helpers/convocationUtils";
 import type { SessionBlockRequest } from "../../../types/training";
 import { openSessionWindow } from "../sessionWindow";
+import { usePrintFitGuard } from "../usePrintFitGuard";
 import SessionBlockEditor from "./components/SessionBlockEditor";
 import { useSessionForm } from "./hooks/useSessionForm";
 import { useDailySportEvents } from "./hooks/useDailySportEvents";
@@ -211,6 +212,8 @@ export default function NewSessionPage() {
   const handleRequestEditExercise = (exerciseId: string) =>
     goToExerciseEditor(new URLSearchParams({ exerciseId }), null);
 
+  const { onOverflow: onPrintOverflow, dialog: printFitDialog } = usePrintFitGuard(handleRequestEditExercise);
+
   const blockCount = sessionForm.form.blocks.length;
   const exerciseCount = sessionForm.form.blocks.reduce((total, b) => total + b.exercises.length, 0);
 
@@ -249,7 +252,7 @@ export default function NewSessionPage() {
                 disabled={!sessionForm.savedSessionId}
                 onClick={() =>
                   sessionForm.savedSessionId &&
-                  void openSessionWindow(sessionForm.savedSessionId, teamId, { print: true })
+                  void openSessionWindow(sessionForm.savedSessionId, teamId, { print: true, onOverflow: onPrintOverflow })
                 }
               >
                 Imprimir PDF
@@ -436,6 +439,7 @@ export default function NewSessionPage() {
           </Box>
         </Box>
       </Box>
+      {printFitDialog}
     </BaseLayout>
   );
 }

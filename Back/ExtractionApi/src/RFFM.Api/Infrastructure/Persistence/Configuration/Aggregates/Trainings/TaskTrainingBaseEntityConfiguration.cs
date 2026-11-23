@@ -74,8 +74,35 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.Trainings
                 .HasForeignKey(r => r.TaskTrainingBaseId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            builder.Property(tb => tb.Espacio)
+                .IsRequired(false)
+                .HasMaxLength(ValidationConstants.TaskTrainingBaseSpaceMaxLength);
+
+            builder.Property(tb => tb.TurnoMinutos).IsRequired(false);
+            builder.Property(tb => tb.NivelDibujo).IsRequired(false);
+
             JsonColumns.ConfigureStringList(builder.Property(tb => tb.NivelesColumnas));
+            JsonColumns.ConfigureStringList(builder.Property(tb => tb.Secuencia));
+            JsonColumns.ConfigureStringList(builder.Property(tb => tb.Reglas));
+            JsonColumns.ConfigureStringList(builder.Property(tb => tb.QueSeVe));
             ConfigureNivelesColumn(builder.Property(tb => tb.Niveles));
+            ConfigureJugadoresColumn(builder.Property(tb => tb.Jugadores));
+        }
+
+        private static void ConfigureJugadoresColumn(PropertyBuilder<List<ExerciseTeam>> property)
+        {
+            property
+                .HasConversion(
+                    v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
+                    v => string.IsNullOrEmpty(v)
+                        ? new List<ExerciseTeam>()
+                        : JsonSerializer.Deserialize<List<ExerciseTeam>>(v, (JsonSerializerOptions?)null)!)
+                .HasColumnType("jsonb");
+
+            property.Metadata.SetValueComparer(new ValueComparer<List<ExerciseTeam>>(
+                (a, b) => JsonSerializer.Serialize(a, (JsonSerializerOptions?)null) == JsonSerializer.Serialize(b, (JsonSerializerOptions?)null),
+                v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null).GetHashCode(),
+                v => JsonSerializer.Deserialize<List<ExerciseTeam>>(JsonSerializer.Serialize(v, (JsonSerializerOptions?)null), (JsonSerializerOptions?)null)!));
         }
 
         private static void ConfigureNivelesColumn(PropertyBuilder<List<ExerciseLevelRow>> property)

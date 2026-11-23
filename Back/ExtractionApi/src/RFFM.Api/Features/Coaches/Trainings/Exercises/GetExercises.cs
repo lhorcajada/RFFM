@@ -97,7 +97,14 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
         IEnumerable<NivelRowDto> Niveles,
         IEnumerable<ExerciseModelRelationDto> ModelRelations,
         bool IsAssociatedToGameModel,
-        string? Subtipo)
+        string? Subtipo,
+        string? Espacio,
+        int? TurnoMinutos,
+        int? NivelDibujo,
+        List<string> Secuencia,
+        List<string> Reglas,
+        List<string> QueSeVe,
+        List<ExerciseTeamDto> Jugadores)
     {
         public static ExerciseListItem From(TaskTrainingBase tb, IReadOnlyDictionary<string, ExerciseModelRelationDto> relationSummaries) => new(
             tb.Id,
@@ -116,8 +123,17 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
             tb.Niveles.Select(n => new NivelRowDto(n.Nivel, n.Valores)),
             tb.ModelRelations.Select(r => relationSummaries[r.Id]),
             tb.ModelRelations.Count > 0,
-            tb.Subtipo);
+            tb.Subtipo,
+            tb.Espacio,
+            tb.TurnoMinutos,
+            tb.NivelDibujo,
+            tb.Secuencia,
+            tb.Reglas,
+            tb.QueSeVe,
+            tb.Jugadores.Select(t => new ExerciseTeamDto(t.Color, t.Nombre, t.Cantidad, t.Roles, t.Objetivos)).ToList());
     }
+
+    public record ExerciseTeamDto(string? Color, string Nombre, int? Cantidad, string? Roles, List<string> Objetivos);
 
     /// <summary>Denormalized display fields for an <see cref="ExerciseModelRelationItem"/>.</summary>
     public record ExerciseModelRelationItemDto(string Id, string SubSubPrincipioId, string? SubSubPrincipioNumero, string? SubSubPrincipioRol, bool IsFoco,

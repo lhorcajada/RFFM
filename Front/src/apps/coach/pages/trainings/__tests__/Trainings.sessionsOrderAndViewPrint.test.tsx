@@ -227,9 +227,10 @@ describe("Trainings — visualizar e imprimir sesión", () => {
       modelRelations: [],
       nivelesColumnas: [],
       niveles: [],
-      logistica: "4 conos, 2 balones",
+      logistica: "",
       descripcion: "",
       isAssociatedToGameModel: false,
+      secuencia: ["Pase al pivote y apoyo"],
     });
 
     const fakeWindow = {
@@ -255,7 +256,7 @@ describe("Trainings — visualizar e imprimir sesión", () => {
     });
 
     const writtenHtml = fakeWindow.document.write.mock.calls[0][0] as string;
-    expect(writtenHtml).toContain("Mantener la posesión bajo presión");
+    expect(writtenHtml).toContain("Pase al pivote y apoyo");
 
     openSpy.mockRestore();
   });

@@ -1,8 +1,9 @@
 import trainingService from "../../services/trainingService";
 import teamplayerService, { type PlayerResponse } from "../../services/teamplayerService";
 import type { Exercise } from "../../types/training";
-import { buildSessionPrintHtml } from "./sessionPrint";
-import { fitSessionDrawingsToPages } from "./sessionPrintLayout";
+import { buildExercisePrintHtml } from "./exercisePrint";
+import { buildSessionPrintHtml, listSessionSheets } from "./sessionPrint";
+import { findOverflowingSheets, type SheetOverflow, type SheetToCheck } from "./sheetMeasure";
 import { hasBoardObjects, tryParseBoardSnapshot } from "../../components/TacticalBoardSnapshotPreview";
 
 export async function waitForPrintWindowReady(printWindow: Window) {
@@ -41,10 +42,77 @@ export async function waitForPrintWindowReady(printWindow: Window) {
   });
 }
 
-/** Opens a session's read-only sheet (same HTML as the print sheet — see `sessionPrint.ts`) in
- * a new window. Pass `{ print: true }` to also trigger the browser's print dialog, following
- * the exact same "browser-native print, no jsPDF/html2canvas" pattern as `printExercise`. */
-export async function openSessionWindow(sessionId: string, teamId: string, options?: { print?: boolean }) {
+/** Called with the sheets that do not fit one page before anything is printed. Resolves `true` when
+ * the coach chooses to print anyway and `false` when they edit an exercise or cancel. */
+export type OverflowHandler = (overflowing: SheetOverflow[]) => Promise<boolean>;
+
+export type PrintOptions = {
+  /** Asks the coach what to do when a sheet does not fit. Without it, printing goes ahead. */
+  onOverflow?: OverflowHandler;
+};
+
+/** Runs the fit check for every sheet and, when some do not fit, asks before going on. */
+async function confirmFit(sheets: SheetToCheck[], options: PrintOptions | undefined): Promise<boolean> {
+  const overflowing = findOverflowingSheets(sheets);
+  if (overflowing.length === 0 || !options?.onOverflow) return true;
+  return options.onOverflow(overflowing);
+}
+
+/** Fetch the roster once for the whole print — only exercises without an uploaded image need the
+ * tactical-board drawing rendered, and they all share the same team. */
+async function loadPlayersById(exercises: Exercise[], teamId: string): Promise<Map<string, PlayerResponse>> {
+  const needsBoardDrawing = exercises.some(
+    (exercise) => !exercise.urlImage && hasBoardObjects(tryParseBoardSnapshot(exercise.boardStateJson)),
+  );
+  if (!needsBoardDrawing || !teamId) return new Map();
+  try {
+    const players = await teamplayerService.getPlayersByTeam(teamId);
+    return new Map(players.filter((p) => p.id).map((p) => [p.id, p]));
+  } catch {
+    // Swallowed: the board drawing falls back to anonymous-style dorsal/alias.
+    return new Map();
+  }
+}
+
+async function openPrintWindow(html: string, print: boolean) {
+  const printWindow = window.open("", "_blank", "width=1200,height=900");
+  if (!printWindow) return;
+
+  printWindow.document.open();
+  printWindow.document.write(html);
+  printWindow.document.close();
+
+  if (!print) return;
+
+  try {
+    await waitForPrintWindowReady(printWindow);
+  } catch {
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 300);
+    });
+  }
+
+  printWindow.focus();
+  printWindow.print();
+}
+
+/** Opens one exercise's landscape A4 sheet in a new window and prints it. The fit check runs
+ * first and, when the sheet does not fit, the coach decides through `onOverflow` (E13). */
+export async function printExerciseSheet(exercise: Exercise, teamId: string, options?: PrintOptions) {
+  if (!(await confirmFit([{ exercise }], options))) return;
+
+  const playersById = await loadPlayersById([exercise], teamId);
+  await openPrintWindow(buildExercisePrintHtml(exercise, { playersById }), true);
+}
+
+/** Opens a session's read-only sheets (same HTML as the print sheets — see `sessionPrint.ts`) in a
+ * new window. Pass `{ print: true }` to also trigger the browser's print dialog; the fit check then
+ * runs for every sheet before the window opens (E13). */
+export async function openSessionWindow(
+  sessionId: string,
+  teamId: string,
+  options?: PrintOptions & { print?: boolean },
+) {
   const session = await trainingService.getSessionById(sessionId);
 
   const exerciseIds = Array.from(
@@ -55,47 +123,8 @@ export async function openSessionWindow(sessionId: string, teamId: string, optio
     exercises.filter((exercise): exercise is Exercise => exercise !== null).map((exercise) => [exercise.id, exercise]),
   );
 
-  // Only the exercises without an uploaded image need the tactical-board drawing rendered —
-  // fetch the roster once for the whole session (all its exercises share the same team)
-  // rather than once per exercise.
-  const needsBoardDrawing = [...exercisesById.values()].some(
-    (exercise) => !exercise.urlImage && hasBoardObjects(tryParseBoardSnapshot(exercise.boardStateJson)),
-  );
-  let playersById = new Map<string, PlayerResponse>();
-  if (needsBoardDrawing && teamId) {
-    try {
-      const players = await teamplayerService.getPlayersByTeam(teamId);
-      playersById = new Map(players.filter((p) => p.id).map((p) => [p.id, p]));
-    } catch {
-      // Swallowed: the board drawing falls back to anonymous-style dorsal/alias.
-    }
-  }
+  if (options?.print && !(await confirmFit(listSessionSheets(session, exercisesById), options))) return;
 
-  const html = buildSessionPrintHtml(session, exercisesById, playersById);
-
-  const printWindow = window.open("", "_blank", "width=980,height=1200");
-  if (!printWindow) return;
-
-  printWindow.document.open();
-  printWindow.document.write(html);
-  printWindow.document.close();
-
-  if (!options?.print) return;
-
-  try {
-    await waitForPrintWindowReady(printWindow);
-  } catch {
-    await new Promise<void>((resolve) => {
-      setTimeout(resolve, 300);
-    });
-  }
-
-  try {
-    fitSessionDrawingsToPages(printWindow.document);
-  } catch {
-    // Best-effort layout: print with the drawings at their default size.
-  }
-
-  printWindow.focus();
-  printWindow.print();
+  const playersById = await loadPlayersById([...exercisesById.values()], teamId);
+  await openPrintWindow(buildSessionPrintHtml(session, exercisesById, playersById), options?.print === true);
 }

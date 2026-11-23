@@ -57,10 +57,18 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
         string? BoardStateJson,
         List<ExerciseModelRelationRequest>? ModelRelations = null,
         string? Subtipo = null
-    ) : IRequest, IRequireFeaturePermission
+    ) : IRequest, IRequireFeaturePermission, IExerciseSheetFields
     {
         public string Id { get; init; } = string.Empty;
         public string UserId { get; init; } = string.Empty;
+
+        public string? Espacio { get; init; }
+        public int? TurnoMinutos { get; init; }
+        public int? NivelDibujo { get; init; }
+        public List<string> Secuencia { get; init; } = new();
+        public List<string> Reglas { get; init; } = new();
+        public List<string> QueSeVe { get; init; } = new();
+        public List<ExerciseTeamRequest> Jugadores { get; init; } = new();
 
         public string FeatureRoute => CoachFeatureRoutes.Trainings;
         public string RequiredPermission => "ReadWrite";
@@ -100,6 +108,8 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
             if (request.BoardStateJson is not null)
                 exercise.BoardStateJson = request.BoardStateJson;
 
+            ExerciseSheetMapper.Apply(exercise, request);
+
             exercise.UpdateNiveles(
                 request.NivelesColumnas,
                 request.Niveles.Select(n => new ExerciseLevelRow(n.Nivel, n.Valores)));
@@ -123,11 +133,10 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
             RuleFor(x => x.Subtipo).Must(ExerciseSubtipoRule.IsValid)
                 .WithMessage(ExerciseSubtipoRule.Message);
             RuleFor(x => x.Objetivo).NotEmpty();
-            RuleFor(x => x.Logistica).NotEmpty();
-            RuleFor(x => x.Descripcion).NotEmpty();
             RuleFor(x => x.Niveles).Must(n => n.Count is >= 2 and <= 5)
                 .WithMessage("Niveles must have between 2 and 5 rows.");
             RuleForEach(x => x.ModelRelations).SetValidator(new ExerciseModelRelationRequestValidator());
+            Include(new ExerciseSheetFieldsValidator());
         }
     }
 }

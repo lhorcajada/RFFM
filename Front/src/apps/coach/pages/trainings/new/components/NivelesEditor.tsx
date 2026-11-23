@@ -18,9 +18,14 @@ interface NivelesEditorProps {
   columnas: string[];
   niveles: ExerciseLevelRow[];
   onChange: (columnas: string[], niveles: ExerciseLevelRow[]) => void;
+  /** Level whose square size and width the pitch drawing shows. The marker column is only shown
+   * when `onNivelDibujoChange` is given. */
+  nivelDibujo?: number | null;
+  /** `cleared` is true when the marked row was deleted, so the form can warn the coach. */
+  onNivelDibujoChange?: (nivel: number | null, cleared?: boolean) => void;
 }
 
-export default function NivelesEditor({ columnas, niveles, onChange }: NivelesEditorProps) {
+export default function NivelesEditor({ columnas, niveles, onChange, nivelDibujo = null, onNivelDibujoChange }: NivelesEditorProps) {
   const sortedNiveles = [...niveles].sort((a, b) => a.nivel - b.nivel);
 
   const renameColumn = (index: number, newName: string) => {
@@ -64,13 +69,19 @@ export default function NivelesEditor({ columnas, niveles, onChange }: NivelesEd
 
   const removeRow = (index: number) => {
     if (sortedNiveles.length <= MIN_ROWS) return;
+    const removedNivel = sortedNiveles[index].nivel;
     onChange(columnas, renumberNiveles(sortedNiveles.filter((_, i) => i !== index)));
+    if (onNivelDibujoChange && nivelDibujo !== null) {
+      if (nivelDibujo === removedNivel) onNivelDibujoChange(null, true);
+      else if (nivelDibujo > removedNivel) onNivelDibujoChange(nivelDibujo - 1);
+    }
   };
 
   return (
     <div className={styles.root}>
       <div className={styles.headerRow}>
         <span className={styles.nivelHeaderCell}>Nivel</span>
+        {onNivelDibujoChange && <span className={styles.drawingHeaderCell}>Dibujo</span>}
         {columnas.map((col, index) => (
           <div key={index} className={styles.columnHeaderCell}>
             <TextField
@@ -98,6 +109,17 @@ export default function NivelesEditor({ columnas, niveles, onChange }: NivelesEd
       {sortedNiveles.map((row, rowIndex) => (
         <div key={rowIndex} className={styles.dataRow}>
           <span className={styles.nivelCell}>{row.nivel}</span>
+          {onNivelDibujoChange && (
+            <button
+              type="button"
+              aria-pressed={nivelDibujo === row.nivel}
+              aria-label={`El dibujo muestra el nivel ${row.nivel}`}
+              className={`${styles.drawingBtn} ${nivelDibujo === row.nivel ? styles.drawingBtnActive : ""}`}
+              onClick={() => onNivelDibujoChange(nivelDibujo === row.nivel ? null : row.nivel)}
+            >
+              Dibujo
+            </button>
+          )}
           {columnas.map((col) => (
             <TextField
               key={col}

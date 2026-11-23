@@ -47,31 +47,9 @@ import SeasonPlanEditor from "./season-plan/SeasonPlanEditor";
 import type { ContentBoardMicrocicloState } from "./season-plan/ContentBoardPage";
 import { findMicrocicloByApiId } from "./season-plan/findMicrociclo";
 import styles from "./Trainings.module.css";
-import { buildExercisePrintHtml } from "./exercisePrint";
-import { openSessionWindow, waitForPrintWindowReady } from "./sessionWindow";
+import { openSessionWindow, printExerciseSheet } from "./sessionWindow";
+import { usePrintFitGuard } from "./usePrintFitGuard";
 import { useAuditPageAccess } from "../../../../shared/hooks/useAuditPageAccess";
-
-async function printExercise(exercise: Exercise, boardDrawingHtml?: string) {
-  const html = buildExercisePrintHtml(exercise, boardDrawingHtml);
-
-  const printWindow = window.open("", "_blank", "width=980,height=1200");
-  if (!printWindow) return;
-
-  printWindow.document.open();
-  printWindow.document.write(html);
-  printWindow.document.close();
-
-  try {
-    await waitForPrintWindowReady(printWindow);
-  } catch {
-    await new Promise<void>((resolve) => {
-      setTimeout(resolve, 300);
-    });
-  }
-
-  printWindow.focus();
-  printWindow.print();
-}
 
 export default function Trainings() {
   useAuditPageAccess('Trainings');
@@ -216,6 +194,8 @@ export default function Trainings() {
       state: { returnTo: `/coach/trainings${location.search}` },
     });
   };
+
+  const { onOverflow: onPrintOverflow, dialog: printFitDialog } = usePrintFitGuard(goToExercisePage);
 
   const goToSessionPage = (sessionId?: string) => {
     const createParams = new URLSearchParams();
@@ -523,7 +503,7 @@ export default function Trainings() {
                       teamId={teamId}
                       onEdit={() => goToExercisePage(ex.id)}
                       onDuplicate={() => duplicateExercise(ex.id)}
-                      onPrint={(boardDrawingHtml) => printExercise(ex, boardDrawingHtml)}
+                      onPrint={() => printExerciseSheet(ex, teamId, { onOverflow: onPrintOverflow })}
                       onDelete={() => setDeleteExId(ex.id)}
                     />
                   ))}
@@ -587,7 +567,7 @@ export default function Trainings() {
                   selectedIds={selectedSessionIds}
                   onToggleSelected={toggleSessionSelected}
                   onView={(id) => openSessionWindow(id, teamId)}
-                  onPrint={(id) => openSessionWindow(id, teamId, { print: true })}
+                  onPrint={(id) => openSessionWindow(id, teamId, { print: true, onOverflow: onPrintOverflow })}
                   onEdit={(id) => goToSessionPage(id)}
                   onDelete={(id) => setDeleteSessId(id)}
                 />
@@ -677,6 +657,7 @@ export default function Trainings() {
           </DialogActions>
         </Dialog>
       </ContentLayout>
+      {printFitDialog}
     </BaseLayout>
   );
 }

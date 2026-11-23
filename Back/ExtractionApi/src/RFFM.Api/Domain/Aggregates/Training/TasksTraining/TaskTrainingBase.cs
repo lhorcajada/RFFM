@@ -49,6 +49,20 @@ namespace RFFM.Api.Domain.Aggregates.Training.TasksTraining
 
         public Club Club { get; set; } = null!;
 
+        /// <summary>Space where the exercise is played, e.g. "20x30 m".</summary>
+        public string? Espacio { get; set; }
+
+        /// <summary>Duration of one turn, in minutes.</summary>
+        public int? TurnoMinutos { get; set; }
+
+        /// <summary>Number of the <see cref="Niveles"/> row whose square size and width the drawing shows.</summary>
+        public int? NivelDibujo { get; set; }
+
+        public List<string> Secuencia { get; set; } = new();
+        public List<string> Reglas { get; set; } = new();
+        public List<string> QueSeVe { get; set; } = new();
+        public List<ExerciseTeam> Jugadores { get; set; } = new();
+
         public List<string> NivelesColumnas { get; private set; } = new();
         public List<ExerciseLevelRow> Niveles { get; private set; } = new();
 

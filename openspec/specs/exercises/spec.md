@@ -3,15 +3,15 @@
 ## Purpose
 TBD - created by archiving change 2026-08-11-add-coach-season-planning. Updated by archiving
 2026-08-21-session-exercise-plan-redesign.
-
 ## Requirements
-
 ### Requirement: Exercise follows the reduced content template
-An `Exercise` (`TaskTrainingBase`) SHALL carry: `Name` (Título, required), `Tipo` (`Analitico | Situacional | Global`, required), `Objetivo` (required), `ObjetivoPorRol` (optional), `Logistica` (required free text), `Porteros` (optional free text), `Dibujo` (optional free text/placeholder), `Descripcion` (required, single free-text execution narrative), and `Niveles` (see "Exercise levels use free-named palanca columns" below). `DurationMinutes` (optional integer) is a structured addition beyond the source template, kept so a session's total duration can be computed without parsing `Logistica` prose.
+
+An `Exercise` (`TaskTrainingBase`) SHALL carry: `Name` (Título, required), `Tipo` (`Analitico | Situacional | Global`, required), `Objetivo` (required), `ObjetivoPorRol` (optional), `Logistica` (optional legacy free text), `Porteros` (optional free text), `Dibujo` (optional legacy free text, no longer printed), `Descripcion` (optional legacy free text), and `Niveles` (see "Exercise levels use free-named palanca columns" below). `DurationMinutes` (optional integer) is a structured addition beyond the source template, kept so a session's total duration can be computed. The exercise SHALL also carry the structured sheet fields `Espacio`, `TurnoMinutos`, `NivelDibujo`, `Secuencia`, `Reglas`, `QueSeVe` and `Jugadores` (see the `exercise-structured-fields` capability), which replace the legacy free text as the printed content.
 
 #### Scenario: Saving an exercise with only the required fields
-- **WHEN** a Coach saves an exercise with `Name`, `Tipo`, `Objetivo`, `Logistica`, `Descripcion`, and a valid `Niveles` table, and leaves `ObjetivoPorRol`, `Porteros`, `Dibujo`, and `DurationMinutes` empty
-- **THEN** the exercise is created successfully with those optional fields null
+
+- **WHEN** a Coach saves an exercise with `Name`, `Tipo`, `Objetivo` and a valid `Niveles` table, and leaves `Logistica`, `Descripcion`, `ObjetivoPorRol`, `Porteros`, `Dibujo`, `DurationMinutes` and every structured sheet field empty
+- **THEN** the exercise is created successfully with those optional fields null or empty
 
 ### Requirement: Exercise levels use free-named palanca columns
 An `Exercise`'s `Niveles` SHALL be a table of between 2 and 5 rows (numbered `1..N` contiguously, no gaps or duplicates), where each row holds a value per column from a coach-defined, free-named, ordered list of `NivelesColumnas` ("palancas"). Every row's values SHALL be keyed only by columns present in `NivelesColumnas` (no orphan cells).
@@ -79,3 +79,4 @@ An `Exercise` referenced by at least one `SessionBlockExercise` SHALL NOT be har
 #### Scenario: Deleting an exercise placed in a session block
 - **WHEN** a Coach attempts to delete an exercise that is currently placed in at least one session's block
 - **THEN** the delete is rejected and the Coach app shows a specific "en uso en una sesión" message, not a generic error
+

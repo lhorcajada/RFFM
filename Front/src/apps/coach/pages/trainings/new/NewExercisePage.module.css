@@ -1952,3 +1952,7 @@
     flex: 1 0 84px;
   }
 }
+
+.sheetWarning {
+  margin-bottom: 4px;
+}
