@@ -9,15 +9,19 @@ import { TIPO_LABELS } from "../../../trainings/exerciseTypeLabels";
 import type { Exercise, SessionBlockExercise } from "../../../../types/training";
 import styles from "./SessionExerciseCard.module.css";
 
+/** Habilidades que la sesión trabaja en un subprincipio; son las mismas en todos sus ejercicios. */
+export type SubprincipioHabilidades = { subprincipioId: string; titulo: string; habilidades: string[] };
+
 type Props = {
   blockExercise: SessionBlockExercise;
   /** Ejercicio completo; sin él se muestran solo los datos del bloque y no hay detalle. */
   exercise?: Exercise;
   teamId: string;
+  habilidades?: SubprincipioHabilidades[];
 };
 
 /** Ejercicio de la sesión: imagen o pizarra, datos principales y detalle desplegable. */
-export default function SessionExerciseCard({ blockExercise, exercise, teamId }: Props) {
+export default function SessionExerciseCard({ blockExercise, exercise, teamId, habilidades = [] }: Props) {
   const [expanded, setExpanded] = useState(false);
 
   const name = exercise?.name ?? blockExercise.name ?? "Ejercicio";
@@ -92,33 +96,19 @@ export default function SessionExerciseCard({ blockExercise, exercise, teamId }:
                     </ul>
                   </div>
                 )}
-                {exercise.modelRelations.length > 0 && (
-                  <section aria-label="Relación con el modelo">
-                    <h6 className={styles.sectionTitle}>Relación con el modelo</h6>
-                    {exercise.modelRelations.map((relation) => (
-                      <div key={relation.id} className={styles.relation}>
+                {habilidades.length > 0 && (
+                  <section aria-label="Habilidades de la sesión">
+                    <h6 className={styles.sectionTitle}>Habilidades de la sesión</h6>
+                    {habilidades.map((group) => (
+                      <div key={group.subprincipioId} className={styles.relation}>
                         <div className={styles.chips}>
-                          <Chip
-                            size="small"
-                            color={relation.isFoco ? "primary" : "default"}
-                            label={`${relation.subprincipioNumero ?? ""} · ${relation.subprincipioTitulo ?? ""}`}
-                          />
-                          {relation.items.map((item) => (
-                            <Chip
-                              key={item.id}
-                              size="small"
-                              variant="outlined"
-                              label={`${item.subSubPrincipioNumero ?? ""} · ${item.subSubPrincipioRol ?? ""}`}
-                            />
+                          <Chip size="small" label={group.titulo} />
+                        </div>
+                        <div className={styles.chips}>
+                          {group.habilidades.map((h) => (
+                            <Chip key={h} size="small" color="success" variant="outlined" label={h} />
                           ))}
                         </div>
-                        {relation.habilidadesImprescindibles.length > 0 && (
-                          <div className={styles.chips}>
-                            {relation.habilidadesImprescindibles.map((h) => (
-                              <Chip key={h} size="small" color="success" variant="outlined" label={h} />
-                            ))}
-                          </div>
-                        )}
                       </div>
                     ))}
                   </section>

@@ -224,12 +224,10 @@ describe("Trainings — visualizar e imprimir sesión", () => {
       name: "Rondo 4v2",
       tipo: "Analitico",
       objetivo: "Mantener la posesión bajo presión",
-      modelRelations: [],
       nivelesColumnas: [],
       niveles: [],
       logistica: "",
       descripcion: "",
-      isAssociatedToGameModel: false,
       secuencia: ["Pase al pivote y apoyo"],
     });
 
@@ -281,12 +279,10 @@ describe("Trainings — visualizar e imprimir sesión", () => {
       name: "Rondo 4v2",
       tipo: "Analitico",
       objetivo: "Mantener la posesión bajo presión",
-      modelRelations: [],
       nivelesColumnas: [],
       niveles: [],
       logistica: "4 conos, 2 balones",
       descripcion: "",
-      isAssociatedToGameModel: false,
       boardStateJson: JSON.stringify({ placedChapas: { "player-1": { x: 10, y: 10 } } }),
     });
     mockGetPlayersByTeam.mockResolvedValue([

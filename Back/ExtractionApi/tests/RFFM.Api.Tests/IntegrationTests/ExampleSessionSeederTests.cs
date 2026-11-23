@@ -97,10 +97,7 @@ namespace RFFM.Api.Tests.IntegrationTests
                 .ToListAsync();
             Assert.Equal(5, exercises.Count);
 
-            var defensaBloqueMedio = exercises.Single(e => e.Name == "Defensa organizada, bloque medio");
-            var relation = Assert.Single(defensaBloqueMedio.ModelRelations);
-            Assert.True(relation.IsFoco);
-            Assert.Equal(5, relation.Items.Count);
+            Assert.All(exercises, e => Assert.Empty(e.ModelRelations));
         }
 
         [Fact]

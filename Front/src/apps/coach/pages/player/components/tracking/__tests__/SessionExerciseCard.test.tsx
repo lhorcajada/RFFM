@@ -44,8 +44,15 @@ describe("SessionExerciseCard", () => {
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
   });
 
-  it("Ver detalle despliega descripción, logística, niveles en lista y relación con el modelo", async () => {
-    render(<SessionExerciseCard blockExercise={BLOCK_EXERCISE} exercise={exercise()} teamId="team-1" />);
+  it("Ver detalle despliega descripción, logística, niveles en lista y las habilidades de la sesión", async () => {
+    render(
+      <SessionExerciseCard
+        blockExercise={BLOCK_EXERCISE}
+        exercise={exercise()}
+        teamId="team-1"
+        habilidades={[{ subprincipioId: "s-23", titulo: "Circular para desordenar", habilidades: ["Pase", "Percepción"] }]}
+      />,
+    );
     expect(screen.queryByText("Mantener la posesión hasta encontrar el hombre libre.")).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Ver detalle" }));
@@ -59,12 +66,19 @@ describe("SessionExerciseCard", () => {
       "Nivel 2Espacio: 20x20 · Toques: 2",
     ]);
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
-    const relacion = screen.getByRole("region", { name: "Relación con el modelo" });
-    expect(within(relacion).getByText("2.3 · Circular para desordenar")).toBeInTheDocument();
-    expect(within(relacion).getByText("2.3.1 · Extremo")).toBeInTheDocument();
-    expect(within(relacion).getByText("Pase")).toBeInTheDocument();
-    expect(within(relacion).getByText("Percepción")).toBeInTheDocument();
+    const habilidades = screen.getByRole("region", { name: "Habilidades de la sesión" });
+    expect(within(habilidades).getByText("Circular para desordenar")).toBeInTheDocument();
+    expect(within(habilidades).getByText("Pase")).toBeInTheDocument();
+    expect(within(habilidades).getByText("Percepción")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Ocultar detalle" })).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("sin habilidades de la sesión el detalle no muestra esa sección", async () => {
+    render(<SessionExerciseCard blockExercise={BLOCK_EXERCISE} exercise={exercise()} teamId="team-1" />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Ver detalle" }));
+
+    expect(screen.queryByRole("region", { name: "Habilidades de la sesión" })).not.toBeInTheDocument();
   });
 
   it("sin los datos completos del ejercicio muestra lo básico y no ofrece detalle", () => {

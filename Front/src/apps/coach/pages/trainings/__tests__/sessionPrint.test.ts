@@ -8,12 +8,10 @@ function buildExercise(overrides: Partial<Exercise> = {}): Exercise {
     name: "Rondo 4v2",
     tipo: "Analitico",
     objetivo: "Mantener la posesión bajo presión",
-    modelRelations: [],
     nivelesColumnas: [],
     niveles: [],
     logistica: "",
     descripcion: "",
-    isAssociatedToGameModel: false,
     ...overrides,
   };
 }
@@ -135,6 +133,40 @@ describe("buildSessionPrintHtml", () => {
 
     expect(html).toContain("Sesión: Sesión de presión alta · Bloque: Activación");
     expect(html).toContain("Sesión: Sesión de presión alta · Bloque: Principal");
+  });
+
+  it("imprime en la cabecera de cada hoja una línea con los objetivos del modelo de juego de la sesión", () => {
+    const session = buildSession({
+      blocks: [
+        buildBlock({
+          exercises: [
+            { id: "be1", exerciseId: "ex1", position: 1 },
+            { id: "be2", exerciseId: "ex2", position: 2 },
+          ],
+        }),
+      ],
+    });
+    const exercisesById = new Map([
+      ["ex1", buildExercise({ id: "ex1" })],
+      ["ex2", buildExercise({ id: "ex2", name: "Dos" })],
+    ]);
+
+    const html = buildSessionPrintHtml(session, exercisesById, new Map(), "1.1.20 Delantero · 1.1.21 Media punta");
+
+    expect(html.match(/<div class="ficha-modelo">/g)).toHaveLength(2);
+    expect(html).toContain("<strong>Modelo de juego:</strong> 1.1.20 Delantero · 1.1.21 Media punta");
+  });
+
+  it("no imprime línea del modelo de juego cuando la sesión no tiene objetivos", () => {
+    const html = buildSessionPrintHtml(buildSession(), new Map([["ex1", buildExercise()]]));
+
+    expect(html).not.toContain('<div class="ficha-modelo">');
+  });
+
+  it("lista las hojas con la línea del modelo de juego para medir su ajuste", () => {
+    const sheets = listSessionSheets(buildSession(), new Map([["ex1", buildExercise()]]), "1.1.20 Delantero");
+
+    expect(sheets.map((sheet) => sheet.modeloDeJuego)).toEqual(["1.1.20 Delantero"]);
   });
 
   it("incluye el contenido estructurado de cada ejercicio", () => {

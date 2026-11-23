@@ -9,12 +9,10 @@ function buildExercise(overrides: Partial<Exercise> = {}): Exercise {
     name: "Rondo 4v2",
     tipo: "Situacional",
     objetivo: "Mejorar la posesión",
-    modelRelations: [],
     nivelesColumnas: [],
     niveles: [],
     logistica: "",
     descripcion: "",
-    isAssociatedToGameModel: false,
     ...overrides,
   };
 }
@@ -117,6 +115,10 @@ describe("buildExercisePrintHtml", () => {
     );
     expect(html).not.toContain("<table");
     expect(html).not.toContain("<td");
+  });
+
+  it("la hoja de un ejercicio suelto no lleva línea del modelo de juego", () => {
+    expect(buildExercisePrintHtml(buildExercise())).not.toContain('<div class="ficha-modelo">');
   });
 
   it("el pie de la hoja de un ejercicio suelto queda vacío", () => {

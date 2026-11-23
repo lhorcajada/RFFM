@@ -1,8 +1,9 @@
 import trainingService from "../../services/trainingService";
 import teamplayerService, { type PlayerResponse } from "../../services/teamplayerService";
-import type { Exercise } from "../../types/training";
+import type { Exercise, SessionTargetDetail } from "../../types/training";
 import { buildExercisePrintHtml } from "./exercisePrint";
 import { buildSessionPrintHtml, listSessionSheets } from "./sessionPrint";
+import { buildModeloDeJuegoLine, loadActiveGameModel, resolveSessionObjectives } from "./sessionGameModel";
 import { findOverflowingSheets, type SheetOverflow, type SheetToCheck } from "./sheetMeasure";
 import { hasBoardObjects, tryParseBoardSnapshot } from "../../components/TacticalBoardSnapshotPreview";
 
@@ -74,6 +75,13 @@ async function loadPlayersById(exercises: Exercise[], teamId: string): Promise<M
   }
 }
 
+/** The session's game-model objectives as the header line of its sheets. A session without
+ * objectives needs no catalog and prints no line (E5). */
+async function loadModeloDeJuegoLine(targets: SessionTargetDetail[], teamId: string): Promise<string> {
+  if (targets.length === 0 || !teamId) return "";
+  return buildModeloDeJuegoLine(resolveSessionObjectives(targets, await loadActiveGameModel(teamId)));
+}
+
 async function openPrintWindow(html: string, print: boolean) {
   const printWindow = window.open("", "_blank", "width=1200,height=900");
   if (!printWindow) return;
@@ -123,8 +131,10 @@ export async function openSessionWindow(
     exercises.filter((exercise): exercise is Exercise => exercise !== null).map((exercise) => [exercise.id, exercise]),
   );
 
-  if (options?.print && !(await confirmFit(listSessionSheets(session, exercisesById), options))) return;
+  const modeloDeJuego = await loadModeloDeJuegoLine(session.targets, teamId);
+
+  if (options?.print && !(await confirmFit(listSessionSheets(session, exercisesById, modeloDeJuego), options))) return;
 
   const playersById = await loadPlayersById([...exercisesById.values()], teamId);
-  await openPrintWindow(buildSessionPrintHtml(session, exercisesById, playersById), options?.print === true);
+  await openPrintWindow(buildSessionPrintHtml(session, exercisesById, playersById, modeloDeJuego), options?.print === true);
 }

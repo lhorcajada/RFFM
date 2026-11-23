@@ -28,7 +28,6 @@ const baseExercise: Exercise = {
   name: "Ejercicio",
   tipo: "Global",
   objetivo: "Objetivo",
-  modelRelations: [],
   nivelesColumnas: ["Palanca 1"],
   niveles: [
     { nivel: 1, valores: {} },
@@ -37,7 +36,6 @@ const baseExercise: Exercise = {
   ],
   logistica: "",
   descripcion: "",
-  isAssociatedToGameModel: false,
 };
 
 describe("useExerciseForm — campos estructurados de la ficha", () => {

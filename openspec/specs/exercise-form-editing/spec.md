@@ -42,7 +42,7 @@ Before it sends a create or update request, the form SHALL remove blank lines fr
 
 ### Requirement: Form blocks saving while the sheet does not fit one page
 
-The form SHALL run the sheet fit check whenever a sheet field, the levels or the game-model relations change, and when it loads an existing exercise. When the content does not fit, the form SHALL show a warning that names the overflowing blocks and the approximate overflow, and saving SHALL fail with that reason until the coach shortens the content.
+The form SHALL run the sheet fit check whenever a sheet field or the levels change, and when it loads an existing exercise. The form's sheet SHALL carry no game-model content. When the content does not fit, the form SHALL show a warning that names the overflowing blocks and the approximate overflow, and saving SHALL fail with that reason until the coach shortens the content.
 
 #### Scenario: Overflowing content blocks the save
 

@@ -2,10 +2,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
-using RFFM.Api.Domain.Aggregates.GameModels;
 using RFFM.Api.Domain.Aggregates.UserClubs;
 using RFFM.Api.Domain.Models;
 using RFFM.Api.Features.Coaches.Trainings.Exercises;
@@ -38,34 +38,16 @@ namespace RFFM.Api.Tests.UnitTests
             return (userId, club.Id, club);
         }
 
-        private static async Task<(string SubprincipioId, string SubSubPrincipioId)> SeedAdnNodesAsync(AppDbContext db, string clubId)
-        {
-            var model = new GameModel(clubId, "Modelo de prueba", "2026-2027");
-            var principle = new GamePrinciple(model.Id, gameMomentId: 1, key: $"principio-{Guid.NewGuid():N}", numero: 1, "Principio", "Texto");
-            var subprincipio = new Subprincipio(principle.Id, $"sub-{Guid.NewGuid():N}", "1.1", "Subprincipio", "Contexto");
-            var subSubPrincipio = new SubSubPrincipio($"subsub-{Guid.NewGuid():N}", "1.1.1", "Rol", "Texto", subprincipio.Id, null);
-
-            principle.Subprincipios.Add(subprincipio);
-            subprincipio.SubSubPrincipios.Add(subSubPrincipio);
-            model.Principles.Add(principle);
-
-            db.GameModels.Add(model);
-            await db.SaveChangesAsync();
-
-            return (subprincipio.Id, subSubPrincipio.Id);
-        }
-
         private static List<NivelRowRequest> TwoLevels() => new()
         {
             new NivelRowRequest(1, new Dictionary<string, string> { ["Porterias"] = "2" }),
             new NivelRowRequest(2, new Dictionary<string, string> { ["Porterias"] = "3" }),
         };
 
-        private static CreateExerciseCommand BaseCommand(string clubId, string userId,
-            List<ExerciseModelRelationRequest>? modelRelations = null) => new(
+        private static CreateExerciseCommand BaseCommand(string clubId, string userId) => new(
             clubId, "Ejercicio de prueba", "Analitico", "Objetivo de prueba", null,
             "12 min, conos", null, null, null, "Descripción larga",
-            new List<string> { "Porterias" }, TwoLevels(), null, modelRelations)
+            new List<string> { "Porterias" }, TwoLevels(), null)
         { UserId = userId };
 
         [Fact]
@@ -108,86 +90,19 @@ namespace RFFM.Api.Tests.UnitTests
         }
 
         [Fact]
-        public async Task Handle_WithModelRelationsAndItems_PersistsThem()
-        {
-            await using var seedDb = _fixture.CreateDbContext();
-            var (userId, clubId, _) = await SeedClubAsync(seedDb);
-            var (subprincipioId, subSubPrincipioId) = await SeedAdnNodesAsync(seedDb, clubId);
-
-            await using var db = _fixture.CreateDbContext();
-            var handler = new CreateExerciseHandler(db);
-            var relations = new List<ExerciseModelRelationRequest>
-            {
-                new(subprincipioId, true, new List<string> { "Pase", "Centro" },
-                    new List<ExerciseModelRelationItemRequest> { new(subSubPrincipioId, false) })
-            };
-
-            var id = await handler.Handle(BaseCommand(clubId, userId, relations), CancellationToken.None);
-
-            await using var verifyDb = _fixture.CreateDbContext();
-            var exercise = await verifyDb.TaskTrainingBases
-                .Include(tb => tb.ModelRelations)
-                    .ThenInclude(r => r.Items)
-                .SingleAsync(e => e.Id == id);
-
-            var relation = Assert.Single(exercise.ModelRelations);
-            Assert.Equal(subprincipioId, relation.SubprincipioId);
-            Assert.True(relation.IsFoco);
-            Assert.Equal(new List<string> { "Pase", "Centro" }, relation.HabilidadesImprescindibles);
-            var item = Assert.Single(relation.Items);
-            Assert.Equal(subSubPrincipioId, item.SubSubPrincipioId);
-            Assert.False(item.IsFoco);
-        }
-
-        [Fact]
-        public async Task Handle_WithItemHabilidades_PersistsThemPerItem()
-        {
-            await using var seedDb = _fixture.CreateDbContext();
-            var (userId, clubId, _) = await SeedClubAsync(seedDb);
-            var (subprincipioId, subSubPrincipioId) = await SeedAdnNodesAsync(seedDb, clubId);
-
-            await using var db = _fixture.CreateDbContext();
-            var relations = new List<ExerciseModelRelationRequest>
-            {
-                new(subprincipioId, true, new List<string> { "Pase" },
-                    new List<ExerciseModelRelationItemRequest> { new(subSubPrincipioId, true, new List<string> { "Pase" }) })
-            };
-
-            var id = await new CreateExerciseHandler(db).Handle(BaseCommand(clubId, userId, relations), CancellationToken.None);
-
-            await using var verifyDb = _fixture.CreateDbContext();
-            var exercise = await verifyDb.TaskTrainingBases
-                .Include(tb => tb.ModelRelations)
-                    .ThenInclude(r => r.Items)
-                .SingleAsync(e => e.Id == id);
-
-            var item = Assert.Single(Assert.Single(exercise.ModelRelations).Items);
-            Assert.Equal(new List<string> { "Pase" }, item.Habilidades);
-        }
-
-        [Fact]
-        public async Task Validator_RejectsNonVocabularyItemHabilidad()
-        {
-            var command = BaseCommand("club-id", "user-id", new List<ExerciseModelRelationRequest>
-            {
-                new("sub-1", true, null,
-                    new List<ExerciseModelRelationItemRequest> { new("subsub-1", true, new List<string> { "Habilidad inexistente" }) })
-            });
-
-            var result = await new CreateExerciseValidator().ValidateAsync(command);
-
-            Assert.False(result.IsValid);
-        }
-
-        [Fact]
-        public async Task Handle_WithoutModelRelations_LeavesThemEmpty()
+        public async Task Handle_IgnoresModelRelationsSentInTheRequest()
         {
             await using var seedDb = _fixture.CreateDbContext();
             var (userId, clubId, _) = await SeedClubAsync(seedDb);
 
+            var json = JsonSerializer.Serialize(BaseCommand(clubId, userId));
+            var withRelations = json.TrimEnd('}') +
+                ",\"modelRelations\":[{\"subprincipioId\":\"sub-1\",\"isFoco\":true,\"habilidadesImprescindibles\":[\"Pase\"],\"items\":[]}]}";
+            var command = JsonSerializer.Deserialize<CreateExerciseCommand>(withRelations, new JsonSerializerOptions(JsonSerializerDefaults.Web))!
+                with { UserId = userId };
+
             await using var db = _fixture.CreateDbContext();
-            var handler = new CreateExerciseHandler(db);
-            var id = await handler.Handle(BaseCommand(clubId, userId), CancellationToken.None);
+            var id = await new CreateExerciseHandler(db).Handle(command, CancellationToken.None);
 
             await using var verifyDb = _fixture.CreateDbContext();
             var exercise = await verifyDb.TaskTrainingBases
@@ -323,40 +238,6 @@ namespace RFFM.Api.Tests.UnitTests
             {
                 Niveles = Enumerable.Range(1, 6).Select(n => new NivelRowRequest(n, new Dictionary<string, string>())).ToList()
             };
-            var validator = new CreateExerciseValidator();
-
-            var result = await validator.ValidateAsync(command);
-
-            Assert.False(result.IsValid);
-        }
-
-        [Fact]
-        public async Task Validator_RejectsRelationWithoutSubprincipio()
-        {
-            await using var seedDb = _fixture.CreateDbContext();
-            var (userId, clubId, _) = await SeedClubAsync(seedDb);
-
-            var command = BaseCommand(clubId, userId, new List<ExerciseModelRelationRequest>
-            {
-                new("", false, null, null)
-            });
-            var validator = new CreateExerciseValidator();
-
-            var result = await validator.ValidateAsync(command);
-
-            Assert.False(result.IsValid);
-        }
-
-        [Fact]
-        public async Task Validator_RejectsNonVocabularyHabilidad()
-        {
-            await using var seedDb = _fixture.CreateDbContext();
-            var (userId, clubId, _) = await SeedClubAsync(seedDb);
-
-            var command = BaseCommand(clubId, userId, new List<ExerciseModelRelationRequest>
-            {
-                new("sub-1", false, new List<string> { "Habilidad inexistente" }, null)
-            });
             var validator = new CreateExerciseValidator();
 
             var result = await validator.ValidateAsync(command);

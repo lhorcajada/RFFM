@@ -61,12 +61,10 @@ function makeExercise(overrides: Partial<Exercise> & { id: string; name: string 
   return {
     tipo: "Analitico",
     objetivo: "Objetivo",
-    modelRelations: [],
     nivelesColumnas: [],
     niveles: [],
     logistica: "",
     descripcion: "",
-    isAssociatedToGameModel: false,
     ...overrides,
   };
 }

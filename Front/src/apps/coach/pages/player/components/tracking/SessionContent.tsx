@@ -1,6 +1,7 @@
 import { CircularProgress } from "@mui/material";
 import type { Exercise, TrainingSessionDetail } from "../../../../types/training";
-import SessionExerciseCard from "./SessionExerciseCard";
+import { groupTargetsBySubprincipio } from "../../utils/sessionTargets";
+import SessionExerciseCard, { type SubprincipioHabilidades } from "./SessionExerciseCard";
 import styles from "./SessionContent.module.css";
 
 function scheduleLine(detail: TrainingSessionDetail): string {
@@ -15,10 +16,12 @@ type Props = {
   loading: boolean;
   exercisesById?: Map<string, Exercise>;
   teamId?: string;
+  /** Habilidades de los objetivos de la sesión, por subprincipio. */
+  habilidades?: Map<string, string[]>;
 };
 
 /** Qué se hizo en la sesión (horario, objetivo y ejercicios), a la vista para refrescar la memoria al valorar. */
-export default function SessionContent({ detail, loading, exercisesById = new Map(), teamId = "" }: Props) {
+export default function SessionContent({ detail, loading, exercisesById = new Map(), teamId = "", habilidades = new Map() }: Props) {
   if (loading) {
     return (
       <div className={styles.state}>
@@ -28,6 +31,10 @@ export default function SessionContent({ detail, loading, exercisesById = new Ma
   }
   if (!detail) return null;
 
+  const habilidadGroups: SubprincipioHabilidades[] = groupTargetsBySubprincipio(detail.targets).flatMap((block) => {
+    const items = habilidades.get(block.subprincipioId) ?? [];
+    return items.length > 0 ? [{ subprincipioId: block.subprincipioId, titulo: block.titulo, habilidades: items }] : [];
+  });
   const schedule = scheduleLine(detail);
   const blocks = [...detail.blocks]
     .sort((a, b) => a.order - b.order)
@@ -56,6 +63,7 @@ export default function SessionContent({ detail, loading, exercisesById = new Ma
                     blockExercise={blockExercise}
                     exercise={exercisesById.get(blockExercise.exerciseId)}
                     teamId={teamId}
+                    habilidades={habilidadGroups}
                   />
                 ))}
             </div>

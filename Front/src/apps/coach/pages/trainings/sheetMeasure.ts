@@ -2,6 +2,7 @@ import type { Exercise } from "../../types/training";
 import {
   SHEET_CSS,
   SHEET_LEFT_WIDTH_MM,
+  buildSheetHeadingHtml,
   buildSheetPanelHtml,
   sheetContentFromExercise,
   type SheetContent,
@@ -34,11 +35,12 @@ function withMeasureHost<T>(doc: Document, innerHtml: string, measure: (host: HT
   }
 }
 
-/** Measures the real side panel of the sheet — the same markup and styles the print uses — and
- * reports whether its content fits the height of one page. Only the panel is measured, so images
- * never need to load first. When the browser reports no layout (every height is 0) the sheet is
- * treated as fitting. */
-export function measureSheetFit(content: SheetContent, doc: Document = document): SheetFit {
+/** Title of the header probe: the real title is one line that never wraps, so any text of one
+ * line measures the same. */
+const HEADER_PROBE_TITLE = "Ficha";
+const HEADER_BLOCK = "Modelo de juego";
+
+function measurePanel(content: SheetContent, doc: Document): SheetFit {
   return withMeasureHost(doc, buildSheetPanelHtml(content), (host) => {
     const panel = host.querySelector<HTMLElement>(".ficha-panel");
     if (!panel) return FITS;
@@ -53,6 +55,35 @@ export function measureSheetFit(content: SheetContent, doc: Document = document)
       .filter(Boolean);
     return { fits: false, overflowPx, overflowingBlocks };
   });
+}
+
+/** Measures the header of a session sheet, which carries the game-model line (E5). An exercise
+ * sheet has no such line and its header always fits. */
+function measureHeader(content: SheetContent, doc: Document): SheetFit {
+  if (content.modeloDeJuego.trim() === "") return FITS;
+  const html = `<section class="ficha"><header class="ficha-header">${buildSheetHeadingHtml(HEADER_PROBE_TITLE, content)}</header></section>`;
+  return withMeasureHost(doc, html, (host) => {
+    const header = host.querySelector<HTMLElement>(".ficha-header");
+    if (!header) return FITS;
+
+    const overflowPx = header.scrollHeight - header.clientHeight;
+    return overflowPx <= TOLERANCE_PX ? FITS : { fits: false, overflowPx, overflowingBlocks: [HEADER_BLOCK] };
+  });
+}
+
+/** Measures the real side panel of the sheet — the same markup and styles the print uses — and,
+ * for a session sheet, its header with the game-model line, and reports whether the content fits
+ * one page. Only these parts are measured, so images never need to load first. When the browser
+ * reports no layout (every height is 0) the sheet is treated as fitting. */
+export function measureSheetFit(content: SheetContent, doc: Document = document): SheetFit {
+  const panel = measurePanel(content, doc);
+  const header = measureHeader(content, doc);
+  if (panel.fits && header.fits) return FITS;
+  return {
+    fits: false,
+    overflowPx: Math.max(panel.overflowPx, header.overflowPx),
+    overflowingBlocks: [...panel.overflowingBlocks, ...header.overflowingBlocks],
+  };
 }
 
 /** Whether the material legend fits the free space under the drawing. */
@@ -73,12 +104,17 @@ export type SheetOverflow = {
   fit: SheetFit;
 };
 
-export type SheetToCheck = { exercise: Exercise; blockName?: string };
+export type SheetToCheck = {
+  exercise: Exercise;
+  blockName?: string;
+  /** The session's game-model line of the sheet header, when it is printed as part of a session. */
+  modeloDeJuego?: string;
+};
 
 /** Runs the fit check for every sheet and returns the ones that do not fit. */
 export function findOverflowingSheets(sheets: SheetToCheck[], doc: Document = document): SheetOverflow[] {
-  return sheets.flatMap(({ exercise, blockName }) => {
-    const fit = measureSheetFit(sheetContentFromExercise(exercise), doc);
+  return sheets.flatMap(({ exercise, blockName, modeloDeJuego }) => {
+    const fit = measureSheetFit(sheetContentFromExercise(exercise, modeloDeJuego), doc);
     return fit.fits ? [] : [{ exercise, blockName, fit }];
   });
 }

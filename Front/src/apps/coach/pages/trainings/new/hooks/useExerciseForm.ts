@@ -113,7 +113,6 @@ export function useExerciseForm({ clubId, navigate, returnTo, returnState, getBo
     form.queSeVe,
     form.nivelesColumnas,
     form.niveles,
-    form.modelRelations,
   ]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -153,8 +152,6 @@ export function useExerciseForm({ clubId, navigate, returnTo, returnState, getBo
     if (!form.name.trim()) return "El nombre es obligatorio.";
     if (!form.objetivo.trim()) return "El objetivo es obligatorio.";
     if (form.niveles.length < 2 || form.niveles.length > 5) return "Los niveles deben tener entre 2 y 5 filas.";
-    const relationWithoutSubprincipio = form.modelRelations.find((r) => !r.subprincipioId);
-    if (relationWithoutSubprincipio) return "Cada vínculo con el modelo requiere un Subprincipio.";
     const fit = measureSheetFit(sheetContentFromForm(form));
     if (!fit.fits) return `${describeOverflow(fit)} Acórtalo para poder guardar.`;
     return null;

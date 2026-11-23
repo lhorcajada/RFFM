@@ -42,16 +42,6 @@ export function exerciseToRequest(exercise: Exercise, clubId: string): CreateExe
     subtipo: exercise.subtipo ?? null,
     objetivo: exercise.objetivo,
     objetivoPorRol: exercise.objetivoPorRol ?? null,
-    modelRelations: (exercise.modelRelations ?? []).map((r) => ({
-      subprincipioId: r.subprincipioId,
-      isFoco: r.isFoco,
-      habilidadesImprescindibles: r.habilidadesImprescindibles ?? [],
-      items: (r.items ?? []).map((it) => ({
-        subSubPrincipioId: it.subSubPrincipioId,
-        isFoco: it.isFoco,
-        habilidades: it.habilidades ?? [],
-      })),
-    })),
     ...(hasEnoughNiveles
       ? { nivelesColumnas: exercise.nivelesColumnas ?? [], niveles: exercise.niveles ?? [] }
       : { nivelesColumnas: emptyExercise.nivelesColumnas, niveles: emptyExercise.niveles }),

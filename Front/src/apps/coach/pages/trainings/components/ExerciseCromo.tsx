@@ -4,7 +4,6 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import PrintOutlinedIcon from "@mui/icons-material/PrintOutlined";
 import PsychologyIcon from "@mui/icons-material/Psychology";
-import { Chip } from "@mui/material";
 import type { Exercise } from "../../../types/training";
 import TacticalBoardSnapshotPreview, {
   hasBoardObjects,
@@ -28,8 +27,6 @@ type Props = {
 export default function ExerciseCromo({ exercise, onEdit, onDuplicate, onPrint, onDelete, teamId }: Props) {
   const boardSnapshot = tryParseBoardSnapshot(exercise.boardStateJson);
   const showSnapshot = !exercise.urlImage && hasBoardObjects(boardSnapshot);
-
-  const hasModelChips = exercise.modelRelations.length > 0;
 
   return (
     <div className={`${styles.card} ${styles[`tipo_${exercise.tipo}`] ?? ""}`}>
@@ -75,26 +72,6 @@ export default function ExerciseCromo({ exercise, onEdit, onDuplicate, onPrint, 
           {exercise.subtipo && (
             <div className={styles.subtipo} data-testid="subtipo-chip">
               {SUBTIPO_LABELS[exercise.subtipo] ?? exercise.subtipo}
-            </div>
-          )}
-
-          {exercise.isAssociatedToGameModel && (
-            <div className={styles.tagsRow} data-testid="tags-row">
-              <Chip label="Asociado al modelo" size="small" className={styles.associatedChip} />
-            </div>
-          )}
-
-          {/* Model relation chips — one per ModelRelation (FOCO vs INTEGRADO) */}
-          {hasModelChips && (
-            <div className={styles.modelChipsRow} data-testid="model-chips-row">
-              {exercise.modelRelations.map((relation) => (
-                <Chip
-                  key={relation.id}
-                  label={`${relation.subprincipioNumero ?? ""} · ${relation.subprincipioTitulo ?? ""}`}
-                  size="small"
-                  className={relation.isFoco ? styles.modelLinkChipFoco : styles.modelLinkChipIntegrado}
-                />
-              ))}
             </div>
           )}
 

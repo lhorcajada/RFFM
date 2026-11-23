@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Common;
 using RFFM.Api.Domain;
-using RFFM.Api.Domain.Aggregates.GameModels;
 using RFFM.Api.Domain.Aggregates.Training.TasksTraining;
 using RFFM.Api.Domain.Entities;
 using RFFM.Api.FeatureModules;
@@ -61,7 +60,6 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
         List<string> NivelesColumnas,
         List<NivelRowRequest> Niveles,
         string? BoardStateJson,
-        List<ExerciseModelRelationRequest>? ModelRelations = null,
         string? Subtipo = null
     ) : IRequest<string>, IRequireFeaturePermission, IExerciseSheetFields
     {
@@ -98,17 +96,6 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
         List<ExerciseTeamRequest> Jugadores { get; }
         List<NivelRowRequest> Niveles { get; }
     }
-
-    /// <summary>A single "Relación con el modelo de juego" row: the Fase/Principio/Subprincipio
-    /// the exercise trains, tagged FOCO/INTEGRADO, with its own Habilidades imprescindibles and
-    /// a repeatable list of SubSubPrincipio items.</summary>
-    public record ExerciseModelRelationRequest(
-        string SubprincipioId,
-        bool IsFoco,
-        List<string>? HabilidadesImprescindibles,
-        List<ExerciseModelRelationItemRequest>? Items);
-
-    public record ExerciseModelRelationItemRequest(string SubSubPrincipioId, bool IsFoco, List<string>? Habilidades = null);
 
     // ── Handler ──────────────────────────────────────────────────────────────────
 
@@ -147,23 +134,10 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
                 request.NivelesColumnas,
                 request.Niveles.Select(n => new ExerciseLevelRow(n.Nivel, n.Valores)));
 
-            exercise.ReplaceModelRelations(BuildModelRelations(request.ModelRelations));
-
             await _db.TaskTrainingBases.AddAsync(exercise, ct);
             await _db.SaveChangesAsync(ct);
             return exercise.Id;
         }
-
-        internal static IEnumerable<(string SubprincipioId, bool IsFoco, IEnumerable<string>? Habilidades,
-            IEnumerable<(string SubSubPrincipioId, bool IsFoco, IEnumerable<string>? Habilidades)> Items)> BuildModelRelations(
-            List<ExerciseModelRelationRequest>? relations) =>
-            (relations ?? new List<ExerciseModelRelationRequest>())
-                .Select(r => (
-                    r.SubprincipioId,
-                    r.IsFoco,
-                    (IEnumerable<string>?)r.HabilidadesImprescindibles,
-                    (r.Items ?? new List<ExerciseModelRelationItemRequest>())
-                        .Select(i => (i.SubSubPrincipioId, i.IsFoco, (IEnumerable<string>?)i.Habilidades))));
     }
 
     // ── Validator ────────────────────────────────────────────────────────────────
@@ -181,7 +155,6 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
             RuleFor(x => x.Objetivo).NotEmpty();
             RuleFor(x => x.Niveles).Must(n => n.Count is >= 2 and <= 5)
                 .WithMessage("Niveles must have between 2 and 5 rows.");
-            RuleForEach(x => x.ModelRelations).SetValidator(new ExerciseModelRelationRequestValidator());
             Include(new ExerciseSheetFieldsValidator());
         }
     }
@@ -272,30 +245,5 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
 
         public static readonly string Message =
             $"Subtipo must be empty or one of: {string.Join(", ", TaskTrainingBase.SubtipoValues)}.";
-    }
-
-    /// <summary>Shared by <see cref="CreateExerciseValidator"/> and <c>UpdateExerciseValidator</c>.</summary>
-    public class ExerciseModelRelationRequestValidator : AbstractValidator<ExerciseModelRelationRequest>
-    {
-        public ExerciseModelRelationRequestValidator()
-        {
-            RuleFor(x => x.SubprincipioId).NotEmpty()
-                .WithMessage("A model relation requires a Subprincipio.");
-            RuleForEach(x => x.HabilidadesImprescindibles)
-                .Must(h => Habilidad.Vocabulary.Contains(h))
-                .WithMessage("Habilidad must be one of the 15-value closed vocabulary.");
-            RuleForEach(x => x.Items).SetValidator(new ExerciseModelRelationItemRequestValidator());
-        }
-    }
-
-    public class ExerciseModelRelationItemRequestValidator : AbstractValidator<ExerciseModelRelationItemRequest>
-    {
-        public ExerciseModelRelationItemRequestValidator()
-        {
-            RuleFor(x => x.SubSubPrincipioId).NotEmpty();
-            RuleForEach(x => x.Habilidades)
-                .Must(h => Habilidad.Vocabulary.Contains(h))
-                .WithMessage("Habilidad must be one of the closed vocabulary.");
-        }
     }
 }

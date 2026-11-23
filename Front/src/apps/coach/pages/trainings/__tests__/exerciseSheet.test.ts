@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   SHEET_BODY_HEIGHT_MM,
+  buildSheetHeadingHtml,
   buildSheetPanelHtml,
   buildSheetSubtitle,
   collectMaterialLegend,
@@ -24,7 +25,7 @@ function content(overrides: Partial<SheetContent> = {}): SheetContent {
     queSeVe: [],
     nivelesColumnas: [],
     niveles: [],
-    modeloDeJuego: [],
+    modeloDeJuego: "",
     ...overrides,
   };
 }
@@ -141,10 +142,8 @@ describe("buildSheetPanelHtml", () => {
     expect(html).not.toContain('data-block="Niveles"');
   });
 
-  it("imprime una línea compacta con las relaciones del modelo de juego solo cuando las hay", () => {
-    expect(buildSheetPanelHtml(content())).not.toContain("Modelo de juego");
-    const html = buildSheetPanelHtml(content({ modeloDeJuego: ["1.1 · Presión alta", "1.1.1 · Central"] }));
-    expect(html).toContain("<strong>Modelo de juego:</strong> 1.1 · Presión alta · 1.1.1 · Central");
+  it("no imprime en el panel ninguna línea del modelo de juego, ni siquiera cuando la hoja la lleva en la cabecera", () => {
+    expect(buildSheetPanelHtml(content({ modeloDeJuego: "1.1.20 Delantero" }))).not.toContain("Modelo de juego");
   });
 
   it("escapa el HTML de los textos del panel", () => {
@@ -219,6 +218,25 @@ describe("collectMaterialLegend", () => {
   });
 });
 
+describe("buildSheetHeadingHtml", () => {
+  it("imprime una línea compacta con los objetivos del modelo de juego bajo el título cuando la hoja la lleva", () => {
+    const html = buildSheetHeadingHtml("Rondo", content({ modeloDeJuego: "1.1.20 Delantero · 1.1.21 Media punta" }));
+    expect(html).toContain('<h1 class="ficha-title">Rondo</h1>');
+    expect(html).toContain('<div class="ficha-modelo"><strong>Modelo de juego:</strong> 1.1.20 Delantero · 1.1.21 Media punta</div>');
+  });
+
+  it("no imprime la línea cuando la hoja no tiene objetivos del modelo de juego", () => {
+    expect(buildSheetHeadingHtml("Rondo", content())).not.toContain("Modelo de juego");
+    expect(buildSheetHeadingHtml("Rondo", content({ modeloDeJuego: "   " }))).not.toContain("Modelo de juego");
+  });
+
+  it("escapa el HTML de la línea del modelo de juego", () => {
+    const html = buildSheetHeadingHtml("Rondo", content({ modeloDeJuego: "<b>1.1</b>" }));
+    expect(html).not.toContain("<b>");
+    expect(html).toContain("&lt;b&gt;1.1&lt;/b&gt;");
+  });
+});
+
 describe("sheetContentFrom*", () => {
   const exercise = {
     id: "ex",
@@ -229,24 +247,11 @@ describe("sheetContentFrom*", () => {
     niveles: [],
     logistica: "",
     descripcion: "",
-    isAssociatedToGameModel: true,
-    modelRelations: [
-      {
-        id: "r1",
-        subprincipioId: "s1",
-        subprincipioNumero: "1.1",
-        subprincipioTitulo: "Presión",
-        isFoco: true,
-        habilidadesImprescindibles: [],
-        items: [
-          { id: "i1", subSubPrincipioId: "ss1", subSubPrincipioNumero: "1.1.1", subSubPrincipioRol: "Central", isFoco: false },
-        ],
-      },
-    ],
   } as Exercise;
 
-  it("toma del ejercicio una etiqueta por subprincipio y por rol", () => {
-    expect(sheetContentFromExercise(exercise).modeloDeJuego).toEqual(["1.1 · Presión", "1.1.1 · Central"]);
+  it("una ficha de ejercicio no lleva línea del modelo de juego salvo que la sesión la aporte", () => {
+    expect(sheetContentFromExercise(exercise).modeloDeJuego).toBe("");
+    expect(sheetContentFromExercise(exercise, "1.1.20 Delantero").modeloDeJuego).toBe("1.1.20 Delantero");
   });
 
   it("deja los campos ausentes del ejercicio como valores vacíos", () => {
@@ -256,9 +261,9 @@ describe("sheetContentFrom*", () => {
     expect(result.jugadores).toEqual([]);
   });
 
-  it("toma del formulario una etiqueta genérica por cada relación con el modelo", () => {
-    const result = sheetContentFromForm({ modelRelations: [{}, {}], secuencia: ["Pase"] });
-    expect(result.modeloDeJuego).toHaveLength(2);
+  it("toma del formulario los campos de la ficha y ninguna línea del modelo de juego", () => {
+    const result = sheetContentFromForm({ secuencia: ["Pase"] });
+    expect(result.modeloDeJuego).toBe("");
     expect(result.secuencia).toEqual(["Pase"]);
   });
 });

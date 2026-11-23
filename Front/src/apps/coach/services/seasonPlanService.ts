@@ -235,7 +235,7 @@ const seasonPlanService = {
    * `seasonId` FK; callers must resolve/pass the right one, same as `GameModelCreate.tsx`
    * does via `season.name ?? season.id`). Returns empty arrays (not an error) when the team
    * has no GameModel yet for that season. Delegates to `gameModelService.getAdnOptions`
-   * (the canonical implementation, shared with the Exercise ModelRelationSection). */
+   * (the canonical implementation). */
   async getAdnOptions(teamId: string, season: string): Promise<AdnOptions> {
     return gameModelService.getAdnOptions(teamId, season);
   },

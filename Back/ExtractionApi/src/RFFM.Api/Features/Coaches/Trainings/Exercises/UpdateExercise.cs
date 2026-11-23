@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Common;
 using RFFM.Api.Domain;
-using RFFM.Api.Domain.Aggregates.GameModels;
 using RFFM.Api.Domain.Aggregates.Training.TasksTraining;
 using RFFM.Api.Domain.Entities;
 using RFFM.Api.FeatureModules;
@@ -55,7 +54,6 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
         List<string> NivelesColumnas,
         List<NivelRowRequest> Niveles,
         string? BoardStateJson,
-        List<ExerciseModelRelationRequest>? ModelRelations = null,
         string? Subtipo = null
     ) : IRequest, IRequireFeaturePermission, IExerciseSheetFields
     {
@@ -82,9 +80,6 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
         public async ValueTask<Unit> Handle(UpdateExerciseCommand request, CancellationToken ct = default)
         {
             var exercise = await _db.TaskTrainingBases
-                .Include(tb => tb.ModelRelations)
-                    .ThenInclude(r => r.Items)
-                .AsSplitQuery()
                 .FirstOrDefaultAsync(tb => tb.Id == request.Id, ct);
 
             if (exercise is null)
@@ -114,10 +109,6 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
                 request.NivelesColumnas,
                 request.Niveles.Select(n => new ExerciseLevelRow(n.Nivel, n.Valores)));
 
-            _db.RemoveRange(exercise.ModelRelations.SelectMany(r => r.Items));
-            _db.RemoveRange(exercise.ModelRelations);
-            exercise.ReplaceModelRelations(CreateExerciseHandler.BuildModelRelations(request.ModelRelations));
-
             await _db.SaveChangesAsync(ct);
             return Unit.Value;
         }
@@ -135,7 +126,6 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
             RuleFor(x => x.Objetivo).NotEmpty();
             RuleFor(x => x.Niveles).Must(n => n.Count is >= 2 and <= 5)
                 .WithMessage("Niveles must have between 2 and 5 rows.");
-            RuleForEach(x => x.ModelRelations).SetValidator(new ExerciseModelRelationRequestValidator());
             Include(new ExerciseSheetFieldsValidator());
         }
     }

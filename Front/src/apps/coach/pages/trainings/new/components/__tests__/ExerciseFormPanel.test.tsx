@@ -3,13 +3,6 @@ import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 
-vi.mock("../../../../../services/gameModelService", () => ({
-  default: { getAdnOptions: vi.fn().mockResolvedValue({ subprincipios: [], subSubPrincipios: [] }) },
-}));
-vi.mock("../../../../../services/seasonService", () => ({
-  default: { getActiveSeason: vi.fn().mockResolvedValue({ id: "season-1" }) },
-}));
-
 import ExerciseFormPanel from "../ExerciseFormPanel";
 import { emptyExercise } from "../../constants";
 import type { ExerciseFormState } from "../../hooks/useExerciseForm";
@@ -62,10 +55,10 @@ describe("ExerciseFormPanel — campos del template reducido", () => {
     expect(screen.queryByLabelText(/objetivo por rol/i)).not.toBeInTheDocument();
   });
 
-  it("renderiza la sección de relación con el modelo de juego", () => {
+  it("no ofrece ninguna sección del modelo de juego: ese foco se elige en la sesión", () => {
     renderPanel(<ExerciseFormPanel panelVisible form={buildFormState()} />);
 
-    expect(screen.getByText(/relación con el modelo de juego/i)).toBeInTheDocument();
+    expect(screen.queryByText(/modelo de juego/i)).not.toBeInTheDocument();
   });
 
   it("renderiza el editor de Niveles con la marca del nivel que muestra el dibujo, y no el campo Dibujo de texto", () => {

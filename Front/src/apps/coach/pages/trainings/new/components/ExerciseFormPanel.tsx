@@ -16,7 +16,6 @@ import { subtipoOptions, tipoOptions } from "../constants";
 import type { ExerciseFormState } from "../hooks/useExerciseForm";
 import styles from "../NewExercisePage.module.css";
 import type { ExerciseSubtipo, ExerciseTipo } from "../../../../types/training";
-import ModelRelationSection from "./ModelRelationSection";
 import LinesEditor from "./LinesEditor";
 import NivelesEditor from "./NivelesEditor";
 import TeamsEditor from "./TeamsEditor";
@@ -25,10 +24,9 @@ import { describeOverflow } from "../../sheetMeasure";
 interface ExerciseFormPanelProps {
   panelVisible: boolean;
   form: ExerciseFormState;
-  teamId?: string;
 }
 
-export default function ExerciseFormPanel({ panelVisible, form, teamId }: ExerciseFormPanelProps) {
+export default function ExerciseFormPanel({ panelVisible, form }: ExerciseFormPanelProps) {
   const {
     form: formData,
     setField,
@@ -201,15 +199,6 @@ export default function ExerciseFormPanel({ panelVisible, form, teamId }: Exerci
             onChange={setNiveles}
             nivelDibujo={formData.nivelDibujo}
             onNivelDibujoChange={setNivelDibujo}
-          />
-        </Box>
-
-        <Box className={styles.sectionCard} component="section">
-          <Typography component="h2" className={styles.sectionTitle}>Modelo de juego</Typography>
-          <ModelRelationSection
-            modelRelations={formData.modelRelations}
-            onChange={(relations) => setField("modelRelations", relations)}
-            teamId={teamId}
           />
         </Box>
 

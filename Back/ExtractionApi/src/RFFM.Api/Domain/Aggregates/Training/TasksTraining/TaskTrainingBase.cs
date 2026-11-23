@@ -68,22 +68,6 @@ namespace RFFM.Api.Domain.Aggregates.Training.TasksTraining
 
         public List<ExerciseModelRelation> ModelRelations { get; private set; } = new();
 
-        /// <summary>Clears and rebuilds <see cref="ModelRelations"/> wholesale — no incremental
-        /// diffing, same "trust server-derived state" approach used across this codebase (e.g.
-        /// the old <c>ReplaceModelLinks</c>).</summary>
-        public void ReplaceModelRelations(
-            IEnumerable<(string SubprincipioId, bool IsFoco, IEnumerable<string>? Habilidades,
-                IEnumerable<(string SubSubPrincipioId, bool IsFoco, IEnumerable<string>? Habilidades)> Items)> relations)
-        {
-            ModelRelations.Clear();
-            foreach (var relation in relations)
-            {
-                var entity = new ExerciseModelRelation(Id, relation.SubprincipioId, relation.IsFoco, relation.Habilidades);
-                entity.ReplaceItems(relation.Items);
-                ModelRelations.Add(entity);
-            }
-        }
-
         /// <summary>
         /// Validates and replaces <see cref="NivelesColumnas"/>/<see cref="Niveles"/>. Invariants
         /// (design.md §1.3): 2-5 rows, <see cref="ExerciseLevelRow.Nivel"/> numbered 1..N with no

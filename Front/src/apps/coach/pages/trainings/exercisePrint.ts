@@ -6,8 +6,8 @@ import {
   SHEET_GEOMETRY,
   buildMaterialLegendHtml,
   buildSheetDrawing,
+  buildSheetHeadingHtml,
   buildSheetPanelHtml,
-  buildSheetSubtitle,
   collectMaterialLegend,
   legendFreeHeightMm,
   sheetContentFromExercise,
@@ -23,21 +23,22 @@ export type SheetOptions = {
   playersById?: PlayersById;
   /** Text of the sheet footer; the single-exercise sheet has none. */
   footer?: string;
+  /** The session's game-model objectives as one line for the header; the single-exercise sheet has none (E6). */
+  modeloDeJuego?: string;
 };
 
 /** One landscape A4 page for an exercise, in the reference layout: the drawing on the left, the
  * fixed side panel on the right and the footer under both. The panel is clipped to its fixed
  * height, so content that does not fit is cut (the fit check warns before that happens). */
 export function buildExerciseSheetHtml(exercise: Exercise, options: SheetOptions = {}): string {
-  const { playersById = new Map(), footer = "" } = options;
-  const content = sheetContentFromExercise(exercise);
+  const { playersById = new Map(), footer = "", modeloDeJuego = "" } = options;
+  const content = sheetContentFromExercise(exercise, modeloDeJuego);
   const drawing = buildSheetDrawing(exercise, playersById);
 
   const legendItems = drawing.viewport ? collectMaterialLegend(exercise) : [];
   const legendHtml = legendItems.length > 0 && drawing.viewport ? buildMaterialLegendHtml(legendItems) : "";
   const showLegend = legendHtml !== "" && drawing.viewport !== null && legendFits(legendHtml, legendFreeHeightMm(drawing.viewport));
 
-  const subtitle = buildSheetSubtitle(content);
   const pills = [
     TIPO_LABELS[exercise.tipo] ?? exercise.tipo,
     exercise.subtipo ? (SUBTIPO_LABELS[exercise.subtipo] ?? exercise.subtipo) : "",
@@ -49,10 +50,7 @@ export function buildExerciseSheetHtml(exercise: Exercise, options: SheetOptions
 
   return `<section class="ficha">
     <header class="ficha-header">
-      <div class="ficha-heading">
-        <h1 class="ficha-title">${escapeHtml(exercise.name)}</h1>
-        ${subtitle ? `<div class="ficha-subtitle">${escapeHtml(subtitle)}</div>` : ""}
-      </div>
+      ${buildSheetHeadingHtml(exercise.name, content)}
       <div class="ficha-pills">${pills}</div>
     </header>
     <div class="ficha-body">

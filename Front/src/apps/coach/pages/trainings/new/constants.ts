@@ -113,7 +113,6 @@ export const emptyExercise: CreateExerciseRequest = {
   subtipo: null,
   objetivo: "",
   objetivoPorRol: null,
-  modelRelations: [],
   nivelesColumnas: ["Palanca 1"],
   niveles: [
     { nivel: 1, valores: {} },

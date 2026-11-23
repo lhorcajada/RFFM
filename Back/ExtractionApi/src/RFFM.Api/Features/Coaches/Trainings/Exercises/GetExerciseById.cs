@@ -53,9 +53,6 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
         public async ValueTask<ExerciseListItem?> Handle(GetExerciseByIdQuery request, CancellationToken ct = default)
         {
             var exercise = await _db.TaskTrainingBases
-                .Include(tb => tb.ModelRelations)
-                    .ThenInclude(r => r.Items)
-                .AsSplitQuery()
                 .FirstOrDefaultAsync(tb => tb.Id == request.ExerciseId, ct);
 
             if (exercise is null)
@@ -67,9 +64,7 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
             if (!hasAccess)
                 throw new DomainException("Ejercicios", "No tienes acceso a este ejercicio.", ErrorCodes.ExerciseAccessDenied);
 
-            var relationSummaries = await ExerciseModelRelationResolver.ResolveAsync(_db, exercise.ModelRelations, ct);
-
-            return ExerciseListItem.From(exercise, relationSummaries);
+            return ExerciseListItem.From(exercise);
         }
     }
 }

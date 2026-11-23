@@ -20,7 +20,7 @@ export const SHEET_GEOMETRY = {
   pageMargin: 8,
   width: 281,
   height: 193,
-  headerHeight: 15,
+  headerHeight: 17,
   footerHeight: 5,
   rowGap: 3,
   panelWidth: 102,
@@ -69,8 +69,9 @@ export type SheetContent = {
   queSeVe: string[];
   nivelesColumnas: string[];
   niveles: ExerciseLevelRow[];
-  /** One label per game-model relation, shown as a compact line at the end of the panel. */
-  modeloDeJuego: string[];
+  /** The session's game-model objectives as one compact line for the sheet header; empty when the
+   * sheet has none (an exercise sheet never has one). */
+  modeloDeJuego: string;
 };
 
 type SheetSource = {
@@ -85,7 +86,7 @@ type SheetSource = {
   niveles?: ExerciseLevelRow[];
 };
 
-function contentFrom(source: SheetSource, modeloDeJuego: string[]): SheetContent {
+function contentFrom(source: SheetSource, modeloDeJuego: string): SheetContent {
   return {
     espacio: source.espacio ?? null,
     turnoMinutos: source.turnoMinutos ?? null,
@@ -100,23 +101,13 @@ function contentFrom(source: SheetSource, modeloDeJuego: string[]): SheetContent
   };
 }
 
-export function sheetContentFromExercise(exercise: Exercise): SheetContent {
-  const labels = (exercise.modelRelations ?? []).flatMap((relation) => [
-    `${relation.subprincipioNumero ?? ""} · ${relation.subprincipioTitulo ?? ""}`,
-    ...relation.items.map((item) => `${item.subSubPrincipioNumero ?? ""} · ${item.subSubPrincipioRol ?? ""}`),
-  ]);
-  return contentFrom(exercise, labels);
+export function sheetContentFromExercise(exercise: Exercise, modeloDeJuego = ""): SheetContent {
+  return contentFrom(exercise, modeloDeJuego);
 }
 
-/** Maps the exercise form onto a sheet. The form only holds ids for the game-model relations, so
- * each one is stood in for by a generic label of similar length. */
-export function sheetContentFromForm(
-  form: SheetSource & { modelRelations: unknown[] },
-): SheetContent {
-  return contentFrom(
-    form,
-    form.modelRelations.map(() => "0.0 · Modelo de juego"),
-  );
+/** Maps the exercise form onto a sheet; an exercise carries no game model. */
+export function sheetContentFromForm(form: SheetSource): SheetContent {
+  return contentFrom(form, "");
 }
 
 const hasText = (value: string | null | undefined): value is string => (value ?? "").trim() !== "";
@@ -220,15 +211,8 @@ function buildLevelsBlock(content: SheetContent): string {
   return blockHtml("Niveles", rows);
 }
 
-function buildRelationsLine(content: SheetContent): string {
-  const labels = content.modeloDeJuego.filter(hasText);
-  if (labels.length === 0) return "";
-  return `<div class="ficha-relations"><strong>Modelo de juego:</strong> ${escapeHtml(labels.join(" · "))}</div>`;
-}
-
-/** The fixed side panel of the sheet: one block per section, left out when it has no content (E1),
- * and the game-model relations as one compact line at the end (E9). The fit check measures this
- * very markup. */
+/** The fixed side panel of the sheet: one block per section, left out when it has no content (E1).
+ * The fit check measures this very markup. */
 export function buildSheetPanelHtml(content: SheetContent): string {
   const blocks = [
     buildPlayersBlock(content),
@@ -237,9 +221,23 @@ export function buildSheetPanelHtml(content: SheetContent): string {
     buildLinesBlock("Reglas", content.reglas, false),
     buildLinesBlock("Qué se ve sin decir nada", content.queSeVe, false),
     buildLevelsBlock(content),
-    buildRelationsLine(content),
   ];
   return `<div class="ficha-panel">${blocks.join("")}</div>`;
+}
+
+/** The title block of the sheet header: name, subtitle and, when the sheet belongs to a session
+ * with game-model objectives, one compact line with them (E5). The fit check measures this very
+ * markup. */
+export function buildSheetHeadingHtml(title: string, content: SheetContent): string {
+  const subtitle = buildSheetSubtitle(content);
+  const modelo = hasText(content.modeloDeJuego)
+    ? `<div class="ficha-modelo"><strong>Modelo de juego:</strong> ${escapeHtml(content.modeloDeJuego.trim())}</div>`
+    : "";
+  return `<div class="ficha-heading">
+        <h1 class="ficha-title">${escapeHtml(title)}</h1>
+        ${subtitle ? `<div class="ficha-subtitle">${escapeHtml(subtitle)}</div>` : ""}
+        ${modelo}
+      </div>`;
 }
 
 export type MaterialLegendItem = { label: string; count: number };
@@ -335,6 +333,7 @@ export const SHEET_CSS = `
 .ficha-heading { min-width: 0; }
 .ficha-title { margin: 0; font-size: 17pt; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ficha-subtitle { margin-top: 0.5mm; font-size: 9pt; color: #38506b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ficha-modelo { margin-top: 0.5mm; font-size: 8pt; color: #38506b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ficha-pills { display: flex; flex-wrap: nowrap; gap: 2mm; flex: 0 0 auto; font-size: 8pt; color: #38506b; }
 .ficha-pill { border: 0.25mm solid #9fb3c8; border-radius: 4mm; padding: 0.8mm 2.5mm; background: #f6f9fc; white-space: nowrap; }
 .ficha-body { flex: 1 1 auto; min-height: 0; display: flex; gap: ${SHEET_GEOMETRY.columnGap}mm; }
@@ -366,6 +365,5 @@ export const SHEET_CSS = `
 .ficha-level-values { flex: 1 1 auto; min-width: 0; }
 .ficha-level-value { display: inline-block; margin-right: 2.5mm; }
 .ficha-level-mark { flex: 0 0 auto; font-size: 7pt; font-weight: bold; text-transform: uppercase; }
-.ficha-relations { margin-top: 1mm; font-size: 8pt; color: #38506b; }
 .ficha-footer { flex: 0 0 ${SHEET_GEOMETRY.footerHeight}mm; font-size: 8pt; color: #38506b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 `;

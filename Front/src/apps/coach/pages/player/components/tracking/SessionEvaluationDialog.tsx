@@ -20,6 +20,7 @@ import {
 } from "../../../../services/playerTrackingService";
 import { useSessionDetail } from "../../hooks/useSessionDetail";
 import { useSessionExercises } from "../../hooks/useSessionExercises";
+import { useSessionHabilidades } from "../../hooks/useSessionHabilidades";
 import SessionEvaluationForm from "./SessionEvaluationForm";
 import styles from "./SessionEvaluationDialog.module.css";
 
@@ -54,6 +55,7 @@ export default function SessionEvaluationDialog({
   const session = sessions.find((s) => s.sessionId === sessionId) ?? null;
   const { detail, loading: loadingDetail } = useSessionDetail(session?.sessionId ?? null);
   const { exercisesById } = useSessionExercises(detail);
+  const habilidades = useSessionHabilidades(teamId, detail);
   const selectable = sessions.filter((s) => s.isHeld && !s.evaluation);
 
   useEffect(() => {
@@ -115,6 +117,7 @@ export default function SessionEvaluationDialog({
               detail={detail}
               loadingDetail={loadingDetail}
               exercisesById={exercisesById}
+              habilidades={habilidades}
               teamId={teamId}
               initial={initial}
               saving={saving}

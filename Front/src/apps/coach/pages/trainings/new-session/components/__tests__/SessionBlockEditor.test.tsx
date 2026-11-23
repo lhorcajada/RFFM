@@ -18,7 +18,6 @@ function buildExercise(overrides: Partial<Exercise>): Exercise {
     tipo: "Analitico",
     objetivo: "",
     objetivoPorRol: null,
-    modelRelations: [],
     nivelesColumnas: [],
     niveles: [],
     logistica: "",
@@ -28,7 +27,6 @@ function buildExercise(overrides: Partial<Exercise>): Exercise {
     descripcion: "",
     urlImage: null,
     boardStateJson: null,
-    isAssociatedToGameModel: false,
     ...overrides,
   };
 }

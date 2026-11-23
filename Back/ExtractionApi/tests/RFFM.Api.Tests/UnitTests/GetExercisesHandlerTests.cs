@@ -2,9 +2,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using RFFM.Api.Domain.Aggregates.GameModels;
+using RFFM.Api.Domain.Aggregates.Training.TasksTraining;
 using RFFM.Api.Domain.Aggregates.UserClubs;
 using RFFM.Api.Domain.Models;
 using RFFM.Api.Features.Coaches.Trainings.Exercises;
@@ -55,10 +57,9 @@ namespace RFFM.Api.Tests.UnitTests
             new NivelRowRequest(2, new Dictionary<string, string>()),
         };
 
-        private static CreateExerciseCommand CreateCommand(string clubId, string userId,
-            List<ExerciseModelRelationRequest>? modelRelations = null) => new(
+        private static CreateExerciseCommand CreateCommand(string clubId, string userId) => new(
             clubId, "Ejercicio de prueba", "Analitico", "Objetivo", null, "Logistica", null, null, null,
-            "Descripcion", new List<string>(), TwoLevels(), null, modelRelations)
+            "Descripcion", new List<string>(), TwoLevels(), null)
         { UserId = userId };
 
         [Fact]
@@ -133,41 +134,24 @@ namespace RFFM.Api.Tests.UnitTests
         }
 
         [Fact]
-        public async Task Handle_WithModelRelation_SetsIsAssociatedToGameModelTrue()
+        public async Task Handle_ForExerciseWithStoredModelRelation_DoesNotReturnGameModelFields()
         {
             await using var seedDb = _fixture.CreateDbContext();
             var (userId, clubId, _) = await SeedClubAsync(seedDb);
             var subprincipioId = await SeedSubprincipioAsync(seedDb, clubId);
 
             await using var createDb = _fixture.CreateDbContext();
-            await new CreateExerciseHandler(createDb).Handle(
-                CreateCommand(clubId, userId, new List<ExerciseModelRelationRequest> { new(subprincipioId, true, null, null) }),
-                CancellationToken.None);
+            var exerciseId = await new CreateExerciseHandler(createDb).Handle(CreateCommand(clubId, userId), CancellationToken.None);
+            await using var relationDb = _fixture.CreateDbContext();
+            relationDb.ExerciseModelRelations.Add(new ExerciseModelRelation(exerciseId, subprincipioId, true, null));
+            await relationDb.SaveChangesAsync();
 
             await using var queryDb = _fixture.CreateDbContext();
             var result = await new GetExercisesHandler(queryDb).Handle(new GetExercisesQuery(clubId, Tipo: null, UserId: userId), CancellationToken.None);
 
-            var item = Assert.Single(result);
-            Assert.True(item.IsAssociatedToGameModel);
-            var relation = Assert.Single(item.ModelRelations);
-            Assert.Equal("1.1", relation.SubprincipioNumero);
-        }
-
-        [Fact]
-        public async Task Handle_WithoutModelRelations_SetsIsAssociatedToGameModelFalse()
-        {
-            await using var seedDb = _fixture.CreateDbContext();
-            var (userId, clubId, _) = await SeedClubAsync(seedDb);
-
-            await using var createDb = _fixture.CreateDbContext();
-            await new CreateExerciseHandler(createDb).Handle(CreateCommand(clubId, userId), CancellationToken.None);
-
-            await using var queryDb = _fixture.CreateDbContext();
-            var result = await new GetExercisesHandler(queryDb).Handle(new GetExercisesQuery(clubId, Tipo: null, UserId: userId), CancellationToken.None);
-
-            var item = Assert.Single(result);
-            Assert.False(item.IsAssociatedToGameModel);
-            Assert.Empty(item.ModelRelations);
+            var json = JsonSerializer.Serialize(Assert.Single(result), new JsonSerializerOptions(JsonSerializerDefaults.Web));
+            Assert.DoesNotContain("modelRelations", json, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("isAssociatedToGameModel", json, StringComparison.OrdinalIgnoreCase);
         }
     }
 }
