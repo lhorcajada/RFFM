@@ -101,6 +101,32 @@ namespace RFFM.Api.Tests.IntegrationTests
         }
 
         [Fact]
+        public async Task SeedAsync_FillsTheNewSheetSectionsAndLeavesTheRemovedFieldsEmpty()
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var (clubId, teamId, seasonId) = await SeedTeamWithGameModelAsync(seedDb);
+
+            await using var db = _fixture.CreateDbContext();
+            await ExampleSessionSeeder.SeedAsync(db, clubId, teamId, seasonId, CancellationToken.None);
+
+            await using var verifyDb = _fixture.CreateDbContext();
+            var rondo = await verifyDb.TaskTrainingBases
+                .SingleAsync(e => e.ClubId == clubId && e.Name == "Rondo con porterías centrales");
+            Assert.NotEmpty(rondo.Puntos);
+            Assert.NotEmpty(rondo.Rotaciones);
+            Assert.NotEmpty(rondo.Montaje);
+
+            var exercises = await verifyDb.TaskTrainingBases.Where(e => e.ClubId == clubId).ToListAsync();
+            Assert.All(exercises, e =>
+            {
+                Assert.Null(e.Porteros);
+                Assert.Empty(e.Secuencia);
+                Assert.Empty(e.QueSeVe);
+                Assert.Empty(e.Jugadores);
+            });
+        }
+
+        [Fact]
         public async Task SeedAsync_RunTwice_UpsertsWithoutDuplicating()
         {
             await using var seedDb = _fixture.CreateDbContext();

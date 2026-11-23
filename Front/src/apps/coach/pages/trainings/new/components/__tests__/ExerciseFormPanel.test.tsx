@@ -36,7 +36,7 @@ function renderPanel(ui: ReactElement) {
 }
 
 describe("ExerciseFormPanel — campos del template reducido", () => {
-  it("renderiza Tipo, Objetivo, Duración, Espacio, Turno y Porteros", () => {
+  it("renderiza Tipo, Objetivo, Duración, Espacio, Turno y Qué se hace", () => {
     renderPanel(<ExerciseFormPanel panelVisible form={buildFormState()} />);
 
     expect(screen.getByRole("group", { name: /^tipo/i })).toBeInTheDocument();
@@ -44,7 +44,17 @@ describe("ExerciseFormPanel — campos del template reducido", () => {
     expect(screen.getByLabelText(/duración/i)).toBeInTheDocument();
     expect(screen.getByLabelText("Espacio")).toBeInTheDocument();
     expect(screen.getByLabelText(/turno/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/porteros/i)).toBeInTheDocument();
+    expect(screen.getByLabelText("Qué se hace")).toBeInTheDocument();
+  });
+
+  it("ya no ofrece Jugadores y objetivos, Secuencia, Qué se ve sin decir nada ni Organización (porteros)", () => {
+    renderPanel(<ExerciseFormPanel panelVisible form={buildFormState()} />);
+
+    for (const name of ["Jugadores y objetivos", "Secuencia", "Qué se ve sin decir nada", "Organización"]) {
+      expect(screen.queryByRole("heading", { name })).not.toBeInTheDocument();
+    }
+    expect(screen.queryByLabelText(/porteros/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "+ Añadir equipo" })).not.toBeInTheDocument();
   });
 
   it("ya no pide Logística, Descripción ni Objetivo por rol, que pasan a los campos estructurados", () => {
@@ -72,20 +82,22 @@ describe("ExerciseFormPanel — campos del template reducido", () => {
   it("agrupa los campos en secciones apiladas, sin tablas", () => {
     const { container } = renderPanel(<ExerciseFormPanel panelVisible form={buildFormState()} />);
 
-    for (const name of [
+    const names = [
       "Clasificación",
       "Espacio y turno",
       "Objetivo",
-      "Jugadores y objetivos",
-      "Secuencia",
+      "Qué se hace",
       "Reglas",
-      "Qué se ve sin decir nada",
+      "Puntos",
+      "Rotaciones",
+      "Montaje",
       "Niveles",
-      "Organización",
       "Imagen / vídeo",
-    ]) {
-      expect(screen.getByRole("heading", { name })).toBeInTheDocument();
-    }
+    ];
+    const headings = names.map((name) => screen.getByRole("heading", { name }));
+    headings.slice(1).forEach((heading, index) => {
+      expect(headings[index].compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
     expect(container.querySelector("table")).toBeNull();
   });
 
@@ -169,7 +181,25 @@ describe("ExerciseFormPanel — campos estructurados de la ficha", () => {
     expect(setField).toHaveBeenCalledWith("turnoMinutos", 3);
   });
 
-  it("añade una línea a la secuencia, a las reglas y a lo que se ve", async () => {
+  it("guarda Qué se hace en la descripción al escribirlo", async () => {
+    const setField = vi.fn();
+    const { default: userEvent } = await import("@testing-library/user-event");
+    renderPanel(<ExerciseFormPanel panelVisible form={buildFormState({ setField })} />);
+
+    await userEvent.type(screen.getByLabelText("Qué se hace"), "S");
+
+    expect(setField).toHaveBeenCalledWith("descripcion", "S");
+  });
+
+  it("muestra la descripción de un ejercicio existente como Qué se hace", () => {
+    renderPanel(
+      <ExerciseFormPanel panelVisible form={buildFormState({ form: { ...emptyExercise, descripcion: "Se juega 4v2" } })} />,
+    );
+
+    expect(screen.getByLabelText("Qué se hace")).toHaveValue("Se juega 4v2");
+  });
+
+  it("añade una línea a las reglas, a los puntos, a las rotaciones y al montaje", async () => {
     const setField = vi.fn();
     const { default: userEvent } = await import("@testing-library/user-event");
     renderPanel(<ExerciseFormPanel panelVisible form={buildFormState({ setField })} />);
@@ -177,21 +207,11 @@ describe("ExerciseFormPanel — campos estructurados de la ficha", () => {
     const addButtons = screen.getAllByRole("button", { name: "+ Añadir línea" });
     for (const button of addButtons) await userEvent.click(button);
 
-    expect(setField).toHaveBeenCalledWith("secuencia", [""]);
+    expect(addButtons).toHaveLength(4);
     expect(setField).toHaveBeenCalledWith("reglas", [""]);
-    expect(setField).toHaveBeenCalledWith("queSeVe", [""]);
-  });
-
-  it("añade un equipo vacío", async () => {
-    const setField = vi.fn();
-    const { default: userEvent } = await import("@testing-library/user-event");
-    renderPanel(<ExerciseFormPanel panelVisible form={buildFormState({ setField })} />);
-
-    await userEvent.click(screen.getByRole("button", { name: "+ Añadir equipo" }));
-
-    expect(setField).toHaveBeenCalledWith("jugadores", [
-      { color: null, nombre: "", cantidad: null, roles: null, objetivos: [] },
-    ]);
+    expect(setField).toHaveBeenCalledWith("puntos", [""]);
+    expect(setField).toHaveBeenCalledWith("rotaciones", [""]);
+    expect(setField).toHaveBeenCalledWith("montaje", [""]);
   });
 
   it("marca el nivel que muestra el dibujo", async () => {

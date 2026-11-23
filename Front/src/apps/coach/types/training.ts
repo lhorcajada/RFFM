@@ -26,19 +26,6 @@ export interface ExerciseLevelRow {
   valores: Record<string, string>;
 }
 
-/** Colores de equipo de la ficha (paleta cerrada). */
-export type ExerciseTeamColor = "blue" | "yellow" | "gray";
-
-/** Un equipo de la ficha: color (o ninguno), nombre, nº de jugadores, roles en texto libre y
- * líneas de objetivo. El bloque «objetivo de cada equipo» de la ficha sale de `objetivos`. */
-export type ExerciseTeam = {
-  color: ExerciseTeamColor | null;
-  nombre: string;
-  cantidad: number | null;
-  roles: string | null;
-  objetivos: string[];
-};
-
 export interface Exercise {
   id: string;
   name: string;
@@ -50,8 +37,8 @@ export interface Exercise {
   niveles: ExerciseLevelRow[];
   logistica: string;
   durationMinutes?: number | null;
-  porteros?: string | null;
   dibujo?: string | null;
+  /** «Qué se hace» en la ficha: texto libre de varias líneas. */
   descripcion: string;
   urlImage?: string | null;
   boardStateJson?: string | null;
@@ -60,10 +47,10 @@ export interface Exercise {
   turnoMinutos?: number | null;
   /** Nº de la fila de `niveles` cuyo cuadrado y anchura muestra el dibujo. */
   nivelDibujo?: number | null;
-  secuencia?: string[];
   reglas?: string[];
-  queSeVe?: string[];
-  jugadores?: ExerciseTeam[];
+  puntos?: string[];
+  rotaciones?: string[];
+  montaje?: string[];
 }
 
 export interface CreateExerciseRequest {
@@ -77,17 +64,16 @@ export interface CreateExerciseRequest {
   niveles: ExerciseLevelRow[];
   logistica: string;
   durationMinutes?: number | null;
-  porteros?: string | null;
   dibujo?: string | null;
   descripcion: string;
   boardStateJson?: string | null;
   espacio: string | null;
   turnoMinutos: number | null;
   nivelDibujo: number | null;
-  secuencia: string[];
   reglas: string[];
-  queSeVe: string[];
-  jugadores: ExerciseTeam[];
+  puntos: string[];
+  rotaciones: string[];
+  montaje: string[];
 }
 export type UpdateExerciseRequest = Omit<CreateExerciseRequest, "clubId">;
 

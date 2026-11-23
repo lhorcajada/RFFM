@@ -45,7 +45,7 @@ namespace RFFM.Api.Tests.UnitTests
         };
 
         private static CreateExerciseCommand CreateCommand(string clubId, string userId) => new(
-            clubId, "Ejercicio de prueba", "Global", "Objetivo", "Objetivo por rol", "Logistica", 15, "Porteros",
+            clubId, "Ejercicio de prueba", "Global", "Objetivo", "Objetivo por rol", "Logistica", 15,
             "(pendiente)", "Descripcion", new List<string>(), TwoLevels(), null)
         { UserId = userId };
 
@@ -65,7 +65,6 @@ namespace RFFM.Api.Tests.UnitTests
             Assert.Equal("Global", result!.Tipo);
             Assert.Equal("Objetivo por rol", result.ObjetivoPorRol);
             Assert.Equal(15, result.DurationMinutes);
-            Assert.Equal("Porteros", result.Porteros);
             Assert.Equal("(pendiente)", result.Dibujo);
         }
 

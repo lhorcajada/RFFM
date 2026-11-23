@@ -46,7 +46,7 @@ namespace RFFM.Api.Tests.UnitTests
 
         private static CreateExerciseCommand BaseCommand(string clubId, string userId) => new(
             clubId, "Ejercicio de prueba", "Analitico", "Objetivo de prueba", null,
-            "12 min, conos", null, null, null, "Descripción larga",
+            "12 min, conos", null, null, "Descripción larga",
             new List<string> { "Porterias" }, TwoLevels(), null)
         { UserId = userId };
 
@@ -67,7 +67,6 @@ namespace RFFM.Api.Tests.UnitTests
             Assert.Equal("Ejercicio de prueba", exercise.Name);
             Assert.Equal("Analitico", exercise.Tipo);
             Assert.Null(exercise.ObjetivoPorRol);
-            Assert.Null(exercise.Porteros);
             Assert.Null(exercise.Dibujo);
             Assert.Null(exercise.DurationMinutes);
         }

@@ -90,7 +90,7 @@ function ExerciseInfoCard({ exerciseId, exercise, teamId, onRemove, onEdit, onDu
   const sections = exercise
     ? [
         { label: "Objetivo", text: exercise.objetivo },
-        { label: "Descripción", text: exercise.descripcion },
+        { label: "Qué se hace", text: exercise.descripcion },
         { label: "Logística", text: exercise.logistica },
       ].filter((s) => s.text?.trim())
     : [];

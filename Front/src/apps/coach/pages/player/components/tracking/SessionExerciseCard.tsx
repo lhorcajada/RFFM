@@ -67,7 +67,7 @@ export default function SessionExerciseCard({ blockExercise, exercise, teamId, h
               <div className={styles.detail}>
                 {exercise.descripcion && (
                   <div>
-                    <h6 className={styles.sectionTitle}>Descripción</h6>
+                    <h6 className={styles.sectionTitle}>Qué se hace</h6>
                     <p className={styles.text}>{exercise.descripcion}</p>
                   </div>
                 )}
@@ -75,12 +75,6 @@ export default function SessionExerciseCard({ blockExercise, exercise, teamId, h
                   <div>
                     <h6 className={styles.sectionTitle}>Logística</h6>
                     <p className={styles.text}>{exercise.logistica}</p>
-                  </div>
-                )}
-                {exercise.porteros && (
-                  <div>
-                    <h6 className={styles.sectionTitle}>Porteros</h6>
-                    <p className={styles.text}>{exercise.porteros}</p>
                   </div>
                 )}
                 {niveles.length > 0 && (

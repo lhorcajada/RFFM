@@ -61,6 +61,9 @@ namespace RFFM.Api.Domain.Aggregates.Training.TasksTraining
         public List<string> Secuencia { get; set; } = new();
         public List<string> Reglas { get; set; } = new();
         public List<string> QueSeVe { get; set; } = new();
+        public List<string> Puntos { get; set; } = new();
+        public List<string> Rotaciones { get; set; } = new();
+        public List<string> Montaje { get; set; } = new();
         public List<ExerciseTeam> Jugadores { get; set; } = new();
 
         public List<string> NivelesColumnas { get; private set; } = new();

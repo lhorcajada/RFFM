@@ -8,10 +8,11 @@ function content(overrides: Partial<SheetContent> = {}): SheetContent {
     espacio: null,
     turnoMinutos: null,
     nivelDibujo: null,
-    jugadores: [],
-    secuencia: [],
+    queSeHace: "",
     reglas: [],
-    queSeVe: [],
+    puntos: [],
+    rotaciones: [],
+    montaje: [],
     nivelesColumnas: [],
     niveles: [],
     modeloDeJuego: "",
@@ -66,31 +67,31 @@ afterEach(() => {
 
 describe("measureSheetFit", () => {
   it("da por bueno el contenido cuando el navegador no calcula alturas", () => {
-    expect(measureSheetFit(content({ secuencia: ["Pase"] })).fits).toBe(true);
+    expect(measureSheetFit(content({ puntos: ["Pase"] })).fits).toBe(true);
   });
 
   it("indica que cabe cuando el contenido no supera la altura del panel", () => {
     stubLayout({ panelHeight: 600, contentHeight: 580 });
-    expect(measureSheetFit(content({ secuencia: ["Pase"] }))).toEqual({ fits: true, overflowPx: 0, overflowingBlocks: [] });
+    expect(measureSheetFit(content({ puntos: ["Pase"] }))).toEqual({ fits: true, overflowPx: 0, overflowingBlocks: [] });
   });
 
   it("tolera un píxel de diferencia", () => {
     stubLayout({ panelHeight: 600, contentHeight: 601 });
-    expect(measureSheetFit(content({ secuencia: ["Pase"] })).fits).toBe(true);
+    expect(measureSheetFit(content({ puntos: ["Pase"] })).fits).toBe(true);
   });
 
   it("indica cuánto sobra y qué bloques se salen cuando el contenido no cabe", () => {
     stubLayout({
       panelHeight: 600,
       contentHeight: 720,
-      blocks: { Secuencia: [0, 300], Reglas: [300, 250], "Qué se ve sin decir nada": [550, 170] },
+      blocks: { "Qué se hace": [0, 300], Reglas: [300, 250], Montaje: [550, 170] },
     });
 
-    const fit = measureSheetFit(content({ secuencia: ["a"], reglas: ["b"], queSeVe: ["c"] }));
+    const fit = measureSheetFit(content({ queSeHace: "a", reglas: ["b"], montaje: ["c"] }));
 
     expect(fit.fits).toBe(false);
     expect(fit.overflowPx).toBe(120);
-    expect(fit.overflowingBlocks).toEqual(["Qué se ve sin decir nada"]);
+    expect(fit.overflowingBlocks).toEqual(["Montaje"]);
   });
 
   it("incluye en la medida la línea del modelo de juego de la cabecera cuando la hoja la lleva", () => {
@@ -116,7 +117,7 @@ describe("measureSheetFit", () => {
 
   it("no deja rastro en el documento tras medir", () => {
     const before = document.body.children.length;
-    measureSheetFit(content({ secuencia: ["Pase"] }));
+    measureSheetFit(content({ puntos: ["Pase"] }));
     expect(document.body.children.length).toBe(before);
   });
 
@@ -154,7 +155,7 @@ describe("findOverflowingSheets", () => {
   it("devuelve solo las fichas que no caben, con su bloque de sesión", () => {
     stubLayout({ panelHeight: 600, contentHeight: 700 });
     const overflowing = findOverflowingSheets([
-      { exercise: exercise({ id: "a", secuencia: ["largo"] }), blockName: "Principal" },
+      { exercise: exercise({ id: "a", puntos: ["largo"] }), blockName: "Principal" },
     ]);
     expect(overflowing).toHaveLength(1);
     expect(overflowing[0].exercise.id).toBe("a");

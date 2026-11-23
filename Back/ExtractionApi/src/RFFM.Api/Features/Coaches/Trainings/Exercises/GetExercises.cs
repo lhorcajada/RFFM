@@ -83,7 +83,6 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
         string? ObjetivoPorRol,
         string Logistica,
         int? DurationMinutes,
-        string? Porteros,
         string? Dibujo,
         string Descripcion,
         string? UrlImage,
@@ -94,10 +93,10 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
         string? Espacio,
         int? TurnoMinutos,
         int? NivelDibujo,
-        List<string> Secuencia,
         List<string> Reglas,
-        List<string> QueSeVe,
-        List<ExerciseTeamDto> Jugadores)
+        List<string> Puntos,
+        List<string> Rotaciones,
+        List<string> Montaje)
     {
         public static ExerciseListItem From(TaskTrainingBase tb) => new(
             tb.Id,
@@ -107,7 +106,6 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
             tb.ObjetivoPorRol,
             tb.Logistica,
             tb.DurationMinutes,
-            tb.Porteros,
             tb.Dibujo,
             tb.Descripcion,
             tb.UrlImage,
@@ -118,11 +116,9 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
             tb.Espacio,
             tb.TurnoMinutos,
             tb.NivelDibujo,
-            tb.Secuencia,
             tb.Reglas,
-            tb.QueSeVe,
-            tb.Jugadores.Select(t => new ExerciseTeamDto(t.Color, t.Nombre, t.Cantidad, t.Roles, t.Objetivos)).ToList());
+            tb.Puntos,
+            tb.Rotaciones,
+            tb.Montaje);
     }
-
-    public record ExerciseTeamDto(string? Color, string Nombre, int? Cantidad, string? Roles, List<string> Objetivos);
 }

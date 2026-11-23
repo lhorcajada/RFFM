@@ -73,6 +73,16 @@ describe("SessionExerciseCard", () => {
     expect(screen.getByRole("button", { name: "Ocultar detalle" })).toHaveAttribute("aria-expanded", "true");
   });
 
+  it("Ver detalle rotula la descripción como Qué se hace y no muestra porteros", async () => {
+    render(<SessionExerciseCard blockExercise={BLOCK_EXERCISE} exercise={exercise()} teamId="team-1" />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Ver detalle" }));
+
+    expect(screen.getByText("Qué se hace")).toBeInTheDocument();
+    expect(screen.queryByText("Descripción")).not.toBeInTheDocument();
+    expect(screen.queryByText("Porteros")).not.toBeInTheDocument();
+  });
+
   it("sin habilidades de la sesión el detalle no muestra esa sección", async () => {
     render(<SessionExerciseCard blockExercise={BLOCK_EXERCISE} exercise={exercise()} teamId="team-1" />);
 

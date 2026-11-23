@@ -22,7 +22,6 @@ function buildExercise(overrides: Partial<Exercise>): Exercise {
     niveles: [],
     logistica: "",
     durationMinutes: null,
-    porteros: null,
     dibujo: null,
     descripcion: "",
     urlImage: null,
@@ -181,6 +180,14 @@ describe("SessionBlockEditor", () => {
     expect(within(card).getByText("Mejorar el perfilamiento antes de recibir")).toBeInTheDocument();
     expect(within(card).getByText("Rondo 4v2 en 15x15 con dos porterías pequeñas")).toBeInTheDocument();
     expect(within(card).getByText("8 conos, 4 petos, 2 miniporterías")).toBeInTheDocument();
+  });
+
+  it("rotula la descripción del ejercicio como Qué se hace en la ficha", async () => {
+    setup({ blocks: [block(1, "Bloque 1", ["ex-1"])] });
+
+    const card = await screen.findByRole("article", { name: "Rondo con porterías" });
+    expect(within(card).getByText("Qué se hace")).toBeInTheDocument();
+    expect(within(card).queryByText("Descripción")).not.toBeInTheDocument();
   });
 
   it("al pulsar 'Editar ejercicio' en la ficha pide editar ese ejercicio", async () => {

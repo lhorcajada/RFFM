@@ -20,26 +20,28 @@ namespace RFFM.Api.Tests.UnitTests
             string? espacio = null,
             int? turnoMinutos = null,
             int? nivelDibujo = null,
-            List<string>? secuencia = null,
             List<string>? reglas = null,
-            List<string>? queSeVe = null,
-            List<ExerciseTeamRequest>? jugadores = null) => new(
-            "club-id", "Ejercicio", "Analitico", "Objetivo", null, "", null, null, null, "",
+            List<string>? puntos = null,
+            List<string>? rotaciones = null,
+            List<string>? montaje = null) => new(
+            "club-id", "Ejercicio", "Analitico", "Objetivo", null, "", null, null, "",
             new List<string>(), Levels(levelCount), null)
         {
             Espacio = espacio,
             TurnoMinutos = turnoMinutos,
             NivelDibujo = nivelDibujo,
-            Secuencia = secuencia ?? new List<string>(),
             Reglas = reglas ?? new List<string>(),
-            QueSeVe = queSeVe ?? new List<string>(),
-            Jugadores = jugadores ?? new List<ExerciseTeamRequest>(),
+            Puntos = puntos ?? new List<string>(),
+            Rotaciones = rotaciones ?? new List<string>(),
+            Montaje = montaje ?? new List<string>(),
         };
 
-        private static ExerciseTeamRequest Team(
-            string? color = "blue", string nombre = "Equipo", int? cantidad = 4, string? roles = null,
-            List<string>? objetivos = null) =>
-            new(color, nombre, cantidad, roles, objetivos ?? new List<string> { "Mantener la posesión" });
+        private static CreateExerciseCommand CommandWithList(string list, List<string> lines) => list switch
+        {
+            "puntos" => Command(puntos: lines),
+            "rotaciones" => Command(rotaciones: lines),
+            _ => Command(montaje: lines),
+        };
 
         private static async Task<bool> IsValid(CreateExerciseCommand command) =>
             (await new CreateExerciseValidator().ValidateAsync(command)).IsValid;
@@ -58,82 +60,54 @@ namespace RFFM.Api.Tests.UnitTests
         }
 
         [Fact]
-        public async Task Command_WithTooManyTeams_IsRejected()
-        {
-            var teams = Enumerable.Range(0, ExerciseSheetLimits.MaxTeams + 1).Select(_ => Team()).ToList();
-            Assert.False(await IsValid(Command(jugadores: teams)));
-        }
-
-        [Fact]
-        public async Task Command_WithMaxTeams_IsValid()
-        {
-            var teams = Enumerable.Range(0, ExerciseSheetLimits.MaxTeams).Select(_ => Team()).ToList();
-            Assert.True(await IsValid(Command(jugadores: teams)));
-        }
-
-        [Fact]
-        public async Task Command_WithTooManyLinesInSequence_IsRejected()
-        {
-            var lines = Enumerable.Range(0, ExerciseSheetLimits.MaxLines + 1).Select(i => $"Paso {i}").ToList();
-            Assert.False(await IsValid(Command(secuencia: lines)));
-        }
-
-        [Fact]
         public async Task Command_WithTooManyLinesInRules_IsRejected()
         {
             var lines = Enumerable.Range(0, ExerciseSheetLimits.MaxLines + 1).Select(i => $"Regla {i}").ToList();
             Assert.False(await IsValid(Command(reglas: lines)));
         }
 
-        [Fact]
-        public async Task Command_WithTooManyLinesInQueSeVe_IsRejected()
+        [Theory]
+        [InlineData("puntos")]
+        [InlineData("rotaciones")]
+        [InlineData("montaje")]
+        public async Task Command_WithTooManyLinesInANewList_IsRejected(string list)
         {
-            var lines = Enumerable.Range(0, ExerciseSheetLimits.MaxLines + 1).Select(i => $"Se ve {i}").ToList();
-            Assert.False(await IsValid(Command(queSeVe: lines)));
+            var lines = Enumerable.Range(0, ExerciseSheetLimits.MaxLines + 1).Select(i => $"Línea {i}").ToList();
+            Assert.False(await IsValid(CommandWithList(list, lines)));
+        }
+
+        [Theory]
+        [InlineData("puntos")]
+        [InlineData("rotaciones")]
+        [InlineData("montaje")]
+        public async Task Command_WithTooLongLineInANewList_IsRejected(string list)
+        {
+            var lines = new List<string> { new('x', ExerciseSheetLimits.MaxLineLength + 1) };
+            Assert.False(await IsValid(CommandWithList(list, lines)));
+        }
+
+        [Theory]
+        [InlineData("puntos")]
+        [InlineData("rotaciones")]
+        [InlineData("montaje")]
+        public async Task Command_WithMaxLinesOfMaxLengthInANewList_IsValid(string list)
+        {
+            var lines = Enumerable.Range(0, ExerciseSheetLimits.MaxLines).Select(_ => new string('x', ExerciseSheetLimits.MaxLineLength)).ToList();
+            Assert.True(await IsValid(CommandWithList(list, lines)));
         }
 
         [Fact]
         public async Task Command_WithTooLongLine_IsRejected()
         {
             var lines = new List<string> { new('x', ExerciseSheetLimits.MaxLineLength + 1) };
-            Assert.False(await IsValid(Command(secuencia: lines)));
+            Assert.False(await IsValid(Command(reglas: lines)));
         }
 
         [Fact]
         public async Task Command_WithMaxLengthLine_IsValid()
         {
             var lines = new List<string> { new('x', ExerciseSheetLimits.MaxLineLength) };
-            Assert.True(await IsValid(Command(secuencia: lines)));
-        }
-
-        [Fact]
-        public async Task Command_WithTooManyObjectivesInATeam_IsRejected()
-        {
-            var objetivos = Enumerable.Range(0, ExerciseSheetLimits.MaxLines + 1).Select(i => $"Obj {i}").ToList();
-            Assert.False(await IsValid(Command(jugadores: new List<ExerciseTeamRequest> { Team(objetivos: objetivos) })));
-        }
-
-        [Fact]
-        public async Task Command_WithTooLongTeamName_IsRejected()
-        {
-            var name = new string('x', ExerciseSheetLimits.MaxTeamNameLength + 1);
-            Assert.False(await IsValid(Command(jugadores: new List<ExerciseTeamRequest> { Team(nombre: name) })));
-        }
-
-        [Fact]
-        public async Task Command_WithColorOutsideThePalette_IsRejected()
-        {
-            Assert.False(await IsValid(Command(jugadores: new List<ExerciseTeamRequest> { Team(color: "purple") })));
-        }
-
-        [Theory]
-        [InlineData("blue")]
-        [InlineData("yellow")]
-        [InlineData("gray")]
-        [InlineData(null)]
-        public async Task Command_WithPaletteColorOrNone_IsValid(string? color)
-        {
-            Assert.True(await IsValid(Command(jugadores: new List<ExerciseTeamRequest> { Team(color: color) })));
+            Assert.True(await IsValid(Command(reglas: lines)));
         }
 
         [Fact]
@@ -169,7 +143,7 @@ namespace RFFM.Api.Tests.UnitTests
         public async Task UpdateCommand_WithNivelDibujoOutsideRows_IsRejected()
         {
             var update = new UpdateExerciseCommand(
-                "Ejercicio", "Analitico", "Objetivo", null, "", null, null, null, "",
+                "Ejercicio", "Analitico", "Objetivo", null, "", null, null, "",
                 new List<string>(), Levels(2), null)
             { NivelDibujo = 3 };
 
@@ -186,10 +160,10 @@ namespace RFFM.Api.Tests.UnitTests
             Assert.Null(exercise.Espacio);
             Assert.Null(exercise.TurnoMinutos);
             Assert.Null(exercise.NivelDibujo);
-            Assert.Empty(exercise.Secuencia);
             Assert.Empty(exercise.Reglas);
-            Assert.Empty(exercise.QueSeVe);
-            Assert.Empty(exercise.Jugadores);
+            Assert.Empty(exercise.Puntos);
+            Assert.Empty(exercise.Rotaciones);
+            Assert.Empty(exercise.Montaje);
         }
     }
 }

@@ -1,4 +1,4 @@
-import type { CreateExerciseRequest, ExerciseSubtipo, ExerciseTeamColor, ExerciseTipo } from "../../../types/training";
+import type { CreateExerciseRequest, ExerciseSubtipo, ExerciseTipo } from "../../../types/training";
 import { SUBTIPO_LABELS } from "../exerciseTypeLabels";
 import type { LineColorOption, LineKindOption, LineWidthOption, MaterialTemplate, PetoOption, SpaceKind, SpaceTemplate, TextStyle } from "./types";
 
@@ -120,24 +120,17 @@ export const emptyExercise: CreateExerciseRequest = {
   ],
   logistica: "",
   durationMinutes: null,
-  porteros: null,
   dibujo: null,
   descripcion: "",
   boardStateJson: null,
   espacio: null,
   turnoMinutos: null,
   nivelDibujo: null,
-  secuencia: [],
   reglas: [],
-  queSeVe: [],
-  jugadores: [],
+  puntos: [],
+  rotaciones: [],
+  montaje: [],
 };
-
-export const teamColorOptions: { value: ExerciseTeamColor; label: string }[] = [
-  { value: "blue", label: "Azul" },
-  { value: "yellow", label: "Amarillo" },
-  { value: "gray", label: "Gris" },
-];
 
 export const TEXT_FONT_OPTIONS = [
   { key: "Arial, sans-serif", label: "Arial" },

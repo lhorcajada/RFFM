@@ -19,10 +19,11 @@ function content(overrides: Partial<SheetContent> = {}): SheetContent {
     espacio: null,
     turnoMinutos: null,
     nivelDibujo: null,
-    jugadores: [],
-    secuencia: [],
+    queSeHace: "",
     reglas: [],
-    queSeVe: [],
+    puntos: [],
+    rotaciones: [],
+    montaje: [],
     nivelesColumnas: [],
     niveles: [],
     modeloDeJuego: "",
@@ -70,53 +71,59 @@ describe("buildSheetPanelHtml", () => {
     expect(buildSheetPanelHtml(content())).toBe('<div class="ficha-panel"></div>');
   });
 
-  it("imprime cada equipo con su color, nombre, número y roles", () => {
+  it("imprime los bloques en el orden Qué se hace, Reglas, Puntos, Rotaciones, Montaje y Niveles", () => {
     const html = buildSheetPanelHtml(
       content({
-        jugadores: [{ color: "yellow", nombre: "Amarillos", cantidad: 5, roles: "1 pivote", objetivos: [] }],
+        queSeHace: "Se juega 4v2",
+        reglas: ["Dos toques"],
+        puntos: ["Gol = 1 punto"],
+        rotaciones: ["Rota cada 3 minutos"],
+        montaje: ["Cuadro de 20x30"],
+        nivelesColumnas: ["Toques"],
+        niveles: [{ nivel: 1, valores: { Toques: "libres" } }],
       }),
     );
-    expect(html).toContain("ficha-swatch--yellow");
-    expect(html).toContain("<strong>Amarillos</strong> · 5 jug.");
-    expect(html).toContain("1 pivote");
+    const order = ["Qué se hace", "Reglas", "Puntos", "Rotaciones", "Montaje", "Niveles"].map((title) =>
+      html.indexOf(`data-block="${title}"`),
+    );
+    expect(order.every((position) => position >= 0)).toBe(true);
+    expect([...order].sort((a, b) => a - b)).toEqual(order);
   });
 
-  it("construye el objetivo de cada equipo con sus líneas, sin bloque aparte", () => {
+  it("imprime las listas Reglas, Puntos, Rotaciones y Montaje como listas simples", () => {
     const html = buildSheetPanelHtml(
-      content({
-        jugadores: [
-          { color: "blue", nombre: "Azules", cantidad: 4, roles: null, objetivos: ["Mantener la posesión", ""] },
-          { color: "gray", nombre: "Grises", cantidad: 2, roles: null, objetivos: ["Robar"] },
-        ],
-      }),
+      content({ reglas: ["Dos toques"], puntos: ["Gol"], rotaciones: ["Cada 3 min"], montaje: ["8 conos"] }),
     );
-    expect(html).toContain('data-block="Objetivos"');
-    expect(html).toContain("Mantener la posesión");
-    expect(html).toContain("Robar");
-    expect(html.match(/<li>/g)).toHaveLength(2);
-  });
-
-  it("no imprime el bloque de objetivos cuando ningún equipo tiene líneas", () => {
-    const html = buildSheetPanelHtml(
-      content({ jugadores: [{ color: "blue", nombre: "Azules", cantidad: 4, roles: null, objetivos: [] }] }),
-    );
-    expect(html).toContain('data-block="Jugadores"');
-    expect(html).not.toContain('data-block="Objetivos"');
-  });
-
-  it("numera la secuencia y deja reglas y «qué se ve» como listas simples", () => {
-    const html = buildSheetPanelHtml(
-      content({ secuencia: ["Pase", "Desmarque"], reglas: ["Dos toques"], queSeVe: ["Ritmo alto"] }),
-    );
-    expect(html).toContain('<ol class="ficha-list"><li>Pase</li><li>Desmarque</li></ol>');
     expect(html).toContain('<ul class="ficha-list"><li>Dos toques</li></ul>');
-    expect(html).toContain("Qué se ve sin decir nada");
+    expect(html).toContain('<ul class="ficha-list"><li>Gol</li></ul>');
+    expect(html).toContain('<ul class="ficha-list"><li>Cada 3 min</li></ul>');
+    expect(html).toContain('<ul class="ficha-list"><li>8 conos</li></ul>');
   });
 
-  it("omite las líneas en blanco de una lista y la lista entera si solo tiene líneas en blanco", () => {
-    const html = buildSheetPanelHtml(content({ secuencia: ["  ", ""], reglas: ["Una", " "] }));
-    expect(html).not.toContain('data-block="Secuencia"');
+  it("conserva los saltos de línea de Qué se hace como un párrafo por línea", () => {
+    const html = buildSheetPanelHtml(content({ queSeHace: "Primera parte\n\n  Segunda parte  \n" }));
+    expect(html).toContain('data-block="Qué se hace"');
+    expect(html).toContain('<p class="ficha-text">Primera parte</p><p class="ficha-text">Segunda parte</p>');
+  });
+
+  it("omite un bloque sin contenido y el bloque entero si solo tiene líneas en blanco", () => {
+    const html = buildSheetPanelHtml(
+      content({ queSeHace: "  \n ", reglas: ["Una", " "], puntos: ["  ", ""], rotaciones: [], montaje: [""] }),
+    );
+    expect(html).not.toContain('data-block="Qué se hace"');
+    expect(html).not.toContain('data-block="Puntos"');
+    expect(html).not.toContain('data-block="Rotaciones"');
+    expect(html).not.toContain('data-block="Montaje"');
     expect(html.match(/<li>/g)).toHaveLength(1);
+  });
+
+  it("no imprime bloque de jugadores, de objetivos por equipo, de secuencia ni de qué se ve", () => {
+    const html = buildSheetPanelHtml(
+      content({ queSeHace: "Texto", reglas: ["Regla"], puntos: ["Punto"], rotaciones: ["Rotación"], montaje: ["Montaje"] }),
+    );
+    for (const title of ["Jugadores", "Objetivos", "Secuencia", "Qué se ve sin decir nada"]) {
+      expect(html).not.toContain(`data-block="${title}"`);
+    }
   });
 
   it("marca la fila del nivel que muestra el dibujo y no usa tablas", () => {
@@ -147,18 +154,12 @@ describe("buildSheetPanelHtml", () => {
   });
 
   it("escapa el HTML de los textos del panel", () => {
-    const html = buildSheetPanelHtml(content({ reglas: ["<img src=x onerror=alert(1)>"] }));
-    expect(html).not.toContain("<img");
-    expect(html).toContain("&lt;img");
-  });
-
-  it("trata un equipo migrado, sin nombre ni color, solo como objetivo", () => {
     const html = buildSheetPanelHtml(
-      content({ jugadores: [{ color: null, nombre: "", cantidad: null, roles: null, objetivos: ["Por rol"] }] }),
+      content({ reglas: ["<img src=x onerror=alert(1)>"], queSeHace: "<script>alert(1)</script>" }),
     );
-    expect(html).not.toContain('data-block="Jugadores"');
-    expect(html).toContain("Por rol");
-    expect(html).not.toContain("ficha-team-heading");
+    expect(html).not.toContain("<img");
+    expect(html).not.toContain("<script>");
+    expect(html).toContain("&lt;img");
   });
 });
 
@@ -257,13 +258,30 @@ describe("sheetContentFrom*", () => {
   it("deja los campos ausentes del ejercicio como valores vacíos", () => {
     const result = sheetContentFromExercise(exercise);
     expect(result.espacio).toBeNull();
-    expect(result.secuencia).toEqual([]);
-    expect(result.jugadores).toEqual([]);
+    expect(result.queSeHace).toBe("");
+    expect(result.puntos).toEqual([]);
+    expect(result.rotaciones).toEqual([]);
+    expect(result.montaje).toEqual([]);
   });
 
-  it("toma del formulario los campos de la ficha y ninguna línea del modelo de juego", () => {
-    const result = sheetContentFromForm({ secuencia: ["Pase"] });
+  it("toma la descripción del ejercicio como Qué se hace y sus listas nuevas", () => {
+    const result = sheetContentFromExercise({
+      ...exercise,
+      descripcion: "Parte 1\nParte 2",
+      puntos: ["Gol"],
+      rotaciones: ["Cada 3 min"],
+      montaje: ["8 conos"],
+    });
+    expect(result.queSeHace).toBe("Parte 1\nParte 2");
+    expect(result.puntos).toEqual(["Gol"]);
+    expect(result.rotaciones).toEqual(["Cada 3 min"]);
+    expect(result.montaje).toEqual(["8 conos"]);
+  });
+
+  it("toma del formulario la descripción como Qué se hace y ninguna línea del modelo de juego", () => {
+    const result = sheetContentFromForm({ descripcion: "Se juega 4v2", puntos: ["Gol"] });
     expect(result.modeloDeJuego).toBe("");
-    expect(result.secuencia).toEqual(["Pase"]);
+    expect(result.queSeHace).toBe("Se juega 4v2");
+    expect(result.puntos).toEqual(["Gol"]);
   });
 });

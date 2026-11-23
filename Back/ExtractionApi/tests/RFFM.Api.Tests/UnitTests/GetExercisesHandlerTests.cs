@@ -58,7 +58,7 @@ namespace RFFM.Api.Tests.UnitTests
         };
 
         private static CreateExerciseCommand CreateCommand(string clubId, string userId) => new(
-            clubId, "Ejercicio de prueba", "Analitico", "Objetivo", null, "Logistica", null, null, null,
+            clubId, "Ejercicio de prueba", "Analitico", "Objetivo", null, "Logistica", null, null,
             "Descripcion", new List<string>(), TwoLevels(), null)
         { UserId = userId };
 

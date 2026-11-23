@@ -45,21 +45,17 @@ namespace RFFM.Api.Tests.IntegrationTests
             Enumerable.Range(1, count).Select(n => new NivelRowRequest(n, new Dictionary<string, string>())).ToList();
 
         private static CreateExerciseCommand CreateCommand(string clubId, string userId) => new(
-            clubId, "Rondo 4v2", "Analitico", "Objetivo", null, "", null, null, null, "",
+            clubId, "Rondo 4v2", "Analitico", "Objetivo", null, "", null, null, "",
             new List<string>(), Levels(3), null)
         {
             UserId = userId,
             Espacio = "20x30 m",
             TurnoMinutos = 3,
             NivelDibujo = 2,
-            Secuencia = new List<string> { "Pase y desmarque", "Cambio de orientación" },
             Reglas = new List<string> { "Máximo dos toques" },
-            QueSeVe = new List<string> { "Ritmo alto" },
-            Jugadores = new List<ExerciseTeamRequest>
-            {
-                new("blue", "Azules", 4, "1 pivote", new List<string> { "Mantener la posesión" }),
-                new(null, "Defensas", 2, null, new List<string> { "Robar", "Presionar" }),
-            },
+            Puntos = new List<string> { "1 punto por pase al pivote", "3 puntos por gol" },
+            Rotaciones = new List<string> { "Cada 3 minutos rota el equipo" },
+            Montaje = new List<string> { "Cuadro de 20x30 m", "8 conos" },
         };
 
         [Fact]
@@ -77,16 +73,10 @@ namespace RFFM.Api.Tests.IntegrationTests
             Assert.Equal("20x30 m", stored.Espacio);
             Assert.Equal(3, stored.TurnoMinutos);
             Assert.Equal(2, stored.NivelDibujo);
-            Assert.Equal(new List<string> { "Pase y desmarque", "Cambio de orientación" }, stored.Secuencia);
             Assert.Equal(new List<string> { "Máximo dos toques" }, stored.Reglas);
-            Assert.Equal(new List<string> { "Ritmo alto" }, stored.QueSeVe);
-            Assert.Equal(2, stored.Jugadores.Count);
-            Assert.Equal("blue", stored.Jugadores[0].Color);
-            Assert.Equal("Azules", stored.Jugadores[0].Nombre);
-            Assert.Equal(4, stored.Jugadores[0].Cantidad);
-            Assert.Equal("1 pivote", stored.Jugadores[0].Roles);
-            Assert.Null(stored.Jugadores[1].Color);
-            Assert.Equal(new List<string> { "Robar", "Presionar" }, stored.Jugadores[1].Objetivos);
+            Assert.Equal(new List<string> { "1 punto por pase al pivote", "3 puntos por gol" }, stored.Puntos);
+            Assert.Equal(new List<string> { "Cada 3 minutos rota el equipo" }, stored.Rotaciones);
+            Assert.Equal(new List<string> { "Cuadro de 20x30 m", "8 conos" }, stored.Montaje);
         }
 
         [Fact]
@@ -104,9 +94,9 @@ namespace RFFM.Api.Tests.IntegrationTests
             Assert.Equal("20x30 m", item!.Espacio);
             Assert.Equal(3, item.TurnoMinutos);
             Assert.Equal(2, item.NivelDibujo);
-            Assert.Equal(2, item.Secuencia.Count);
-            Assert.Equal(2, item.Jugadores.Count);
-            Assert.Equal("Azules", item.Jugadores[0].Nombre);
+            Assert.Equal(new List<string> { "1 punto por pase al pivote", "3 puntos por gol" }, item.Puntos);
+            Assert.Equal(new List<string> { "Cada 3 minutos rota el equipo" }, item.Rotaciones);
+            Assert.Equal(new List<string> { "Cuadro de 20x30 m", "8 conos" }, item.Montaje);
         }
 
         [Fact]
@@ -122,7 +112,7 @@ namespace RFFM.Api.Tests.IntegrationTests
 
             var item = Assert.Single(items);
             Assert.Equal(new List<string> { "Máximo dos toques" }, item.Reglas);
-            Assert.Equal(new List<string> { "Ritmo alto" }, item.QueSeVe);
+            Assert.Equal(new List<string> { "Cuadro de 20x30 m", "8 conos" }, item.Montaje);
         }
 
         [Fact]
@@ -134,7 +124,7 @@ namespace RFFM.Api.Tests.IntegrationTests
             var id = await new CreateExerciseHandler(createDb).Handle(CreateCommand(clubId, userId), CancellationToken.None);
 
             var update = new UpdateExerciseCommand(
-                "Rondo 5v2", "Analitico", "Objetivo", null, "", null, null, null, "",
+                "Rondo 5v2", "Analitico", "Objetivo", null, "", null, null, "",
                 new List<string>(), Levels(2), null)
             {
                 Id = id,
@@ -142,8 +132,7 @@ namespace RFFM.Api.Tests.IntegrationTests
                 Espacio = "30x30 m",
                 TurnoMinutos = null,
                 NivelDibujo = null,
-                Secuencia = new List<string> { "Nuevo paso" },
-                Jugadores = new List<ExerciseTeamRequest>(),
+                Puntos = new List<string> { "Nuevo punto" },
             };
             await using var updateDb = _fixture.CreateDbContext();
             await new UpdateExerciseHandler(updateDb).Handle(update, CancellationToken.None);
@@ -153,9 +142,45 @@ namespace RFFM.Api.Tests.IntegrationTests
             Assert.Equal("30x30 m", stored.Espacio);
             Assert.Null(stored.TurnoMinutos);
             Assert.Null(stored.NivelDibujo);
-            Assert.Equal(new List<string> { "Nuevo paso" }, stored.Secuencia);
+            Assert.Equal(new List<string> { "Nuevo punto" }, stored.Puntos);
             Assert.Empty(stored.Reglas);
-            Assert.Empty(stored.Jugadores);
+            Assert.Empty(stored.Rotaciones);
+            Assert.Empty(stored.Montaje);
+        }
+
+        [Fact]
+        public async Task Update_NeverTouchesTheStoredValuesOfTheRemovedFields()
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var (userId, clubId) = await SeedClubAsync(seedDb);
+            await using var createDb = _fixture.CreateDbContext();
+            var id = await new CreateExerciseHandler(createDb).Handle(CreateCommand(clubId, userId), CancellationToken.None);
+
+            await using var legacyDb = _fixture.CreateDbContext();
+            var legacy = await legacyDb.TaskTrainingBases.SingleAsync(e => e.Id == id);
+            legacy.Porteros = "Portero suplente";
+            legacy.Secuencia = new List<string> { "Pase y desmarque" };
+            legacy.QueSeVe = new List<string> { "Ritmo alto" };
+            legacy.Jugadores = new List<ExerciseTeam>
+            {
+                new("blue", "Azules", 4, "1 pivote", new List<string> { "Mantener la posesión" }),
+            };
+            await legacyDb.SaveChangesAsync();
+
+            var update = new UpdateExerciseCommand(
+                "Rondo 5v2", "Analitico", "Objetivo", null, "", null, null, "",
+                new List<string>(), Levels(2), null)
+            { Id = id, UserId = userId };
+            await using var updateDb = _fixture.CreateDbContext();
+            await new UpdateExerciseHandler(updateDb).Handle(update, CancellationToken.None);
+
+            await using var verifyDb = _fixture.CreateDbContext();
+            var stored = await verifyDb.TaskTrainingBases.SingleAsync(e => e.Id == id);
+            Assert.Equal("Portero suplente", stored.Porteros);
+            Assert.Equal(new List<string> { "Pase y desmarque" }, stored.Secuencia);
+            Assert.Equal(new List<string> { "Ritmo alto" }, stored.QueSeVe);
+            var team = Assert.Single(stored.Jugadores);
+            Assert.Equal("Azules", team.Nombre);
         }
 
         [Fact]
@@ -168,7 +193,7 @@ namespace RFFM.Api.Tests.IntegrationTests
                 CreateCommand(clubId, userId) with { BoardStateJson = "{\"objects\":[]}" }, CancellationToken.None);
 
             var update = new UpdateExerciseCommand(
-                "Rondo 4v2", "Analitico", "Objetivo", null, "", null, null, null, "",
+                "Rondo 4v2", "Analitico", "Objetivo", null, "", null, null, "",
                 new List<string>(), Levels(2), null)
             { Id = id, UserId = userId };
             await using var updateDb = _fixture.CreateDbContext();
@@ -286,7 +311,8 @@ namespace RFFM.Api.Tests.IntegrationTests
 
             await using var verifyDb = _fixture.CreateDbContext();
             var stored = await verifyDb.TaskTrainingBases.SingleAsync(e => e.Id == id);
-            Assert.Equal(new List<string> { "Pase y desmarque", "Cambio de orientación" }, stored.Secuencia);
+            Assert.Empty(stored.Secuencia);
+            Assert.Empty(stored.Jugadores);
             Assert.Equal("20x30 m", stored.Espacio);
         }
     }

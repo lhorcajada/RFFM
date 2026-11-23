@@ -177,10 +177,11 @@ describe("buildSessionPrintHtml", () => {
           "ex1",
           buildExercise({
             espacio: "20x30 m",
-            secuencia: ["Pase y desmarque"],
+            descripcion: "Pase y desmarque",
             reglas: ["Dos toques"],
-            queSeVe: ["Ritmo alto"],
-            jugadores: [{ color: "blue", nombre: "Azules", cantidad: 4, roles: null, objetivos: ["Mantener la posesión"] }],
+            puntos: ["Gol = 1 punto"],
+            rotaciones: ["Rota cada 3 minutos"],
+            montaje: ["Cuadro de 20x30"],
           }),
         ],
       ]),
@@ -189,9 +190,10 @@ describe("buildSessionPrintHtml", () => {
     expect(html).toContain("Espacio: 20x30 m");
     expect(html).toContain("Pase y desmarque");
     expect(html).toContain("Dos toques");
-    expect(html).toContain("Ritmo alto");
-    expect(html).toContain("Azules");
-    expect(html).toContain("Mantener la posesión");
+    expect(html).toContain("Gol = 1 punto");
+    expect(html).toContain("Rota cada 3 minutos");
+    expect(html).toContain("Cuadro de 20x30");
+    expect(html).toContain("Qué se hace");
   });
 
   it("recorta el dibujo de la pizarra al medio campo cuando solo se usa una mitad", () => {

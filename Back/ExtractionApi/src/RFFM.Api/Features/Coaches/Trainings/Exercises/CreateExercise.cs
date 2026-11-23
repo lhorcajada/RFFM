@@ -54,7 +54,6 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
         string? ObjetivoPorRol,
         string Logistica,
         int? DurationMinutes,
-        string? Porteros,
         string? Dibujo,
         string Descripcion,
         List<string> NivelesColumnas,
@@ -68,10 +67,10 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
         public string? Espacio { get; init; }
         public int? TurnoMinutos { get; init; }
         public int? NivelDibujo { get; init; }
-        public List<string> Secuencia { get; init; } = new();
         public List<string> Reglas { get; init; } = new();
-        public List<string> QueSeVe { get; init; } = new();
-        public List<ExerciseTeamRequest> Jugadores { get; init; } = new();
+        public List<string> Puntos { get; init; } = new();
+        public List<string> Rotaciones { get; init; } = new();
+        public List<string> Montaje { get; init; } = new();
 
         public string FeatureRoute => CoachFeatureRoutes.Trainings;
         public string RequiredPermission => "ReadWrite";
@@ -80,20 +79,16 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
     /// <summary>One row of the "Niveles" table.</summary>
     public record NivelRowRequest(int Nivel, Dictionary<string, string> Valores);
 
-    /// <summary>One team of the exercise sheet: palette color (or none), name, player count, roles
-    /// as free text and objective lines.</summary>
-    public record ExerciseTeamRequest(string? Color, string Nombre, int? Cantidad, string? Roles, List<string> Objetivos);
-
     /// <summary>The structured sheet fields shared by the create and update commands.</summary>
     public interface IExerciseSheetFields
     {
         string? Espacio { get; }
         int? TurnoMinutos { get; }
         int? NivelDibujo { get; }
-        List<string> Secuencia { get; }
         List<string> Reglas { get; }
-        List<string> QueSeVe { get; }
-        List<ExerciseTeamRequest> Jugadores { get; }
+        List<string> Puntos { get; }
+        List<string> Rotaciones { get; }
+        List<string> Montaje { get; }
         List<NivelRowRequest> Niveles { get; }
     }
 
@@ -121,7 +116,6 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
                 ObjetivoPorRol = request.ObjetivoPorRol,
                 Logistica = request.Logistica,
                 DurationMinutes = request.DurationMinutes,
-                Porteros = request.Porteros,
                 Dibujo = request.Dibujo,
                 Descripcion = request.Descripcion,
                 ClubId = request.ClubId,
@@ -163,12 +157,8 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
     /// content fits one printed sheet is measured by the client, never decided here.</summary>
     public static class ExerciseSheetLimits
     {
-        public const int MaxTeams = 6;
         public const int MaxLines = 30;
         public const int MaxLineLength = 1000;
-        public const int MaxTeamNameLength = 100;
-        public const int MaxRolesLength = 500;
-        public const int MaxPlayersPerTeam = 50;
         public const int MaxEspacioLength = ValidationConstants.TaskTrainingBaseSpaceMaxLength;
         public const int MaxTurnoMinutos = 240;
     }
@@ -186,13 +176,10 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
                 .When(x => x.NivelDibujo.HasValue)
                 .WithMessage("NivelDibujo must be one of the Niveles rows.");
 
-            RuleFor(x => x.Secuencia).SetValidator(new ExerciseLinesValidator());
             RuleFor(x => x.Reglas).SetValidator(new ExerciseLinesValidator());
-            RuleFor(x => x.QueSeVe).SetValidator(new ExerciseLinesValidator());
-
-            RuleFor(x => x.Jugadores).Must(t => t is null || t.Count <= ExerciseSheetLimits.MaxTeams)
-                .WithMessage($"Jugadores must have at most {ExerciseSheetLimits.MaxTeams} teams.");
-            RuleForEach(x => x.Jugadores).SetValidator(new ExerciseTeamRequestValidator());
+            RuleFor(x => x.Puntos).SetValidator(new ExerciseLinesValidator());
+            RuleFor(x => x.Rotaciones).SetValidator(new ExerciseLinesValidator());
+            RuleFor(x => x.Montaje).SetValidator(new ExerciseLinesValidator());
         }
     }
 
@@ -206,20 +193,6 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
         }
     }
 
-    public class ExerciseTeamRequestValidator : AbstractValidator<ExerciseTeamRequest>
-    {
-        public ExerciseTeamRequestValidator()
-        {
-            RuleFor(x => x.Color).Must(c => c is null || ExerciseTeam.Colors.Contains(c))
-                .WithMessage("Color must be empty or one of: blue, yellow, gray.");
-            RuleFor(x => x.Nombre).NotNull().MaximumLength(ExerciseSheetLimits.MaxTeamNameLength);
-            RuleFor(x => x.Cantidad).InclusiveBetween(0, ExerciseSheetLimits.MaxPlayersPerTeam)
-                .When(x => x.Cantidad.HasValue);
-            RuleFor(x => x.Roles).MaximumLength(ExerciseSheetLimits.MaxRolesLength);
-            RuleFor(x => x.Objetivos).NotNull().SetValidator(new ExerciseLinesValidator());
-        }
-    }
-
     internal static class ExerciseSheetMapper
     {
         /// <summary>Copies the structured sheet fields of a command onto the exercise.</summary>
@@ -228,12 +201,10 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
             exercise.Espacio = fields.Espacio;
             exercise.TurnoMinutos = fields.TurnoMinutos;
             exercise.NivelDibujo = fields.NivelDibujo;
-            exercise.Secuencia = fields.Secuencia?.ToList() ?? new();
             exercise.Reglas = fields.Reglas?.ToList() ?? new();
-            exercise.QueSeVe = fields.QueSeVe?.ToList() ?? new();
-            exercise.Jugadores = (fields.Jugadores ?? new())
-                .Select(t => new ExerciseTeam(t.Color, t.Nombre, t.Cantidad, t.Roles, t.Objetivos?.ToList() ?? new()))
-                .ToList();
+            exercise.Puntos = fields.Puntos?.ToList() ?? new();
+            exercise.Rotaciones = fields.Rotaciones?.ToList() ?? new();
+            exercise.Montaje = fields.Montaje?.ToList() ?? new();
         }
     }
 

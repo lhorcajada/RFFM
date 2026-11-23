@@ -228,7 +228,7 @@ describe("Trainings — visualizar e imprimir sesión", () => {
       niveles: [],
       logistica: "",
       descripcion: "",
-      secuencia: ["Pase al pivote y apoyo"],
+      puntos: ["Pase al pivote y apoyo"],
     });
 
     const fakeWindow = {

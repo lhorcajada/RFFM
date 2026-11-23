@@ -69,8 +69,8 @@ function makeExercise(overrides: Partial<Exercise> & { id: string; name: string 
   };
 }
 
-const fitting = makeExercise({ id: "ex-ok", name: "Ejercicio que cabe", secuencia: ["Pase"] });
-const overflowing = makeExercise({ id: "ex-long", name: "Ejercicio largo", secuencia: [LONG_SEQUENCE] });
+const fitting = makeExercise({ id: "ex-ok", name: "Ejercicio que cabe", puntos: ["Pase"] });
+const overflowing = makeExercise({ id: "ex-long", name: "Ejercicio largo", puntos: [LONG_SEQUENCE] });
 
 function makeSessionDetail(): TrainingSessionDetail {
   return {

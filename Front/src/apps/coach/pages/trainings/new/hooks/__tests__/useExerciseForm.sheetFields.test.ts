@@ -55,7 +55,7 @@ describe("useExerciseForm — campos estructurados de la ficha", () => {
     expect(trainingService.createExercise).toHaveBeenCalled();
   });
 
-  it("envía los campos de la ficha sin las líneas en blanco ni los equipos vacíos", async () => {
+  it("envía los campos de la ficha sin las líneas en blanco", async () => {
     const trainingService = (await import("../../../../../services/trainingService")).default;
     (trainingService.createExercise as ReturnType<typeof vi.fn>).mockResolvedValue({ id: "ex-new" });
     const { result } = renderForm();
@@ -63,14 +63,11 @@ describe("useExerciseForm — campos estructurados de la ficha", () => {
     fillRequiredFields(result);
     act(() => result.current.setField("espacio", "20x30 m"));
     act(() => result.current.setField("turnoMinutos", 3));
-    act(() => result.current.setField("secuencia", ["Pase", "  ", ""]));
+    act(() => result.current.setField("descripcion", "Se juega 4v2"));
     act(() => result.current.setField("reglas", ["Dos toques"]));
-    act(() =>
-      result.current.setField("jugadores", [
-        { color: "blue", nombre: "Azules", cantidad: 4, roles: null, objetivos: ["Posesión", ""] },
-        { color: null, nombre: "", cantidad: null, roles: null, objetivos: [""] },
-      ]),
-    );
+    act(() => result.current.setField("puntos", ["Gol = 1 punto", "  ", ""]));
+    act(() => result.current.setField("rotaciones", ["", "Cada 3 minutos"]));
+    act(() => result.current.setField("montaje", ["8 conos", " "]));
     await act(async () => {
       await result.current.handleSave();
     });
@@ -78,11 +75,15 @@ describe("useExerciseForm — campos estructurados de la ficha", () => {
     const sent = (trainingService.createExercise as ReturnType<typeof vi.fn>).mock.calls[0][0];
     expect(sent.espacio).toBe("20x30 m");
     expect(sent.turnoMinutos).toBe(3);
-    expect(sent.secuencia).toEqual(["Pase"]);
+    expect(sent.descripcion).toBe("Se juega 4v2");
     expect(sent.reglas).toEqual(["Dos toques"]);
-    expect(sent.jugadores).toEqual([
-      { color: "blue", nombre: "Azules", cantidad: 4, roles: null, objetivos: ["Posesión"] },
-    ]);
+    expect(sent.puntos).toEqual(["Gol = 1 punto"]);
+    expect(sent.rotaciones).toEqual(["Cada 3 minutos"]);
+    expect(sent.montaje).toEqual(["8 conos"]);
+    expect(sent).not.toHaveProperty("jugadores");
+    expect(sent).not.toHaveProperty("secuencia");
+    expect(sent).not.toHaveProperty("queSeVe");
+    expect(sent).not.toHaveProperty("porteros");
   });
 
   it("actualiza un ejercicio existente con los campos de la ficha", async () => {
@@ -90,7 +91,7 @@ describe("useExerciseForm — campos estructurados de la ficha", () => {
     (trainingService.updateExercise as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
     const { result } = renderForm();
 
-    act(() => result.current.loadExercise({ ...baseExercise, secuencia: ["Paso 1"], nivelDibujo: 2 }));
+    act(() => result.current.loadExercise({ ...baseExercise, puntos: ["Punto 1"], nivelDibujo: 2 }));
     await waitFor(() => expect(result.current.savedExerciseId).toBe("ex-1"));
     await act(async () => {
       await result.current.handleSave();
@@ -98,7 +99,7 @@ describe("useExerciseForm — campos estructurados de la ficha", () => {
 
     const [id, sent] = (trainingService.updateExercise as ReturnType<typeof vi.fn>).mock.calls[0];
     expect(id).toBe("ex-1");
-    expect(sent.secuencia).toEqual(["Paso 1"]);
+    expect(sent.puntos).toEqual(["Punto 1"]);
     expect(sent.nivelDibujo).toBe(2);
   });
 
@@ -110,15 +111,19 @@ describe("useExerciseForm — campos estructurados de la ficha", () => {
         ...baseExercise,
         espacio: "30x30 m",
         nivelDibujo: 3,
-        secuencia: ["Paso 1"],
-        jugadores: [{ color: "gray", nombre: "Grises", cantidad: 2, roles: null, objetivos: ["Robar"] }],
+        descripcion: "Se juega 4v2",
+        puntos: ["Punto 1"],
+        rotaciones: ["Rotación 1"],
+        montaje: ["Montaje 1"],
       }),
     );
 
     await waitFor(() => expect(result.current.form.espacio).toBe("30x30 m"));
     expect(result.current.form.nivelDibujo).toBe(3);
-    expect(result.current.form.secuencia).toEqual(["Paso 1"]);
-    expect(result.current.form.jugadores[0].nombre).toBe("Grises");
+    expect(result.current.form.descripcion).toBe("Se juega 4v2");
+    expect(result.current.form.puntos).toEqual(["Punto 1"]);
+    expect(result.current.form.rotaciones).toEqual(["Rotación 1"]);
+    expect(result.current.form.montaje).toEqual(["Montaje 1"]);
   });
 
   it("reemplaza los niveles al llamar a setNiveles", () => {
@@ -186,16 +191,25 @@ describe("useExerciseForm — campos estructurados de la ficha", () => {
       expect(trainingService.createExercise).not.toHaveBeenCalled();
     });
 
-    it("muestra el mismo aviso al abrir un ejercicio migrado que no cabe", async () => {
+    it("muestra el mismo aviso al abrir un ejercicio cuyo Qué se hace no cabe", async () => {
       stubOverflow();
       const { result } = renderForm();
 
       act(() =>
         result.current.loadExercise({
           ...baseExercise,
-          secuencia: ["Texto largo copiado literalmente de la descripción antigua"],
+          descripcion: "Texto largo copiado literalmente de la descripción antigua",
         }),
       );
+
+      await waitFor(() => expect(result.current.sheetFit.fits).toBe(false));
+    });
+
+    it("avisa cuando lo que no cabe está en Puntos, Rotaciones o Montaje", async () => {
+      stubOverflow();
+      const { result } = renderForm();
+
+      act(() => result.current.setField("montaje", ["Un montaje largo"]));
 
       await waitFor(() => expect(result.current.sheetFit.fits).toBe(false));
     });

@@ -18,7 +18,6 @@ import styles from "../NewExercisePage.module.css";
 import type { ExerciseSubtipo, ExerciseTipo } from "../../../../types/training";
 import LinesEditor from "./LinesEditor";
 import NivelesEditor from "./NivelesEditor";
-import TeamsEditor from "./TeamsEditor";
 import { describeOverflow } from "../../sheetMeasure";
 
 interface ExerciseFormPanelProps {
@@ -158,17 +157,16 @@ export default function ExerciseFormPanel({ panelVisible, form }: ExerciseFormPa
         </Box>
 
         <Box className={styles.sectionCard} component="section">
-          <Typography component="h2" className={styles.sectionTitle}>Jugadores y objetivos</Typography>
-          <TeamsEditor teams={formData.jugadores} onChange={(teams) => setField("jugadores", teams)} />
-        </Box>
-
-        <Box className={styles.sectionCard} component="section">
-          <Typography component="h2" className={styles.sectionTitle}>Secuencia</Typography>
-          <LinesEditor
-            label="Paso de la secuencia"
-            lines={formData.secuencia}
-            onChange={(lines) => setField("secuencia", lines)}
-            numbered
+          <Typography component="h2" className={styles.sectionTitle}>Qué se hace</Typography>
+          <TextField
+            label="Qué se hace"
+            value={formData.descripcion}
+            onChange={(e) => setField("descripcion", e.target.value)}
+            fullWidth
+            multiline
+            minRows={4}
+            size="small"
+            className={styles.field}
           />
         </Box>
 
@@ -178,12 +176,22 @@ export default function ExerciseFormPanel({ panelVisible, form }: ExerciseFormPa
         </Box>
 
         <Box className={styles.sectionCard} component="section">
-          <Typography component="h2" className={styles.sectionTitle}>Qué se ve sin decir nada</Typography>
+          <Typography component="h2" className={styles.sectionTitle}>Puntos</Typography>
+          <LinesEditor label="Punto" lines={formData.puntos} onChange={(lines) => setField("puntos", lines)} />
+        </Box>
+
+        <Box className={styles.sectionCard} component="section">
+          <Typography component="h2" className={styles.sectionTitle}>Rotaciones</Typography>
           <LinesEditor
-            label="Qué se ve"
-            lines={formData.queSeVe}
-            onChange={(lines) => setField("queSeVe", lines)}
+            label="Rotación"
+            lines={formData.rotaciones}
+            onChange={(lines) => setField("rotaciones", lines)}
           />
+        </Box>
+
+        <Box className={styles.sectionCard} component="section">
+          <Typography component="h2" className={styles.sectionTitle}>Montaje</Typography>
+          <LinesEditor label="Montaje" lines={formData.montaje} onChange={(lines) => setField("montaje", lines)} />
         </Box>
 
         <Box className={styles.sectionCard} component="section">
@@ -199,18 +207,6 @@ export default function ExerciseFormPanel({ panelVisible, form }: ExerciseFormPa
             onChange={setNiveles}
             nivelDibujo={formData.nivelDibujo}
             onNivelDibujoChange={setNivelDibujo}
-          />
-        </Box>
-
-        <Box className={styles.sectionCard} component="section">
-          <Typography component="h2" className={styles.sectionTitle}>Organización</Typography>
-          <TextField
-            label="Porteros (opcional)"
-            value={formData.porteros ?? ""}
-            onChange={(e) => setField("porteros", e.target.value || null)}
-            fullWidth
-            size="small"
-            className={styles.field}
           />
         </Box>
 

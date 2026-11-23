@@ -99,7 +99,7 @@ describe("buildExercisePrintHtml", () => {
 
   it("escapa HTML en los campos de texto libre", () => {
     const html = buildExercisePrintHtml(
-      buildExercise({ name: "<b>Nombre</b>", secuencia: ["<script>alert(1)</script>"] }),
+      buildExercise({ name: "<b>Nombre</b>", puntos: ["<script>alert(1)</script>"] }),
     );
     expect(html).not.toContain("<script>alert(1)</script>");
     expect(html).not.toContain("<b>Nombre</b>");
@@ -157,10 +157,11 @@ describe("buildExerciseSheetHtml — subtítulo y bloques", () => {
   });
 
   it("no imprime un bloque sin contenido ni su título", () => {
-    const html = buildExerciseSheetHtml(buildExercise({ secuencia: ["Pase"], reglas: [], queSeVe: [] }));
-    expect(html).toContain("Secuencia");
+    const html = buildExerciseSheetHtml(buildExercise({ puntos: ["Pase"], reglas: [], montaje: [] }));
+    expect(html).toContain("Puntos");
     expect(html).not.toContain("Reglas");
-    expect(html).not.toContain("Qué se ve sin decir nada");
+    expect(html).not.toContain("Montaje");
+    expect(html).not.toContain("Rotaciones");
     expect(html).not.toContain("Jugadores");
     expect(html).not.toContain("Objetivos");
     expect(html).not.toContain("Niveles");

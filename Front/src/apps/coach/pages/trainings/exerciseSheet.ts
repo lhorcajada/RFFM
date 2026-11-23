@@ -1,5 +1,5 @@
 import { renderToStaticMarkup } from "react-dom/server";
-import type { Exercise, ExerciseLevelRow, ExerciseTeam } from "../../types/training";
+import type { Exercise, ExerciseLevelRow } from "../../types/training";
 import {
   TacticalBoardSnapshotPreviewStatic,
   hasBoardObjects,
@@ -63,10 +63,12 @@ export type SheetContent = {
   espacio: string | null;
   turnoMinutos: number | null;
   nivelDibujo: number | null;
-  jugadores: ExerciseTeam[];
-  secuencia: string[];
+  /** «Qué se hace»: the exercise `descripcion`, free multi-line text. */
+  queSeHace: string;
   reglas: string[];
-  queSeVe: string[];
+  puntos: string[];
+  rotaciones: string[];
+  montaje: string[];
   nivelesColumnas: string[];
   niveles: ExerciseLevelRow[];
   /** The session's game-model objectives as one compact line for the sheet header; empty when the
@@ -78,10 +80,11 @@ type SheetSource = {
   espacio?: string | null;
   turnoMinutos?: number | null;
   nivelDibujo?: number | null;
-  jugadores?: ExerciseTeam[];
-  secuencia?: string[];
+  descripcion?: string;
   reglas?: string[];
-  queSeVe?: string[];
+  puntos?: string[];
+  rotaciones?: string[];
+  montaje?: string[];
   nivelesColumnas?: string[];
   niveles?: ExerciseLevelRow[];
 };
@@ -91,10 +94,11 @@ function contentFrom(source: SheetSource, modeloDeJuego: string): SheetContent {
     espacio: source.espacio ?? null,
     turnoMinutos: source.turnoMinutos ?? null,
     nivelDibujo: source.nivelDibujo ?? null,
-    jugadores: source.jugadores ?? [],
-    secuencia: source.secuencia ?? [],
+    queSeHace: source.descripcion ?? "",
     reglas: source.reglas ?? [],
-    queSeVe: source.queSeVe ?? [],
+    puntos: source.puntos ?? [],
+    rotaciones: source.rotaciones ?? [],
+    montaje: source.montaje ?? [],
     nivelesColumnas: source.nivelesColumnas ?? [],
     niveles: source.niveles ?? [],
     modeloDeJuego,
@@ -134,64 +138,26 @@ export function buildSheetSubtitle(content: SheetContent): string {
   return parts.join(" · ");
 }
 
-const TEAM_SWATCH_CLASS: Record<string, string> = {
-  blue: "ficha-swatch--blue",
-  yellow: "ficha-swatch--yellow",
-  gray: "ficha-swatch--gray",
-};
-
-function swatchHtml(team: ExerciseTeam): string {
-  const modifier = team.color ? TEAM_SWATCH_CLASS[team.color] : undefined;
-  return modifier ? `<span class="ficha-swatch ${modifier}"></span>` : "";
-}
-
-function teamHasIdentity(team: ExerciseTeam): boolean {
-  return hasText(team.nombre) || team.cantidad !== null || hasText(team.roles) || team.color !== null;
-}
-
 function blockHtml(title: string, bodyHtml: string): string {
   return `<section class="ficha-block" data-block="${escapeHtml(title)}"><h3>${escapeHtml(title)}</h3>${bodyHtml}</section>`;
 }
 
-function listHtml(lines: string[], ordered: boolean): string {
+function listHtml(lines: string[]): string {
   const items = nonEmptyLines(lines).map((line) => `<li>${escapeHtml(line.trim())}</li>`).join("");
-  return items ? `<${ordered ? "ol" : "ul"} class="ficha-list">${items}</${ordered ? "ol" : "ul"}>` : "";
+  return items ? `<ul class="ficha-list">${items}</ul>` : "";
 }
 
-function buildPlayersBlock(content: SheetContent): string {
-  const teams = content.jugadores.filter(teamHasIdentity);
-  if (teams.length === 0) return "";
-  const rows = teams
-    .map((team) => {
-      const count = team.cantidad !== null ? `${team.cantidad} jug.` : "";
-      const label = [hasText(team.nombre) ? `<strong>${escapeHtml(team.nombre.trim())}</strong>` : "", count && escapeHtml(count)]
-        .filter(Boolean)
-        .join(" · ");
-      const roles = hasText(team.roles) ? `<div class="ficha-team-roles">${escapeHtml(team.roles.trim())}</div>` : "";
-      return `<div class="ficha-team">${swatchHtml(team)}<div class="ficha-team-text"><div>${label}</div>${roles}</div></div>`;
-    })
-    .join("");
-  return blockHtml("Jugadores", rows);
-}
-
-function buildObjectivesBlock(content: SheetContent): string {
-  const groups = content.jugadores
-    .map((team) => ({ team, lines: nonEmptyLines(team.objetivos) }))
-    .filter((group) => group.lines.length > 0)
-    .map(({ team, lines }) => {
-      const heading =
-        hasText(team.nombre) || team.color
-          ? `<div class="ficha-team-heading">${swatchHtml(team)}${escapeHtml(team.nombre.trim())}</div>`
-          : "";
-      return `<div class="ficha-objectives">${heading}${listHtml(lines, false)}</div>`;
-    })
-    .join("");
-  return groups ? blockHtml("Objetivos", groups) : "";
-}
-
-function buildLinesBlock(title: string, lines: string[], ordered: boolean): string {
-  const list = listHtml(lines, ordered);
+function buildLinesBlock(title: string, lines: string[]): string {
+  const list = listHtml(lines);
   return list ? blockHtml(title, list) : "";
+}
+
+/** «Qué se hace» keeps its line breaks: one paragraph per non-blank line. */
+function buildWhatIsDoneBlock(content: SheetContent): string {
+  const paragraphs = nonEmptyLines(content.queSeHace.split(/\r?\n/))
+    .map((line) => `<p class="ficha-text">${escapeHtml(line.trim())}</p>`)
+    .join("");
+  return paragraphs ? blockHtml("Qué se hace", paragraphs) : "";
 }
 
 function buildLevelsBlock(content: SheetContent): string {
@@ -215,11 +181,11 @@ function buildLevelsBlock(content: SheetContent): string {
  * The fit check measures this very markup. */
 export function buildSheetPanelHtml(content: SheetContent): string {
   const blocks = [
-    buildPlayersBlock(content),
-    buildObjectivesBlock(content),
-    buildLinesBlock("Secuencia", content.secuencia, true),
-    buildLinesBlock("Reglas", content.reglas, false),
-    buildLinesBlock("Qué se ve sin decir nada", content.queSeVe, false),
+    buildWhatIsDoneBlock(content),
+    buildLinesBlock("Reglas", content.reglas),
+    buildLinesBlock("Puntos", content.puntos),
+    buildLinesBlock("Rotaciones", content.rotaciones),
+    buildLinesBlock("Montaje", content.montaje),
     buildLevelsBlock(content),
   ];
   return `<div class="ficha-panel">${blocks.join("")}</div>`;
@@ -349,16 +315,7 @@ export const SHEET_CSS = `
 .ficha-block h3 { margin: 0 0 0.8mm; font-size: 8.5pt; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 0.25mm solid #9fb3c8; padding-bottom: 0.4mm; }
 .ficha-list { margin: 0; padding-left: 4.5mm; }
 .ficha-list li { margin: 0 0 0.5mm; }
-.ficha-team { display: flex; align-items: flex-start; gap: 2mm; margin-bottom: 1mm; }
-.ficha-team-text { min-width: 0; }
-.ficha-team-roles { color: #38506b; }
-.ficha-swatch { display: inline-block; flex: 0 0 3.2mm; width: 3.2mm; height: 3.2mm; margin: 0.4mm 1.5mm 0 0; border-radius: 50%; border: 0.25mm solid #102133; }
-.ficha-team .ficha-swatch { margin-right: 0; }
-.ficha-swatch--blue { background: #3498db; }
-.ficha-swatch--yellow { background: #f1c40f; }
-.ficha-swatch--gray { background: #95a5a6; }
-.ficha-objectives { margin-bottom: 1mm; }
-.ficha-team-heading { display: flex; align-items: center; font-weight: bold; }
+.ficha-text { margin: 0 0 0.8mm; }
 .ficha-level { display: flex; align-items: flex-start; gap: 2mm; padding: 0.8mm 1.5mm; margin-bottom: 0.8mm; border: 0.25mm solid #c9d8e6; border-radius: 1.2mm; }
 .ficha-level--marked { background: #fde3d0; border-color: #e08a3c; }
 .ficha-level-number { flex: 0 0 5mm; font-weight: bold; }

@@ -85,6 +85,9 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.Trainings
             JsonColumns.ConfigureStringList(builder.Property(tb => tb.Secuencia));
             JsonColumns.ConfigureStringList(builder.Property(tb => tb.Reglas));
             JsonColumns.ConfigureStringList(builder.Property(tb => tb.QueSeVe));
+            JsonColumns.ConfigureStringList(builder.Property(tb => tb.Puntos));
+            JsonColumns.ConfigureStringList(builder.Property(tb => tb.Rotaciones));
+            JsonColumns.ConfigureStringList(builder.Property(tb => tb.Montaje));
             ConfigureNivelesColumn(builder.Property(tb => tb.Niveles));
             ConfigureJugadoresColumn(builder.Property(tb => tb.Jugadores));
         }

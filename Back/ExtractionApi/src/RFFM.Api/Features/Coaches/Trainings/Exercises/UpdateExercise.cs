@@ -48,7 +48,6 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
         string? ObjetivoPorRol,
         string Logistica,
         int? DurationMinutes,
-        string? Porteros,
         string? Dibujo,
         string Descripcion,
         List<string> NivelesColumnas,
@@ -63,10 +62,10 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
         public string? Espacio { get; init; }
         public int? TurnoMinutos { get; init; }
         public int? NivelDibujo { get; init; }
-        public List<string> Secuencia { get; init; } = new();
         public List<string> Reglas { get; init; } = new();
-        public List<string> QueSeVe { get; init; } = new();
-        public List<ExerciseTeamRequest> Jugadores { get; init; } = new();
+        public List<string> Puntos { get; init; } = new();
+        public List<string> Rotaciones { get; init; } = new();
+        public List<string> Montaje { get; init; } = new();
 
         public string FeatureRoute => CoachFeatureRoutes.Trainings;
         public string RequiredPermission => "ReadWrite";
@@ -97,7 +96,6 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
             exercise.ObjetivoPorRol = request.ObjetivoPorRol;
             exercise.Logistica = request.Logistica;
             exercise.DurationMinutes = request.DurationMinutes;
-            exercise.Porteros = request.Porteros;
             exercise.Dibujo = request.Dibujo;
             exercise.Descripcion = request.Descripcion;
             if (request.BoardStateJson is not null)
