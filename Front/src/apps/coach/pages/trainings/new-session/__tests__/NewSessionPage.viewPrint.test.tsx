@@ -124,4 +124,70 @@ describe("NewSessionPage — visualizar e imprimir la sesión", () => {
 
     await waitFor(() => expect(print).toHaveBeenCalled());
   });
+
+  describe("con cambios sin guardar", () => {
+    async function renderWithUnsavedChange() {
+      const windowMock = mockWindowOpen();
+      renderPage("clubId=club-1&teamId=team-1&sessionId=session-1");
+      const user = userEvent.setup();
+      const nameField = await screen.findByLabelText("Nombre");
+      await waitFor(() => expect(nameField).toHaveValue("Sesión martes"));
+      await user.type(nameField, " editada");
+      return { user, ...windowMock };
+    }
+
+    it("avisa antes de visualizar y no abre la ventana todavía", async () => {
+      const { user, openSpy } = await renderWithUnsavedChange();
+
+      await user.click(screen.getByRole("button", { name: "Visualizar" }));
+
+      expect(await screen.findByText("Cambios sin guardar")).toBeInTheDocument();
+      expect(openSpy).not.toHaveBeenCalled();
+    });
+
+    it("avisa antes de imprimir y no abre la ventana todavía", async () => {
+      const { user, openSpy, print } = await renderWithUnsavedChange();
+
+      await user.click(screen.getByRole("button", { name: "Imprimir PDF" }));
+
+      expect(await screen.findByText("Cambios sin guardar")).toBeInTheDocument();
+      expect(openSpy).not.toHaveBeenCalled();
+      expect(print).not.toHaveBeenCalled();
+    });
+
+    it("guarda la sesión y después abre la vista al confirmar", async () => {
+      const { user, fakeWindow } = await renderWithUnsavedChange();
+
+      await user.click(screen.getByRole("button", { name: "Visualizar" }));
+      await user.click(await screen.findByRole("button", { name: "Guardar y continuar" }));
+
+      await waitFor(() => expect(trainingService.updateSession).toHaveBeenCalledTimes(1));
+      expect((trainingService.updateSession as ReturnType<typeof vi.fn>).mock.calls[0][1]).toMatchObject({
+        name: "Sesión martes editada",
+      });
+      await waitFor(() => expect(fakeWindow.document.write).toHaveBeenCalled());
+    });
+
+    it("no guarda ni abre nada al cancelar", async () => {
+      const { user, openSpy } = await renderWithUnsavedChange();
+
+      await user.click(screen.getByRole("button", { name: "Visualizar" }));
+      await user.click(await screen.findByRole("button", { name: "Cancelar" }));
+
+      expect(trainingService.updateSession).not.toHaveBeenCalled();
+      expect(openSpy).not.toHaveBeenCalled();
+      await waitFor(() => expect(screen.queryByText("Cambios sin guardar")).not.toBeInTheDocument());
+    });
+
+    it("vuelve a abrir directamente tras guardar, sin avisar de nuevo", async () => {
+      const { user, openSpy } = await renderWithUnsavedChange();
+
+      await user.click(screen.getByRole("button", { name: "Guardar" }));
+      await waitFor(() => expect(trainingService.updateSession).toHaveBeenCalledTimes(1));
+      await user.click(screen.getByRole("button", { name: "Visualizar" }));
+
+      await waitFor(() => expect(openSpy).toHaveBeenCalled());
+      expect(screen.queryByText("Cambios sin guardar")).not.toBeInTheDocument();
+    });
+  });
 });
