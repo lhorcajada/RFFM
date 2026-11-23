@@ -41,28 +41,6 @@
         ]
       }
     ],
-    "PreToolUse": [
-      {
-        "matcher": "Bash",
-        "enabled": false,
-        "hooks": [
-          {
-            "type": "command",
-            "if": "Bash(git commit *)",
-            "command": "powershell -File .claude/hooks/test-coverage.ps1 -Layer auto",
-            "statusMessage": "Running affected tests...",
-            "continueOnBlock": true
-          },
-          {
-            "type": "command",
-            "if": "Bash(git push *)",
-            "command": "powershell -File .claude/hooks/test-coverage.ps1 -Layer auto",
-            "statusMessage": "Running affected tests...",
-            "continueOnBlock": true
-          }
-        ]
-      }
-    ],
     "PostToolUse": [
       {
         "matcher": "Bash(git commit",
