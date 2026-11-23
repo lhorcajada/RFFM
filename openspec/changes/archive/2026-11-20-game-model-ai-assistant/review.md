@@ -81,7 +81,7 @@ None.
 - **Problem:** `Handler(AppDbContext db, PlayerConditionService? conditionService = null)` falls back to `new PlayerConditionService(db)`. A missing registration is never detected, and the handler builds its own instance outside DI. The same pattern is used for the forecast service in `GetRivalSimulation.cs`.
 - **Suggested fix:** Make the service a required constructor parameter and build it explicitly in the tests.
 
-#### L5 — `SupportsForcedJsonSchema` is declared but never read (EXCLUDED: the flag is part of the approved plan interface, harmless, and Q3 may decide how it is used)
+#### L5 — `SupportsForcedJsonSchema` is declared but never read (EXCLUDED: the flag is part of the approved plan interface, harmless, and Q3 may decide how it is used; the Q3 retry now reads it)
 - **Location:** `Back/ExtractionApi/src/RFFM.Api/Features/AiSettings/Services/AiChat.cs:70`, `Back/ExtractionApi/src/RFFM.Api/Features/AiSettings/Services/AiChatAdapters.cs:29`, `:113`
 - **Problem:** No code consults the flag: the handler always sets `ResponseSchema`, the OpenAI-compatible adapter always sends it, and the Claude adapter ignores it. The flag is dead code that suggests a branch that does not exist.
 - **Suggested fix:** Remove the flag, or use it in the handler to decide whether to send the schema, and cover that with a test.
@@ -98,15 +98,15 @@ None.
 
 ### Questions
 
-#### Q1 — A malformed `expectedVersion` answers 409 instead of 400
+#### Q1 — A malformed `expectedVersion` answers 409 instead of 400 (RESOLVED 2026-11-23: the validator rejects a non-Guid value with 400)
 - **Location:** `Back/ExtractionApi/src/RFFM.Api/Features/Coaches/GameModels/Commands/UpdateGameModel.cs:101-104`
 - **Question:** Any non-null `expectedVersion` that is not the current marker (including an empty or non-Guid string) returns `409 GameModelStale`. Should the validator reject a malformed value with `400` instead? The spec defines only the stale case.
 
-#### Q2 — A new proposal after accepted but unsaved changes
+#### Q2 — A new proposal after accepted but unsaved changes (RESOLVED 2026-11-23: a new request is blocked until the accepted changes are saved; closing the assistant discards them)
 - **Location:** `Front/src/apps/coach/pages/game-model/hooks/useGameModelAssistant.ts:84-93`
 - **Question:** When the coach accepts some cards and then asks for a new proposal without saving, the backend builds the context and validates against the saved model, not the local tree. The new reply replaces the pending list and `proposalVersion`, while the accepted changes stay in the local tree, and the reply cannot address the nodes those changes added. Should the panel require a save (or a discard) before the next request, or is this acceptable?
 
-#### Q3 — Forced JSON schema for every OpenAI-compatible endpoint
+#### Q3 — Forced JSON schema for every OpenAI-compatible endpoint (RESOLVED 2026-11-23: a 400 with a schema is retried once without it)
 - **Location:** `Back/ExtractionApi/src/RFFM.Api/Features/AiSettings/Services/AiChatAdapters.cs:113-139`
 - **Question:** `OpenAiCompatibleChatAdapter` always sends `response_format: { type: "json_schema", ... }` when a schema is supplied. Design D7 enables the flag for "the provider type that documents `response_format: json_schema`", but this adapter serves any OpenAI-compatible base URL, and some compatible servers reject `json_schema` with 400. That would turn every assistant call into `AiProviderFailed`. Should compatible endpoints fall back to the prompt-only schema on that error, or is the risk accepted?
 
