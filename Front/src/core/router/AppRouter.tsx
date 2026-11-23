@@ -5,6 +5,7 @@ import { CircularProgress, Box } from "@mui/material";
 import { CoachAuthProvider } from "../../apps/coach/context/CoachAuthContext";
 import RequireAuth from "./RequireAuth";
 import { isPublicAuthRoute } from "./publicRoutes";
+import { traceAuth } from "../diagnostics/authTrace";
 
 const FederationApp = lazy(() => import("../../apps/federation/routes"));
 const CoachApp = lazy(() => import("../../apps/coach/routes"));
@@ -58,8 +59,9 @@ export default function AppRouter() {
           // it would silently discard whatever the user was filling in.
           if (isPublicAuthRoute(window.location.pathname)) return;
           if (!coachAuthService.isAuthenticated()) {
+            traceAuth("router.auth_monitor_redirect", { path: window.location.pathname });
             try {
-              coachAuthService.logout();
+              coachAuthService.logout("auth_monitor");
             } catch (e) {}
             try {
               window.dispatchEvent(new CustomEvent("rffm.auth_expired"));

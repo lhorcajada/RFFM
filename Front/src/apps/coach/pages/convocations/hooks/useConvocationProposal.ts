@@ -5,7 +5,7 @@ import type { PlayerRating } from "../../../types/playerRating";
 import type { PositionFit } from "../../../types/positionFit";
 import type { GridCell, MatchColumn } from "../components/convocationMatchDetail.types";
 import type { SeasonPlayerStats } from "../components/simulation/liveMatch.types";
-import type { DeconvokeProposal, WeeklyTrainingStats } from "../utils/deconvokeProposal";
+import type { BuildProposalInput, DeconvokeProposal, WeeklyTrainingStats } from "../utils/deconvokeProposal";
 import { buildDeconvokeProposal } from "../utils/deconvokeProposal";
 import type { MatchUnavailability } from "../utils/matchUnavailability";
 import type { RivalDifficulty } from "../utils/deconvocationFunnel";
@@ -13,7 +13,7 @@ import { DEFAULT_MAX_CALLED_PLAYERS } from "../utils/minimumCalls";
 import type { LastMatchMinutes } from "../utils/lastMatchMinutes";
 import type { DeconvocationRuleConfig } from "../utils/rules/ruleCatalog";
 
-type UseConvocationProposalInput = {
+export type UseConvocationProposalInput = {
   players: PlayerResponse[];
   /** Whole squad: the proposal picks who to leave out from every player, not only those already called. */
   squadIds: string[];
@@ -41,11 +41,55 @@ type UseConvocationProposalInput = {
   rules?: DeconvocationRuleConfig[];
   /** Difficulty of the rival; medium when omitted. */
   rivalDifficulty?: RivalDifficulty;
+  /** Difficulty of the matches after this one; empty or omitted when unknown. */
+  upcomingDifficulties?: RivalDifficulty[];
+  /** Own win probability in this match and the following ones; omitted when unknown. */
+  rivalWinProbability?: number | null;
+  upcomingWinProbabilities?: Array<number | null>;
+  /** League table position of the rival of this match and the following ones; omitted when unknown. */
+  rivalPosition?: number | null;
+  upcomingRivalPositions?: Array<number | null>;
   /** Fit order of each unified position; positions without one keep the fairness order. */
   positionFit?: PositionFit[];
   /** Minutes of the last played match; players who barely played are protected. */
   lastMatchMinutes?: LastMatchMinutes | null;
 };
+
+/** Inputs of the proposal engine for the match being prepared. */
+export function toBuildProposalInput(input: UseConvocationProposalInput): BuildProposalInput {
+  return {
+    players: input.players,
+    calledIds: input.squadIds,
+    alreadyOutIds: input.alreadyOutIds,
+    ratings: input.ratings,
+    streaks: input.playerStreaks,
+    technicalTotals: input.playerTechnicalTotals,
+    seasonEvents: input.seasonEvents,
+    seasonColumns: input.seasonColumns,
+    enrichedGrid: input.enrichedGrid,
+    seasonStats: input.seasonStats,
+    lastInjuryEndMap: input.lastInjuryEndMap,
+    lastInjuryStartMap: input.lastInjuryStartMap,
+    lastInjuryMissedEventsMap: input.lastInjuryMissedEventsMap,
+    currentDate: input.currentDate,
+    currentEventId: input.currentEventId,
+    currentRival: input.currentRival,
+    weekTrainingStats: input.weekTrainingStats,
+    weekTrainingCount: input.weekTrainingCount,
+    maxCalledPlayers: DEFAULT_MAX_CALLED_PLAYERS,
+    gridStartsCountMap: input.gridStartsCountMap,
+    matchUnavailable: input.matchUnavailable,
+    rules: input.rules,
+    rivalDifficulty: input.rivalDifficulty,
+    upcomingDifficulties: input.upcomingDifficulties,
+    rivalWinProbability: input.rivalWinProbability,
+    upcomingWinProbabilities: input.upcomingWinProbabilities,
+    rivalPosition: input.rivalPosition,
+    upcomingRivalPositions: input.upcomingRivalPositions,
+    positionFit: input.positionFit,
+    lastMatchMinutes: input.lastMatchMinutes,
+  };
+}
 
 export function useConvocationProposal(input: UseConvocationProposalInput): DeconvokeProposal {
   const {
@@ -71,39 +115,18 @@ export function useConvocationProposal(input: UseConvocationProposalInput): Deco
     matchUnavailable,
     rules,
     rivalDifficulty,
+    upcomingDifficulties,
+    rivalWinProbability,
+    upcomingWinProbabilities,
+    rivalPosition,
+    upcomingRivalPositions,
     positionFit,
     lastMatchMinutes,
   } = input;
 
   return useMemo(
     () =>
-      buildDeconvokeProposal({
-        players,
-        calledIds: squadIds,
-        alreadyOutIds,
-        ratings,
-        streaks: playerStreaks,
-        technicalTotals: playerTechnicalTotals,
-        seasonEvents,
-        seasonColumns,
-        enrichedGrid,
-        seasonStats,
-        lastInjuryEndMap,
-        lastInjuryStartMap,
-        lastInjuryMissedEventsMap,
-        currentDate,
-        currentEventId,
-        currentRival,
-        weekTrainingStats,
-        weekTrainingCount,
-        maxCalledPlayers: DEFAULT_MAX_CALLED_PLAYERS,
-        gridStartsCountMap,
-        matchUnavailable,
-        rules,
-        rivalDifficulty,
-        positionFit,
-        lastMatchMinutes,
-      }),
+      buildDeconvokeProposal(toBuildProposalInput(input)),
     [
       players,
       squadIds,
@@ -127,6 +150,11 @@ export function useConvocationProposal(input: UseConvocationProposalInput): Deco
       matchUnavailable,
       rules,
       rivalDifficulty,
+      upcomingDifficulties,
+      rivalWinProbability,
+      upcomingWinProbabilities,
+      rivalPosition,
+      upcomingRivalPositions,
       positionFit,
       lastMatchMinutes,
     ],

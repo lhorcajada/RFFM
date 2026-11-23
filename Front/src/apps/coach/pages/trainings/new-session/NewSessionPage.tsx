@@ -15,6 +15,7 @@ import SaveIcon from "@mui/icons-material/Save";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import { useLocation, useNavigate } from "react-router-dom";
 import BaseLayout from "../../../../../shared/components/ui/BaseLayout/BaseLayout";
+import ConfirmDialog from "../../../../../shared/components/ui/ConfirmDialog/ConfirmDialog";
 import trainingService from "../../../services/trainingService";
 import seasonPlanService from "../../../services/seasonPlanService";
 import seasonService from "../../../services/seasonService";
@@ -22,6 +23,7 @@ import type { SportEventResponse } from "../../../services/sportEventService";
 import { normalizeDateStr } from "../../convocations/helpers/convocationUtils";
 import type { SessionBlockRequest } from "../../../types/training";
 import { openSessionWindow } from "../sessionWindow";
+import { usePrintFitGuard } from "../usePrintFitGuard";
 import SessionBlockEditor from "./components/SessionBlockEditor";
 import { useSessionForm } from "./hooks/useSessionForm";
 import { useDailySportEvents } from "./hooks/useDailySportEvents";
@@ -96,6 +98,8 @@ function useMicrocicloOptions(teamId?: string): MicrocicloOption[] {
 
 const SESSION_DRAFT_STORAGE_PREFIX = "rffm.session-draft.";
 
+type SessionWindowAction = "view" | "print";
+
 export default function NewSessionPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -118,6 +122,7 @@ export default function NewSessionPage() {
     date: params.get("date"),
     sportEventId: params.get("sportEventId"),
   });
+  const [pendingWindowAction, setPendingWindowAction] = useState<SessionWindowAction | null>(null);
   const microcicloOptions = useMicrocicloOptions(teamId);
   const dailySportEvents = useDailySportEvents(teamId, sessionForm.form.date);
 
@@ -211,6 +216,32 @@ export default function NewSessionPage() {
   const handleRequestEditExercise = (exerciseId: string) =>
     goToExerciseEditor(new URLSearchParams({ exerciseId }), null);
 
+  const { onOverflow: onPrintOverflow, dialog: printFitDialog } = usePrintFitGuard(handleRequestEditExercise);
+
+  const openSavedSession = (action: SessionWindowAction) => {
+    if (!sessionForm.savedSessionId) return;
+    void (action === "print"
+      ? openSessionWindow(sessionForm.savedSessionId, teamId, { print: true, onOverflow: onPrintOverflow })
+      : openSessionWindow(sessionForm.savedSessionId, teamId));
+  };
+
+  // The view and the print read the saved session, so unsaved changes are saved first.
+  const requestSessionWindow = (action: SessionWindowAction) => {
+    if (sessionForm.hasUnsavedChanges) {
+      setPendingWindowAction(action);
+      return;
+    }
+    openSavedSession(action);
+  };
+
+  const handleSaveAndOpen = async () => {
+    const action = pendingWindowAction;
+    if (!action) return;
+    const saved = await sessionForm.handleSave();
+    setPendingWindowAction(null);
+    if (saved) openSavedSession(action);
+  };
+
   const blockCount = sessionForm.form.blocks.length;
   const exerciseCount = sessionForm.form.blocks.reduce((total, b) => total + b.exercises.length, 0);
 
@@ -234,7 +265,7 @@ export default function NewSessionPage() {
                 variant="outlined"
                 size="small"
                 disabled={!sessionForm.savedSessionId}
-                onClick={() => sessionForm.savedSessionId && void openSessionWindow(sessionForm.savedSessionId, teamId)}
+                onClick={() => requestSessionWindow("view")}
               >
                 Visualizar
               </Button>
@@ -247,10 +278,7 @@ export default function NewSessionPage() {
                 variant="outlined"
                 size="small"
                 disabled={!sessionForm.savedSessionId}
-                onClick={() =>
-                  sessionForm.savedSessionId &&
-                  void openSessionWindow(sessionForm.savedSessionId, teamId, { print: true })
-                }
+                onClick={() => requestSessionWindow("print")}
               >
                 Imprimir PDF
               </Button>
@@ -436,6 +464,17 @@ export default function NewSessionPage() {
           </Box>
         </Box>
       </Box>
+      {printFitDialog}
+      <ConfirmDialog
+        open={pendingWindowAction !== null}
+        title="Cambios sin guardar"
+        description="Hay cambios sin guardar en la sesión. Guárdala para que la vista y la impresión incluyan todos los ejercicios."
+        confirmText="Guardar y continuar"
+        cancelText="Cancelar"
+        processing={sessionForm.saving}
+        onCancel={() => setPendingWindowAction(null)}
+        onConfirm={() => void handleSaveAndOpen()}
+      />
     </BaseLayout>
   );
 }

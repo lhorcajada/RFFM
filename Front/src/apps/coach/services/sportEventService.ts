@@ -35,6 +35,8 @@ export interface SportEventResponse {
   localGoals?: string | null;
   visitorGoals?: string | null;
   selectedKitNumber?: number | null;
+  /** League matches: true once the coach published the convocation to players and families. */
+  convocationPublished?: boolean | null;
   hasConvokedPlayers?: boolean | null;
   trainingTypes?: string[] | null;
 }

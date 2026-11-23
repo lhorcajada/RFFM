@@ -6,6 +6,9 @@ export async function fetchImage(url: string): Promise<string | null> {
     const resp = await client.get(`/api/catalog/team/photo`, {
       params: { url },
       responseType: "blob",
+      // An image is optional: if it cannot be loaded the caller shows a placeholder, the app
+      // must not jump to the error page.
+      suppressErrorRedirect: true,
     } as any);
     const blob = resp.data as Blob;
     const objectUrl = URL.createObjectURL(blob);
@@ -29,6 +32,9 @@ export async function fetchPublicStorageFile(url: string): Promise<string | null
     const resp = await client.get(`/api/public/storage`, {
       params: { url },
       responseType: "blob",
+      // An image is optional: if it cannot be loaded the caller shows a placeholder, the app
+      // must not jump to the error page.
+      suppressErrorRedirect: true,
     } as any);
     const blob = resp.data as Blob;
     return URL.createObjectURL(blob);

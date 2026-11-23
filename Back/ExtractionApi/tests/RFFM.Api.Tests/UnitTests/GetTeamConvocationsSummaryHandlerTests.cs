@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Moq;
 using RFFM.Api.Domain.Aggregates.Assistances;
 using RFFM.Api.Domain.Aggregates.UserClubs;
 using RFFM.Api.Domain.Entities.Competitions;
@@ -12,6 +13,7 @@ using RFFM.Api.Domain.Entities.Players;
 using RFFM.Api.Domain.Entities.Seasons;
 using RFFM.Api.Domain.Entities.TeamPlayers;
 using RFFM.Api.Domain.Models;
+using RFFM.Api.Domain.Services;
 using RFFM.Api.Features.Coaches.Assistances.Queries;
 using RFFM.Api.Infrastructure.Persistence;
 using RFFM.Api.Tests.Fixtures;
@@ -58,14 +60,15 @@ namespace RFFM.Api.Tests.UnitTests
         }
 
         private async Task<(string EventId, string TeamPlayerId, string ConvocationId)> SeedConvocationAsync(
-            AppDbContext db, string teamId, string seasonId, string clubId, string eventName)
+            AppDbContext db, string teamId, string seasonId, string clubId, string eventName, int eventTypeId = 2, bool published = false)
         {
             var sportEvent = SportEvent.CreateNew(
                 eventName,
                 DateTime.UtcNow.AddDays(1),
                 DateTime.UtcNow.AddDays(1),
                 null, null, null, null,
-                2, teamId, null);
+                eventTypeId, teamId, null);
+            if (published) sportEvent.PublishConvocation();
             db.SportEvents.Add(sportEvent);
             await db.SaveChangesAsync();
 
@@ -106,6 +109,58 @@ namespace RFFM.Api.Tests.UnitTests
             return (sportEvent.Id, teamPlayer.Id, convocation.Id);
         }
 
+        private static ICurrentUserService CurrentUser(params string[] roles)
+        {
+            var mock = new Mock<ICurrentUserService>();
+            mock.Setup(c => c.Roles).Returns(roles);
+            return mock.Object;
+        }
+
+        private async Task<int> RowsForAsync(string role, bool published)
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var teamId = await SeedTeamAsync(seedDb);
+            var team = await seedDb.Teams.FirstAsync(t => t.Id == teamId);
+            await SeedConvocationAsync(seedDb, teamId, team.SeasonId, team.ClubId, "Partido liga", eventTypeId: 1, published: published);
+
+            await using var db = _fixture.CreateDbContext();
+            var result = await new GetTeamConvocationsSummary.Handler(db, CurrentUser(role))
+                .Handle(new GetTeamConvocationsSummary.Query { TeamId = teamId }, CancellationToken.None);
+            return result.Length;
+        }
+
+        [Theory]
+        [InlineData("Player")]
+        [InlineData("FamilyMember")]
+        [InlineData("FamilyPlayer")]
+        public async Task Handle_LeagueConvocationNotPublished_PlayerOrFamilySeesNothing(string role)
+            => Assert.Equal(0, await RowsForAsync(role, published: false));
+
+        [Theory]
+        [InlineData("Coach")]
+        [InlineData("Administrator")]
+        public async Task Handle_LeagueConvocationNotPublished_CoachAndAdministratorSeeTheDraft(string role)
+            => Assert.Equal(1, await RowsForAsync(role, published: false));
+
+        [Fact]
+        public async Task Handle_LeagueConvocationPublished_PlayerSeesIt()
+            => Assert.Equal(1, await RowsForAsync("Player", published: true));
+
+        [Fact]
+        public async Task Handle_FriendlyConvocationNotPublished_PlayerStillSeesIt()
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var teamId = await SeedTeamAsync(seedDb);
+            var team = await seedDb.Teams.FirstAsync(t => t.Id == teamId);
+            await SeedConvocationAsync(seedDb, teamId, team.SeasonId, team.ClubId, "Amistoso", eventTypeId: 4);
+
+            await using var db = _fixture.CreateDbContext();
+            var result = await new GetTeamConvocationsSummary.Handler(db, CurrentUser("Player"))
+                .Handle(new GetTeamConvocationsSummary.Query { TeamId = teamId }, CancellationToken.None);
+
+            Assert.Single(result);
+        }
+
         [Fact]
         public async Task Handle_TeamWithConvocationsAcrossMultipleEvents_ReturnsOneRowPerConvocationTaggedByEvent()
         {
@@ -118,7 +173,7 @@ namespace RFFM.Api.Tests.UnitTests
             var second = await SeedConvocationAsync(seedDb, teamId, team.SeasonId, team.ClubId, "Entrenamiento 2");
 
             await using var db = _fixture.CreateDbContext();
-            var handler = new GetTeamConvocationsSummary.Handler(db);
+            var handler = new GetTeamConvocationsSummary.Handler(db, CurrentUser("Coach"));
 
             var result = await handler.Handle(new GetTeamConvocationsSummary.Query { TeamId = teamId }, CancellationToken.None);
 
@@ -134,7 +189,7 @@ namespace RFFM.Api.Tests.UnitTests
             var teamId = await SeedTeamAsync(seedDb);
 
             await using var db = _fixture.CreateDbContext();
-            var handler = new GetTeamConvocationsSummary.Handler(db);
+            var handler = new GetTeamConvocationsSummary.Handler(db, CurrentUser("Coach"));
 
             var result = await handler.Handle(new GetTeamConvocationsSummary.Query { TeamId = teamId }, CancellationToken.None);
 

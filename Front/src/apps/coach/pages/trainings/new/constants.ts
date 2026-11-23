@@ -113,7 +113,6 @@ export const emptyExercise: CreateExerciseRequest = {
   subtipo: null,
   objetivo: "",
   objetivoPorRol: null,
-  modelRelations: [],
   nivelesColumnas: ["Palanca 1"],
   niveles: [
     { nivel: 1, valores: {} },
@@ -121,10 +120,16 @@ export const emptyExercise: CreateExerciseRequest = {
   ],
   logistica: "",
   durationMinutes: null,
-  porteros: null,
   dibujo: null,
   descripcion: "",
   boardStateJson: null,
+  espacio: null,
+  turnoMinutos: null,
+  nivelDibujo: null,
+  reglas: [],
+  puntos: [],
+  rotaciones: [],
+  montaje: [],
 };
 
 export const TEXT_FONT_OPTIONS = [

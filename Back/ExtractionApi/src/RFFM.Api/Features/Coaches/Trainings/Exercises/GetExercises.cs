@@ -57,9 +57,6 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
                 throw new DomainException("Ejercicios", "No tienes acceso a este club.", ErrorCodes.ClubAccessDenied);
 
             var query = _db.TaskTrainingBases
-                .Include(tb => tb.ModelRelations)
-                    .ThenInclude(r => r.Items)
-                .AsSplitQuery()
                 .Where(tb => tb.ClubId == request.ClubId);
 
             if (!string.IsNullOrEmpty(request.Tipo))
@@ -72,9 +69,7 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
                 .OrderBy(tb => tb.Name)
                 .ToListAsync(ct);
 
-            var relationSummaries = await ExerciseModelRelationResolver.ResolveAsync(_db, entities.SelectMany(e => e.ModelRelations), ct);
-
-            return entities.Select(tb => ExerciseListItem.From(tb, relationSummaries));
+            return entities.Select(ExerciseListItem.From);
         }
     }
 
@@ -88,18 +83,22 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
         string? ObjetivoPorRol,
         string Logistica,
         int? DurationMinutes,
-        string? Porteros,
         string? Dibujo,
         string Descripcion,
         string? UrlImage,
         string? BoardStateJson,
         List<string> NivelesColumnas,
         IEnumerable<NivelRowDto> Niveles,
-        IEnumerable<ExerciseModelRelationDto> ModelRelations,
-        bool IsAssociatedToGameModel,
-        string? Subtipo)
+        string? Subtipo,
+        string? Espacio,
+        int? TurnoMinutos,
+        int? NivelDibujo,
+        List<string> Reglas,
+        List<string> Puntos,
+        List<string> Rotaciones,
+        List<string> Montaje)
     {
-        public static ExerciseListItem From(TaskTrainingBase tb, IReadOnlyDictionary<string, ExerciseModelRelationDto> relationSummaries) => new(
+        public static ExerciseListItem From(TaskTrainingBase tb) => new(
             tb.Id,
             tb.Name,
             tb.Tipo,
@@ -107,68 +106,19 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
             tb.ObjetivoPorRol,
             tb.Logistica,
             tb.DurationMinutes,
-            tb.Porteros,
             tb.Dibujo,
             tb.Descripcion,
             tb.UrlImage,
             tb.BoardStateJson,
             tb.NivelesColumnas,
             tb.Niveles.Select(n => new NivelRowDto(n.Nivel, n.Valores)),
-            tb.ModelRelations.Select(r => relationSummaries[r.Id]),
-            tb.ModelRelations.Count > 0,
-            tb.Subtipo);
-    }
-
-    /// <summary>Denormalized display fields for an <see cref="ExerciseModelRelationItem"/>.</summary>
-    public record ExerciseModelRelationItemDto(string Id, string SubSubPrincipioId, string? SubSubPrincipioNumero, string? SubSubPrincipioRol, bool IsFoco,
-        IEnumerable<string> Habilidades);
-
-    /// <summary>Denormalized display fields for an <see cref="ExerciseModelRelation"/>, joining
-    /// Subprincipio for Numero/Titulo (design.md §1.2).</summary>
-    public record ExerciseModelRelationDto(
-        string Id,
-        string SubprincipioId,
-        string? SubprincipioNumero,
-        string? SubprincipioTitulo,
-        bool IsFoco,
-        IEnumerable<string> HabilidadesImprescindibles,
-        IEnumerable<ExerciseModelRelationItemDto> Items);
-
-    /// <summary>Batch-resolves <see cref="ExerciseModelRelation"/> rows (and their items) to
-    /// their denormalized display fields, shared by GetExercises/GetExerciseById.</summary>
-    internal static class ExerciseModelRelationResolver
-    {
-        public static async Task<Dictionary<string, ExerciseModelRelationDto>> ResolveAsync(
-            AppDbContext db, IEnumerable<ExerciseModelRelation> relations, CancellationToken ct)
-        {
-            var relationList = relations.ToList();
-
-            var subprincipioIds = relationList.Select(r => r.SubprincipioId).Distinct().ToList();
-            var subSubPrincipioIds = relationList.SelectMany(r => r.Items).Select(i => i.SubSubPrincipioId).Distinct().ToList();
-
-            var subprincipios = await db.Subprincipios
-                .AsNoTracking()
-                .Where(s => subprincipioIds.Contains(s.Id))
-                .ToDictionaryAsync(s => s.Id, ct);
-
-            var subSubPrincipios = await db.SubSubPrincipios
-                .AsNoTracking()
-                .Where(s => subSubPrincipioIds.Contains(s.Id))
-                .ToDictionaryAsync(s => s.Id, ct);
-
-            return relationList.ToDictionary(r => r.Id, r =>
-            {
-                var subprincipio = subprincipios.GetValueOrDefault(r.SubprincipioId);
-
-                return new ExerciseModelRelationDto(
-                    r.Id, r.SubprincipioId, subprincipio?.Numero, subprincipio?.Titulo, r.IsFoco,
-                    r.HabilidadesImprescindibles,
-                    r.Items.Select(i =>
-                    {
-                        var subSubPrincipio = subSubPrincipios.GetValueOrDefault(i.SubSubPrincipioId);
-                        return new ExerciseModelRelationItemDto(i.Id, i.SubSubPrincipioId, subSubPrincipio?.Numero, subSubPrincipio?.Rol, i.IsFoco, i.Habilidades);
-                    }));
-            });
-        }
+            tb.Subtipo,
+            tb.Espacio,
+            tb.TurnoMinutos,
+            tb.NivelDibujo,
+            tb.Reglas,
+            tb.Puntos,
+            tb.Rotaciones,
+            tb.Montaje);
     }
 }

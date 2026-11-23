@@ -286,6 +286,11 @@
   color: #ffb300 !important;
 }
 
+.calledActions {
+  display: flex;
+  gap: 6px;
+}
+
 .deconvokeBtn {
   width: 44px;
   height: 44px;
@@ -389,6 +394,33 @@
 
 .reasonStripText {
   flex: 1;
+}
+
+.dataStrip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  margin-top: 2px;
+  border: 0;
+  border-radius: 0 0 14px 14px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dataStripText {
+  flex: 1;
+}
+
+.dataStrip:focus-visible {
+  outline: 2px solid #4d9de0;
+  outline-offset: -2px;
 }
 
 .reasonStrip:focus-visible {

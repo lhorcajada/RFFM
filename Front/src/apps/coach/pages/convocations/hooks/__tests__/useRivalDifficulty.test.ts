@@ -6,7 +6,7 @@ vi.mock("../../../../services/matchForecastService", () => ({
 }));
 
 import { getRivalSimulation } from "../../../../services/matchForecastService";
-import { useRivalDifficulty } from "../useRivalDifficulty";
+import { useRivalDifficulty, useRivalOutlook } from "../useRivalDifficulty";
 import { DEFAULT_RULES } from "../../utils/rules/defaultRules";
 
 const mockGet = getRivalSimulation as ReturnType<typeof vi.fn>;
@@ -66,5 +66,22 @@ describe("useRivalDifficulty", () => {
     renderHook(() => useRivalDifficulty("", null, DEFAULT_RULES));
 
     expect(mockGet).not.toHaveBeenCalled();
+  });
+
+  it("expone los partidos siguientes con rival, fecha y dificultad", async () => {
+    mockGet.mockResolvedValue({
+      ownTeamCode: "own",
+      matches: [
+        { round: 3, date: "2026-10-21", localTeamCode: "own", localTeamName: "Mi Equipo", visitorTeamCode: "r", visitorTeamName: "Vallecas CF", localWinProbability: 0.5, visitorWinProbability: 0.2 },
+        { round: 4, date: "2026-10-28", localTeamCode: "g", localTeamName: "Getafe", visitorTeamCode: "own", visitorTeamName: "Mi Equipo", localWinProbability: 0.7, visitorWinProbability: 0.2 },
+      ],
+    });
+    const { result } = renderHook(() => useRivalOutlook("t1", "Vallecas CF", DEFAULT_RULES, "2026-10-21"));
+
+    await waitFor(() => expect(result.current.upcomingMatches).toHaveLength(1));
+    expect(result.current.upcomingMatches[0]).toMatchObject({ round: 4, rival: "Getafe", date: "2026-10-28", difficulty: "hard" });
+    expect(result.current.upcoming).toEqual(["hard"]);
+    expect(result.current.winProbability).toBe(0.5);
+    expect(result.current.upcomingMatches[0].winProbability).toBe(0.2);
   });
 });

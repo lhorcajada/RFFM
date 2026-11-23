@@ -7,6 +7,17 @@ tronco (`main`, `dev`).
 
 ---
 
+## 0. Flujo de trabajo actual (un solo desarrollador)
+
+- Solo trabaja una persona en el repositorio: se trabaja **directamente sobre `main`**, sin
+  ramas de cambio y sin Pull Requests.
+- No ofrecer ni preguntar por crear ramas (`new-change-branch`): la respuesta es siempre
+  "No crear rama". Ignorar la pregunta de rama de `/sai-explore` respondiendo que no.
+- Se publica directo sobre `main` (`git push origin main`) cuando el usuario lo pide.
+- La regla 6.3 (no commitear ni pushear sin petición del usuario) sigue vigente.
+
+---
+
 ## 1. Ramas
 
 ### 1.1 Ramas tronco

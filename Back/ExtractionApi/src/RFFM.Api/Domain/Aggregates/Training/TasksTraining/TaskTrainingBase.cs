@@ -49,26 +49,27 @@ namespace RFFM.Api.Domain.Aggregates.Training.TasksTraining
 
         public Club Club { get; set; } = null!;
 
+        /// <summary>Space where the exercise is played, e.g. "20x30 m".</summary>
+        public string? Espacio { get; set; }
+
+        /// <summary>Duration of one turn, in minutes.</summary>
+        public int? TurnoMinutos { get; set; }
+
+        /// <summary>Number of the <see cref="Niveles"/> row whose square size and width the drawing shows.</summary>
+        public int? NivelDibujo { get; set; }
+
+        public List<string> Secuencia { get; set; } = new();
+        public List<string> Reglas { get; set; } = new();
+        public List<string> QueSeVe { get; set; } = new();
+        public List<string> Puntos { get; set; } = new();
+        public List<string> Rotaciones { get; set; } = new();
+        public List<string> Montaje { get; set; } = new();
+        public List<ExerciseTeam> Jugadores { get; set; } = new();
+
         public List<string> NivelesColumnas { get; private set; } = new();
         public List<ExerciseLevelRow> Niveles { get; private set; } = new();
 
         public List<ExerciseModelRelation> ModelRelations { get; private set; } = new();
-
-        /// <summary>Clears and rebuilds <see cref="ModelRelations"/> wholesale — no incremental
-        /// diffing, same "trust server-derived state" approach used across this codebase (e.g.
-        /// the old <c>ReplaceModelLinks</c>).</summary>
-        public void ReplaceModelRelations(
-            IEnumerable<(string SubprincipioId, bool IsFoco, IEnumerable<string>? Habilidades,
-                IEnumerable<(string SubSubPrincipioId, bool IsFoco, IEnumerable<string>? Habilidades)> Items)> relations)
-        {
-            ModelRelations.Clear();
-            foreach (var relation in relations)
-            {
-                var entity = new ExerciseModelRelation(Id, relation.SubprincipioId, relation.IsFoco, relation.Habilidades);
-                entity.ReplaceItems(relation.Items);
-                ModelRelations.Add(entity);
-            }
-        }
 
         /// <summary>
         /// Validates and replaces <see cref="NivelesColumnas"/>/<see cref="Niveles"/>. Invariants

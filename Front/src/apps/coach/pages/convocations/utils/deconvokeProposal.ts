@@ -55,6 +55,19 @@ export type ProposalFactor = {
   format?: "percent";
 };
 
+export type ScheduleInfo = {
+  /** Difficulty of the following matches, in order; empty when unknown. */
+  upcoming: RivalDifficulty[];
+  /** Matches ahead (1 = the next one) of the hardest match, when it is harder than this one: the weakest players are kept called now to be deconvoked there. */
+  reservedIn: number | null;
+  /** Names of the players reserved for that match; empty when `reservedIn` is null. */
+  reservedNames: string[];
+  /** Players considered strong (the squad's most important). */
+  strongCount: number;
+  /** Most strong players the proposal deconvokes; more only when the target cannot be reached otherwise. */
+  maxStrong: number;
+};
+
 export type DecisionGroup = "proposed" | "protected" | "notChosen";
 
 export type ProposalDecision = {
@@ -78,18 +91,20 @@ export type ProposalComparisonRow = {
   verdict: string;
 };
 
-/** A player of the deconvocation order: rank 1 is the first to go; the cut line falls after the last `proposed`. */
+/** A player of the deconvocation order: rank 1 is the first to go; the cut line falls after the last `proposed`. `balanceSkip`: left out to spread lines or to keep strong players. */
 export type ProposalOrderEntry = {
   rank: number;
   playerId: string;
   name: string;
   position: string;
   /** `proposed` goes out; `positionSkip` would go but stays for his position minimum; `stays` is below the cut. */
-  outcome: "proposed" | "positionSkip" | "stays";
+  outcome: "proposed" | "positionSkip" | "balanceSkip" | "stays";
   /** Values of every criterion, in the order they are applied. */
   chips: string[];
-  /** Why he goes before the next player of the order; null for the last one. */
+  /** Why he goes before the next player of the order; null for the last one and in a manual order. */
   versusNext: { nextName: string; criterion: Criterion | null; text: string } | null;
+  /** Reason of the protection that keeps him called; only in a manual order, where protected players can also be chosen. */
+  heldReason?: string;
 };
 
 export type DetailResult = "protects" | "doesNotProtect" | "allows" | "decides" | "tie" | "noEffect" | "mandatory";
@@ -143,6 +158,8 @@ export type DeconvokeProposal = {
   generatedAt: string;
   /** Difficulty of the rival used as last tiebreak. */
   rivalDifficulty: RivalDifficulty;
+  /** What the next matches ask of the proposal: strong players rest now when a hard match is coming. */
+  schedule: ScheduleInfo;
   targetCount: number;
   calledCount: number;
   selectedIds: string[];
@@ -160,6 +177,10 @@ export type DeconvokeProposal = {
   alreadyDeconvoked: AlreadyDeconvokedPlayer[];
   /** Eligible players from first to last to be deconvoked, each justified against the next one. */
   order: ProposalOrderEntry[];
+  /** The coach chose the order by hand (see `applyManualOrder`); absent in the automatic proposal. */
+  isManual?: boolean;
+  /** Protected players the coach chose in a manual order. */
+  manualWarnings?: string[];
 };
 
 export type BuildProposalInput = {
@@ -191,6 +212,14 @@ export type BuildProposalInput = {
   rules?: DeconvocationRuleConfig[];
   /** Difficulty of the rival; medium when unknown. */
   rivalDifficulty?: RivalDifficulty;
+  /** Difficulty of the matches after this one (the next five); empty or absent when unknown. */
+  upcomingDifficulties?: RivalDifficulty[];
+  /** Own win probability in this match and in the following ones, from the forecast; null or absent when unknown. */
+  rivalWinProbability?: number | null;
+  upcomingWinProbabilities?: Array<number | null>;
+  /** League table position of the rival of this match and of the following ones; null or absent when unknown. */
+  rivalPosition?: number | null;
+  upcomingRivalPositions?: Array<number | null>;
   /** Matchdays a technical deconvocation / an injury absence protects; 5 and 1 by default. */
   protectionWindows?: ProtectionWindows;
   /** Minutes of the last played match, to protect those who barely played; absent when unknown. */
@@ -282,12 +311,56 @@ type DetailInput = {
   positionReason: string | null;
   windows: ProtectionWindows;
   difficulty: RivalDifficulty;
+  /** Difficulty the fairness order was applied with: medium while the weakest are reserved for a harder match. */
+  orderDifficulty: RivalDifficulty;
 };
 
-const CRITERIA_ORDER: Criterion[] = ["fit", "consecutive", "surplus", "technicalTotal", "attendance", "rating"];
+/** Players able to play a position that must remain when a player of that position is deconvoked. */
+const POSITION_COVER = 2;
+
+function balanceVerdict(key: BalanceSkip | "cover", reservedIn: number | null): string {
+  switch (key) {
+    case "line":
+      return "Se queda para repartir las desconvocatorias entre líneas: ya sale otro jugador de su línea";
+    case "strong":
+      return "Se queda: es de los jugadores más importantes y no se desconvoca a todos los fuertes a la vez";
+    case "reserved": {
+      const when = reservedIn === 1 ? "en el siguiente partido" : `dentro de ${reservedIn} partidos`;
+      return `Se queda ahora: es de los más débiles y se reserva para un partido más difícil (${when})`;
+    }
+    case "cover":
+      return "Se queda: debe haber al menos dos jugadores que puedan jugar su posición";
+  }
+}
+
+type SkipCause = BalanceSkip | "position";
+
+const SKIP_CAUSE_LABELS: Record<SkipCause, string> = {
+  position: "mínimo de su posición",
+  line: "reparto por líneas",
+  strong: "jugadores importantes",
+  reserved: "reservados para un partido más difícil",
+};
+
+function skipCauseOf(
+  playerId: string,
+  protectedBy: Map<string, RequirementKey>,
+  coverRemaining: Map<string, number>,
+  balanceSkipped: Map<string, BalanceSkip>,
+): SkipCause {
+  if (protectedBy.has(playerId) || coverRemaining.has(playerId)) return "position";
+  return balanceSkipped.get(playerId) ?? "position";
+}
+
+/** Criteria in the order `compareFairness` applies them. */
+function criteriaOrder(difficulty: RivalDifficulty): Criterion[] {
+  return difficulty === "hard"
+    ? ["rating", "consecutive", "surplus", "fit", "technicalTotal", "attendance"]
+    : ["consecutive", "surplus", "fit", "technicalTotal", "attendance", "rating"];
+}
 
 /** Every rule evaluated for a player, in funnel order, with its value and outcome. */
-function buildDetail({ proposal, internal, decision, decidingCriterion, positionReason, windows, difficulty }: DetailInput): ProposalDetailRow[] {
+function buildDetail({ proposal, internal, decision, decidingCriterion, positionReason, windows, difficulty, orderDifficulty }: DetailInput): ProposalDetailRow[] {
   const { technicalAgo, injuryAgo, lastMinutes, otherAgo, otherReason, calledCount, minRequiredCalls, metrics } = internal;
   const matchdays = (n: number) => (n === 1 ? "1 jornada" : `${n} jornadas`);
   const protectedBy = internal.protection?.kind;
@@ -359,9 +432,10 @@ function buildDetail({ proposal, internal, decision, decidingCriterion, position
       attendance: ["Asistencia a entrenamientos", `${metrics.attendanceBucket * 10}%`],
       rating: ["Nivel ante rival difícil", metrics.rating.toFixed(1).replace(".", ",")],
     };
-    const decidingIndex = decidingCriterion ? CRITERIA_ORDER.indexOf(decidingCriterion) : -1;
-    CRITERIA_ORDER.forEach((criterion, index) => {
-      if (criterion === "rating" && difficulty !== "hard") return;
+    const order = criteriaOrder(orderDifficulty);
+    const decidingIndex = decidingCriterion ? order.indexOf(decidingCriterion) : -1;
+    order.forEach((criterion, index) => {
+      if (criterion === "rating" && orderDifficulty !== "hard") return;
       let result: DetailResult = "noEffect";
       if (criterion === "fit" && !metrics.fit) {
         rows.push({ rule: values[criterion][0], value: values[criterion][1], result });
@@ -381,14 +455,53 @@ function buildDetail({ proposal, internal, decision, decidingCriterion, position
 
 export type DeconvocationCandidate = { playerId: string; forced: boolean; locked?: boolean };
 
+/** Why a candidate was left out only to balance the deconvocations, not because of a position minimum. */
+export type BalanceSkip = "line" | "strong" | "reserved";
+
+export type DeconvocationBalance = {
+  /** Spread the deconvocations over the lines (defence, midfield, wide, forward) while other lines have candidates. */
+  spreadLines?: boolean;
+  /** The squad's most important players. */
+  strongIds?: ReadonlySet<string>;
+  /** Most strong players to deconvoke; only exceeded when the target cannot be reached otherwise. */
+  maxStrong?: number;
+  /** Players kept called now to be deconvoked in a harder match; used only when the target cannot be reached otherwise. */
+  reservedIds?: ReadonlySet<string>;
+  /** When a player goes, players able to play his position (active or possible) that must remain. */
+  positionCover?: number;
+};
+
 export type DeconvocationSelection = {
   selectedIds: string[];
   /** Candidates kept called because removing them would break a position minimum. */
   protectedBy: Map<string, RequirementKey>;
   /** Players still available for the requirement that protects each candidate. */
   protectedRemaining: Map<string, number>;
+  /** Players kept called because fewer than the required players could cover their position; value = players able to play it that remain. */
+  coverRemaining: Map<string, number>;
+  /** Candidates left out to spread lines or to keep strong players, but not protected. */
+  balanceSkipped: Map<string, BalanceSkip>;
   shortfalls: PositionShortfall[];
 };
+
+type Line = "goalkeeper" | "defence" | "midfield" | "wide" | "forward";
+
+const LINE_BY_ROLE: Record<PositionRole, Line> = {
+  goalkeeper: "goalkeeper",
+  fullBack: "defence",
+  centreBack: "defence",
+  centralMid: "midfield",
+  wide: "wide",
+  forward: "forward",
+};
+
+function lineOf(player: PositionPlayer): Line | null {
+  return player.role ? LINE_BY_ROLE[player.role] : null;
+}
+
+function canPlay(player: PositionPlayer, role: PositionRole): boolean {
+  return player.role === role || player.possibleRoles.includes(role);
+}
 
 function firstWorsenedRequirement(
   before: PositionShortfall[],
@@ -402,17 +515,23 @@ function firstWorsenedRequirement(
 /**
  * Picks who to deconvoke from candidates ordered most-deconvokable first. Mandatory
  * candidates always go; the rest are skipped when they would break a position minimum,
- * unless no other choice reaches the target.
+ * unless no other choice reaches the target. With `balance`, the order is also tempered: at most one
+ * deconvocation per line in the first round (two in the second...), a cap on strong players, and a
+ * forward only leaves when enough players remain able to play forward. The balance gives way, never a
+ * position minimum, when the target cannot be reached otherwise.
  */
 export function selectDeconvocations(
   ordered: DeconvocationCandidate[],
   positionPlayers: Map<string, PositionPlayer>,
   targetCount: number,
   minimums: RoleMinimums = ROLE_MINIMUMS,
+  balance: DeconvocationBalance = {},
 ): DeconvocationSelection {
   const selected = new Set(ordered.filter((c) => c.forced && !c.locked).map((c) => c.playerId));
   const protectedBy = new Map<string, RequirementKey>();
   const protectedRemaining = new Map<string, number>();
+  const coverRemaining = new Map<string, number>();
+  const balanceSkipped = new Map<string, BalanceSkip>();
   const positionOf = (id: string): PositionPlayer =>
     positionPlayers.get(id) ?? { id, role: null, possibleRoles: [] };
   const evaluateWithout = (excludedId?: string) =>
@@ -422,48 +541,98 @@ export function selectDeconvocations(
         .map((c) => positionOf(c.playerId)),
       minimums,
     );
+  const { spreadLines = false, strongIds, maxStrong = Infinity, positionCover = 0, reservedIds } = balance;
+  const lineCount = (line: Line | null) =>
+    line == null ? 0 : [...selected].filter((id) => lineOf(positionOf(id)) === line).length;
+  const strongCount = () => (strongIds ? [...selected].filter((id) => strongIds.has(id)).length : 0);
+  /** Players able to play the candidate's position that remain called if he also goes; null when the rule does not apply. */
+  const coverLeft = (candidateId: string): number | null => {
+    const role = positionOf(candidateId).role;
+    if (positionCover <= 0 || role == null) return null;
+    return ordered.filter(
+      (c) => !selected.has(c.playerId) && c.playerId !== candidateId && canPlay(positionOf(c.playerId), role),
+    ).length;
+  };
+  const breaksCover = (candidateId: string) => {
+    const left = coverLeft(candidateId);
+    return left != null && left < positionCover;
+  };
 
-  for (const candidate of ordered) {
-    if (selected.size >= targetCount) break;
-    if (selected.has(candidate.playerId) || candidate.locked) continue;
-    const before = evaluateWithout();
-    const after = evaluateWithout(candidate.playerId);
-    // Players able to play a position through a possible demarcation compensate any deconvocation.
-    const breaksMinimum = after.deficit > before.deficit;
-    if (breaksMinimum) {
-      const requirement = firstWorsenedRequirement(before.shortfalls, after.shortfalls);
-      if (requirement) {
-        protectedBy.set(candidate.playerId, requirement);
-        protectedRemaining.set(candidate.playerId, before.available.get(requirement) ?? 0);
+  const maxRounds = spreadLines ? ordered.length : 1;
+  for (let cap = 1; cap <= maxRounds && selected.size < targetCount; cap++) {
+    for (const candidate of ordered) {
+      if (selected.size >= targetCount) break;
+      if (selected.has(candidate.playerId) || candidate.locked) continue;
+      const before = evaluateWithout();
+      const after = evaluateWithout(candidate.playerId);
+      // Players able to play a position through a possible demarcation compensate any deconvocation.
+      const breaksMinimum = after.deficit > before.deficit;
+      if (breaksMinimum) {
+        const requirement = firstWorsenedRequirement(before.shortfalls, after.shortfalls);
+        if (requirement) {
+          protectedBy.set(candidate.playerId, requirement);
+          protectedRemaining.set(candidate.playerId, before.available.get(requirement) ?? 0);
+        }
+        continue;
       }
-      continue;
+      if (breaksCover(candidate.playerId)) {
+        coverRemaining.set(candidate.playerId, coverLeft(candidate.playerId) ?? 0);
+        continue;
+      }
+      if (reservedIds?.has(candidate.playerId)) {
+        balanceSkipped.set(candidate.playerId, "reserved");
+        continue;
+      }
+      if (strongIds?.has(candidate.playerId) && strongCount() >= maxStrong) {
+        balanceSkipped.set(candidate.playerId, "strong");
+        continue;
+      }
+      if (spreadLines && lineCount(lineOf(positionOf(candidate.playerId))) >= cap) {
+        balanceSkipped.set(candidate.playerId, "line");
+        continue;
+      }
+      selected.add(candidate.playerId);
+      protectedBy.delete(candidate.playerId);
+      protectedRemaining.delete(candidate.playerId);
+      coverRemaining.delete(candidate.playerId);
+      balanceSkipped.delete(candidate.playerId);
     }
-    selected.add(candidate.playerId);
   }
 
   while (selected.size < targetCount) {
     const base = evaluateWithout();
     let best: DeconvocationCandidate | null = null;
-    let bestIncrease = Infinity;
+    let bestScore: number[] = [];
     for (const candidate of ordered) {
       if (selected.has(candidate.playerId) || candidate.locked) continue;
       const after = evaluateWithout(candidate.playerId);
-      const increase = after.deficit - base.deficit;
-      if (increase < bestIncrease) {
+      const score = [
+        after.deficit - base.deficit,
+        breaksCover(candidate.playerId) ? 1 : 0,
+        reservedIds?.has(candidate.playerId) ? 1 : 0,
+        strongIds?.has(candidate.playerId) && strongCount() >= maxStrong ? 1 : 0,
+        spreadLines ? lineCount(lineOf(positionOf(candidate.playerId))) : 0,
+      ];
+      const better = best === null || score.some((value, i) => value !== bestScore[i] && value < bestScore[i] && score.slice(0, i).every((v, j) => v === bestScore[j]));
+      if (better) {
         best = candidate;
-        bestIncrease = increase;
+        bestScore = score;
       }
     }
     if (!best) break;
     selected.add(best.playerId);
     protectedBy.delete(best.playerId);
     protectedRemaining.delete(best.playerId);
+    coverRemaining.delete(best.playerId);
+    balanceSkipped.delete(best.playerId);
   }
 
   return {
     selectedIds: ordered.filter((c) => selected.has(c.playerId)).map((c) => c.playerId),
     protectedBy,
     protectedRemaining,
+    coverRemaining,
+    balanceSkipped,
     shortfalls: evaluateWithout().shortfalls,
   };
 }
@@ -584,6 +753,56 @@ function findPreviousRivalResult(
   return null;
 }
 
+/**
+ * Index in `upcoming` of the hardest match when it is harder than the current one, or -1. A hard match is
+ * harder than a non-hard one; between two hard matches the one with the lower win probability is harder
+ * (without both probabilities the later one is not considered harder).
+ */
+function hardestMatchAhead(
+  current: RivalDifficulty,
+  currentProbability: number | null,
+  upcoming: RivalDifficulty[],
+  upcomingProbabilities: Array<number | null>,
+  currentPosition: number | null = null,
+  upcomingPositions: Array<number | null> = [],
+): number {
+  let best = -1;
+  upcoming.forEach((difficulty, index) => {
+    if (difficulty !== "hard") return;
+    const probability = upcomingProbabilities[index] ?? null;
+    const position = upcomingPositions[index] ?? null;
+    const harderThanCurrent =
+      current !== "hard" || isHarderMatch(probability, position, currentProbability, currentPosition);
+    if (!harderThanCurrent) return;
+    const bestProbability = best < 0 ? null : (upcomingProbabilities[best] ?? null);
+    const bestPosition = best < 0 ? null : (upcomingPositions[best] ?? null);
+    const harderThanBest = best < 0 || isHarderMatch(probability, position, bestProbability, bestPosition);
+    if (harderThanBest) best = index;
+  });
+  return best;
+}
+
+/** Probability gap between two matches from which the one with the lower probability is clearly the harder. */
+export const HARDER_MATCH_MARGIN = 0.1;
+
+/**
+ * Whether a match is harder than another: its win probability is lower by more than the margin; within the
+ * margin the rival better placed in the league table (lower position) makes it harder. Without both
+ * probabilities, or without both positions inside the margin, it is not considered harder.
+ */
+function isHarderMatch(
+  probability: number | null,
+  position: number | null,
+  otherProbability: number | null,
+  otherPosition: number | null,
+): boolean {
+  if (probability == null || otherProbability == null) return false;
+  const gap = otherProbability - probability;
+  if (gap > HARDER_MATCH_MARGIN) return true;
+  if (gap < -HARDER_MATCH_MARGIN) return false;
+  return position != null && otherPosition != null && position < otherPosition;
+}
+
 export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProposal {
   const {
     players,
@@ -609,6 +828,9 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
     alreadyOutIds,
     rules = DEFAULT_RULES,
     rivalDifficulty = "medium",
+    upcomingDifficulties = [],
+    rivalWinProbability = null,
+    upcomingWinProbabilities = [],
   } = input;
   // Rules the team never saved keep the base behaviour (fair share at 100 %, the standard position minimums).
   const minCallsPercent = resolveRule("minCalls", rules)?.points.percent ?? 100;
@@ -938,21 +1160,52 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
     })
     .filter((item): item is PlayerProposal => item !== null);
 
+  // The squad's most important players: those strictly above the rating that closes the top third, so ties
+  // at the border (or a squad with no rating differences) never single out anyone.
+  const rated = proposals.filter((p) => !p.locked).map((p) => ({ id: p.playerId, rating: internals.get(p.playerId)!.metrics.rating }));
+  const byRating = [...rated].sort((a, b) => b.rating - a.rating);
+  const strongCutoff = byRating[Math.ceil(rated.length / 3)]?.rating ?? Infinity;
+  const strongIds = new Set(rated.filter((r) => r.rating > strongCutoff).map((r) => r.id));
+
+  const forcedPlayers = proposals.filter((p) => p.forced);
+  const forcedCount = forcedPlayers.length;
+  const targetCount = Math.max(forcedCount, calledIds.length - maxCalledPlayers, 0);
+
+  // The weakest players are the ones to deconvoke in the hardest match. If a harder match is coming, the
+  // weakest are kept called now (a deconvocation now would protect them there and a better player would
+  // have to go instead) and this match is decided by fairness.
+  const harderIndex = hardestMatchAhead(
+    rivalDifficulty,
+    rivalWinProbability,
+    upcomingDifficulties,
+    upcomingWinProbabilities,
+    input.rivalPosition ?? null,
+    input.upcomingRivalPositions ?? [],
+  );
+  const reservedPlayers =
+    harderIndex < 0
+      ? []
+      : proposals
+          .filter((p) => !p.forced && !p.locked)
+          .sort((a, b) => internals.get(a.playerId)!.metrics.rating - internals.get(b.playerId)!.metrics.rating)
+          .slice(0, targetCount);
+  const reservedIds = new Set(reservedPlayers.map((p) => p.playerId));
+  const reservedIn = harderIndex < 0 ? null : harderIndex + 1;
+  const orderDifficulty: RivalDifficulty = harderIndex < 0 ? rivalDifficulty : "medium";
+  const compareFairnessOrder = (a: FairnessMetrics, b: FairnessMetrics) => compareFairness(a, b, orderDifficulty);
+
   const metricsOf = (id: string): FairnessMetrics => internals.get(id)!.metrics;
   const isHeldByProtection = (p: PlayerProposal) => !p.forced && internals.get(p.playerId)?.protection != null;
   const byFairness = (a: PlayerProposal, b: PlayerProposal) =>
-    compareFairness(metricsOf(a.playerId), metricsOf(b.playerId), rivalDifficulty).order;
-  const forcedPlayers = proposals.filter((p) => p.forced);
+    compareFairnessOrder(metricsOf(a.playerId), metricsOf(b.playerId)).order;
   const eligible = proposals
     .filter((p) => !p.forced && !p.locked && !isHeldByProtection(p))
     .sort(byFairness);
   const held = proposals.filter((p) => !p.forced && (p.locked || isHeldByProtection(p)));
   const orderedProposals = [...forcedPlayers, ...eligible, ...held];
 
-  const forcedCount = forcedPlayers.length;
-  const targetCount = Math.max(forcedCount, calledIds.length - maxCalledPlayers, 0);
-
-  const { selectedIds, protectedBy, protectedRemaining, shortfalls } = selectDeconvocations(
+  const maxStrong = rivalDifficulty === "hard" ? 0 : Math.max(1, Math.floor(targetCount / 2));
+  const { selectedIds, protectedBy, protectedRemaining, coverRemaining, balanceSkipped, shortfalls } = selectDeconvocations(
     orderedProposals.map((p) => ({
       playerId: p.playerId,
       forced: p.forced,
@@ -961,6 +1214,7 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
     positionPlayers,
     targetCount,
     roleMinimums,
+    { spreadLines: true, strongIds, maxStrong, positionCover: POSITION_COVER, reservedIds },
   );
   const selectedSet = new Set(selectedIds);
 
@@ -1023,7 +1277,17 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
             verdict: "Se queda por el mínimo de su posición",
           };
         }
-        const { criterion } = compareFairness(own, metricsOf(o.playerId), rivalDifficulty);
+        const keptBy = coverRemaining.has(o.playerId) ? "cover" : balanceSkipped.get(o.playerId);
+        if (keptBy) {
+          return {
+            playerId: o.playerId,
+            name: o.displayName,
+            position: roleLabel(o.positionRole ?? null),
+            outcome: "position" as const,
+            verdict: balanceVerdict(keptBy, reservedIn),
+          };
+        }
+        const { criterion } = compareFairnessOrder(own, metricsOf(o.playerId));
         return {
           playerId: o.playerId,
           name: o.displayName,
@@ -1036,12 +1300,22 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
       });
       const rank = eligible.indexOf(p) + 1;
       const peer = eligible.slice(rank).find((o) => !protectedBy.has(o.playerId));
-      const ties = peer && compareFairness(own, metricsOf(peer.playerId), rivalDifficulty).criterion === null ? [peer] : [];
+      const ties = peer && compareFairnessOrder(own, metricsOf(peer.playerId)).criterion === null ? [peer] : [];
       const field = `${rank}.º del orden de desconvocatoria`;
+      const skippedCauses = new Set(
+        eligible
+          .slice(0, rank - 1)
+          .filter((o) => !selectedSet.has(o.playerId))
+          .map((o) => SKIP_CAUSE_LABELS[skipCauseOf(o.playerId, protectedBy, coverRemaining, balanceSkipped)]),
+      );
       if (!peer) {
+        const causes = skippedCauses;
         decision = {
           group: "proposed",
-          reason: "Elegido: necesario para llegar al objetivo respetando los mínimos por posición",
+          reason:
+            causes.size > 0
+              ? `Elegido: los que iban antes se quedan (${[...causes].join(", ")}) y es el siguiente del orden que puede salir`
+              : "Elegido: necesario para llegar al objetivo respetando los mínimos por posición",
         };
       } else if (ties.length > 0) {
         decision = {
@@ -1050,7 +1324,7 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
           compare: `${field}. Va antes que ${peer!.displayName}: empatan en todos los criterios`,
         };
       } else {
-        const { criterion } = compareFairness(own, metricsOf(peer.playerId), rivalDifficulty);
+        const { criterion } = compareFairnessOrder(own, metricsOf(peer.playerId));
         decidingCriterion = criterion;
         const text = describeCriterion(
           criterion!,
@@ -1058,7 +1332,7 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
           metricsOf(peer.playerId),
           peer.displayName,
           p.displayName,
-          rivalDifficulty,
+          orderDifficulty,
         );
         decision = {
           group: "proposed",
@@ -1067,6 +1341,15 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
           compare: `${field}. Va antes que ${peer.displayName}: ${text.compare}`,
         };
       }
+      if (skippedCauses.size > 0) {
+        decision.compare = `${decision.compare ?? field}. Los que iban antes se quedan (${[...skippedCauses].join(", ")})`;
+      }
+    } else if (coverRemaining.has(p.playerId) && !internal.protection) {
+      decision = {
+        group: "protected",
+        protection: "position",
+        reason: `Protegido: si sale un ${roleLabel(p.positionRole ?? null).toLowerCase()} deben quedar al menos ${POSITION_COVER} jugadores que puedan jugar esa posición (quedaría ${coverRemaining.get(p.playerId)})`,
+      };
     } else if (p.locked && !internal.protection) {
       decision = {
         group: "protected",
@@ -1077,6 +1360,8 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
       decision = { group: "protected", protection: internal.protection.kind, reason: internal.protection.reason };
     } else if (positionReason) {
       decision = { group: "protected", protection: "position", reason: positionReason };
+    } else if (balanceSkipped.has(p.playerId)) {
+      decision = { group: "notChosen", reason: balanceVerdict(balanceSkipped.get(p.playerId)!, reservedIn) };
     } else {
       const index = eligible.indexOf(p);
       const earlier = selectedEligible.filter((o) => eligible.indexOf(o) < index);
@@ -1084,7 +1369,7 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
       if (!preferred) {
         decision = { group: "notChosen", reason: "No ha hecho falta desconvocar a más jugadores" };
       } else {
-        const { criterion } = compareFairness(metricsOf(preferred.playerId), metricsOf(p.playerId), rivalDifficulty);
+        const { criterion } = compareFairnessOrder(metricsOf(preferred.playerId), metricsOf(p.playerId));
         decision = {
           group: "notChosen",
           reason: criterion
@@ -1094,7 +1379,7 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
                 metricsOf(p.playerId),
                 p.displayName,
                 preferred.displayName,
-                rivalDifficulty,
+                orderDifficulty,
               ).notChosen
             : `Empata con ${preferred.displayName} en todos los criterios y va después en la plantilla`,
         };
@@ -1115,6 +1400,7 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
         positionReason,
         windows: protectionWindows,
         difficulty: rivalDifficulty,
+        orderDifficulty,
       }),
     };
   });
@@ -1123,7 +1409,7 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
     const next = eligible[index + 1];
     let versusNext: ProposalOrderEntry["versusNext"] = null;
     if (next) {
-      const { criterion } = compareFairness(metricsOf(p.playerId), metricsOf(next.playerId), rivalDifficulty);
+      const { criterion } = compareFairnessOrder(metricsOf(p.playerId), metricsOf(next.playerId));
       versusNext = {
         nextName: next.displayName,
         criterion,
@@ -1137,7 +1423,13 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
       playerId: p.playerId,
       name: p.displayName,
       position: roleLabel(p.positionRole ?? null),
-      outcome: selectedSet.has(p.playerId) ? "proposed" : protectedBy.has(p.playerId) ? "positionSkip" : "stays",
+      outcome: selectedSet.has(p.playerId)
+        ? "proposed"
+        : protectedBy.has(p.playerId) || coverRemaining.has(p.playerId)
+          ? "positionSkip"
+          : balanceSkipped.has(p.playerId)
+            ? "balanceSkip"
+            : "stays",
       chips: fairnessChips(metricsOf(p.playerId)),
       versusNext,
     };
@@ -1146,6 +1438,13 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
   return {
     generatedAt: new Date().toISOString(),
     rivalDifficulty,
+    schedule: {
+      upcoming: upcomingDifficulties,
+      reservedIn,
+      reservedNames: reservedPlayers.map((p) => p.displayName),
+      strongCount: strongIds.size,
+      maxStrong,
+    },
     targetCount,
     calledCount: calledIds.length,
     selectedIds,

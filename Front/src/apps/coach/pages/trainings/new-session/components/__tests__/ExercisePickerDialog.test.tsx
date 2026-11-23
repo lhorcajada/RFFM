@@ -15,12 +15,10 @@ function buildExercise(overrides: Partial<Exercise>): Exercise {
     name: "Ejercicio",
     tipo: "Analitico",
     objetivo: "",
-    modelRelations: [],
     nivelesColumnas: [],
     niveles: [],
     logistica: "",
     descripcion: "",
-    isAssociatedToGameModel: false,
     ...overrides,
   };
 }

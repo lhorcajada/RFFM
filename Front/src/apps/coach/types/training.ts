@@ -26,39 +26,6 @@ export interface ExerciseLevelRow {
   valores: Record<string, string>;
 }
 
-/** Denormalized display fields for an ExerciseModelRelationItem — read-side only. */
-export interface ExerciseModelRelationItem {
-  id: string;
-  subSubPrincipioId: string;
-  subSubPrincipioNumero?: string | null;
-  subSubPrincipioRol?: string | null;
-  isFoco: boolean;
-  /** Habilidades of this SubSubPrincipio (as defined in the GameModel) the exercise trains. */
-  habilidades?: string[];
-}
-export interface ExerciseModelRelationItemRequest {
-  subSubPrincipioId: string;
-  isFoco: boolean;
-  habilidades: string[];
-}
-
-/** Denormalized display fields for an ExerciseModelRelation — read-side only. */
-export interface ExerciseModelRelation {
-  id: string;
-  subprincipioId: string;
-  subprincipioNumero?: string | null;
-  subprincipioTitulo?: string | null;
-  isFoco: boolean;
-  habilidadesImprescindibles: string[];
-  items: ExerciseModelRelationItem[];
-}
-export interface ExerciseModelRelationRequest {
-  subprincipioId: string;
-  isFoco: boolean;
-  habilidadesImprescindibles: string[];
-  items: ExerciseModelRelationItemRequest[];
-}
-
 export interface Exercise {
   id: string;
   name: string;
@@ -66,18 +33,24 @@ export interface Exercise {
   subtipo?: ExerciseSubtipo | null;
   objetivo: string;
   objetivoPorRol?: string | null;
-  modelRelations: ExerciseModelRelation[];
   nivelesColumnas: string[];
   niveles: ExerciseLevelRow[];
   logistica: string;
   durationMinutes?: number | null;
-  porteros?: string | null;
   dibujo?: string | null;
+  /** «Qué se hace» en la ficha: texto libre de varias líneas. */
   descripcion: string;
   urlImage?: string | null;
   boardStateJson?: string | null;
-  /** True when `modelRelations.length > 0` (also sent directly by the API). */
-  isAssociatedToGameModel: boolean;
+  /** Campos estructurados de la ficha A4 (opcionales: ejercicios y mocks anteriores no los traen). */
+  espacio?: string | null;
+  turnoMinutos?: number | null;
+  /** Nº de la fila de `niveles` cuyo cuadrado y anchura muestra el dibujo. */
+  nivelDibujo?: number | null;
+  reglas?: string[];
+  puntos?: string[];
+  rotaciones?: string[];
+  montaje?: string[];
 }
 
 export interface CreateExerciseRequest {
@@ -87,15 +60,20 @@ export interface CreateExerciseRequest {
   subtipo?: ExerciseSubtipo | null;
   objetivo: string;
   objetivoPorRol?: string | null;
-  modelRelations: ExerciseModelRelationRequest[];
   nivelesColumnas: string[];
   niveles: ExerciseLevelRow[];
   logistica: string;
   durationMinutes?: number | null;
-  porteros?: string | null;
   dibujo?: string | null;
   descripcion: string;
   boardStateJson?: string | null;
+  espacio: string | null;
+  turnoMinutos: number | null;
+  nivelDibujo: number | null;
+  reglas: string[];
+  puntos: string[];
+  rotaciones: string[];
+  montaje: string[];
 }
 export type UpdateExerciseRequest = Omit<CreateExerciseRequest, "clubId">;
 

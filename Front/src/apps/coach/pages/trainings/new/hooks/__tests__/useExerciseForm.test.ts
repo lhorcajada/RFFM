@@ -58,7 +58,6 @@ describe("useExerciseForm — volver tras crear un ejercicio", () => {
     name: "Ejercicio",
     tipo: "Global",
     objetivo: "Objetivo",
-    modelRelations: [],
     nivelesColumnas: ["Palanca 1"],
     niveles: [
       { nivel: 1, valores: {} },
@@ -66,7 +65,6 @@ describe("useExerciseForm — volver tras crear un ejercicio", () => {
     ],
     logistica: "10 min",
     descripcion: "Desc",
-    isAssociatedToGameModel: false,
   };
 
   function fillRequiredFields(result: { current: ReturnType<typeof useExerciseForm> }) {
@@ -173,30 +171,6 @@ describe("useExerciseForm — validación al guardar", () => {
     expect(trainingService.createExercise).not.toHaveBeenCalled();
   });
 
-  it("bloquea el guardado cuando una relación con el modelo no tiene Subprincipio elegido", async () => {
-    const trainingService = (await import("../../../../../services/trainingService")).default;
-    const { result } = renderHook(() =>
-      useExerciseForm({ clubId: "club-1", navigate, returnTo: "/coach/trainings" })
-    );
-
-    act(() => result.current.setField("name", "Ejercicio"));
-    act(() => result.current.setField("objetivo", "Objetivo"));
-    act(() => result.current.setField("logistica", "Logística"));
-    act(() => result.current.setField("descripcion", "Descripción"));
-    act(() =>
-      result.current.setField("modelRelations", [
-        { subprincipioId: "", isFoco: true, habilidadesImprescindibles: [], items: [] },
-      ])
-    );
-
-    await act(async () => {
-      await result.current.handleSave();
-    });
-
-    expect(result.current.error).toMatch(/subprincipio/i);
-    expect(trainingService.createExercise).not.toHaveBeenCalled();
-  });
-
   it("guarda correctamente cuando todos los campos requeridos están completos", async () => {
     const trainingService = (await import("../../../../../services/trainingService")).default;
     (trainingService.createExercise as ReturnType<typeof vi.fn>).mockResolvedValue({ id: "ex-new" });
@@ -217,6 +191,27 @@ describe("useExerciseForm — validación al guardar", () => {
       expect(trainingService.createExercise).toHaveBeenCalled();
     });
     expect(result.current.error).toBeNull();
+  });
+
+  it("no envía relaciones con el modelo de juego al guardar un ejercicio", async () => {
+    const trainingService = (await import("../../../../../services/trainingService")).default;
+    (trainingService.createExercise as ReturnType<typeof vi.fn>).mockResolvedValue({ id: "ex-new" });
+    const { result } = renderHook(() =>
+      useExerciseForm({ clubId: "club-1", navigate, returnTo: "/coach/trainings" })
+    );
+
+    act(() => result.current.setField("name", "Ejercicio completo"));
+    act(() => result.current.setField("objetivo", "Objetivo claro"));
+    act(() => result.current.setField("logistica", "12 min, 20 jugadores"));
+    act(() => result.current.setField("descripcion", "Desarrollo completo"));
+
+    await act(async () => {
+      await result.current.handleSave();
+    });
+
+    expect(trainingService.createExercise).toHaveBeenCalledWith(
+      expect.not.objectContaining({ modelRelations: expect.anything() }),
+    );
   });
 
   it("emite una notificación de éxito al guardar correctamente", async () => {
@@ -289,7 +284,6 @@ describe("useExerciseForm — carga de ejercicio existente", () => {
       name: "Ejercicio",
       tipo: "Global",
       objetivo: "Objetivo",
-      modelRelations: [],
       nivelesColumnas: ["Palanca 1"],
       niveles: [
         { nivel: 1, valores: {} },
@@ -297,7 +291,6 @@ describe("useExerciseForm — carga de ejercicio existente", () => {
       ],
       logistica: "10 min",
       descripcion: "Desc",
-      isAssociatedToGameModel: false,
     };
 
     act(() => result.current.loadExercise(exercise));
@@ -318,7 +311,6 @@ describe("useExerciseForm — carga de ejercicio existente", () => {
       tipo: "Situacional",
       subtipo: "Rondos",
       objetivo: "Objetivo",
-      modelRelations: [],
       nivelesColumnas: ["Palanca 1"],
       niveles: [
         { nivel: 1, valores: {} },
@@ -326,7 +318,6 @@ describe("useExerciseForm — carga de ejercicio existente", () => {
       ],
       logistica: "10 min",
       descripcion: "Desc",
-      isAssociatedToGameModel: false,
     };
 
     act(() => result.current.loadExercise(exercise));
@@ -336,55 +327,15 @@ describe("useExerciseForm — carga de ejercicio existente", () => {
     });
   });
 
-  it("applyExercise conserva las habilidades elegidas de cada sub-subprincipio vinculado", async () => {
-    const { result } = renderHook(() =>
-      useExerciseForm({ clubId: "club-1", navigate, returnTo: "/coach/trainings" })
-    );
-
-    const exercise: Exercise = {
-      id: "ex-1",
-      name: "Ejercicio",
-      tipo: "Situacional",
-      objetivo: "Objetivo",
-      modelRelations: [
-        {
-          id: "rel-1",
-          subprincipioId: "sub-1",
-          isFoco: true,
-          habilidadesImprescindibles: ["Pase"],
-          items: [{ id: "item-1", subSubPrincipioId: "ssp-1", isFoco: true, habilidades: ["Pase"] }],
-        },
-      ],
-      nivelesColumnas: [],
-      niveles: [
-        { nivel: 1, valores: {} },
-        { nivel: 2, valores: {} },
-      ],
-      logistica: "10 min",
-      descripcion: "Desc",
-      isAssociatedToGameModel: true,
-    };
-
-    act(() => result.current.loadExercise(exercise));
-
-    await waitFor(() => {
-      expect(result.current.form.modelRelations[0].items).toEqual([
-        { subSubPrincipioId: "ssp-1", isFoco: true, habilidades: ["Pase"] },
-      ]);
-    });
-  });
-
   const baseExercise: Exercise = {
     id: "ex-1",
     name: "Ejercicio",
     tipo: "Global",
     objetivo: "Objetivo",
-    modelRelations: [],
     nivelesColumnas: [],
     niveles: [],
     logistica: "10 min",
     descripcion: "Desc",
-    isAssociatedToGameModel: false,
   };
 
   it("usa los niveles por defecto al cargar un ejercicio con menos de 2 niveles", async () => {

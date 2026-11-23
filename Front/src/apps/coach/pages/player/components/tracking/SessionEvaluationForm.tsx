@@ -9,7 +9,6 @@ import type {
 } from "../../../../services/playerTrackingService";
 import type { Exercise, TrainingSessionDetail } from "../../../../types/training";
 import { attendanceFromAssistanceType, isAbsent } from "../../utils/sessionAttendance";
-import { habilidadesBySubprincipio } from "../../utils/sessionHabilidades";
 import { groupTargetsBySubprincipio, targetLine } from "../../utils/sessionTargets";
 import AttendanceNotice from "./AttendanceNotice";
 import RatingBlock, { type RatingDraft } from "./RatingBlock";
@@ -31,6 +30,8 @@ type Props = {
   detail: TrainingSessionDetail | null;
   loadingDetail: boolean;
   exercisesById: Map<string, Exercise>;
+  /** Habilidades de los objetivos de la sesión, por subprincipio. */
+  habilidades: Map<string, string[]>;
   teamId: string;
   initial: SessionEvaluation | null;
   saving: boolean;
@@ -43,6 +44,7 @@ export default function SessionEvaluationForm({
   detail,
   loadingDetail,
   exercisesById,
+  habilidades,
   teamId,
   initial,
   saving,
@@ -53,7 +55,6 @@ export default function SessionEvaluationForm({
   const attendance = attendanceFromAssistanceType(session.hasCalendarEvent, session.assistanceTypeId);
   const commentRequired = isAbsent(attendance);
   const blocks = groupTargetsBySubprincipio(detail?.targets ?? []);
-  const habilidades = habilidadesBySubprincipio([...exercisesById.values()]);
 
   const draftOf = (id: string): RatingDraft => drafts[id] ?? EMPTY_DRAFT;
   const updateDraft = (id: string, change: Partial<RatingDraft>) =>
@@ -91,7 +92,7 @@ export default function SessionEvaluationForm({
         </div>
       ) : (
         <>
-          <SessionContent detail={detail} loading={false} exercisesById={exercisesById} teamId={teamId} />
+          <SessionContent detail={detail} loading={false} exercisesById={exercisesById} teamId={teamId} habilidades={habilidades} />
 
           {blocks.length === 0 ? (
             <p className={styles.empty}>

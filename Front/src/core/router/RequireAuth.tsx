@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
+import { traceAuth } from "../diagnostics/authTrace";
 import { coachAuthService } from "../../apps/coach/services/authService";
 
 export default function RequireAuth({
@@ -84,6 +85,11 @@ export default function RequireAuth({
   if (allowed === null) return null; // or a spinner if you prefer
 
   if (!allowed) {
+    traceAuth("router.require_auth_denied", {
+      path: typeof window !== "undefined" ? window.location.pathname : null,
+      requiredRoles: roles ?? null,
+      authenticated: coachAuthService.isAuthenticated(),
+    });
     try {
       if (typeof window !== "undefined") {
         window.dispatchEvent(

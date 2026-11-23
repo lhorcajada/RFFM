@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Common;
 using RFFM.Api.Domain;
-using RFFM.Api.Domain.Aggregates.GameModels;
 using RFFM.Api.Domain.Aggregates.Training.TasksTraining;
 using RFFM.Api.Domain.Entities;
 using RFFM.Api.FeatureModules;
@@ -49,18 +48,24 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
         string? ObjetivoPorRol,
         string Logistica,
         int? DurationMinutes,
-        string? Porteros,
         string? Dibujo,
         string Descripcion,
         List<string> NivelesColumnas,
         List<NivelRowRequest> Niveles,
         string? BoardStateJson,
-        List<ExerciseModelRelationRequest>? ModelRelations = null,
         string? Subtipo = null
-    ) : IRequest, IRequireFeaturePermission
+    ) : IRequest, IRequireFeaturePermission, IExerciseSheetFields
     {
         public string Id { get; init; } = string.Empty;
         public string UserId { get; init; } = string.Empty;
+
+        public string? Espacio { get; init; }
+        public int? TurnoMinutos { get; init; }
+        public int? NivelDibujo { get; init; }
+        public List<string> Reglas { get; init; } = new();
+        public List<string> Puntos { get; init; } = new();
+        public List<string> Rotaciones { get; init; } = new();
+        public List<string> Montaje { get; init; } = new();
 
         public string FeatureRoute => CoachFeatureRoutes.Trainings;
         public string RequiredPermission => "ReadWrite";
@@ -74,9 +79,6 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
         public async ValueTask<Unit> Handle(UpdateExerciseCommand request, CancellationToken ct = default)
         {
             var exercise = await _db.TaskTrainingBases
-                .Include(tb => tb.ModelRelations)
-                    .ThenInclude(r => r.Items)
-                .AsSplitQuery()
                 .FirstOrDefaultAsync(tb => tb.Id == request.Id, ct);
 
             if (exercise is null)
@@ -94,19 +96,16 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
             exercise.ObjetivoPorRol = request.ObjetivoPorRol;
             exercise.Logistica = request.Logistica;
             exercise.DurationMinutes = request.DurationMinutes;
-            exercise.Porteros = request.Porteros;
             exercise.Dibujo = request.Dibujo;
             exercise.Descripcion = request.Descripcion;
             if (request.BoardStateJson is not null)
                 exercise.BoardStateJson = request.BoardStateJson;
 
+            ExerciseSheetMapper.Apply(exercise, request);
+
             exercise.UpdateNiveles(
                 request.NivelesColumnas,
                 request.Niveles.Select(n => new ExerciseLevelRow(n.Nivel, n.Valores)));
-
-            _db.RemoveRange(exercise.ModelRelations.SelectMany(r => r.Items));
-            _db.RemoveRange(exercise.ModelRelations);
-            exercise.ReplaceModelRelations(CreateExerciseHandler.BuildModelRelations(request.ModelRelations));
 
             await _db.SaveChangesAsync(ct);
             return Unit.Value;
@@ -123,11 +122,9 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
             RuleFor(x => x.Subtipo).Must(ExerciseSubtipoRule.IsValid)
                 .WithMessage(ExerciseSubtipoRule.Message);
             RuleFor(x => x.Objetivo).NotEmpty();
-            RuleFor(x => x.Logistica).NotEmpty();
-            RuleFor(x => x.Descripcion).NotEmpty();
             RuleFor(x => x.Niveles).Must(n => n.Count is >= 2 and <= 5)
                 .WithMessage("Niveles must have between 2 and 5 rows.");
-            RuleForEach(x => x.ModelRelations).SetValidator(new ExerciseModelRelationRequestValidator());
+            Include(new ExerciseSheetFieldsValidator());
         }
     }
 }

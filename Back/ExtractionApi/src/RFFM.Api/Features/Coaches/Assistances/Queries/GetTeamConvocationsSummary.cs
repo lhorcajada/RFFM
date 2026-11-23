@@ -6,7 +6,10 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Common;
 using RFFM.Api.Domain.Entities;
+using RFFM.Api.Domain.Services;
 using RFFM.Api.FeatureModules;
+using RFFM.Api.Features.Coaches.Convocations;
+using RFFM.Api.Features.Coaches.SportEvents.Queries;
 using RFFM.Api.Infrastructure.Persistence;
 
 namespace RFFM.Api.Features.Coaches.Assistances.Queries
@@ -55,14 +58,24 @@ namespace RFFM.Api.Features.Coaches.Assistances.Queries
         public class Handler : IRequestHandler<Query, ConvocationRow[]>
         {
             private readonly AppDbContext _db;
+            private readonly ICurrentUserService _currentUser;
 
-            public Handler(AppDbContext db) => _db = db;
+            public Handler(AppDbContext db, ICurrentUserService currentUser)
+            {
+                _db = db;
+                _currentUser = currentUser;
+            }
 
             public async ValueTask<ConvocationRow[]> Handle(Query request, CancellationToken cancellationToken = default)
             {
+                // League-match convocations are a coach-only draft until published.
+                var hideDrafts = ConvocationVisibility.IsPlayerOrFamilyViewer(_currentUser);
                 return await _db.Convocations
                     .AsNoTracking()
                     .Where(c => c.Player.TeamId == request.TeamId)
+                    .Where(c => !hideDrafts
+                        || c.SportEvent.EventTypeId != SportEventsConstants.MatchEventTypeId
+                        || c.SportEvent.ConvocationPublishedAt != null)
                     .Select(c => new ConvocationRow(
                         c.SportEventId,
                         c.Id,

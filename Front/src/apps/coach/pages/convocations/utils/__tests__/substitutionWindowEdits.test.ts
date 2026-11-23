@@ -183,6 +183,48 @@ describe("rebuildWindows", () => {
   });
 });
 
+describe("rebuildWindows - ventanas nuevas", () => {
+  const newWindow = (overrides: Partial<EditedWindow> = {}): EditedWindow => ({
+    sourceIndex: null,
+    minute: 60,
+    period: "secondHalf",
+    swaps: [{ inPlayerId: "p5", outPlayerId: "p0", slotIndex: 0 }],
+    ...overrides,
+  });
+
+  it("crea una ventana a partir de una corrección sin ventana de origen", () => {
+    const rebuilt = rebuildWindows(STARTERS, [], [newWindow()]);
+
+    expect(rebuilt).toHaveLength(1);
+    expect(rebuilt[0]).toMatchObject({ windowIndex: 1, minute: 60, half: 2 });
+  });
+
+  it("coloca al jugador que entra en el puesto del que sale", () => {
+    const rebuilt = rebuildWindows(STARTERS, [], [newWindow()]);
+
+    expect(rebuilt[0].slotsAfter).toEqual({ 0: "p5", 1: "p1", 2: "p2" });
+    expect(rebuilt[0].swaps).toEqual([{ inPlayerId: "p5", outPlayerId: "p0", slotIndex: 0 }]);
+  });
+
+  it("parte de la alineación de la ventana anterior al situar a los jugadores", () => {
+    const original = originalWindows();
+    const edited = [...asEdited(original), newWindow({ minute: 80, swaps: [{ inPlayerId: "p5", outPlayerId: "p4", slotIndex: 0 }] })];
+
+    const rebuilt = rebuildWindows(STARTERS, original, edited);
+
+    expect(rebuilt[3].slotsAfter).toEqual({ 0: "p0", 1: "p1", 2: "p5" });
+  });
+
+  it("ordena la ventana nueva cronológicamente entre las existentes", () => {
+    const original = originalWindows();
+    const edited = [...asEdited(original), newWindow({ minute: 50, swaps: [{ inPlayerId: "p5", outPlayerId: "p0", slotIndex: 0 }] })];
+
+    const rebuilt = rebuildWindows(STARTERS, original, edited);
+
+    expect(rebuilt.map((w) => w.minute)).toEqual([30, 45, 50, 70]);
+  });
+});
+
 describe("computeMinutesFromWindows", () => {
   it("reparte los minutos según titulares, cambios y duración", () => {
     const minutes = computeMinutesFromWindows(STARTERS, originalWindows(), 90, []);

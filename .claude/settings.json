@@ -3,14 +3,18 @@
   "permissions": {
     "allow": [
       "Agent",
-      "Bash(git *)",
-      "Bash(npm *)",
-      "Bash(dotnet *)",
+      "PowerShell(git *)",
+      "PowerShell(npm *)",
+      "PowerShell(npx *)",
+      "PowerShell(dotnet *)",
       "Edit",
       "Read",
       "Write",
       "Glob",
       "Grep"
+    ],
+    "deny": [
+      "Bash"
     ],
     "defaultMode": "default"
   },
@@ -37,28 +41,6 @@
             "type": "command",
             "command": "powershell -NoProfile -File .claude/hooks/openspec-reminder.ps1",
             "statusMessage": "📋 Checking OpenSpec/TDD workflow..."
-          }
-        ]
-      }
-    ],
-    "PreToolUse": [
-      {
-        "matcher": "Bash",
-        "enabled": false,
-        "hooks": [
-          {
-            "type": "command",
-            "if": "Bash(git commit *)",
-            "command": "powershell -File .claude/hooks/test-coverage.ps1 -Layer auto",
-            "statusMessage": "Running affected tests...",
-            "continueOnBlock": true
-          },
-          {
-            "type": "command",
-            "if": "Bash(git push *)",
-            "command": "powershell -File .claude/hooks/test-coverage.ps1 -Layer auto",
-            "statusMessage": "Running affected tests...",
-            "continueOnBlock": true
           }
         ]
       }

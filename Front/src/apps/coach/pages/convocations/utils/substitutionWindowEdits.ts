@@ -6,8 +6,8 @@ export type WindowPeriod = "firstHalf" | "halftime" | "secondHalf";
 
 /** A substitution window as corrected by the coach, still linked to the window it comes from */
 export interface EditedWindow {
-  /** Index of the original window this correction comes from */
-  sourceIndex: number;
+  /** Index of the original window this correction comes from (null for a window the coach adds) */
+  sourceIndex: number | null;
   minute: number;
   period: WindowPeriod;
   swaps: SubstitutionSwap[];
@@ -83,28 +83,66 @@ export function rebuildWindows(
   const correctedOnField = onFieldAfterEachWindow(starterIds, kept);
 
   let numberedWindows = 0;
-  return kept.map((window, i) => {
-    const source = original[window.sourceIndex];
+  const rebuilt: SubstitutionWindow[] = [];
+  kept.forEach((window, i) => {
+    const source = window.sourceIndex === null ? undefined : original[window.sourceIndex];
     const isHalftime = window.period === "halftime";
     const fillsEmptySlot = !isHalftime && window.swaps.every((swap) => swap.outPlayerId === null);
     const countsTowardQuota = !isHalftime && !fillsEmptySlot;
     if (countsTowardQuota) numberedWindows += 1;
 
-    const before = originalOnField[window.sourceIndex];
-    const after = correctedOnField[i];
-    const removed = [...before].filter((playerId) => !after.has(playerId));
-    const added = [...after].filter((playerId) => !before.has(playerId));
+    let swaps = window.swaps.map((swap) => ({ ...swap }));
+    let slotsAfter: Record<number, string | null>;
+    if (source && window.sourceIndex !== null) {
+      const before = originalOnField[window.sourceIndex];
+      const after = correctedOnField[i];
+      const removed = [...before].filter((playerId) => !after.has(playerId));
+      const added = [...after].filter((playerId) => !before.has(playerId));
+      slotsAfter = correctSlots(source.slotsAfter, removed, added);
+    } else {
+      const slotsBefore = i > 0 ? rebuilt[i - 1].slotsAfter : initialSlots(starterIds, original);
+      ({ swaps, slotsAfter } = applySwaps(slotsBefore, swaps));
+    }
 
-    return {
+    rebuilt.push({
       windowIndex: isHalftime ? 0 : numberedWindows,
       minute: window.minute,
       half: window.period === "secondHalf" ? 2 : 1,
-      swaps: window.swaps.map((swap) => ({ ...swap })),
-      slotsAfter: correctSlots(source.slotsAfter, removed, added),
+      swaps,
+      slotsAfter,
       ...(isHalftime ? { isHalftime: true } : {}),
       ...(fillsEmptySlot ? { fillsEmptySlot: true } : {}),
-    };
+    });
   });
+  return rebuilt;
+}
+
+/** Slot map at kick-off: the first recorded window with its swaps undone, or the starters in order */
+function initialSlots(starterIds: string[], original: SubstitutionWindow[]): Record<number, string | null> {
+  if (original.length === 0) return Object.fromEntries(starterIds.map((playerId, slotIndex) => [slotIndex, playerId]));
+  const slots = { ...original[0].slotsAfter };
+  for (const swap of original[0].swaps) slots[swap.slotIndex] = swap.outPlayerId;
+  return slots;
+}
+
+/** Places each entering player in the slot of whoever leaves (or a free one), returning the swaps with their slot filled in */
+function applySwaps(
+  slotsBefore: Record<number, string | null>,
+  swaps: SubstitutionSwap[],
+): { swaps: SubstitutionSwap[]; slotsAfter: Record<number, string | null> } {
+  const slotsAfter = { ...slotsBefore };
+  const placedSwaps = swaps.map((swap) => {
+    const slotOfLeavingPlayer = Object.keys(slotsAfter)
+      .map(Number)
+      .find((slotIndex) => swap.outPlayerId !== null && slotsAfter[slotIndex] === swap.outPlayerId);
+    const freeSlot = Object.keys(slotsAfter)
+      .map(Number)
+      .find((slotIndex) => slotsAfter[slotIndex] === null);
+    const slotIndex = slotOfLeavingPlayer ?? (swap.outPlayerId === null ? freeSlot : undefined) ?? swap.slotIndex;
+    slotsAfter[slotIndex] = swap.inPlayerId;
+    return { ...swap, slotIndex };
+  });
+  return { swaps: placedSwaps, slotsAfter };
 }
 
 /** Minute at which each sent-off own-team player left the field */

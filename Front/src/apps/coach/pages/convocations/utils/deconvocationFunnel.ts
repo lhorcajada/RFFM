@@ -214,10 +214,14 @@ export function compareFairness(
   const surplus: [Criterion, number] = ["surplus", b.surplus - a.surplus];
   const technicalTotal: [Criterion, number] = ["technicalTotal", a.technicalTotal - b.technicalTotal];
   const attendance: [Criterion, number] = ["attendance", a.attendanceBucket - b.attendanceBucket];
-  const rating: [Criterion, number] = ["rating", a.rating - b.rating];
+  // Against a hard rival the level is compared in steps of half a point, so near-equal players fall back to fairness.
+  const rating: [Criterion, number] = [
+    "rating",
+    difficulty === "hard" ? Math.round(a.rating * 2) - Math.round(b.rating * 2) : a.rating - b.rating,
+  ];
   const steps =
     difficulty === "hard"
-      ? [consecutive, surplus, fit, rating, technicalTotal, attendance]
+      ? [rating, consecutive, surplus, fit, technicalTotal, attendance]
       : [consecutive, surplus, fit, technicalTotal, attendance, rating];
   for (const [criterion, diff] of steps) {
     if (diff !== 0) return { order: diff, criterion };

@@ -34,8 +34,7 @@ export interface AdnSubSubPrincipioOption {
   subprincipioId: string;
 }
 
-/** Flattened ADN tree for a team+season, used to feed the Exercise ModelRelationSection and
- * the Session's Microciclo/ADN pickers. Empty arrays (not an error) when the team has no
+/** Flattened ADN tree for a team+season, used to feed the Session's Microciclo/ADN pickers. Empty arrays (not an error) when the team has no
  * GameModel yet for that season. */
 export interface AdnOptions {
   subprincipios: AdnSubprincipioOption[];

@@ -4,7 +4,6 @@ import userEvent from "@testing-library/user-event";
 import SessionEvaluationForm from "../SessionEvaluationForm";
 import type { PlayerSessionListItem, SessionEvaluation } from "../../../../../services/playerTrackingService";
 import type { Exercise, SessionTargetDetail, TrainingSessionDetail } from "../../../../../types/training";
-import { exercise, relation } from "../../../__tests__/exerciseFixtures";
 
 function target(overrides: Partial<SessionTargetDetail> = {}): SessionTargetDetail {
   return {
@@ -72,6 +71,7 @@ function renderForm(props: Partial<React.ComponentProps<typeof SessionEvaluation
       detail={DETAIL}
       loadingDetail={false}
       exercisesById={new Map<string, Exercise>()}
+      habilidades={new Map<string, string[]>()}
       teamId="team-1"
       initial={null}
       saving={false}
@@ -108,12 +108,8 @@ describe("SessionEvaluationForm", () => {
     ).toBeInTheDocument();
   });
 
-  it("muestra en cada subprincipio las habilidades trabajadas en los ejercicios de la sesión", () => {
-    const exercisesById = new Map<string, Exercise>([
-      ["ex-1", exercise({ id: "ex-1", modelRelations: [relation({ habilidadesImprescindibles: ["Pase", "Percepción"] })] })],
-      ["ex-2", exercise({ id: "ex-2", modelRelations: [relation({ id: "rel-2", habilidadesImprescindibles: ["Pase", "Desmarque"] })] })],
-    ]);
-    renderForm({ exercisesById });
+  it("muestra en cada subprincipio las habilidades que el modelo de juego define para los objetivos de la sesión", () => {
+    renderForm({ habilidades: new Map([["s-23", ["Pase", "Percepción", "Desmarque"]]]) });
 
     const habilidades = within(block("Circular para desordenar")).getByRole("list", { name: "Habilidades trabajadas" });
     expect(within(habilidades).getAllByRole("listitem").map((i) => i.textContent)).toEqual(["Pase", "Percepción", "Desmarque"]);

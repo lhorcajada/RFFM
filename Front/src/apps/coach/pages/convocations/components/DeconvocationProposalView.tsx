@@ -1,6 +1,8 @@
 import { Fragment, useState } from "react";
-import { Alert, Button, CircularProgress } from "@mui/material";
+import { Alert, Button, CircularProgress, IconButton, Tab, Tabs } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
+import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import RuleIcon from "@mui/icons-material/Rule";
@@ -17,11 +19,14 @@ import {
   type ProposalOrderEntry,
 } from "../utils/deconvokeProposal";
 import { formatShortfall, roleLabel } from "../utils/positionRequirements";
+import type { SimulatedProposal } from "../utils/simulateUpcomingProposals";
 import PlayerFitDialog from "./PlayerFitDialog";
 import styles from "./DeconvocationProposalView.module.css";
 
 type Props = {
   proposal: DeconvokeProposal;
+  /** Estimated proposals for the next league matches; the tabs are hidden when empty or omitted. */
+  upcoming?: SimulatedProposal[];
   loading: boolean;
   refreshing: boolean;
   applying: boolean;
@@ -33,6 +38,10 @@ type Props = {
   onOpenRules?: () => void;
   /** Fit orders and trait ratings; without them the players' fit cannot be explained. */
   fitContext?: FitContext;
+  /** Moves a player one place up or down the order of the real proposal; the buttons are hidden when omitted. */
+  onMoveInOrder?: (playerId: string, direction: "up" | "down") => void;
+  /** Goes back from the order chosen by hand to the automatic proposal. */
+  onResetOrder?: () => void;
 };
 
 export type FitContext = {
@@ -55,6 +64,27 @@ const DIFFICULTY_LABELS: Record<RivalDifficulty, string> = {
   medium: "Rival medio",
   hard: "Rival difícil",
 };
+
+function scheduleText(
+  { upcoming, reservedIn, reservedNames, maxStrong }: DeconvokeProposal["schedule"],
+  current: RivalDifficulty,
+): string {
+  const window = [current, ...upcoming];
+  const hardCount = window.filter((d) => d === "hard").length;
+  const scope = `De los ${window.length} partidos (el actual y los ${upcoming.length} siguientes)`;
+  const outlook =
+    upcoming.length === 0
+      ? "No hay previsión de los próximos partidos."
+      : hardCount > 0
+        ? `${scope}, ${hardCount === 1 ? "1 es difícil" : `${hardCount} son difíciles`}.`
+        : `${scope}, ninguno es difícil.`;
+  const reserve =
+    reservedIn != null && reservedNames.length > 0
+      ? ` Para el partido más difícil, ${reservedIn === 1 ? "el siguiente" : `dentro de ${reservedIn} partidos`}, se reservan los jugadores de menor nivel (${reservedNames.join(", ")}): ahora se desconvoca por justicia.`
+      : "";
+  const strongCap = maxStrong === 0 ? "No se desconvoca a jugadores importantes" : `Como mucho ${maxStrong} importante(s)`;
+  return `${outlook}${reserve} ${strongCap}, no se quita a dos jugadores de la misma línea si hay alternativa y, si sale un jugador de una posición, quedan al menos dos que puedan jugarla.`;
+}
 
 const RESULT_TONE: Record<DetailResult, string> = {
   protects: styles.toneProtect,
@@ -149,15 +179,26 @@ function ProposedCard({ item, onShowFit }: { item: PlayerProposal; onShowFit?: (
 const ORDER_OUTCOME_LABELS: Partial<Record<ProposalOrderEntry["outcome"], string>> = {
   proposed: "Se desconvoca",
   positionSkip: "Se salta: mínimo de su posición",
+  balanceSkip: "Se salta: reparto o reserva",
 };
 
-function OrderList({ order }: { order: ProposalOrderEntry[] }) {
+function OrderList({
+  order,
+  manual,
+  onMove,
+}: {
+  order: ProposalOrderEntry[];
+  manual: boolean;
+  onMove?: (playerId: string, direction: "up" | "down") => void;
+}) {
   const lastProposed = order.reduce((last, entry, index) => (entry.outcome === "proposed" ? index : last), -1);
   return (
     <section className={styles.orderSection} aria-label="Orden en que se desconvoca">
       <h4 className={styles.sectionLabel}>Orden de desconvocatoria</h4>
       <p className={styles.orderIntro}>
-        De arriba abajo, el primero es el primero en salir. Cada jugador explica por qué va antes que el siguiente.
+        {manual
+          ? "Orden elegido por ti: salen los primeros hasta el objetivo. Los protegidos y los mínimos por posición solo te los avisamos."
+          : "De arriba abajo, el primero es el primero en salir. Los marcados como «se salta» no salen aunque les toque. Puedes subir o bajar a cualquiera para elegir tú."}
       </p>
       <ol className={styles.orderList} aria-label="Orden de desconvocatoria">
         {order.map((entry, index) => (
@@ -186,7 +227,28 @@ function OrderList({ order }: { order: ProposalOrderEntry[] }) {
                   ))}
                 </div>
                 {entry.versusNext && <p className={styles.orderVersus}>{entry.versusNext.text}</p>}
+                {entry.heldReason && <p className={styles.orderVersus}>{entry.heldReason}</p>}
               </div>
+              {onMove && (
+                <div className={styles.orderMoves}>
+                  <IconButton
+                    size="small"
+                    aria-label={`Subir a ${entry.name}`}
+                    disabled={index === 0}
+                    onClick={() => onMove(entry.playerId, "up")}
+                  >
+                    <ArrowUpwardIcon fontSize="small" />
+                  </IconButton>
+                  <IconButton
+                    size="small"
+                    aria-label={`Bajar a ${entry.name}`}
+                    disabled={index === order.length - 1}
+                    onClick={() => onMove(entry.playerId, "down")}
+                  >
+                    <ArrowDownwardIcon fontSize="small" />
+                  </IconButton>
+                </div>
+              )}
             </li>
             {index === lastProposed && index < order.length - 1 && (
               <li role="separator" aria-label="Línea de corte" className={styles.cutLine}>
@@ -215,8 +277,14 @@ function ReasonCard({ item, onShowFit }: { item: PlayerProposal; onShowFit?: (it
   );
 }
 
+function matchDay(date: string): string {
+  const parsed = new Date(`${date}T00:00:00`);
+  return Number.isNaN(parsed.getTime()) ? date : new Intl.DateTimeFormat("es-ES", { day: "numeric", month: "short" }).format(parsed);
+}
+
 export default function DeconvocationProposalView({
-  proposal,
+  proposal: currentProposal,
+  upcoming = [],
   loading,
   refreshing,
   applying,
@@ -225,8 +293,14 @@ export default function DeconvocationProposalView({
   onRefresh,
   onOpenRules,
   fitContext,
+  onMoveInOrder,
+  onResetOrder,
 }: Props) {
   const [fitTarget, setFitTarget] = useState<PlayerProposal | null>(null);
+  const [tab, setTab] = useState(0);
+  const activeTab = tab <= upcoming.length ? tab : 0;
+  const estimate = activeTab > 0 ? upcoming[activeTab - 1] : null;
+  const proposal = estimate?.proposal ?? currentProposal;
   const onShowFit = fitContext ? setFitTarget : undefined;
   const fitPosition = fitTarget?.fit ? fitContext?.positionFit.find((p) => p.position === fitTarget.fit?.position) : undefined;
   const fitLevels = fitContext?.traitRatings.find((r) => r.teamPlayerId === fitTarget?.playerId)?.levels ?? [];
@@ -257,8 +331,12 @@ export default function DeconvocationProposalView({
     {
       title: "Dificultad del rival",
       text: hard
-        ? "En caso de empate salen primero los de menor nivel."
+        ? "Contra un rival difícil salen primero los de menor nivel, salvo los protegidos; la justicia solo desempata."
         : "El nivel de los jugadores no influye en el orden.",
+    },
+    {
+      title: "Reparto y próximos partidos",
+      text: scheduleText(proposal.schedule, proposal.rivalDifficulty),
     },
   ];
 
@@ -298,6 +376,7 @@ export default function DeconvocationProposalView({
               Reglas
             </Button>
           )}
+          {!estimate && (
           <Button
             variant="contained"
             size="small"
@@ -307,8 +386,56 @@ export default function DeconvocationProposalView({
           >
             Aplicar propuesta
           </Button>
+          )}
         </div>
       </div>
+
+      {upcoming.length > 0 && (
+        <Tabs
+          value={activeTab}
+          onChange={(_, value: number) => setTab(value)}
+          variant="scrollable"
+          scrollButtons="auto"
+          aria-label="Propuesta por partido"
+          className={styles.tabs}
+        >
+          <Tab label="Actual" />
+          {upcoming.map(({ match }) => (
+            <Tab key={match.eventId} label={`${match.label} · ${match.rival}`} />
+          ))}
+        </Tabs>
+      )}
+
+      {estimate && (
+        <Alert severity="info" className={styles.warning}>
+          Estimación para la {estimate.match.label} contra {estimate.match.rival} ({matchDay(estimate.match.date)}): se da por
+          aplicada la propuesta de cada partido anterior, se supone que todos entrenan y los lesionados siguen fuera hasta su
+          regreso. Es solo una previsión y no se puede aplicar.
+        </Alert>
+      )}
+
+      {proposal.isManual && !estimate && (
+        <Alert
+          severity="info"
+          className={styles.warning}
+          action={
+            onResetOrder && (
+              <Button color="inherit" size="small" onClick={onResetOrder}>
+                Volver a la propuesta automática
+              </Button>
+            )
+          }
+        >
+          Orden manual: las propuestas de los siguientes partidos se recalculan a partir de tu elección.
+          {(proposal.manualWarnings ?? []).length > 0 && (
+            <ul className={styles.warningList}>
+              {(proposal.manualWarnings ?? []).map((warning) => (
+                <li key={warning}>{warning}</li>
+              ))}
+            </ul>
+          )}
+        </Alert>
+      )}
 
       {(proposal.positionWarnings ?? []).length > 0 && (
         <Alert severity="warning" className={styles.warning}>
@@ -351,7 +478,9 @@ export default function DeconvocationProposalView({
             </ol>
           </section>
 
-          {proposal.order.length > 0 && <OrderList order={proposal.order} />}
+          {proposal.order.length > 0 && (
+            <OrderList order={proposal.order} manual={proposal.isManual === true} onMove={estimate ? undefined : onMoveInOrder} />
+          )}
 
           {proposal.players.length > 0 && proposed.length === 0 && (
             <p className={styles.notice}>No hace falta desconvocar jugadores con las reglas actuales.</p>

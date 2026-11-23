@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Common;
 using RFFM.Api.Domain;
-using RFFM.Api.Domain.Aggregates.GameModels;
 using RFFM.Api.Domain.Aggregates.Training.TasksTraining;
 using RFFM.Api.Domain.Entities;
 using RFFM.Api.FeatureModules;
@@ -55,17 +54,23 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
         string? ObjetivoPorRol,
         string Logistica,
         int? DurationMinutes,
-        string? Porteros,
         string? Dibujo,
         string Descripcion,
         List<string> NivelesColumnas,
         List<NivelRowRequest> Niveles,
         string? BoardStateJson,
-        List<ExerciseModelRelationRequest>? ModelRelations = null,
         string? Subtipo = null
-    ) : IRequest<string>, IRequireFeaturePermission
+    ) : IRequest<string>, IRequireFeaturePermission, IExerciseSheetFields
     {
         public string UserId { get; init; } = string.Empty;
+
+        public string? Espacio { get; init; }
+        public int? TurnoMinutos { get; init; }
+        public int? NivelDibujo { get; init; }
+        public List<string> Reglas { get; init; } = new();
+        public List<string> Puntos { get; init; } = new();
+        public List<string> Rotaciones { get; init; } = new();
+        public List<string> Montaje { get; init; } = new();
 
         public string FeatureRoute => CoachFeatureRoutes.Trainings;
         public string RequiredPermission => "ReadWrite";
@@ -74,16 +79,18 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
     /// <summary>One row of the "Niveles" table.</summary>
     public record NivelRowRequest(int Nivel, Dictionary<string, string> Valores);
 
-    /// <summary>A single "Relación con el modelo de juego" row: the Fase/Principio/Subprincipio
-    /// the exercise trains, tagged FOCO/INTEGRADO, with its own Habilidades imprescindibles and
-    /// a repeatable list of SubSubPrincipio items.</summary>
-    public record ExerciseModelRelationRequest(
-        string SubprincipioId,
-        bool IsFoco,
-        List<string>? HabilidadesImprescindibles,
-        List<ExerciseModelRelationItemRequest>? Items);
-
-    public record ExerciseModelRelationItemRequest(string SubSubPrincipioId, bool IsFoco, List<string>? Habilidades = null);
+    /// <summary>The structured sheet fields shared by the create and update commands.</summary>
+    public interface IExerciseSheetFields
+    {
+        string? Espacio { get; }
+        int? TurnoMinutos { get; }
+        int? NivelDibujo { get; }
+        List<string> Reglas { get; }
+        List<string> Puntos { get; }
+        List<string> Rotaciones { get; }
+        List<string> Montaje { get; }
+        List<NivelRowRequest> Niveles { get; }
+    }
 
     // ── Handler ──────────────────────────────────────────────────────────────────
 
@@ -109,34 +116,22 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
                 ObjetivoPorRol = request.ObjetivoPorRol,
                 Logistica = request.Logistica,
                 DurationMinutes = request.DurationMinutes,
-                Porteros = request.Porteros,
                 Dibujo = request.Dibujo,
                 Descripcion = request.Descripcion,
                 ClubId = request.ClubId,
                 BoardStateJson = request.BoardStateJson,
             };
 
+            ExerciseSheetMapper.Apply(exercise, request);
+
             exercise.UpdateNiveles(
                 request.NivelesColumnas,
                 request.Niveles.Select(n => new ExerciseLevelRow(n.Nivel, n.Valores)));
-
-            exercise.ReplaceModelRelations(BuildModelRelations(request.ModelRelations));
 
             await _db.TaskTrainingBases.AddAsync(exercise, ct);
             await _db.SaveChangesAsync(ct);
             return exercise.Id;
         }
-
-        internal static IEnumerable<(string SubprincipioId, bool IsFoco, IEnumerable<string>? Habilidades,
-            IEnumerable<(string SubSubPrincipioId, bool IsFoco, IEnumerable<string>? Habilidades)> Items)> BuildModelRelations(
-            List<ExerciseModelRelationRequest>? relations) =>
-            (relations ?? new List<ExerciseModelRelationRequest>())
-                .Select(r => (
-                    r.SubprincipioId,
-                    r.IsFoco,
-                    (IEnumerable<string>?)r.HabilidadesImprescindibles,
-                    (r.Items ?? new List<ExerciseModelRelationItemRequest>())
-                        .Select(i => (i.SubSubPrincipioId, i.IsFoco, (IEnumerable<string>?)i.Habilidades))));
     }
 
     // ── Validator ────────────────────────────────────────────────────────────────
@@ -152,11 +147,64 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
             RuleFor(x => x.Subtipo).Must(ExerciseSubtipoRule.IsValid)
                 .WithMessage(ExerciseSubtipoRule.Message);
             RuleFor(x => x.Objetivo).NotEmpty();
-            RuleFor(x => x.Logistica).NotEmpty();
-            RuleFor(x => x.Descripcion).NotEmpty();
             RuleFor(x => x.Niveles).Must(n => n.Count is >= 2 and <= 5)
                 .WithMessage("Niveles must have between 2 and 5 rows.");
-            RuleForEach(x => x.ModelRelations).SetValidator(new ExerciseModelRelationRequestValidator());
+            Include(new ExerciseSheetFieldsValidator());
+        }
+    }
+
+    /// <summary>Finite caps on the structured sheet fields. They are a safety net only: whether the
+    /// content fits one printed sheet is measured by the client, never decided here.</summary>
+    public static class ExerciseSheetLimits
+    {
+        public const int MaxLines = 30;
+        public const int MaxLineLength = 1000;
+        public const int MaxEspacioLength = ValidationConstants.TaskTrainingBaseSpaceMaxLength;
+        public const int MaxTurnoMinutos = 240;
+    }
+
+    /// <summary>Shared by <see cref="CreateExerciseValidator"/> and <c>UpdateExerciseValidator</c>.</summary>
+    public class ExerciseSheetFieldsValidator : AbstractValidator<IExerciseSheetFields>
+    {
+        public ExerciseSheetFieldsValidator()
+        {
+            RuleFor(x => x.Espacio).MaximumLength(ExerciseSheetLimits.MaxEspacioLength);
+            RuleFor(x => x.TurnoMinutos).InclusiveBetween(1, ExerciseSheetLimits.MaxTurnoMinutos)
+                .When(x => x.TurnoMinutos.HasValue);
+            RuleFor(x => x.NivelDibujo)
+                .Must((fields, nivel) => nivel is >= 1 && nivel <= fields.Niveles.Count)
+                .When(x => x.NivelDibujo.HasValue)
+                .WithMessage("NivelDibujo must be one of the Niveles rows.");
+
+            RuleFor(x => x.Reglas).SetValidator(new ExerciseLinesValidator());
+            RuleFor(x => x.Puntos).SetValidator(new ExerciseLinesValidator());
+            RuleFor(x => x.Rotaciones).SetValidator(new ExerciseLinesValidator());
+            RuleFor(x => x.Montaje).SetValidator(new ExerciseLinesValidator());
+        }
+    }
+
+    public class ExerciseLinesValidator : AbstractValidator<List<string>>
+    {
+        public ExerciseLinesValidator()
+        {
+            RuleFor(x => x.Count).LessThanOrEqualTo(ExerciseSheetLimits.MaxLines)
+                .WithMessage($"A list must have at most {ExerciseSheetLimits.MaxLines} lines.");
+            RuleForEach(x => x).MaximumLength(ExerciseSheetLimits.MaxLineLength);
+        }
+    }
+
+    internal static class ExerciseSheetMapper
+    {
+        /// <summary>Copies the structured sheet fields of a command onto the exercise.</summary>
+        public static void Apply(TaskTrainingBase exercise, IExerciseSheetFields fields)
+        {
+            exercise.Espacio = fields.Espacio;
+            exercise.TurnoMinutos = fields.TurnoMinutos;
+            exercise.NivelDibujo = fields.NivelDibujo;
+            exercise.Reglas = fields.Reglas?.ToList() ?? new();
+            exercise.Puntos = fields.Puntos?.ToList() ?? new();
+            exercise.Rotaciones = fields.Rotaciones?.ToList() ?? new();
+            exercise.Montaje = fields.Montaje?.ToList() ?? new();
         }
     }
 
@@ -168,30 +216,5 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
 
         public static readonly string Message =
             $"Subtipo must be empty or one of: {string.Join(", ", TaskTrainingBase.SubtipoValues)}.";
-    }
-
-    /// <summary>Shared by <see cref="CreateExerciseValidator"/> and <c>UpdateExerciseValidator</c>.</summary>
-    public class ExerciseModelRelationRequestValidator : AbstractValidator<ExerciseModelRelationRequest>
-    {
-        public ExerciseModelRelationRequestValidator()
-        {
-            RuleFor(x => x.SubprincipioId).NotEmpty()
-                .WithMessage("A model relation requires a Subprincipio.");
-            RuleForEach(x => x.HabilidadesImprescindibles)
-                .Must(h => Habilidad.Vocabulary.Contains(h))
-                .WithMessage("Habilidad must be one of the 15-value closed vocabulary.");
-            RuleForEach(x => x.Items).SetValidator(new ExerciseModelRelationItemRequestValidator());
-        }
-    }
-
-    public class ExerciseModelRelationItemRequestValidator : AbstractValidator<ExerciseModelRelationItemRequest>
-    {
-        public ExerciseModelRelationItemRequestValidator()
-        {
-            RuleFor(x => x.SubSubPrincipioId).NotEmpty();
-            RuleForEach(x => x.Habilidades)
-                .Must(h => Habilidad.Vocabulary.Contains(h))
-                .WithMessage("Habilidad must be one of the closed vocabulary.");
-        }
     }
 }

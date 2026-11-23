@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Common;
 using RFFM.Api.Domain;
 using RFFM.Api.Domain.Entities;
+using RFFM.Api.Domain.Services;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Infrastructure.Persistence;
 
@@ -41,10 +42,20 @@ namespace RFFM.Api.Features.Coaches.Convocations
         public class Handler : IRequestHandler<EventConvocationsQuery, ConvocationResponse[]>
         {
             private readonly AppDbContext _db;
-            public Handler(AppDbContext db) => _db = db;
+            private readonly ICurrentUserService _currentUser;
+            public Handler(AppDbContext db, ICurrentUserService currentUser)
+            {
+                _db = db;
+                _currentUser = currentUser;
+            }
 
             public async ValueTask<ConvocationResponse[]> Handle(EventConvocationsQuery request, CancellationToken cancellationToken = default)
             {
+                var sportEvent = await _db.SportEvents.AsNoTracking()
+                    .FirstOrDefaultAsync(se => se.Id == request.EventId, cancellationToken);
+                if (sportEvent is not null && ConvocationVisibility.IsHiddenFromViewer(sportEvent, _currentUser))
+                    return Array.Empty<ConvocationResponse>();
+
                 var convocationsRaw = await _db.Convocations
                     .AsNoTracking()
                     .Include(c => c.Player)
@@ -70,9 +81,7 @@ namespace RFFM.Api.Features.Coaches.Convocations
                     })
                     .ToArrayAsync(cancellationToken);
 
-                var sportEvent = await _db.SportEvents.AsNoTracking()
-                    .FirstOrDefaultAsync(se => se.Id == request.EventId, cancellationToken);
-                var eventDate = sportEvent?.EveDateTime?.Date ?? DateTime.UtcNow.Date;
+                var eventDate= sportEvent?.EveDateTime?.Date ?? DateTime.UtcNow.Date;
 
                 // Jugadores que jugaron minutos en este partido (una sola query).
                 var playedTeamPlayerIds = (await _db.MatchParticipations.AsNoTracking()

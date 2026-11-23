@@ -1,6 +1,7 @@
 import { Button, CircularProgress } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
+import CampaignIcon from "@mui/icons-material/Campaign";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import SportsSoccerIcon from "@mui/icons-material/SportsSoccer";
 import VisibilityIcon from "@mui/icons-material/Visibility";
@@ -22,6 +23,8 @@ type Props = {
   onOpenLiveMatch?: () => void;
   /** Player/family view: only "Volver" and, when offered, "Partido en directo". */
   readOnly?: boolean;
+  /** League match whose convocation is still a draft: offers "Publicar convocatoria". */
+  onPublishConvocation?: () => void;
 };
 
 export default function ConvocationMatchActionBar({
@@ -37,6 +40,7 @@ export default function ConvocationMatchActionBar({
   onViewConvocation,
   onOpenLiveMatch,
   readOnly = false,
+  onPublishConvocation,
 }: Props) {
   return (
     <>
@@ -73,6 +77,17 @@ export default function ConvocationMatchActionBar({
           onClick={onPrint}
         >
           PDF
+        </Button>
+      )}
+      {eventId && !readOnly && onPublishConvocation && (
+        <Button
+          startIcon={<CampaignIcon />}
+          variant="contained"
+          color="warning"
+          size="small"
+          onClick={onPublishConvocation}
+        >
+          Publicar convocatoria
         </Button>
       )}
       {eventId && !readOnly && convocationConfirmed && (

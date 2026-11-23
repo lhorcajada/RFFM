@@ -282,8 +282,7 @@ function isNotFound(error: unknown): boolean {
 // ── ADN options (Subprincipio/SubSubPrincipio pickers) ─────────────────
 // Flattens the team's current GameModel tree (Principle → Subprincipio →
 // (Zona 0..N | direct) → SubSubPrincipio) into flat option lists, consumed by
-// both the SeasonPlan Microciclo session pickers and the Exercise
-// ModelRelationSection (see design.md's Amendment 2).
+// the SeasonPlan Microciclo session pickers.
 
 function flattenGameModelToAdnOptions(model: GameModel | null): AdnOptions {
   if (!model) return { subprincipios: [], subSubPrincipios: [] };
@@ -497,7 +496,7 @@ const gameModelService = {
   },
 
   /** Flattened Subprincipio/SubSubPrincipio option lists for ADN pickers (SeasonPlan session
-   * pickers, Exercise ModelRelationSection), sourced from the team's current GameModel for
+   * pickers), sourced from the team's current GameModel for
    * that season (`season` matches GameModel's free-text Season label). Returns empty arrays
    * (not an error) when the team has no GameModel yet for that season. */
   async getAdnOptions(teamId: string, season: string): Promise<AdnOptions> {

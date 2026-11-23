@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Domain.Aggregates.GameModels;
+using RFFM.Api.Domain.Aggregates.Training.TasksTraining;
 using RFFM.Api.Domain.Aggregates.UserClubs;
 using RFFM.Api.Domain.Models;
 using RFFM.Api.Features.Coaches.Trainings.Exercises;
@@ -56,18 +57,16 @@ namespace RFFM.Api.Tests.UnitTests
             new NivelRowRequest(2, new Dictionary<string, string>()),
         };
 
-        private static CreateExerciseCommand CreateCommand(string clubId, string userId,
-            List<ExerciseModelRelationRequest>? modelRelations = null) => new(
+        private static CreateExerciseCommand CreateCommand(string clubId, string userId) => new(
             clubId, "Ejercicio de prueba", "Analitico", "Objetivo original", null,
-            "Logistica original", null, null, null, "Descripcion original",
-            new List<string>(), TwoLevels(), null, modelRelations)
+            "Logistica original", null, null, "Descripcion original",
+            new List<string>(), TwoLevels(), null)
         { UserId = userId };
 
-        private static UpdateExerciseCommand UpdateCommand(string exerciseId, string userId,
-            List<ExerciseModelRelationRequest>? modelRelations = null) => new(
+        private static UpdateExerciseCommand UpdateCommand(string exerciseId, string userId) => new(
             "Ejercicio actualizado", "Global", "Objetivo actualizado", "Objetivo por rol",
-            "Logistica actualizada", 25, "Portero suplente", "(pendiente)", "Descripcion actualizada",
-            new List<string>(), TwoLevels(), null, modelRelations)
+            "Logistica actualizada", 25, "(pendiente)", "Descripcion actualizada",
+            new List<string>(), TwoLevels(), null)
         { Id = exerciseId, UserId = userId };
 
         [Fact]
@@ -90,7 +89,6 @@ namespace RFFM.Api.Tests.UnitTests
             Assert.Equal("Objetivo actualizado", exercise.Objetivo);
             Assert.Equal("Objetivo por rol", exercise.ObjetivoPorRol);
             Assert.Equal(25, exercise.DurationMinutes);
-            Assert.Equal("Portero suplente", exercise.Porteros);
             Assert.Equal("(pendiente)", exercise.Dibujo);
         }
 
@@ -145,31 +143,27 @@ namespace RFFM.Api.Tests.UnitTests
         }
 
         [Fact]
-        public async Task Handle_ReplacesModelRelations_AddsAndRemoves()
+        public async Task Handle_LeavesStoredModelRelationsUntouched()
         {
             await using var seedDb = _fixture.CreateDbContext();
             var (userId, clubId, _) = await SeedClubAsync(seedDb);
-            var firstSubprincipioId = await SeedSubprincipioAsync(seedDb, clubId);
-            var secondSubprincipioId = await SeedSubprincipioAsync(seedDb, clubId);
+            var subprincipioId = await SeedSubprincipioAsync(seedDb, clubId);
 
             await using var createDb = _fixture.CreateDbContext();
-            var exerciseId = await new CreateExerciseHandler(createDb).Handle(
-                CreateCommand(clubId, userId, new List<ExerciseModelRelationRequest> { new(firstSubprincipioId, true, null, null) }),
-                CancellationToken.None);
+            var exerciseId = await new CreateExerciseHandler(createDb).Handle(CreateCommand(clubId, userId), CancellationToken.None);
+
+            await using var relationDb = _fixture.CreateDbContext();
+            var storedRelation = new ExerciseModelRelation(exerciseId, subprincipioId, true, new List<string> { "Pase" });
+            relationDb.ExerciseModelRelations.Add(storedRelation);
+            await relationDb.SaveChangesAsync();
 
             await using var updateDb = _fixture.CreateDbContext();
-            await new UpdateExerciseHandler(updateDb).Handle(
-                UpdateCommand(exerciseId, userId, new List<ExerciseModelRelationRequest> { new(secondSubprincipioId, false, null, null) }),
-                CancellationToken.None);
+            await new UpdateExerciseHandler(updateDb).Handle(UpdateCommand(exerciseId, userId), CancellationToken.None);
 
             await using var verifyDb = _fixture.CreateDbContext();
-            var exercise = await verifyDb.TaskTrainingBases
-                .Include(tb => tb.ModelRelations)
-                .SingleAsync(e => e.Id == exerciseId);
-
-            var relation = Assert.Single(exercise.ModelRelations);
-            Assert.Equal(secondSubprincipioId, relation.SubprincipioId);
-            Assert.False(relation.IsFoco);
+            var remaining = await verifyDb.ExerciseModelRelations.SingleAsync(r => r.TaskTrainingBaseId == exerciseId);
+            Assert.Equal(storedRelation.Id, remaining.Id);
+            Assert.Equal(new List<string> { "Pase" }, remaining.HabilidadesImprescindibles);
         }
 
         [Fact]

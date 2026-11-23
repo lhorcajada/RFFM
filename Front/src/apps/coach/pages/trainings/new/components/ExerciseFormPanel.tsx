@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import {
+  Alert,
   Box,
   Button,
   FormControl,
@@ -15,18 +16,23 @@ import { subtipoOptions, tipoOptions } from "../constants";
 import type { ExerciseFormState } from "../hooks/useExerciseForm";
 import styles from "../NewExercisePage.module.css";
 import type { ExerciseSubtipo, ExerciseTipo } from "../../../../types/training";
-import ModelRelationSection from "./ModelRelationSection";
+import LinesEditor from "./LinesEditor";
+import NivelesEditor from "./NivelesEditor";
+import { describeOverflow } from "../../sheetMeasure";
 
 interface ExerciseFormPanelProps {
   panelVisible: boolean;
   form: ExerciseFormState;
-  teamId?: string;
 }
 
-export default function ExerciseFormPanel({ panelVisible, form, teamId }: ExerciseFormPanelProps) {
+export default function ExerciseFormPanel({ panelVisible, form }: ExerciseFormPanelProps) {
   const {
     form: formData,
     setField,
+    setNiveles,
+    setNivelDibujo,
+    drawingLevelCleared,
+    sheetFit,
     error,
     pendingFile,
     previewUrl,
@@ -54,6 +60,11 @@ export default function ExerciseFormPanel({ panelVisible, form, teamId }: Exerci
           <Typography ref={errorRef} role="alert" color="error" className={styles.error}>
             {error}
           </Typography>
+        )}
+        {!sheetFit.fits && (
+          <Alert severity="warning" className={styles.sheetWarning}>
+            {describeOverflow(sheetFit)} Acórtalo para poder guardar el ejercicio.
+          </Alert>
         )}
         <Box className={styles.sectionCard} component="section">
           <Typography component="h2" className={styles.sectionTitle}>Clasificación</Typography>
@@ -109,7 +120,30 @@ export default function ExerciseFormPanel({ panelVisible, form, teamId }: Exerci
         </Box>
 
         <Box className={styles.sectionCard} component="section">
-          <Typography component="h2" className={styles.sectionTitle}>Objetivos</Typography>
+          <Typography component="h2" className={styles.sectionTitle}>Espacio y turno</Typography>
+          <Box className={styles.twoCols}>
+            <TextField
+              label="Espacio"
+              value={formData.espacio ?? ""}
+              onChange={(e) => setField("espacio", e.target.value || null)}
+              size="small"
+              placeholder="Ej. 20 x 30 m"
+              className={styles.field}
+            />
+            <TextField
+              label="Turno (min)"
+              type="number"
+              value={formData.turnoMinutos ?? ""}
+              onChange={(e) => setField("turnoMinutos", e.target.value === "" ? null : Number(e.target.value))}
+              size="small"
+              inputProps={{ min: 1 }}
+              className={styles.numField}
+            />
+          </Box>
+        </Box>
+
+        <Box className={styles.sectionCard} component="section">
+          <Typography component="h2" className={styles.sectionTitle}>Objetivo</Typography>
           <TextField
             label="Objetivo"
             value={formData.objetivo}
@@ -120,50 +154,12 @@ export default function ExerciseFormPanel({ panelVisible, form, teamId }: Exerci
             size="small"
             className={styles.field}
           />
-          <TextField
-            label="Objetivo por rol (opcional)"
-            value={formData.objetivoPorRol ?? ""}
-            onChange={(e) => setField("objetivoPorRol", e.target.value || null)}
-            fullWidth
-            multiline
-            minRows={2}
-            size="small"
-            className={styles.field}
-          />
         </Box>
 
         <Box className={styles.sectionCard} component="section">
-          <Typography component="h2" className={styles.sectionTitle}>Modelo de juego</Typography>
-          <ModelRelationSection
-            modelRelations={formData.modelRelations}
-            onChange={(relations) => setField("modelRelations", relations)}
-            teamId={teamId}
-          />
-        </Box>
-
-        <Box className={styles.sectionCard} component="section">
-          <Typography component="h2" className={styles.sectionTitle}>Organización</Typography>
+          <Typography component="h2" className={styles.sectionTitle}>Qué se hace</Typography>
           <TextField
-            label="Logística"
-            value={formData.logistica}
-            onChange={(e) => setField("logistica", e.target.value)}
-            fullWidth
-            multiline
-            minRows={2}
-            size="small"
-            placeholder="Tiempo · Material · Nº jugadores"
-            className={styles.field}
-          />
-          <TextField
-            label="Porteros (opcional)"
-            value={formData.porteros ?? ""}
-            onChange={(e) => setField("porteros", e.target.value || null)}
-            fullWidth
-            size="small"
-            className={styles.field}
-          />
-          <TextField
-            label="Descripción"
+            label="Qué se hace"
             value={formData.descripcion}
             onChange={(e) => setField("descripcion", e.target.value)}
             fullWidth
@@ -171,6 +167,46 @@ export default function ExerciseFormPanel({ panelVisible, form, teamId }: Exerci
             minRows={4}
             size="small"
             className={styles.field}
+          />
+        </Box>
+
+        <Box className={styles.sectionCard} component="section">
+          <Typography component="h2" className={styles.sectionTitle}>Reglas</Typography>
+          <LinesEditor label="Regla" lines={formData.reglas} onChange={(lines) => setField("reglas", lines)} />
+        </Box>
+
+        <Box className={styles.sectionCard} component="section">
+          <Typography component="h2" className={styles.sectionTitle}>Puntos</Typography>
+          <LinesEditor label="Punto" lines={formData.puntos} onChange={(lines) => setField("puntos", lines)} />
+        </Box>
+
+        <Box className={styles.sectionCard} component="section">
+          <Typography component="h2" className={styles.sectionTitle}>Rotaciones</Typography>
+          <LinesEditor
+            label="Rotación"
+            lines={formData.rotaciones}
+            onChange={(lines) => setField("rotaciones", lines)}
+          />
+        </Box>
+
+        <Box className={styles.sectionCard} component="section">
+          <Typography component="h2" className={styles.sectionTitle}>Montaje</Typography>
+          <LinesEditor label="Montaje" lines={formData.montaje} onChange={(lines) => setField("montaje", lines)} />
+        </Box>
+
+        <Box className={styles.sectionCard} component="section">
+          <Typography component="h2" className={styles.sectionTitle}>Niveles</Typography>
+          {drawingLevelCleared && (
+            <Alert severity="warning" className={styles.sheetWarning}>
+              Has borrado el nivel que mostraba el dibujo. Marca otro nivel antes de guardar.
+            </Alert>
+          )}
+          <NivelesEditor
+            columnas={formData.nivelesColumnas}
+            niveles={formData.niveles}
+            onChange={setNiveles}
+            nivelDibujo={formData.nivelDibujo}
+            onNivelDibujoChange={setNivelDibujo}
           />
         </Box>
 

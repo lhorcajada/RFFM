@@ -34,8 +34,8 @@ namespace RFFM.Api.Domain.Aggregates.Training.TasksTraining
             HabilidadesImprescindibles = ValidateHabilidades(habilidadesImprescindibles);
         }
 
-        /// <summary>Clears and rebuilds <see cref="Items"/> wholesale — same "trust
-        /// server-derived state" approach as <see cref="TaskTrainingBase.ReplaceModelRelations"/>.</summary>
+        /// <summary>Clears and rebuilds <see cref="Items"/> wholesale — "trust
+        /// server-derived state" approach.</summary>
         public void ReplaceItems(IEnumerable<(string SubSubPrincipioId, bool IsFoco, IEnumerable<string>? Habilidades)> items)
         {
             Items.Clear();

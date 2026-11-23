@@ -97,10 +97,33 @@ namespace RFFM.Api.Tests.IntegrationTests
                 .ToListAsync();
             Assert.Equal(5, exercises.Count);
 
-            var defensaBloqueMedio = exercises.Single(e => e.Name == "Defensa organizada, bloque medio");
-            var relation = Assert.Single(defensaBloqueMedio.ModelRelations);
-            Assert.True(relation.IsFoco);
-            Assert.Equal(5, relation.Items.Count);
+            Assert.All(exercises, e => Assert.Empty(e.ModelRelations));
+        }
+
+        [Fact]
+        public async Task SeedAsync_FillsTheNewSheetSectionsAndLeavesTheRemovedFieldsEmpty()
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var (clubId, teamId, seasonId) = await SeedTeamWithGameModelAsync(seedDb);
+
+            await using var db = _fixture.CreateDbContext();
+            await ExampleSessionSeeder.SeedAsync(db, clubId, teamId, seasonId, CancellationToken.None);
+
+            await using var verifyDb = _fixture.CreateDbContext();
+            var rondo = await verifyDb.TaskTrainingBases
+                .SingleAsync(e => e.ClubId == clubId && e.Name == "Rondo con porterías centrales");
+            Assert.NotEmpty(rondo.Puntos);
+            Assert.NotEmpty(rondo.Rotaciones);
+            Assert.NotEmpty(rondo.Montaje);
+
+            var exercises = await verifyDb.TaskTrainingBases.Where(e => e.ClubId == clubId).ToListAsync();
+            Assert.All(exercises, e =>
+            {
+                Assert.Null(e.Porteros);
+                Assert.Empty(e.Secuencia);
+                Assert.Empty(e.QueSeVe);
+                Assert.Empty(e.Jugadores);
+            });
         }
 
         [Fact]

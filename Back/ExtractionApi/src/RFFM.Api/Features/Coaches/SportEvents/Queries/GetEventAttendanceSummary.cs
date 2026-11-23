@@ -10,6 +10,7 @@ using RFFM.Api.Domain.Aggregates.UserClubs;
 using RFFM.Api.Domain.Entities;
 using RFFM.Api.Domain.Services;
 using RFFM.Api.FeatureModules;
+using RFFM.Api.Features.Coaches.Convocations;
 using RFFM.Api.Infrastructure.Persistence;
 
 namespace RFFM.Api.Features.Coaches.SportEvents.Queries
@@ -93,7 +94,7 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Queries
                 // 1. Authorized event ids: must exist AND belong to TeamId (design.md Decision 2).
                 var authorizedEvents = await _db.SportEvents.AsNoTracking()
                     .Where(se => se.TeamId == request.TeamId && request.EventIds.Contains(se.Id))
-                    .Select(se => new { se.Id, se.EveDateTime })
+                    .Select(se => new { se.Id, se.EveDateTime, se.EventTypeId, se.ConvocationPublishedAt })
                     .ToListAsync(cancellationToken);
 
                 if (authorizedEvents.Count == 0)
@@ -107,6 +108,17 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Queries
                     .Where(c => authorizedEventIds.Contains(c.SportEventId))
                     .Select(c => new { c.Id, c.SportEventId, c.TeamPlayerId, c.ConvocationStatusId })
                     .ToListAsync(cancellationToken);
+
+                // League-match convocations stay a coach-only draft until published: players and
+                // families get no counts and no personal status for them.
+                if (_currentUser != null && ConvocationVisibility.IsPlayerOrFamilyViewer(_currentUser))
+                {
+                    var draftEventIds = authorizedEvents
+                        .Where(e => e.EventTypeId == SportEventsConstants.MatchEventTypeId && e.ConvocationPublishedAt is null)
+                        .Select(e => e.Id)
+                        .ToHashSet();
+                    convocationsByEvent = convocationsByEvent.Where(c => !draftEventIds.Contains(c.SportEventId)).ToList();
+                }
 
                 // Same "injured for this event" rule as GetEventConvocations: the convocation page
                 // lists injured convocados under "Desconvocados", so they count as NotGoing here.

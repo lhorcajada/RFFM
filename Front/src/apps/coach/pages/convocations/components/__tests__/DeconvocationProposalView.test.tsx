@@ -39,6 +39,7 @@ function proposal(overrides: Partial<DeconvokeProposal> = {}): DeconvokeProposal
   return {
     generatedAt: "2026-10-14T10:00:00.000Z",
     rivalDifficulty: "hard",
+    schedule: { upcoming: [], reservedIn: null, reservedNames: [], strongCount: 0, maxStrong: 0 },
     targetCount: 2,
     calledCount: 20,
     selectedIds: ["p1"],
@@ -193,6 +194,47 @@ describe("DeconvocationProposalView", () => {
 
     expect(screen.getByText("Rival medio")).toBeInTheDocument();
     expect(screen.getByText(/nivel de los jugadores no influye/)).toBeInTheDocument();
+  });
+
+  it("cuenta el partido actual y los 5 siguientes al hablar de los partidos difíciles", () => {
+    renderView(
+      proposal({
+        rivalDifficulty: "easy",
+        schedule: { upcoming: ["medium", "hard", "medium", "easy", "hard"], reservedIn: null, reservedNames: [], strongCount: 3, maxStrong: 1 },
+      }),
+    );
+
+    expect(screen.getByText(/De los 6 partidos \(el actual y los 5 siguientes\), 2 son difíciles/)).toBeInTheDocument();
+  });
+
+  it("explica que se reservan los de menor nivel para el partido más difícil que viene", () => {
+    renderView(
+      proposal({
+        rivalDifficulty: "hard",
+        schedule: { upcoming: ["medium", "hard"], reservedIn: 2, reservedNames: ["Vargas", "Joao", "Fernando"], strongCount: 3, maxStrong: 0 },
+      }),
+    );
+
+    expect(
+      screen.getByText(/para el partido más difícil, dentro de 2 partidos, se reservan los jugadores de menor nivel \(Vargas, Joao, Fernando\)/i),
+    ).toBeInTheDocument();
+  });
+
+  it("no habla de reservas cuando no hay partido más difícil por delante", () => {
+    renderView(proposal({ schedule: { upcoming: ["medium", "easy"], reservedIn: null, reservedNames: [], strongCount: 3, maxStrong: 1 } }));
+
+    expect(screen.queryByText(/se reservan los jugadores de menor nivel/i)).not.toBeInTheDocument();
+  });
+
+  it("cuenta como difícil el partido actual dentro de la ventana", () => {
+    renderView(
+      proposal({
+        rivalDifficulty: "hard",
+        schedule: { upcoming: ["medium", "medium", "medium", "medium", "medium"], reservedIn: null, reservedNames: [], strongCount: 3, maxStrong: 0 },
+      }),
+    );
+
+    expect(screen.getByText(/De los 6 partidos \(el actual y los 5 siguientes\), 1 es difícil/)).toBeInTheDocument();
   });
 
   it("cuenta cuántos jugadores protege cada paso del embudo", () => {
@@ -412,5 +454,77 @@ describe("DeconvocationProposalView — orden de desconvocatoria", () => {
     renderView(proposal({ order: [] }));
 
     expect(screen.queryByRole("list", { name: "Orden de desconvocatoria" })).not.toBeInTheDocument();
+  });
+
+  describe("pestañas con la estimación de los partidos siguientes", () => {
+    const estimated = (round: number, rival: string, date: string, difficulty: "easy" | "medium" | "hard", name: string) => ({
+      match: { eventId: `upcoming-${round}`, round, label: `J${round}`, date, rival, difficulty },
+      proposal: proposal({
+        rivalDifficulty: difficulty,
+        selectedIds: ["e1"],
+        players: [
+          player("e1", name, { group: "proposed", reason: `Elegido: ${name} descansa en la J${round}` }),
+        ],
+        alreadyDeconvoked: [],
+      }),
+    });
+    const upcoming = [
+      estimated(7, "Getafe", "2026-11-04", "hard", "Ramos"),
+      estimated(8, "Rayo", "2026-11-11", "easy", "Cano"),
+    ];
+
+    it("no muestra pestañas si no hay partidos siguientes", () => {
+      renderView(proposal());
+
+      expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
+    });
+
+    it("muestra la propuesta actual y una pestaña por cada partido siguiente", () => {
+      renderView(proposal(), { upcoming });
+
+      const tabs = within(screen.getByRole("tablist", { name: "Propuesta por partido" })).getAllByRole("tab");
+      expect(tabs.map((tab) => tab.textContent)).toEqual(["Actual", "J7 · Getafe", "J8 · Rayo"]);
+      expect(screen.getByRole("tab", { name: "Actual" })).toHaveAttribute("aria-selected", "true");
+    });
+
+    it("al abrir una pestaña muestra su propuesta estimada con el aviso de estimación", () => {
+      renderView(proposal(), { upcoming });
+
+      fireEvent.click(screen.getByRole("tab", { name: "J7 · Getafe" }));
+
+      expect(screen.getByText("Ramos")).toBeInTheDocument();
+      expect(screen.queryByText("Sergio")).not.toBeInTheDocument();
+      expect(screen.getByText(/Estimación para la J7 contra Getafe \(4 nov\)/)).toBeInTheDocument();
+      expect(screen.getByText("Rival difícil")).toBeInTheDocument();
+    });
+
+    it("las pestañas estimadas no permiten aplicar la propuesta", () => {
+      const handlers = renderView(proposal(), { upcoming });
+
+      expect(screen.getByRole("button", { name: "Aplicar propuesta" })).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("tab", { name: "J8 · Rayo" }));
+
+      expect(screen.queryByRole("button", { name: "Aplicar propuesta" })).not.toBeInTheDocument();
+      expect(handlers.onApply).not.toHaveBeenCalled();
+    });
+
+    it("al volver a Actual se muestra la propuesta real con su acción de aplicar", () => {
+      renderView(proposal(), { upcoming });
+
+      fireEvent.click(screen.getByRole("tab", { name: "J7 · Getafe" }));
+      fireEvent.click(screen.getByRole("tab", { name: "Actual" }));
+
+      expect(screen.getByText("Sergio")).toBeInTheDocument();
+      expect(screen.queryByText(/Estimación para/)).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Aplicar propuesta" })).toBeInTheDocument();
+    });
+
+    it("no usa tablas", () => {
+      const { container } = render(
+        <DeconvocationProposalView proposal={proposal()} upcoming={upcoming} loading={false} refreshing={false} applying={false} onBack={vi.fn()} onApply={vi.fn()} />,
+      );
+
+      expect(container.querySelector("table")).toBeNull();
+    });
   });
 });

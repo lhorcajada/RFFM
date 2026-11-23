@@ -1,16 +1,20 @@
 import { client } from "../../../core/api/client";
+import { traceAuth } from "../../../core/diagnostics/authTrace";
 import type {
   RegisterPayingAccountPayload,
   RegisterPayingAccountResponse,
 } from "../../../shared/types/scope";
 
-function decodeJwtPayload(token: string): any | null {
+export function decodeJwtPayload(token: string): any | null {
   try {
     const parts = token.split(".");
     if (parts.length < 2) return null;
     const payload = parts[1];
     // atob handles base64; replace URL-safe chars
-    const b64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const b64 = payload
+      .replace(/-/g, "+")
+      .replace(/_/g, "/")
+      .padEnd(Math.ceil(payload.length / 4) * 4, "=");
     const json = decodeURIComponent(
       atob(b64)
         .split("")
@@ -32,6 +36,19 @@ function normalizeRole(role: string): string {
 export const coachAuthService = {
   login: async (token: string) => {
     const response = await client.post("/api/login", { token });
+    try {
+      const serverDate = response?.headers?.date;
+      const serverMs = serverDate ? Date.parse(String(serverDate)) : NaN;
+      const claims = decodeJwtPayload(String(response?.data?.token ?? response?.data ?? ""));
+      traceAuth("login.response", {
+        clockSkewSec: Number.isNaN(serverMs) ? null : Math.round((Date.now() - serverMs) / 1000),
+        exp: claims?.exp ?? null,
+        iat: claims?.iat ?? null,
+        deviceNow: Math.floor(Date.now() / 1000),
+      });
+    } catch (e) {
+      // diagnostics only
+    }
     // A stale coach_roles cache from a previous session/account must not leak into this
     // one: getRoles() merges it with the fresh JWT's roles, which can make hasRole() report
     // access the current token doesn't actually grant.
@@ -70,7 +87,8 @@ export const coachAuthService = {
     return response.data;
   },
 
-  logout: () => {
+  logout: (reason: string = "unspecified") => {
+    traceAuth("auth.logout", { reason });
     localStorage.removeItem("coachAuthToken");
     localStorage.removeItem("coachUserId");
     try {
@@ -87,7 +105,14 @@ export const coachAuthService = {
       const exp = decoded?.exp;
       if (!exp) return true; // no exp claim — assume valid
       const now = Math.floor(Date.now() / 1000);
-      return exp > now;
+      if (exp > now) return true;
+      traceAuth("auth.token_expired", {
+        exp,
+        iat: decoded?.iat ?? null,
+        deviceNow: now,
+        secondsPastExp: now - exp,
+      });
+      return false;
     } catch (e) {
       return false;
     }

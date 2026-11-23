@@ -42,6 +42,10 @@ export function useSessionForm({ teamId, navigate, returnTo, microcicloId, date,
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedSessionId, setSavedSessionId] = useState<string | null>(null);
+  /** The form as it was last stored on the server, to tell whether the editor holds unsaved changes. */
+  const [savedSnapshot, setSavedSnapshot] = useState<string | null>(null);
+
+  const hasUnsavedChanges = savedSessionId !== null && JSON.stringify(form) !== savedSnapshot;
 
   const setField = (field: keyof CreateSessionRequest, value: unknown) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -52,7 +56,7 @@ export function useSessionForm({ teamId, navigate, returnTo, microcicloId, date,
     // historical text). See openspec/changes/season-plan-content-board follow-up request.
     const objetivoGeneral = session.objetivoGeneral ?? summarizeTargetsForObjetivo(session.targets) ?? null;
 
-    setForm({
+    const loaded: CreateSessionRequest = {
       teamId,
       name: session.name,
       description: session.description,
@@ -71,7 +75,9 @@ export function useSessionForm({ teamId, navigate, returnTo, microcicloId, date,
         exercises: b.exercises.map((e) => ({ exerciseId: e.exerciseId, position: e.position })),
       })),
       targetSubSubPrincipioIds: session.targets.map((t) => t.subSubPrincipioId),
-    });
+    };
+    setForm(loaded);
+    setSavedSnapshot(JSON.stringify(loaded));
     setSavedSessionId(session.id);
   };
 
@@ -84,11 +90,12 @@ export function useSessionForm({ teamId, navigate, returnTo, microcicloId, date,
     return null;
   };
 
-  const handleSave = async () => {
+  /** Saves the session; resolves `true` when it was stored, so callers can go on with what needed it. */
+  const handleSave = async (): Promise<boolean> => {
     const validationError = validate();
     if (validationError) {
       setError(validationError);
-      return;
+      return false;
     }
 
     setSaving(true);
@@ -102,14 +109,17 @@ export function useSessionForm({ teamId, navigate, returnTo, microcicloId, date,
         const created = await trainingService.createSession(form);
         setSavedSessionId(created.id);
       }
+      setSavedSnapshot(JSON.stringify(form));
       window.dispatchEvent(
         new CustomEvent("rffm.show_snackbar", { detail: { message: "Sesión guardada correctamente", severity: "success" } }),
       );
+      return true;
     } catch {
       setError("Error al guardar la sesión.");
       window.dispatchEvent(
         new CustomEvent("rffm.show_snackbar", { detail: { message: "Error al guardar la sesión.", severity: "error" } }),
       );
+      return false;
     } finally {
       setSaving(false);
     }
@@ -121,6 +131,7 @@ export function useSessionForm({ teamId, navigate, returnTo, microcicloId, date,
     saving,
     error,
     savedSessionId,
+    hasUnsavedChanges,
     loadSession,
     handleCancel,
     handleSave,

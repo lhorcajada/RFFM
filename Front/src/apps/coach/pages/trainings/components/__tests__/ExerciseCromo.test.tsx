@@ -9,7 +9,6 @@ function buildExercise(overrides: Partial<Exercise> = {}): Exercise {
     name: "Ejercicio de prueba",
     tipo: "Situacional",
     objetivo: "Objetivo",
-    modelRelations: [],
     nivelesColumnas: ["Palanca 1"],
     niveles: [
       { nivel: 1, valores: {} },
@@ -17,7 +16,6 @@ function buildExercise(overrides: Partial<Exercise> = {}): Exercise {
     ],
     logistica: "10 min",
     descripcion: "Desc",
-    isAssociatedToGameModel: false,
     ...overrides,
   };
 }
@@ -65,24 +63,16 @@ describe("ExerciseCromo", () => {
     expect(screen.queryByTestId("subtipo-chip")).not.toBeInTheDocument();
   });
 
-  it("muestra el chip 'Asociado al modelo' cuando isAssociatedToGameModel es true", () => {
-    render(
-      <ExerciseCromo
-        exercise={buildExercise({ isAssociatedToGameModel: true })}
-        onEdit={vi.fn()}
-        onDuplicate={vi.fn()}
-        onPrint={vi.fn()}
-        onDelete={vi.fn()}
-      />
-    );
+  it("no muestra nada del modelo de juego aunque el ejercicio llegue con relaciones guardadas", () => {
+    const legacyExercise = {
+      ...buildExercise(),
+      isAssociatedToGameModel: true,
+      modelRelations: [{ id: "rel-1", subprincipioNumero: "1.1", subprincipioTitulo: "Presión alta", isFoco: true, items: [] }],
+    };
 
-    expect(screen.getByText(/asociado al modelo/i)).toBeInTheDocument();
-  });
-
-  it("no muestra el chip 'Asociado al modelo' cuando isAssociatedToGameModel es false", () => {
-    render(
+    const { container } = render(
       <ExerciseCromo
-        exercise={buildExercise({ isAssociatedToGameModel: false })}
+        exercise={legacyExercise}
         onEdit={vi.fn()}
         onDuplicate={vi.fn()}
         onPrint={vi.fn()}
@@ -91,37 +81,8 @@ describe("ExerciseCromo", () => {
     );
 
     expect(screen.queryByText(/asociado al modelo/i)).not.toBeInTheDocument();
-  });
-
-  it("renderiza un chip por cada relación con el modelo (Subprincipio) sin chips de SubSubPrincipios ni Habilidades", () => {
-    render(
-      <ExerciseCromo
-        exercise={buildExercise({
-          isAssociatedToGameModel: true,
-          modelRelations: [
-            {
-              id: "rel-1",
-              subprincipioId: "sub-1",
-              subprincipioNumero: "1.1",
-              subprincipioTitulo: "Presión alta",
-              isFoco: true,
-              habilidadesImprescindibles: ["Pase"],
-              items: [
-                { id: "item-1", subSubPrincipioId: "ssp-1", subSubPrincipioNumero: "1.1.1", subSubPrincipioRol: "Central", isFoco: false },
-              ],
-            },
-          ],
-        })}
-        onEdit={vi.fn()}
-        onDuplicate={vi.fn()}
-        onPrint={vi.fn()}
-        onDelete={vi.fn()}
-      />
-    );
-
-    expect(screen.getByText(/1\.1.*Presión alta/)).toBeInTheDocument();
-    expect(screen.queryByText(/1\.1\.1.*Central/)).not.toBeInTheDocument();
-    expect(screen.queryByText("Pase")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Presión alta/)).not.toBeInTheDocument();
+    expect(container.querySelector('[data-testid="model-chips-row"]')).not.toBeInTheDocument();
   });
 
   it("muestra la duración cuando durationMinutes está establecido", () => {
@@ -136,19 +97,5 @@ describe("ExerciseCromo", () => {
     );
 
     expect(screen.getByText("15")).toBeInTheDocument();
-  });
-
-  it("no renderiza ninguna fila de chips de modelo cuando modelRelations está vacío", () => {
-    const { container } = render(
-      <ExerciseCromo
-        exercise={buildExercise({ modelRelations: [] })}
-        onEdit={vi.fn()}
-        onDuplicate={vi.fn()}
-        onPrint={vi.fn()}
-        onDelete={vi.fn()}
-      />
-    );
-
-    expect(container.querySelector('[data-testid="model-chips-row"]')).not.toBeInTheDocument();
   });
 });

@@ -188,6 +188,21 @@ describe("compareFairness", () => {
     expect(result.criterion).toBe("rating");
   });
 
+  it("ante rival difícil el menor nivel decide antes que las jornadas seguidas y el excedente", () => {
+    const weak = metrics({ rating: 5, consecutive: 1, surplus: 0 });
+    const strong = metrics({ rating: 8, consecutive: 9, surplus: 5 });
+
+    expect(compareFairness(weak, strong, "hard")).toMatchObject({ criterion: "rating" });
+    expect(compareFairness(weak, strong, "hard").order).toBeLessThan(0);
+  });
+
+  it("ante rival difícil una diferencia de nivel menor que medio punto se considera empate", () => {
+    const a = metrics({ rating: 6.0, consecutive: 5 });
+    const b = metrics({ rating: 6.2, consecutive: 2 });
+
+    expect(compareFairness(a, b, "hard").criterion).toBe("consecutive");
+  });
+
   it("ante rival fácil o medio el nivel decide el último, tras la asistencia", () => {
     const hardFirst = metrics({ rating: 5, technicalTotal: 3 });
     const other = metrics({ rating: 7, technicalTotal: 0 });

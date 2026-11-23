@@ -12,6 +12,8 @@ import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import configurationCoachService from "../../services/configurationCoachService";
 import { getSportEventById } from "../../services/sportEventService";
+import { publishConvocation } from "../../services/convocationService";
+import ConfirmDialog from "../../../../shared/components/ui/ConfirmDialog/ConfirmDialog";
 import ConvocationTab from "./components/ConvocationTab";
 import DesconvocatoriasTab from "./components/DesconvocatoriasTab";
 import ConvocatoriaPrint, { type ConvocatoriaPrintHandle } from "./components/ConvocatoriaPrint";
@@ -28,7 +30,9 @@ import { useLatestTraitRatings } from "./hooks/useLatestTraitRatings";
 import { useMatchMinutes } from "./hooks/useMatchMinutes";
 import { buildLastMatchMinutes } from "./utils/lastMatchMinutes";
 import { usePositionFitOrder } from "./hooks/usePositionFitOrder";
-import { useRivalDifficulty } from "./hooks/useRivalDifficulty";
+import { useRivalOutlook } from "./hooks/useRivalDifficulty";
+import { useUpcomingProposals } from "./hooks/useUpcomingProposals";
+import { useManualDeconvocationOrder } from "./hooks/useManualDeconvocationOrder";
 import { leagueTechnicalTotals } from "./utils/technicalTotals";
 import { resolveRule } from "./utils/rules/ruleCatalog";
 import { buildMatchUnavailability } from "./utils/matchUnavailability";
@@ -168,6 +172,38 @@ export default function ConvocationMatchDetail() {
   // Data hooks
   const convocation = useConvocationManagement(teamId, match?.date);
 
+  // League matches only: the convocation is a coach-only draft until the coach publishes it.
+  const [leaguePublication, setLeaguePublication] = useState<{ published: boolean } | null>(null);
+  const isLeagueDraft = leaguePublication !== null && !leaguePublication.published;
+  const hideDraftFromViewer = isPlayer && isLeagueDraft;
+  const [publishConfirmOpen, setPublishConfirmOpen] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+
+  const handlePublishConfirmed = useCallback(async () => {
+    const eventId = convocation.mgmtEventId;
+    if (!eventId) return;
+    setPublishing(true);
+    try {
+      await publishConvocation(eventId);
+      setLeaguePublication({ published: true });
+      window.dispatchEvent(
+        new CustomEvent("rffm.show_snackbar", {
+          detail: { message: "Convocatoria publicada", severity: "success" },
+        }),
+      );
+    } catch {
+      window.dispatchEvent(
+        new CustomEvent("rffm.show_snackbar", {
+          detail: { message: "No se pudo publicar la convocatoria. Inténtalo de nuevo.", severity: "error" },
+        }),
+      );
+    } finally {
+      setPublishing(false);
+      setPublishConfirmOpen(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [convocation.mgmtEventId]);
+
   useEffect(() => {
     if (!convocation.mgmtEventId) return;
     let mounted = true;
@@ -178,6 +214,9 @@ export default function ConvocationMatchDetail() {
         // to (router state) — refresh it from the server so a kit saved in a previous
         // visit isn't lost when the page is re-entered.
         setSelectedKitNumber(event?.selectedKitNumber ?? null);
+        setLeaguePublication(
+          event?.matchCategory === "League" ? { published: event.convocationPublished === true } : null,
+        );
       })
       .catch(() => {});
     return () => {
@@ -198,6 +237,7 @@ export default function ConvocationMatchDetail() {
     lastInjuryEndMap,
     lastInjuryStartMap,
     lastInjuryMissedEventsMap,
+    injuryReturnMap,
     weekTrainingStatsMap,
     weekTrainingCount,
     loadingProposalContext,
@@ -252,7 +292,7 @@ export default function ConvocationMatchDetail() {
     [convocation.players, grid.matchColumns, grid.enrichedGrid],
   );
 
-  const rivalDifficulty = useRivalDifficulty(teamId, proposalRivalName, deconvocationRules);
+  const { difficulty: rivalDifficulty, winProbability: rivalWinProbability, rivalPosition, upcoming: upcomingDifficulties, upcomingMatches } = useRivalOutlook(teamId, proposalRivalName, deconvocationRules, match?.date);
 
   const squadIds = useMemo(() => convocation.players.map((p) => p.id), [convocation.players]);
   const alreadyOutIds = useMemo(() => new Set(convocation.mgmtNotCalled), [convocation.mgmtNotCalled]);
@@ -276,10 +316,15 @@ export default function ConvocationMatchDetail() {
     [matchMinutes, grid.matchColumns],
   );
 
-  const proposal = useConvocationProposal({
+  const proposalInput = {
     lastMatchMinutes,
     rules: deconvocationRules,
     rivalDifficulty,
+    upcomingDifficulties,
+    rivalWinProbability,
+    upcomingWinProbabilities: upcomingMatches.map((m) => m.winProbability),
+    rivalPosition,
+    upcomingRivalPositions: upcomingMatches.map((m) => m.rivalPosition),
     positionFit,
     players: convocation.players,
     squadIds,
@@ -301,6 +346,18 @@ export default function ConvocationMatchDetail() {
     weekTrainingCount,
     gridStartsCountMap,
     matchUnavailable,
+  };
+  const automaticProposal = useConvocationProposal(proposalInput);
+  const { proposal, moveInOrder, resetOrder } = useManualDeconvocationOrder(automaticProposal, {
+    players: convocation.players,
+    rules: deconvocationRules,
+  });
+  const upcomingProposals = useUpcomingProposals({
+    proposalInput,
+    proposal,
+    upcomingMatches,
+    injuryReturn: injuryReturnMap,
+    enabled: proposalEnabled,
   });
 
   const handleApplyProposal = useCallback(
@@ -313,9 +370,14 @@ export default function ConvocationMatchDetail() {
         if (alreadyNotCalled.has(id)) continue;
         await convocation.moveToNotCalled(id, technicalExcuseId);
       }
+      resetOrder();
     },
-    [convocation],
+    [convocation, resetOrder],
   );
+  const handleRefreshProposal = useCallback(async () => {
+    resetOrder();
+    await reloadDeconvocationRules();
+  }, [resetOrder, reloadDeconvocationRules]);
   // Alineación, Simular Partido y Partido en directo se abren a pantalla completa.
   const openFullScreen = useCallback(
     (screen: "lineup" | "simulation" | "live") => {
@@ -384,6 +446,9 @@ export default function ConvocationMatchDetail() {
                 : () => openFullScreen("live")
             }
             readOnly={isPlayer}
+            onPublishConvocation={
+              !isPlayer && isLeagueDraft ? () => setPublishConfirmOpen(true) : undefined
+            }
           />
         }
       >
@@ -403,14 +468,20 @@ export default function ConvocationMatchDetail() {
           />
           <Tab
             className={styles.tab}
-            label={<TabLabel text="Convocatoria" count={convocation.mgmtCalled.length} />}
+            label={<TabLabel text="Convocatoria" count={hideDraftFromViewer ? null : convocation.mgmtCalled.length} />}
             value={CONVOCATION_TAB.Convocatoria}
           />
           {!isPlayer && <Tab className={styles.tab} label="Alineación" value={CONVOCATION_TAB.Alineacion} />}
           {!isPlayer && <Tab className={styles.tab} label="Simular Partido" value={CONVOCATION_TAB.Simulacion} />}
         </Tabs>
 
-        {tab === CONVOCATION_TAB.Convocatoria && (
+        {tab === CONVOCATION_TAB.Convocatoria && hideDraftFromViewer && (
+          <Alert severity="info" sx={{ mt: 2 }}>
+            La convocatoria aún no está publicada. Podrás verla cuando el entrenador la publique.
+          </Alert>
+        )}
+
+        {tab === CONVOCATION_TAB.Convocatoria && !hideDraftFromViewer && (
           <ConvocationTab
             mgmtEventId={convocation.mgmtEventId}
             mgmtLoadingConv={convocation.mgmtLoadingConv}
@@ -438,16 +509,20 @@ export default function ConvocationMatchDetail() {
             onDrop={convocation.handleDrop}
             onCallPlayers={convocation.handleCallPlayers}
             onDeconvokePlayer={(playerId, excuseId) => convocation.moveToNotCalled(playerId, excuseId)}
+            onMoveToWaiting={isPlayer ? undefined : convocation.moveToWaiting}
             onExcuseChange={(pid, excuseId) =>
               convocation.setMgmtExcuseMap((prev) => ({ ...prev, [pid]: excuseId }))
             }
             playerStreaks={playerStreaks}
             proposal={proposal}
+            upcomingProposals={upcomingProposals}
             proposalLoading={loadingProposalContext || grid.isLoading || convocation.loadingPlayers}
             teamId={teamId}
             rules={deconvocationRules}
             fitContext={fitContext}
-            onRefreshProposal={reloadDeconvocationRules}
+            onRefreshProposal={handleRefreshProposal}
+            onMoveInOrder={moveInOrder}
+            onResetOrder={resetOrder}
             onApplyProposal={handleApplyProposal}
             readinessMap={readinessMap}
             recoveringIds={recoveringIds}
@@ -486,6 +561,16 @@ export default function ConvocationMatchDetail() {
             currentNotCalled={convocation.mgmtNotCalled}
           />
         )}
+
+        <ConfirmDialog
+          open={publishConfirmOpen}
+          title="Publicar convocatoria"
+          description="Los jugadores y sus familias podrán ver la convocatoria y recibirán un aviso. ¿Quieres publicarla?"
+          confirmText="Publicar"
+          processing={publishing}
+          onCancel={() => setPublishConfirmOpen(false)}
+          onConfirm={handlePublishConfirmed}
+        />
 
         {/* "Ver convocatoria" dialog — on-screen version of the WhatsApp export */}
         <ConvocationDetailsDialog

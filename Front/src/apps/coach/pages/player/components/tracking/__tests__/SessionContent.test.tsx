@@ -2,8 +2,21 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 
 vi.mock("../SessionExerciseCard", () => ({
-  default: ({ blockExercise, exercise }: { blockExercise: { name?: string }; exercise?: { id: string } }) => (
-    <div>{`tarjeta:${blockExercise.name}:${exercise ? "completo" : "basico"}`}</div>
+  default: ({
+    blockExercise,
+    exercise,
+    habilidades = [],
+  }: {
+    blockExercise: { name?: string };
+    exercise?: { id: string };
+    habilidades?: { titulo: string; habilidades: string[] }[];
+  }) => (
+    <div>
+      <div>{`tarjeta:${blockExercise.name}:${exercise ? "completo" : "basico"}`}</div>
+      {habilidades.map((group) => (
+        <div key={group.titulo}>{`habilidades:${blockExercise.name}:${group.titulo}=${group.habilidades.join("/")}`}</div>
+      ))}
+    </div>
   ),
 }));
 
@@ -55,6 +68,59 @@ describe("SessionContent", () => {
     expect(blocks).toEqual(["Parte principal", "Parte final"]);
     const cards = screen.getAllByText(/^tarjeta:/).map((c) => c.textContent);
     expect(cards).toEqual(["tarjeta:Rondo 4x4+3:completo", "tarjeta:Transiciones 6x6:basico", "tarjeta:Partido condicionado:basico"]);
+  });
+
+  it("da a cada ejercicio las mismas habilidades de la sesión, agrupadas por subprincipio y solo las de los subprincipios que trabaja", () => {
+    const detail: TrainingSessionDetail = {
+      ...DETAIL,
+      targets: [
+        {
+          subSubPrincipioId: "ssp-1",
+          rol: "Extremo",
+          numero: "2.3.1",
+          subprincipioId: "s-23",
+          subprincipioTitulo: "Circular para desordenar",
+          principioId: "p-2",
+          principioTitulo: "Ataque posicional",
+          gameMomentId: 2,
+          gameMomentName: "Ataque organizado",
+        },
+        {
+          subSubPrincipioId: "ssp-2",
+          rol: "Todos",
+          numero: "4.1.1",
+          subprincipioId: "s-41",
+          subprincipioTitulo: "Asegurar tras robo",
+          principioId: "p-4",
+          principioTitulo: "Transición",
+          gameMomentId: 3,
+          gameMomentName: "Transición defensa-ataque",
+        },
+      ],
+    };
+
+    render(
+      <SessionContent
+        detail={detail}
+        loading={false}
+        exercisesById={new Map()}
+        teamId="team-1"
+        habilidades={new Map([["s-23", ["Pase", "Percepción"]]])}
+      />,
+    );
+
+    const groups = screen.getAllByText(/^habilidades:/).map((g) => g.textContent);
+    expect(groups).toEqual([
+      "habilidades:Rondo 4x4+3:Circular para desordenar=Pase/Percepción",
+      "habilidades:Transiciones 6x6:Circular para desordenar=Pase/Percepción",
+      "habilidades:Partido condicionado:Circular para desordenar=Pase/Percepción",
+    ]);
+  });
+
+  it("no da habilidades a los ejercicios cuando la sesión no tiene ninguna", () => {
+    render(<SessionContent detail={DETAIL} loading={false} exercisesById={new Map()} teamId="team-1" />);
+
+    expect(screen.queryByText(/^habilidades:/)).not.toBeInTheDocument();
   });
 
   it("muestra la hora, el lugar y el evento de la sesión", () => {

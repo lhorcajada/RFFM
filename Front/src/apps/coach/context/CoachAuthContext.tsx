@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from "react";
-import { coachAuthService } from "../services/authService";
+import { coachAuthService, decodeJwtPayload } from "../services/authService";
+import { traceAuth } from "../../../core/diagnostics/authTrace";
 import { useNavigate, useLocation } from "react-router-dom";
 import useTempToken from "../hooks/useTempToken";
 import { mapApiErrorToMessage } from "../../../shared/utils/errorMessages";
@@ -34,7 +35,8 @@ export const CoachAuthProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     function handleAuthExpired() {
       // perform logout and force redirect to login
-      coachAuthService.logout();
+      traceAuth("auth.expired_event", { path: window.location?.pathname });
+      coachAuthService.logout("auth_expired_event");
       setIsAuthenticated(false);
       setUser(null as any);
       try {
@@ -120,13 +122,18 @@ export const CoachAuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
       // Decodificar el JWT para extraer userId
       const tokenStr = data.token || data;
-      const tokenParser = JSON.parse(atob(tokenStr.split(".")[1]));
+      const tokenParser = decodeJwtPayload(tokenStr) ?? {};
       const extractedUserId =
         tokenParser[
           "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"
         ] || tokenParser.sub;
 
       localStorage.setItem("coachUserId", extractedUserId);
+      traceAuth("login.success", {
+        tokenStored: localStorage.getItem("coachAuthToken") === tokenStr,
+        hasUserId: Boolean(extractedUserId),
+        authenticatedAfterStore: coachAuthService.isAuthenticated(),
+      });
 
       // Actualizar estado
       setIsAuthenticated(true);
@@ -147,16 +154,17 @@ export const CoachAuthProvider: React.FC<{ children: React.ReactNode }> = ({
         );
       } catch (e) {}
 
-      try {
-        if (typeof window !== "undefined") {
-          window.location.href = "/appSelector";
-        }
-      } catch (e) {}
-
+      // La navegación a la pantalla siguiente la hace el componente de login (SPA);
+      // una recarga completa aquí aborta las peticiones en vuelo y en iOS se
+      // interpretan como errores de red.
       return { success: true };
     } catch (error: any) {
       setIsAuthenticated(false);
       setUserId(null);
+      traceAuth("login.failed", {
+        status: error?.response?.status ?? null,
+        message: String(error?.message ?? error),
+      });
 
       const errorMessage = mapApiErrorToMessage(error);
       return {
@@ -169,7 +177,7 @@ export const CoachAuthProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const logout = () => {
-    coachAuthService.logout();
+    coachAuthService.logout("user_logout");
     setIsAuthenticated(false);
     setUserId(null);
   };

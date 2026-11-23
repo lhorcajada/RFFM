@@ -29,6 +29,8 @@ export async function getClubEmblem(
   if (!id) throw new Error("id is required");
   const resp = await client.get<ArrayBuffer>(`/api/catalog/club/${id}/emblem`, {
     responseType: "arraybuffer",
+    // The emblem is optional: callers fall back to a placeholder instead of the error page.
+    suppressErrorRedirect: true,
   } as any);
 
   const contentType =

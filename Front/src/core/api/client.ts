@@ -1,5 +1,6 @@
 import axios from "axios";
 import { coachAuthService } from "../../apps/coach/services/authService";
+import { traceAuth } from "../diagnostics/authTrace";
 import {
   clearStaleSession,
   registerErrorRedirect,
@@ -11,6 +12,8 @@ import {
 declare module "axios" {
   export interface AxiosRequestConfig {
     suppressErrorRedirect?: boolean;
+    /** Network-error retries already made for this request (see the response interceptor). */
+    retryCount?: number;
   }
 }
 
@@ -70,12 +73,80 @@ function notifyAuthExpiredOnce() {
   }
 }
 
-function gotoErrorPage(reason?: string) {
+// Mobile WebKit (iOS) rejects in-flight XHRs without a response when the page is
+// being unloaded (e.g. a full-page redirect right after login). Those aborts are not
+// real network failures and must not feed the error-redirect / session-reset loop.
+let pageUnloading = false;
+if (typeof window !== "undefined") {
+  window.addEventListener("pagehide", () => {
+    pageUnloading = true;
+  });
+  window.addEventListener("pageshow", () => {
+    pageUnloading = false;
+  });
+}
+
+// A burst of GETs right after login can fail all at once on mobile Safari (dropped or reset
+// connection): a short retry recovers them without bothering the user.
+const NETWORK_RETRIES = 2;
+const NETWORK_RETRY_DELAY_MS = 400;
+
+function hasAuthorizationHeader(config: any): boolean {
+  const headers = config?.headers;
+  if (!headers) return false;
+  return Boolean(headers.Authorization ?? headers.authorization ?? headers.get?.("Authorization"));
+}
+
+/** Full URL of a request, query string included, as the browser asked for it. */
+function fullRequestUrl(config: any): string {
+  const base = String(config?.baseURL ?? "");
+  const path = String(config?.url ?? "");
+  const root = /^https?:\/\//i.test(path) ? path : `${base.replace(/\/$/, "")}/${path.replace(/^\//, "")}`;
+  try {
+    const query = new URLSearchParams();
+    Object.entries((config?.params ?? {}) as Record<string, unknown>).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) query.append(key, String(value));
+    });
+    const text = query.toString();
+    return text ? `${root}${root.includes("?") ? "&" : "?"}${text}` : root;
+  } catch {
+    return root;
+  }
+}
+
+/** Optional file/image requests never redirect on failure, so their failures are only visible in the trace. */
+function traceFileError(error: any) {
+  const config = error?.config;
+  const binary = config?.responseType === "blob" || config?.responseType === "arraybuffer";
+  if (!binary || config?.suppressErrorRedirect !== true) return;
+  traceAuth("http.file_error", {
+    method: config?.method,
+    fullUrl: fullRequestUrl(config),
+    code: error?.code,
+    status: error?.response?.status ?? null,
+    hasAuthHeader: hasAuthorizationHeader(config),
+    online: typeof navigator !== "undefined" ? navigator.onLine : null,
+  });
+}
+
+function gotoErrorPage(reason?: string, error?: any) {
+  if (pageUnloading) return;
   const suffix = reason ? `?reason=${encodeURIComponent(reason)}` : "";
   let path = `/error-500${suffix}`;
-  // Repeated error redirects in a short window mean the stored session is likely
-  // stale and the app boots into the same failure every time: reset it once.
-  if (registerErrorRedirect()) {
+  traceAuth("http.error_redirect", {
+    reason: reason ?? "500",
+    method: error?.config?.method,
+    url: error?.config?.url,
+    code: error?.code,
+    hasAuthHeader: hasAuthorizationHeader(error?.config),
+    retryCount: error?.config?.retryCount ?? 0,
+    online: typeof navigator !== "undefined" ? navigator.onLine : null,
+  });
+  // Repeated server-error redirects in a short window mean the stored session is likely
+  // stale and the app boots into the same failure every time: reset it once. A network or
+  // timeout failure says nothing about the session, so it never wipes a valid token.
+  const transportFailure = reason === "network" || reason === "timeout";
+  if (!transportFailure && registerErrorRedirect()) {
     clearStaleSession();
     resetErrorRedirects();
     path = "/login";
@@ -97,12 +168,17 @@ client.interceptors.response.use(
   (resp) => resp,
   (error) => {
     try {
+      traceFileError(error);
       const status = error?.response?.status;
       // If unauthorized, notify app so it can ask user to re-authenticate
       if (status === 401) {
         try {
+          traceAuth("http.401", {
+            method: error?.config?.method,
+            url: error?.config?.url,
+          });
           try {
-            coachAuthService.logout();
+            coachAuthService.logout("http_401");
           } catch (e) {}
           notifyAuthExpiredOnce();
         } catch (e) {
@@ -116,15 +192,27 @@ client.interceptors.response.use(
       if (!error?.response) {
         // axios uses code 'ECONNABORTED' for timeouts
         if (error?.code === "ECONNABORTED") {
-          if (!suppressRedirect) gotoErrorPage("timeout");
+          if (!suppressRedirect) gotoErrorPage("timeout", error);
         } else {
-          if (!suppressRedirect) gotoErrorPage("network");
+          const config = error?.config;
+          const attempts: number = config?.retryCount ?? 0;
+          const retryable =
+            String(config?.method ?? "").toLowerCase() === "get" &&
+            !suppressRedirect &&
+            !pageUnloading &&
+            attempts < NETWORK_RETRIES;
+          if (retryable) {
+            return new Promise((resolve) => setTimeout(resolve, NETWORK_RETRY_DELAY_MS * (attempts + 1))).then(() =>
+              client.request({ ...config, retryCount: attempts + 1 }),
+            );
+          }
+          if (!suppressRedirect) gotoErrorPage("network", error);
         }
         return Promise.reject(error);
       }
 
       if (status === 500) {
-        if (!suppressRedirect) gotoErrorPage();
+        if (!suppressRedirect) gotoErrorPage(undefined, error);
         return Promise.reject(error);
       }
     } catch (e) {
@@ -156,7 +244,7 @@ client.interceptors.request.use(
           // proactively remove it and notify the app once so it can log out and prompt for credentials.
           if (!coachAuthService.isAuthenticated()) {
             try {
-              coachAuthService.logout();
+              coachAuthService.logout("request_with_expired_token");
             } catch (e) {}
             try {
               notifyAuthExpiredOnce();

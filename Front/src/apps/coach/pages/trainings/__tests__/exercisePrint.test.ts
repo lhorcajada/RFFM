@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { buildExercisePrintHtml, mediaUrl } from "../exercisePrint";
+import { buildExercisePrintHtml, buildExerciseSheetHtml, mediaUrl } from "../exercisePrint";
 import type { Exercise } from "../../../types/training";
+import boardStyles from "../../../components/TacticalBoardSnapshotPreview.module.css";
 
 function buildExercise(overrides: Partial<Exercise> = {}): Exercise {
   return {
@@ -8,15 +9,16 @@ function buildExercise(overrides: Partial<Exercise> = {}): Exercise {
     name: "Rondo 4v2",
     tipo: "Situacional",
     objetivo: "Mejorar la posesión",
-    modelRelations: [],
     nivelesColumnas: [],
     niveles: [],
-    logistica: "15 min · 6 conos · 6 jugadores",
-    descripcion: "Descripción del ejercicio",
-    isAssociatedToGameModel: false,
+    logistica: "",
+    descripcion: "",
     ...overrides,
   };
 }
+
+const rightHalfBoard = JSON.stringify({ placedChapas: { p1: { x: 30, y: 30 }, p2: { x: 70, y: 60 } } });
+const fullPitchBoard = JSON.stringify({ placedChapas: { p1: { x: -30, y: 30 }, p2: { x: 30, y: 60 } } });
 
 describe("buildExercisePrintHtml", () => {
   it("incluye el nombre, tipo y duración del ejercicio", () => {
@@ -31,142 +33,162 @@ describe("buildExercisePrintHtml", () => {
     expect(html).toContain("Partido condicionado");
   });
 
-  it("incluye el objetivo por rol solo cuando está presente", () => {
-    const withRole = buildExercisePrintHtml(buildExercise({ objetivoPorRol: "Pivote: recibe de espaldas" }));
-    expect(withRole).toContain("Pivote: recibe de espaldas");
-
-    const withoutRole = buildExercisePrintHtml(buildExercise({ objetivoPorRol: null }));
-    expect(withoutRole).not.toContain("Objetivo por rol");
+  it("imprime en una hoja A4 apaisada", () => {
+    const html = buildExercisePrintHtml(buildExercise());
+    expect(html).toContain("@page { size: A4 landscape");
+    expect(html.match(/<section class="ficha">/g)).toHaveLength(1);
   });
 
-  it("incluye porteros y dibujo solo cuando están presentes", () => {
-    const html = buildExercisePrintHtml(
-      buildExercise({ porteros: "2 porteros en portería pequeña", dibujo: "Ver pizarra adjunta" }),
-    );
-    expect(html).toContain("2 porteros en portería pequeña");
-    expect(html).toContain("Ver pizarra adjunta");
-
-    const empty = buildExercisePrintHtml(buildExercise({ porteros: null, dibujo: null }));
-    expect(empty).not.toContain("Porteros");
-    expect(empty).not.toContain("Dibujo");
-  });
-
-  it("renderiza la tabla de niveles cuando hay columnas definidas", () => {
-    const html = buildExercisePrintHtml(
-      buildExercise({
-        nivelesColumnas: ["Espacio", "Nº jugadores"],
-        niveles: [
-          { nivel: 1, valores: { Espacio: "Reducido", "Nº jugadores": "4v2" } },
-          { nivel: 2, valores: { Espacio: "Amplio", "Nº jugadores": "5v3" } },
-        ],
-      }),
-    );
-    expect(html).toContain("<table");
-    expect(html).toContain("Espacio");
-    expect(html).toContain("Nº jugadores");
-    expect(html).toContain("Reducido");
-    expect(html).toContain("4v2");
-    expect(html).toContain("Amplio");
-    expect(html).toContain("5v3");
-  });
-
-  it("no renderiza tabla de niveles cuando no hay columnas", () => {
-    const html = buildExercisePrintHtml(buildExercise({ nivelesColumnas: [], niveles: [] }));
-    expect(html).not.toContain("<table");
-  });
-
-  it("no renderiza tabla de niveles cuando ningún nivel tiene valores", () => {
-    const html = buildExercisePrintHtml(
-      buildExercise({
-        nivelesColumnas: ["Palanca 1"],
-        niveles: [
-          { nivel: 1, valores: {} },
-          { nivel: 2, valores: { "Palanca 1": "  " } },
-        ],
-      }),
-    );
-    expect(html).not.toContain("<table");
-  });
-
-  it("omite los niveles sin valores y mantiene los rellenados", () => {
-    const html = buildExercisePrintHtml(
-      buildExercise({
-        nivelesColumnas: ["Palanca 1"],
-        niveles: [
-          { nivel: 1, valores: {} },
-          { nivel: 2, valores: { "Palanca 1": "Más espacio" } },
-        ],
-      }),
-    );
-    expect(html).toContain("Más espacio");
-    expect(html).not.toContain('<td class="nivel-cell">1</td>');
-  });
-
-  it("incluye chips de relación con el modelo", () => {
-    const html = buildExercisePrintHtml(
-      buildExercise({
-        isAssociatedToGameModel: true,
-        modelRelations: [
-          {
-            id: "rel-1",
-            subprincipioId: "sub-1",
-            subprincipioNumero: "1.1",
-            subprincipioTitulo: "Presión alta",
-            isFoco: true,
-            habilidadesImprescindibles: ["Pase"],
-            items: [
-              {
-                id: "item-1",
-                subSubPrincipioId: "ssp-1",
-                subSubPrincipioNumero: "1.1.1",
-                subSubPrincipioRol: "Central",
-                isFoco: false,
-              },
-            ],
-          },
-        ],
-      }),
-    );
-    expect(html).toContain("1.1");
-    expect(html).toContain("Presión alta");
-    expect(html).toContain("1.1.1");
-    expect(html).toContain("Central");
-    expect(html).toContain("Pase");
-  });
-
-  it("usa la imagen subida (urlImage) cuando está presente", () => {
+  it("usa la imagen subida (urlImage) como dibujo cuando está presente", () => {
     const html = buildExercisePrintHtml(buildExercise({ urlImage: "exercises/foo.png" }));
     expect(html).toContain("<img");
     expect(html).toContain(mediaUrl("exercises/foo.png"));
   });
 
-  it("incrusta el marcado de la pizarra táctica cuando no hay imagen subida", () => {
-    const html = buildExercisePrintHtml(
-      buildExercise({ urlImage: null }),
-      '<div class="board"><div class="pitch"><div class="chapa">9</div></div></div>',
-    );
-    expect(html).toContain('<div class="board">');
-    expect(html).toContain('<div class="chapa">9</div>');
-  });
-
   it("prioriza la imagen subida sobre la pizarra táctica si ambas existen", () => {
     const html = buildExercisePrintHtml(
-      buildExercise({ urlImage: "exercises/foo.png" }),
-      '<div class="board">pizarra</div>',
+      buildExercise({ urlImage: "exercises/foo.png", boardStateJson: rightHalfBoard }),
     );
     expect(html).toContain(mediaUrl("exercises/foo.png"));
-    expect(html).not.toContain("pizarra");
+    expect(html).not.toContain("Vista previa de la pizarra");
   });
 
-  it("no renderiza imagen ni pizarra cuando no hay urlImage ni dibujo de pizarra", () => {
-    const html = buildExercisePrintHtml(buildExercise({ urlImage: null }));
+  it("pinta la pizarra táctica cuando no hay imagen subida", () => {
+    const html = buildExercisePrintHtml(buildExercise({ boardStateJson: rightHalfBoard }));
+    expect(html).toContain("Vista previa de la pizarra");
     expect(html).not.toContain("<img");
-    expect(html).not.toContain('<div class="board-drawing">');
   });
 
-  it("escapa HTML en campos de texto libre", () => {
-    const html = buildExercisePrintHtml(buildExercise({ descripcion: "<script>alert(1)</script>" }));
+  it("recorta el dibujo al medio campo cuando todos los objetos están en una mitad", () => {
+    const html = buildExerciseSheetHtml(buildExercise({ boardStateJson: rightHalfBoard }));
+    expect(html).toContain("ficha-drawing--half");
+    expect(html).toContain('data-viewport="right"');
+  });
+
+  it("imprime el campo completo cuando el dibujo usa las dos mitades", () => {
+    const html = buildExerciseSheetHtml(buildExercise({ boardStateJson: fullPitchBoard }));
+    expect(html).toContain("ficha-drawing--full");
+    expect(html).not.toContain("data-viewport=");
+  });
+
+  it("imprime el campo de la pizarra con fondo blanco y líneas negras", () => {
+    const html = buildExercisePrintHtml(buildExercise({ boardStateJson: rightHalfBoard }));
+    expect(html).toContain(`.${boardStyles.pitch}, .${boardStyles.mirrorHalf} { background: #fff`);
+    expect(html).toContain(`.${boardStyles.midLine}, .${boardStyles.goalLine} { background: #000`);
+  });
+
+  it("resuelve dorsal y alias de los jugadores con el roster recibido", () => {
+    const boardStateJson = JSON.stringify({ placedChapas: { "player-1": { x: 10, y: 10 } } });
+    const playersById = new Map([["player-1", { alias: "Ani", dorsal: 9 }]]);
+    const html = buildExercisePrintHtml(buildExercise({ boardStateJson }), { playersById });
+    expect(html).toContain("Ani");
+    expect(html).toContain(">9<");
+  });
+
+  it("muestra «Sin dibujo» y sigue ocupando una página cuando no hay imagen ni dibujo", () => {
+    const html = buildExercisePrintHtml(buildExercise({ urlImage: null, boardStateJson: null }));
+    expect(html).toContain("Sin dibujo");
+    expect(html).not.toContain("<img");
+    expect(html.match(/<section class="ficha">/g)).toHaveLength(1);
+  });
+
+  it("trata una pizarra sin objetos como un ejercicio sin dibujo", () => {
+    const html = buildExercisePrintHtml(buildExercise({ boardStateJson: JSON.stringify({ placedChapas: {} }) }));
+    expect(html).toContain("Sin dibujo");
+  });
+
+  it("escapa HTML en los campos de texto libre", () => {
+    const html = buildExercisePrintHtml(
+      buildExercise({ name: "<b>Nombre</b>", puntos: ["<script>alert(1)</script>"] }),
+    );
     expect(html).not.toContain("<script>alert(1)</script>");
+    expect(html).not.toContain("<b>Nombre</b>");
     expect(html).toContain("&lt;script&gt;");
+  });
+
+  it("no incluye ninguna tabla", () => {
+    const html = buildExercisePrintHtml(
+      buildExercise({
+        nivelesColumnas: ["Espacio"],
+        niveles: [{ nivel: 1, valores: { Espacio: "8x8" } }],
+      }),
+    );
+    expect(html).not.toContain("<table");
+    expect(html).not.toContain("<td");
+  });
+
+  it("la hoja de un ejercicio suelto no lleva línea del modelo de juego", () => {
+    expect(buildExercisePrintHtml(buildExercise())).not.toContain('<div class="ficha-modelo">');
+  });
+
+  it("el pie de la hoja de un ejercicio suelto queda vacío", () => {
+    const html = buildExercisePrintHtml(buildExercise());
+    expect(html).toContain('<footer class="ficha-footer"></footer>');
+  });
+});
+
+describe("buildExerciseSheetHtml — subtítulo y bloques", () => {
+  it("compone el subtítulo con espacio, turno y nivel del dibujo", () => {
+    const html = buildExerciseSheetHtml(
+      buildExercise({
+        espacio: "20x30 m",
+        turnoMinutos: 3,
+        nivelDibujo: 2,
+        nivelesColumnas: ["Toques"],
+        niveles: [
+          { nivel: 1, valores: { Toques: "libres" } },
+          { nivel: 2, valores: { Toques: "2 toques" } },
+        ],
+      }),
+    );
+    expect(html).toContain("Espacio: 20x30 m · Turno: 3 min · Nivel 2");
+  });
+
+  it("omite del subtítulo el turno cuando falta, junto a su separador", () => {
+    const html = buildExerciseSheetHtml(buildExercise({ espacio: "20x30 m", turnoMinutos: null }));
+    expect(html).toContain("Espacio: 20x30 m<");
+    expect(html).not.toContain("Turno");
+    expect(html).not.toContain("·</div>");
+  });
+
+  it("no imprime subtítulo cuando no hay espacio, turno ni nivel", () => {
+    const html = buildExerciseSheetHtml(buildExercise());
+    expect(html).not.toContain("ficha-subtitle");
+  });
+
+  it("no imprime un bloque sin contenido ni su título", () => {
+    const html = buildExerciseSheetHtml(buildExercise({ puntos: ["Pase"], reglas: [], montaje: [] }));
+    expect(html).toContain("Puntos");
+    expect(html).not.toContain("Reglas");
+    expect(html).not.toContain("Montaje");
+    expect(html).not.toContain("Rotaciones");
+    expect(html).not.toContain("Jugadores");
+    expect(html).not.toContain("Objetivos");
+    expect(html).not.toContain("Niveles");
+  });
+
+  it("imprime el pie con la sesión y el bloque cuando se recibe", () => {
+    const html = buildExerciseSheetHtml(buildExercise(), { footer: "Sesión: Presión · Bloque: Activación" });
+    expect(html).toContain("Sesión: Presión · Bloque: Activación");
+  });
+
+  it("imprime la leyenda de material cuando el ejercicio tiene material colocado", () => {
+    const boardStateJson = JSON.stringify({
+      placedChapas: { p1: { x: 30, y: 30 } },
+      placedMaterials: [
+        { id: "m1", kind: "conos", x: 20, y: 20, rotation: 0 },
+        { id: "m2", kind: "conos", x: 25, y: 20, rotation: 0 },
+        { id: "m3", kind: "balones", x: 40, y: 40, rotation: 0 },
+      ],
+    });
+    const html = buildExerciseSheetHtml(buildExercise({ boardStateJson }));
+    expect(html).toContain("Material:");
+    expect(html).toContain("Balones × 1");
+    expect(html).toContain("Conos × 2");
+  });
+
+  it("omite la leyenda cuando no hay material colocado", () => {
+    const html = buildExerciseSheetHtml(buildExercise({ boardStateJson: rightHalfBoard }));
+    expect(html).not.toContain("ficha-legend");
   });
 });

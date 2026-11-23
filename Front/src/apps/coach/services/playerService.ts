@@ -21,6 +21,7 @@ export async function fetchPlayerPhoto(url: string): Promise<string | null> {
     const resp = await client.get(`/api/catalog/player/photo`, {
       params: { url },
       responseType: "blob",
+      suppressErrorRedirect: true,
     } as any);
     const blob = resp.data as Blob;
     return URL.createObjectURL(blob);

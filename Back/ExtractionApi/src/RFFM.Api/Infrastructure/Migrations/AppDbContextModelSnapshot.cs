@@ -342,6 +342,9 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.Property<string>("CodActa")
                         .HasColumnType("text");
 
+                    b.Property<DateTime?>("ConvocationPublishedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Description")
                         .HasMaxLength(2048)
                         .HasColumnType("character varying(2048)");
@@ -1470,15 +1473,30 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.Property<int?>("DurationMinutes")
                         .HasColumnType("integer");
 
+                    b.Property<string>("Espacio")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("Jugadores")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
                     b.Property<string>("Logistica")
                         .IsRequired()
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
 
+                    b.Property<string>("Montaje")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
+
+                    b.Property<int?>("NivelDibujo")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Niveles")
                         .IsRequired()
@@ -1501,6 +1519,26 @@ namespace RFFM.Api.Infrastructure.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
+                    b.Property<string>("Puntos")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("QueSeVe")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("Reglas")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("Rotaciones")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("Secuencia")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
                     b.Property<string>("Subtipo")
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
@@ -1509,6 +1547,9 @@ namespace RFFM.Api.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
+
+                    b.Property<int?>("TurnoMinutos")
+                        .HasColumnType("integer");
 
                     b.Property<string>("UrlImage")
                         .HasMaxLength(500)

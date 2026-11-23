@@ -4,6 +4,8 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
+using Moq;
 using RFFM.Api.Domain.Aggregates.Assistances;
 using RFFM.Api.Domain.Aggregates.UserClubs;
 using RFFM.Api.Domain.Entities.Competitions;
@@ -11,6 +13,7 @@ using RFFM.Api.Domain.Entities.Players;
 using RFFM.Api.Domain.Entities.Seasons;
 using RFFM.Api.Domain.Entities.TeamPlayers;
 using RFFM.Api.Domain.Models;
+using RFFM.Api.Domain.Services;
 using RFFM.Api.Features.Coaches.SportEvents.Queries;
 using RFFM.Api.Infrastructure.Persistence;
 using RFFM.Api.Tests.Fixtures;
@@ -102,6 +105,46 @@ namespace RFFM.Api.Tests.UnitTests
 
             return (team.Id, sportEvent.Id);
         }
+
+        private async Task<bool> HasConvokedForLeagueDraftAsync(string role, bool published)
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var (teamId, eventId) = await SeedSportEventAsync(seedDb, withConvocation: true, eventTypeId: 1);
+            if (published)
+            {
+                var sportEvent = await seedDb.SportEvents.FirstAsync(e => e.Id == eventId);
+                sportEvent.PublishConvocation();
+                await seedDb.SaveChangesAsync();
+            }
+
+            var currentUser = new Mock<ICurrentUserService>();
+            currentUser.Setup(c => c.Roles).Returns(new[] { role });
+            await using var db = _fixture.CreateDbContext();
+            var handler = new GetSportEvents.GetSportEventsRequestHandler(db, new HttpContextAccessor(), currentUser.Object);
+
+            var result = await handler.Handle(new GetSportEvents.SportEventsQuery
+            {
+                TeamId = teamId,
+                PageNumber = 1,
+                PageSize = 10
+            }, CancellationToken.None);
+
+            return result.Single(e => e.Id == eventId).HasConvokedPlayers;
+        }
+
+        [Theory]
+        [InlineData("Player")]
+        [InlineData("FamilyMember")]
+        public async Task Handle_LeagueConvocationNotPublished_PlayerOrFamilySeesNoConvokedPlayers(string role)
+            => Assert.False(await HasConvokedForLeagueDraftAsync(role, published: false));
+
+        [Fact]
+        public async Task Handle_LeagueConvocationNotPublished_CoachSeesConvokedPlayers()
+            => Assert.True(await HasConvokedForLeagueDraftAsync("Coach", published: false));
+
+        [Fact]
+        public async Task Handle_LeagueConvocationPublished_PlayerSeesConvokedPlayers()
+            => Assert.True(await HasConvokedForLeagueDraftAsync("Player", published: true));
 
         [Fact]
         public async Task Handle_EventWithConvocation_ReturnsHasConvokedPlayersTrue()

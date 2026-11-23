@@ -1,17 +1,14 @@
-import { useRef } from "react";
 import { IconButton, Tooltip } from "@mui/material";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import PrintOutlinedIcon from "@mui/icons-material/PrintOutlined";
 import PsychologyIcon from "@mui/icons-material/Psychology";
-import { Chip } from "@mui/material";
 import type { Exercise } from "../../../types/training";
 import TacticalBoardSnapshotPreview, {
   hasBoardObjects,
   tryParseBoardSnapshot,
 } from "../../../components/TacticalBoardSnapshotPreview";
-import boardPreviewCss from "../../../components/TacticalBoardSnapshotPreview.module.css?inline";
 import { SUBTIPO_LABELS, TIPO_LABELS } from "../exerciseTypeLabels";
 import { exerciseMediaUrl } from "../exerciseMedia";
 import styles from "./ExerciseCromo.module.css";
@@ -20,11 +17,8 @@ type Props = {
   exercise: Exercise;
   onEdit: () => void;
   onDuplicate: () => void;
-  /** When the exercise has a tactical board drawing and no uploaded image, called with a
-   * self-contained HTML fragment (the board preview's own `outerHTML` plus its CSS module
-   * stylesheet) so the print sheet can embed it and let the browser render it natively —
-   * omitted otherwise. */
-  onPrint: (boardDrawingHtml?: string) => void;
+  /** Prints the exercise's landscape A4 sheet; the sheet renders its own board drawing. */
+  onPrint: () => void;
   onDelete: () => void;
   /** Team whose roster resolves dorsal/alias for the tactical board preview. */
   teamId?: string;
@@ -33,17 +27,6 @@ type Props = {
 export default function ExerciseCromo({ exercise, onEdit, onDuplicate, onPrint, onDelete, teamId }: Props) {
   const boardSnapshot = tryParseBoardSnapshot(exercise.boardStateJson);
   const showSnapshot = !exercise.urlImage && hasBoardObjects(boardSnapshot);
-  const boardPreviewRef = useRef<HTMLDivElement>(null);
-
-  const hasModelChips = exercise.modelRelations.length > 0;
-
-  const handlePrint = () => {
-    if (showSnapshot && boardPreviewRef.current) {
-      onPrint(`<style>${boardPreviewCss}</style>${boardPreviewRef.current.outerHTML}`);
-      return;
-    }
-    onPrint();
-  };
 
   return (
     <div className={`${styles.card} ${styles[`tipo_${exercise.tipo}`] ?? ""}`}>
@@ -60,7 +43,7 @@ export default function ExerciseCromo({ exercise, onEdit, onDuplicate, onPrint, 
             // `.board` (inside TacticalBoardSnapshotPreview) needs a definite-height ancestor
             // to resolve its own `height: 100%` — this ref wrapper must pass photoArea's
             // (aspect-ratio-derived) height through explicitly, or `.board` collapses to 0.
-            <div ref={boardPreviewRef} style={{ width: "100%", height: "100%" }}>
+            <div style={{ width: "100%", height: "100%" }}>
               <TacticalBoardSnapshotPreview snapshot={boardSnapshot} teamId={teamId} />
             </div>
           ) : (
@@ -89,26 +72,6 @@ export default function ExerciseCromo({ exercise, onEdit, onDuplicate, onPrint, 
           {exercise.subtipo && (
             <div className={styles.subtipo} data-testid="subtipo-chip">
               {SUBTIPO_LABELS[exercise.subtipo] ?? exercise.subtipo}
-            </div>
-          )}
-
-          {exercise.isAssociatedToGameModel && (
-            <div className={styles.tagsRow} data-testid="tags-row">
-              <Chip label="Asociado al modelo" size="small" className={styles.associatedChip} />
-            </div>
-          )}
-
-          {/* Model relation chips — one per ModelRelation (FOCO vs INTEGRADO) */}
-          {hasModelChips && (
-            <div className={styles.modelChipsRow} data-testid="model-chips-row">
-              {exercise.modelRelations.map((relation) => (
-                <Chip
-                  key={relation.id}
-                  label={`${relation.subprincipioNumero ?? ""} · ${relation.subprincipioTitulo ?? ""}`}
-                  size="small"
-                  className={relation.isFoco ? styles.modelLinkChipFoco : styles.modelLinkChipIntegrado}
-                />
-              ))}
             </div>
           )}
 
@@ -147,7 +110,7 @@ export default function ExerciseCromo({ exercise, onEdit, onDuplicate, onPrint, 
             <IconButton
               size="small"
               className={styles.actionBtn}
-              onClick={(e) => { e.stopPropagation(); handlePrint(); }}
+              onClick={(e) => { e.stopPropagation(); onPrint(); }}
             >
               <PrintOutlinedIcon sx={{ fontSize: 14 }} />
             </IconButton>

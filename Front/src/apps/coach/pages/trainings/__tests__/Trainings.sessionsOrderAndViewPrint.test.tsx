@@ -224,12 +224,11 @@ describe("Trainings — visualizar e imprimir sesión", () => {
       name: "Rondo 4v2",
       tipo: "Analitico",
       objetivo: "Mantener la posesión bajo presión",
-      modelRelations: [],
       nivelesColumnas: [],
       niveles: [],
-      logistica: "4 conos, 2 balones",
+      logistica: "",
       descripcion: "",
-      isAssociatedToGameModel: false,
+      puntos: ["Pase al pivote y apoyo"],
     });
 
     const fakeWindow = {
@@ -255,7 +254,7 @@ describe("Trainings — visualizar e imprimir sesión", () => {
     });
 
     const writtenHtml = fakeWindow.document.write.mock.calls[0][0] as string;
-    expect(writtenHtml).toContain("Mantener la posesión bajo presión");
+    expect(writtenHtml).toContain("Pase al pivote y apoyo");
 
     openSpy.mockRestore();
   });
@@ -280,12 +279,10 @@ describe("Trainings — visualizar e imprimir sesión", () => {
       name: "Rondo 4v2",
       tipo: "Analitico",
       objetivo: "Mantener la posesión bajo presión",
-      modelRelations: [],
       nivelesColumnas: [],
       niveles: [],
       logistica: "4 conos, 2 balones",
       descripcion: "",
-      isAssociatedToGameModel: false,
       boardStateJson: JSON.stringify({ placedChapas: { "player-1": { x: 10, y: 10 } } }),
     });
     mockGetPlayersByTeam.mockResolvedValue([

@@ -1,0 +1,69 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.title {
+  font-size: 0.78rem !important;
+  font-weight: 700 !important;
+  color: #a8d4f5 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.hint {
+  font-size: 0.72rem !important;
+  color: rgba(212, 212, 212, 0.62) !important;
+}
+
+.line {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.lineNumber {
+  flex: 0 0 22px;
+  padding-top: 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #a8d4f5;
+  text-align: right;
+}
+
+.lineField {
+  flex: 1;
+  min-width: 0;
+}
+
+.lineField :global(.MuiInputBase-root) {
+  color: #e8e8e8 !important;
+  font-size: 0.82rem !important;
+}
+
+.lineField :global(.MuiOutlinedInput-notchedOutline) {
+  border-color: rgba(77, 157, 224, 0.3) !important;
+}
+
+.removeBtn {
+  color: rgba(212, 212, 212, 0.5) !important;
+}
+
+.addBtn {
+  align-self: flex-start;
+  border: 1px solid rgba(77, 157, 224, 0.45);
+  border-radius: 6px;
+  background: transparent;
+  color: #4d9de0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 6px 12px;
+  min-height: 36px;
+  cursor: pointer;
+}
+
+.addBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

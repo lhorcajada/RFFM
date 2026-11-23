@@ -67,7 +67,7 @@ namespace RFFM.Api.Features.Coaches.Convocations
                 var sportEvent = await _db.SportEvents
                     .AsNoTracking()
                     .Where(se => se.Id == request.EventId)
-                    .Select(se => new { se.Id, se.TeamId, se.Team.ClubId })
+                    .Select(se => new { se.Id, se.TeamId, se.Team.ClubId, se.EventTypeId, se.ConvocationPublishedAt })
                     .FirstOrDefaultAsync(cancellationToken);
                 if (sportEvent is null)
                     throw new NotFoundException("Evento no encontrado.", ErrorCodes.SportEventNotFound);
@@ -78,6 +78,11 @@ namespace RFFM.Api.Features.Coaches.Convocations
                     _db, _currentUser.UserId, sportEvent.TeamId, sportEvent.ClubId, cancellationToken);
                 if (!canManageTeam)
                     throw new ForbiddenAccessException("No tienes permiso para notificar a los convocados de este equipo.");
+
+                var isDraftLeagueConvocation = sportEvent.EventTypeId == Features.Coaches.SportEvents.Queries.SportEventsConstants.MatchEventTypeId
+                    && sportEvent.ConvocationPublishedAt is null;
+                if (isDraftLeagueConvocation)
+                    throw new ConflictException("La convocatoria aún no está publicada.", ErrorCodes.ConvocationNotPublished);
 
                 var pendingStatusId = ConvocationStatus.FromName("Pending").Id;
                 var pendingTeamPlayerIds = await _db.Convocations
