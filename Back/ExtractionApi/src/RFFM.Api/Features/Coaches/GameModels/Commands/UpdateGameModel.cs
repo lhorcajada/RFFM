@@ -461,6 +461,11 @@ namespace RFFM.Api.Features.Coaches.GameModels.Commands
             RuleFor(x => x.Id).NotEmpty();
             RuleFor(x => x.Name).NotEmpty().MaximumLength(200);
 
+            RuleFor(x => x.ExpectedVersion)
+                .Must(version => Guid.TryParse(version, out _))
+                .When(x => x.ExpectedVersion is not null)
+                .WithMessage("La versión esperada del modelo no es válida.");
+
             RuleForEach(x => x.Principles).SetValidator(new PrincipleRequestValidator());
             RuleForEach(x => x.SetPieceRules).SetValidator(new SetPieceRuleRequestValidator());
         }

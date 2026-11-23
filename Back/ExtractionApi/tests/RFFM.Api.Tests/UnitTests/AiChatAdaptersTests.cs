@@ -263,6 +263,73 @@ namespace RFFM.Api.Tests.UnitTests
         }
 
         [Fact]
+        public async Task OpenAiCompatible_WhenServerRejectsTheSchemaWithBadRequest_RetriesOnceWithoutIt()
+        {
+            var bodies = new List<string?>();
+            var handler = new StubHandler(request =>
+            {
+                var rejected = bodies.Count == 0;
+                bodies.Add(null);
+                return Task.FromResult(new HttpResponseMessage(rejected ? HttpStatusCode.BadRequest : HttpStatusCode.OK)
+                {
+                    Content = new StringContent(
+                        rejected ? """{"error":{"message":"response_format is not supported"}}""" : """{"choices":[{"message":{"content":"OK"}}]}""",
+                        Encoding.UTF8, "application/json")
+                });
+            });
+            var adapter = new OpenAiCompatibleChatAdapter(new HttpClient(handler));
+
+            var result = await adapter.CompleteAsync(OpenAiCredentials(), SampleRequest() with { ResponseSchema = SampleSchema }, CancellationToken.None);
+
+            Assert.True(result.Succeeded);
+            Assert.Equal("OK", result.Content);
+            Assert.Equal(2, bodies.Count);
+            using var retryBody = JsonDocument.Parse(handler.LastBody!);
+            Assert.False(retryBody.RootElement.TryGetProperty("response_format", out _));
+        }
+
+        [Fact]
+        public async Task OpenAiCompatible_WhenTheRetryWithoutSchemaAlsoFails_ReturnsThatFailureAfterTwoCalls()
+        {
+            var calls = 0;
+            var handler = new StubHandler(_ =>
+            {
+                calls++;
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.BadRequest)
+                {
+                    Content = new StringContent("""{"error":{"message":"invalid api key"}}""", Encoding.UTF8, "application/json")
+                });
+            });
+            var adapter = new OpenAiCompatibleChatAdapter(new HttpClient(handler));
+
+            var result = await adapter.CompleteAsync(OpenAiCredentials(), SampleRequest() with { ResponseSchema = SampleSchema }, CancellationToken.None);
+
+            Assert.False(result.Succeeded);
+            Assert.Equal(AiChatFailure.InvalidKey, result.Failure);
+            Assert.Equal(2, calls);
+        }
+
+        [Fact]
+        public async Task OpenAiCompatible_BadRequestWithoutSchema_IsNotRetried()
+        {
+            var calls = 0;
+            var handler = new StubHandler(_ =>
+            {
+                calls++;
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.BadRequest)
+                {
+                    Content = new StringContent("""{"error":{"message":"bad"}}""", Encoding.UTF8, "application/json")
+                });
+            });
+            var adapter = new OpenAiCompatibleChatAdapter(new HttpClient(handler));
+
+            var result = await adapter.CompleteAsync(OpenAiCredentials(), SampleRequest(), CancellationToken.None);
+
+            Assert.False(result.Succeeded);
+            Assert.Equal(1, calls);
+        }
+
+        [Fact]
         public void Claude_DoesNotDeclareForcedJsonSchemaSupport()
         {
             var adapter = new ClaudeChatAdapter(new HttpClient(Responding(HttpStatusCode.OK, "{}")));

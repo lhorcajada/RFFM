@@ -31,6 +31,23 @@ namespace RFFM.Api.Features.AiSettings.Services
         public async Task<AiChatResult> CompleteAsync(
             AiProviderCredentials credentials, AiChatRequest request, CancellationToken cancellationToken)
         {
+            var (status, result) = await SendChatAsync(credentials, request, cancellationToken);
+
+            // Some compatible servers reject the forced schema with 400. The schema is also in the prompt,
+            // so one retry without it keeps the assistant working on those servers.
+            var schemaMayBeRejected = status == HttpStatusCode.BadRequest
+                && SupportsForcedJsonSchema
+                && request.ResponseSchema is not null;
+            if (!schemaMayBeRejected)
+                return result;
+
+            (_, result) = await SendChatAsync(credentials, request with { ResponseSchema = null }, cancellationToken);
+            return result;
+        }
+
+        private async Task<(HttpStatusCode? Status, AiChatResult Result)> SendChatAsync(
+            AiProviderCredentials credentials, AiChatRequest request, CancellationToken cancellationToken)
+        {
             try
             {
                 using var message = BuildRequest(credentials, request);
@@ -38,24 +55,24 @@ namespace RFFM.Api.Features.AiSettings.Services
                 var body = await response.Content.ReadAsStringAsync(cancellationToken);
 
                 if (!response.IsSuccessStatusCode)
-                    return AiChatResult.Failed(Classify(response.StatusCode, body));
+                    return (response.StatusCode, AiChatResult.Failed(Classify(response.StatusCode, body)));
 
                 var content = ExtractContent(body);
-                return content is null
+                return (response.StatusCode, content is null
                     ? AiChatResult.Failed(AiChatFailure.ProviderError)
-                    : AiChatResult.Success(content);
+                    : AiChatResult.Success(content));
             }
             catch (UriFormatException)
             {
-                return AiChatResult.Failed(AiChatFailure.InvalidBaseUrl);
+                return (null, AiChatResult.Failed(AiChatFailure.InvalidBaseUrl));
             }
             catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
             {
-                return AiChatResult.Failed(AiChatFailure.Timeout);
+                return (null, AiChatResult.Failed(AiChatFailure.Timeout));
             }
             catch (HttpRequestException)
             {
-                return AiChatResult.Failed(AiChatFailure.Unreachable);
+                return (null, AiChatResult.Failed(AiChatFailure.Unreachable));
             }
         }
 
