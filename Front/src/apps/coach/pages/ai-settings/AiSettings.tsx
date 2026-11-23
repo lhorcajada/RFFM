@@ -123,6 +123,17 @@ const AiSettings: React.FC = () => {
             Cada usuario usa su propia clave de API. La clave se guarda cifrada en el servidor y nunca se vuelve a mostrar.
           </Alert>
 
+          <Alert
+            severity="info"
+            className={styles.notice}
+            role="note"
+            aria-label="Datos que recibe el proveedor de IA"
+          >
+            Cuando usas el asistente del modelo de juego, tu proveedor recibe el modelo de juego, los objetivos de temporada,
+            las sesiones cercanas y las previsiones de la liga. De cada jugador recibe su alias, sus lesiones (tipo y fechas) y su
+            condición física. No se envían datos personales identificativos (nombre, DNI, teléfono ni correo).
+          </Alert>
+
           {state.status === "loading" && (
             <Box className={styles.centered}>
               <CircularProgress />

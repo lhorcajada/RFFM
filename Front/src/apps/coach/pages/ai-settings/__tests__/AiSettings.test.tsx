@@ -88,6 +88,21 @@ describe("AiSettings", () => {
     expect(await screen.findByText(/todavía no has añadido ningún proveedor/i)).toBeInTheDocument();
   });
 
+  it("avisa de las categorías de datos que el asistente envía al proveedor y de las que no envía", async () => {
+    mocked.getAiProviders.mockResolvedValue([]);
+    renderPage();
+
+    const notice = await screen.findByRole("note", { name: /datos que recibe el proveedor/i });
+    expect(notice).toHaveTextContent(/modelo de juego/i);
+    expect(notice).toHaveTextContent(/objetivos/i);
+    expect(notice).toHaveTextContent(/sesiones/i);
+    expect(notice).toHaveTextContent(/previsiones/i);
+    expect(notice).toHaveTextContent(/alias/i);
+    expect(notice).toHaveTextContent(/lesiones/i);
+    expect(notice).toHaveTextContent(/condición física/i);
+    expect(notice).toHaveTextContent(/no se envían datos personales identificativos/i);
+  });
+
   it("muestra el error y permite reintentar", async () => {
     mocked.getAiProviders.mockRejectedValueOnce(new Error("boom")).mockResolvedValue([claude]);
     renderPage();

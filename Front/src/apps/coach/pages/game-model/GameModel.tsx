@@ -436,6 +436,7 @@ export default function GameModel() {
         error={assistant.error}
         onSend={assistant.send}
         onRetry={assistant.retry}
+        unsavedAcceptedCount={acceptedCount}
       />
 
       {/* ── Dialog nueva temporada ── */}

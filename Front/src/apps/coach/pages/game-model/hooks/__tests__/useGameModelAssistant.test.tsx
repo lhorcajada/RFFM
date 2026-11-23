@@ -209,6 +209,68 @@ describe("useGameModelAssistant — aceptar y rechazar", () => {
   });
 });
 
+describe("useGameModelAssistant — cambios aceptados sin guardar", () => {
+  it("con un cambio aceptado sin guardar no envía otro mensaje al asistente", async () => {
+    mockAssistant.mockResolvedValue(proposalReply([addSubprincipio]));
+    const { result } = renderAssistant();
+    await act(async () => {
+      await result.current.send("Propón cambios");
+    });
+    act(() => {
+      result.current.accept("c1");
+    });
+    mockAssistant.mockClear();
+
+    await act(async () => {
+      await result.current.send("Otra propuesta");
+    });
+
+    expect(mockAssistant).not.toHaveBeenCalled();
+    expect(result.current.messages.map((m) => m.content)).not.toContain("Otra propuesta");
+  });
+
+  it("con cambios pendientes pero ninguno aceptado sí permite enviar otro mensaje", async () => {
+    mockAssistant.mockResolvedValue(proposalReply([addSubprincipio]));
+    const { result } = renderAssistant();
+    await act(async () => {
+      await result.current.send("Propón cambios");
+    });
+    act(() => {
+      result.current.reject("c1");
+    });
+    mockAssistant.mockClear();
+    mockAssistant.mockResolvedValue(questionReply);
+
+    await act(async () => {
+      await result.current.send("Otra propuesta");
+    });
+
+    expect(mockAssistant).toHaveBeenCalledTimes(1);
+  });
+
+  it("tras cerrar el asistente se puede volver a enviar mensajes", async () => {
+    mockAssistant.mockResolvedValue(proposalReply([addSubprincipio]));
+    const { result } = renderAssistant();
+    await act(async () => {
+      await result.current.send("Propón cambios");
+    });
+    act(() => {
+      result.current.accept("c1");
+    });
+    act(() => {
+      result.current.close();
+    });
+    mockAssistant.mockClear();
+    mockAssistant.mockResolvedValue(questionReply);
+
+    await act(async () => {
+      await result.current.send("Empezar de nuevo");
+    });
+
+    expect(mockAssistant).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("useGameModelAssistant — cerrar", () => {
   it("cerrar vacía los mensajes y los cambios", async () => {
     mockAssistant.mockResolvedValue(proposalReply([addSubprincipio]));

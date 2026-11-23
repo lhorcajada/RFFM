@@ -15,6 +15,8 @@ export interface GameModelAssistantPanelProps {
   error?: string;
   onSend: (text: string) => void;
   onRetry: () => void;
+  /** Accepted changes not saved yet; while there are any, a new request is blocked. */
+  unsavedAcceptedCount?: number;
 }
 
 /** Side panel to talk with the game-model assistant. It holds only the text being typed; the conversation comes in through props. */
@@ -26,12 +28,14 @@ export default function GameModelAssistantPanel({
   error,
   onSend,
   onRetry,
+  unsavedAcceptedCount = 0,
 }: GameModelAssistantPanelProps) {
   const theme = useTheme();
   const isNarrow = useMediaQuery(theme.breakpoints.down("sm"));
   const [draft, setDraft] = useState("");
   const text = draft.trim();
-  const canSend = text !== "" && !sending;
+  const mustSaveFirst = unsavedAcceptedCount > 0;
+  const canSend = text !== "" && !sending && !mustSaveFirst;
 
   const send = () => {
     if (!canSend) return;
@@ -107,6 +111,12 @@ export default function GameModelAssistantPanel({
             }
           >
             {error}
+          </Alert>
+        )}
+
+        {mustSaveFirst && (
+          <Alert severity="info" className={styles.alert} role="status">
+            Guarda los cambios aceptados antes de pedir otra propuesta. Si cierras el asistente, se descartan.
           </Alert>
         )}
 

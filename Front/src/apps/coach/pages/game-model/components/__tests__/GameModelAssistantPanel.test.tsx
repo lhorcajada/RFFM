@@ -13,6 +13,7 @@ function renderPanel(
     onClose: () => void;
     onSend: (text: string) => void;
     onRetry: () => void;
+    unsavedAcceptedCount: number;
   }> = {}
 ) {
   const props = {
@@ -50,6 +51,21 @@ describe("GameModelAssistantPanel", () => {
     await user.click(screen.getByRole("button", { name: /enviar/i }));
 
     expect(props.onSend).toHaveBeenCalledWith("Revisa la presión");
+  });
+
+  it("con cambios aceptados sin guardar avisa de que hay que guardarlos y no deja enviar", async () => {
+    const { user, props } = renderPanel({ unsavedAcceptedCount: 2 });
+
+    expect(screen.getByRole("status")).toHaveTextContent(/guarda los cambios aceptados/i);
+    await user.type(screen.getByRole("textbox"), "Otra propuesta");
+    expect(screen.getByRole("button", { name: /enviar/i })).toBeDisabled();
+    expect(props.onSend).not.toHaveBeenCalled();
+  });
+
+  it("sin cambios aceptados sin guardar no muestra el aviso de guardar", () => {
+    renderPanel({ unsavedAcceptedCount: 0 });
+
+    expect(screen.queryByText(/guarda los cambios aceptados/i)).not.toBeInTheDocument();
   });
 
   it("una respuesta de pregunta se muestra en la conversación", () => {

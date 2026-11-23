@@ -115,7 +115,9 @@ export function useGameModelAssistant({ gameModelId, model, onModelChange }: Use
 
   const send = async (text: string) => {
     const content = text.trim();
-    if (content === "" || sendingRef.current) return;
+    // A new reply is validated against the saved model, so it could not address nodes added by accepted, unsaved changes.
+    const hasAcceptedUnsaved = changesRef.current.some((c) => c.status === "accepted");
+    if (content === "" || sendingRef.current || hasAcceptedUnsaved) return;
     const nextMessages: AssistantMessage[] = [...messagesRef.current, { role: "user", content }];
     messagesRef.current = nextMessages;
     setMessages(nextMessages);
