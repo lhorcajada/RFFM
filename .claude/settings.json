@@ -3,14 +3,18 @@
   "permissions": {
     "allow": [
       "Agent",
-      "Bash(git *)",
-      "Bash(npm *)",
-      "Bash(dotnet *)",
+      "PowerShell(git *)",
+      "PowerShell(npm *)",
+      "PowerShell(npx *)",
+      "PowerShell(dotnet *)",
       "Edit",
       "Read",
       "Write",
       "Glob",
       "Grep"
+    ],
+    "deny": [
+      "Bash"
     ],
     "defaultMode": "default"
   },
