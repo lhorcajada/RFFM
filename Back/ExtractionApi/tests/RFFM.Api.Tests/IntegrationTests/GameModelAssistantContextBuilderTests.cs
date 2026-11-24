@@ -410,6 +410,23 @@ namespace RFFM.Api.Tests.IntegrationTests
         }
 
         [Fact]
+        public async Task BuildAsync_SeveralNamedBranchesTogetherExceedLimit_KeepsOnlyTheBestMatchInFull()
+        {
+            await using var appDb = _fixture.CreateDbContext();
+            await using var fedDb = _fixture.CreateFederationDbContext();
+            var seeded = await SeedTeamAsync(appDb);
+            var (monitor, _) = OptionsFromConfiguration(("FullDetailCharacters", "0"), ("MaxContextCharacters", "8000"));
+
+            var context = await CreateBuilder(appDb, fedDb, monitor).BuildAsync(
+                BuildTwoBranchModel(seeded.TeamId, 5000), seeded.TeamId, CancellationToken.None,
+                new[] { "Cambia Recuperar balon y Salida de balon" });
+
+            Assert.Contains(RecoverMarker, context.Text);
+            Assert.DoesNotContain(BuildUpMarker, context.Text);
+            Assert.True(context.Text.Length <= 8000);
+        }
+
+        [Fact]
         public async Task BuildAsync_FocusedBranchStillExceedsLimit_ThrowsContextTooLarge()
         {
             await using var appDb = _fixture.CreateDbContext();

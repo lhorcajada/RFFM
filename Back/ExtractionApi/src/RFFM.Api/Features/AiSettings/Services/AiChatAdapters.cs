@@ -4,6 +4,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.Extensions.Logging;
 using RFFM.Api.Domain.Entities.AiProviders;
 
 namespace RFFM.Api.Features.AiSettings.Services
@@ -20,9 +21,25 @@ namespace RFFM.Api.Features.AiSettings.Services
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
         };
 
-        private readonly HttpClient _http;
+        private const int LoggedBodyLength = 500;
 
-        protected AiChatAdapterBase(HttpClient http) => _http = http;
+        private readonly HttpClient _http;
+        private readonly ILogger? _logger;
+
+        protected AiChatAdapterBase(HttpClient http, ILogger? logger = null)
+        {
+            _http = http;
+            _logger = logger;
+        }
+
+        // Diagnostics only: the excerpt never leaves the server logs and the API key is masked first.
+        private void LogUnexpectedResponse(AiProviderCredentials credentials, HttpStatusCode status, string body)
+        {
+            var masked = credentials.ApiKey.Length > 0 ? body.Replace(credentials.ApiKey, "***", StringComparison.Ordinal) : body;
+            var excerpt = masked.Length > LoggedBodyLength ? masked[..LoggedBodyLength] : masked;
+            _logger?.LogWarning("AI provider {Type} model {Model} answered {Status} with an unexpected body: {Body}",
+                Type, credentials.Model, (int)status, excerpt);
+        }
 
         public abstract AiProviderType Type { get; }
 
@@ -55,9 +72,16 @@ namespace RFFM.Api.Features.AiSettings.Services
                 var body = await response.Content.ReadAsStringAsync(cancellationToken);
 
                 if (!response.IsSuccessStatusCode)
-                    return (response.StatusCode, AiChatResult.Failed(Classify(response.StatusCode, body)));
+                {
+                    var failure = Classify(response.StatusCode, body);
+                    if (failure == AiChatFailure.ProviderError)
+                        LogUnexpectedResponse(credentials, response.StatusCode, body);
+                    return (response.StatusCode, AiChatResult.Failed(failure));
+                }
 
                 var content = ExtractContent(body);
+                if (content is null)
+                    LogUnexpectedResponse(credentials, response.StatusCode, body);
                 return (response.StatusCode, content is null
                     ? AiChatResult.Failed(AiChatFailure.ProviderError)
                     : AiChatResult.Success(content));
@@ -178,7 +202,7 @@ namespace RFFM.Api.Features.AiSettings.Services
     {
         private const string StructuredReplyName = "structured_reply";
 
-        public OpenAiCompatibleChatAdapter(HttpClient http) : base(http) { }
+        public OpenAiCompatibleChatAdapter(HttpClient http, ILogger<OpenAiCompatibleChatAdapter>? logger = null) : base(http, logger) { }
 
         public override AiProviderType Type => AiProviderType.OpenAiCompatible;
 
@@ -241,7 +265,7 @@ namespace RFFM.Api.Features.AiSettings.Services
         private const string AnthropicVersion = "2023-06-01";
         private const int DefaultMaxTokens = 1024;
 
-        public ClaudeChatAdapter(HttpClient http) : base(http) { }
+        public ClaudeChatAdapter(HttpClient http, ILogger<ClaudeChatAdapter>? logger = null) : base(http, logger) { }
 
         public override AiProviderType Type => AiProviderType.Claude;
 

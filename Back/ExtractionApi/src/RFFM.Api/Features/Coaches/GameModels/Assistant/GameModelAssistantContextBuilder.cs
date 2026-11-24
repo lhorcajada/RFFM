@@ -58,8 +58,15 @@ namespace RFFM.Api.Features.Coaches.GameModels.Assistant
             var text = Format(model, nodes, objectives, sessions, players, forecast, settings.SessionWindowDays, null);
             if (text.Length > Math.Min(settings.FullDetailCharacters, settings.MaxContextCharacters))
             {
-                var focused = SelectFocusedBranches(nodes, focusTexts);
+                var ranked = RankFocusedBranches(nodes, focusTexts);
+                var focused = SelectFocusedBranches(ranked);
                 text = Format(model, nodes, objectives, sessions, players, forecast, settings.SessionWindowDays, focused);
+
+                if (text.Length > settings.MaxContextCharacters && focused.Count > 1)
+                {
+                    var best = new HashSet<string>(StringComparer.Ordinal) { ranked[0].Branch };
+                    text = Format(model, nodes, objectives, sessions, players, forecast, settings.SessionWindowDays, best);
+                }
             }
 
             if (text.Length > settings.MaxContextCharacters)
@@ -134,9 +141,9 @@ namespace RFFM.Api.Features.Coaches.GameModels.Assistant
         /// <summary>
         /// Picks the branches whose titles (or addresses) the conversation names. Each focus text is tried in order and the
         /// first one that names a branch wins; a branch is kept when its score is at least half of the best branch's.
-        /// An empty set means no branch was named.
+        /// An empty list means no branch was named. Branches come best score first (model order on ties).
         /// </summary>
-        private static HashSet<string> SelectFocusedBranches(IReadOnlyList<AssistantNodeContext> nodes, IReadOnlyList<string>? focusTexts)
+        private static IReadOnlyList<(string Branch, int Score)> RankFocusedBranches(IReadOnlyList<AssistantNodeContext> nodes, IReadOnlyList<string>? focusTexts)
         {
             foreach (var focusText in focusTexts ?? Array.Empty<string>())
             {
@@ -158,11 +165,18 @@ namespace RFFM.Api.Features.Coaches.GameModels.Assistant
                     continue;
 
                 var threshold = Math.Max(1, (scores.Values.Max() + 1) / 2);
-                return scores.Where(s => s.Value >= threshold).Select(s => s.Key).ToHashSet(StringComparer.Ordinal);
+                return scores
+                    .Where(s => s.Value >= threshold)
+                    .OrderByDescending(s => s.Value)
+                    .Select(s => (s.Key, s.Value))
+                    .ToList();
             }
 
-            return new HashSet<string>(StringComparer.Ordinal);
+            return Array.Empty<(string, int)>();
         }
+
+        private static HashSet<string> SelectFocusedBranches(IReadOnlyList<(string Branch, int Score)> ranked) =>
+            ranked.Select(r => r.Branch).ToHashSet(StringComparer.Ordinal);
 
         private const int NamedNodeScore = 10;
         private const int MinTitleLength = 4;
