@@ -43,7 +43,7 @@
   flex: 1 1 400px;
   min-width: 0;
   position: sticky;
-  top: 16px;
+  top: calc(16px + var(--rffm-action-bar-h, 0px));
 }
 
 .center {

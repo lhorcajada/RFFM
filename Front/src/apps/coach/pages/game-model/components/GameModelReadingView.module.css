@@ -60,8 +60,8 @@
   gap: 16px;
   min-width: 0;
   position: sticky;
-  top: 16px;
-  max-height: calc(100vh - 32px);
+  top: calc(16px + var(--rffm-action-bar-h, 0px));
+  max-height: calc(100vh - 32px - var(--rffm-action-bar-h, 0px));
   overflow-y: auto;
 }
 

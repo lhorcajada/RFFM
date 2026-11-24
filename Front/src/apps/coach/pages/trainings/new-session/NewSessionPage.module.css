@@ -10,6 +10,7 @@
 }
 
 .topBar {
+  composes: sticky from "../../../../../shared/components/ui/ActionBar/ActionBar.module.css";
   display: flex;
   justify-content: flex-end;
   flex-wrap: wrap;

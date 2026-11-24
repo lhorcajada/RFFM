@@ -6,6 +6,7 @@
 }
 
 .topBar {
+  composes: sticky from "../../../../../shared/components/ui/ActionBar/ActionBar.module.css";
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -13,6 +14,7 @@
   gap: 8px 16px;
   padding: 10px 16px;
   border-bottom: 1px solid rgba(255, 122, 26, 0.2);
+  background: var(--rffm-coach-bg, #0d0d1a);
 }
 
 .title {
