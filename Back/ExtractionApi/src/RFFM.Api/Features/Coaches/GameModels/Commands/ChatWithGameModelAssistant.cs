@@ -54,7 +54,7 @@ namespace RFFM.Api.Features.Coaches.GameModels.Commands
         }
     }
 
-    // ── Request and response ─────────────────────────────────────────────────────
+    // ── Request and response ──────────────────────────────────────────────────────────────────────
 
     public record AssistantMessageDto(string Role, string Content, string? Kind);
 
@@ -87,7 +87,7 @@ namespace RFFM.Api.Features.Coaches.GameModels.Commands
         public int StatusCode { get; } = statusCode;
     }
 
-    // ── Handler ──────────────────────────────────────────────────────────────────
+    // ── Handler ───────────────────────────────────────────────────────────────────────
 
     public class ChatWithGameModelAssistantHandler(
         AppDbContext db,
@@ -114,9 +114,9 @@ namespace RFFM.Api.Features.Coaches.GameModels.Commands
                 throw new DomainException("Modelo de Juego", "No tienes acceso a este modelo de juego.", ErrorCodes.GameModelAccessDenied);
 
             var settings = options.CurrentValue;
-            var context = await contextBuilder.BuildAsync(model, model.TeamId, cancellationToken);
-
             var conversation = request.Request.Messages;
+            var context = await contextBuilder.BuildAsync(model, model.TeamId, cancellationToken, FocusTexts(conversation));
+
             var askedRounds = conversation.Count(m => m.Role == AiChatRoles.Assistant && m.Kind == QuestionKind);
             var maxRoundsReached = askedRounds >= settings.MaxClarifyingRounds;
 
@@ -164,6 +164,12 @@ namespace RFFM.Api.Features.Coaches.GameModels.Commands
                 .AsNoTracking()
                 .FirstOrDefaultAsync(gm => gm.Id == gameModelId, cancellationToken);
 
+        /// <summary>The last message first, then the whole conversation: the branches the coach is talking about right now win.</summary>
+        private static IReadOnlyList<string> FocusTexts(IReadOnlyList<AssistantMessageDto> conversation) =>
+            conversation.Count == 0
+                ? Array.Empty<string>()
+                : new[] { conversation[^1].Content, string.Join("\n", conversation.Select(m => m.Content)) };
+
         private static Exception ProviderFailure(AiChatFailure failure) => failure switch
         {
             AiChatFailure.NoActiveProvider => new ConflictException(AiChatFailureMessages.For(failure), ErrorCodes.AiNoActiveProvider),
@@ -196,6 +202,7 @@ namespace RFFM.Api.Features.Coaches.GameModels.Commands
             prompt.AppendLine("- Tipos de nota permitidos: " + Ordered(Nota.Tipos) + ".");
             prompt.AppendLine("- Subtipos de balón parado permitidos: " + Ordered(SetPieceRule.Subtypes) + ".");
             prompt.AppendLine("- Claves de zona permitidas: " + Ordered(Zona.KnownZoneKeys) + ".");
+            prompt.AppendLine("- Del modelo puede llegar solo el título de algunas ramas: no propongas cambios sobre nodos cuyo detalle no veas; pide al entrenador que indique la rama.");
             prompt.AppendLine("- No inventes datos de jugadores ni menciones datos personales.");
             if (maxRoundsReached)
             {
@@ -242,7 +249,7 @@ namespace RFFM.Api.Features.Coaches.GameModels.Commands
             change.Fields);
     }
 
-    // ── Validator ────────────────────────────────────────────────────────────────
+    // ── Validator ──────────────────────────────────────────────────────────────────────
 
     public class ChatWithGameModelAssistantValidator : AbstractValidator<ChatWithGameModelAssistantCommand>
     {
