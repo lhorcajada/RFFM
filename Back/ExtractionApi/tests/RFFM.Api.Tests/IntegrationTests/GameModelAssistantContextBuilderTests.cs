@@ -304,6 +304,126 @@ namespace RFFM.Api.Tests.IntegrationTests
             Assert.Contains(SeasonNoteText, context.Text);
         }
 
+        private const string RecoverMarker = "MARCADOR-RECUPERAR";
+        private const string BuildUpMarker = "MARCADOR-SALIDA";
+
+        /// <summary>Two principles ("Recuperar balon" and "Salida de balon"), each with one subprincipio holding a marker plus padding.</summary>
+        private static GameModel BuildTwoBranchModel(string teamId, int padding)
+        {
+            var filler = new string('x', padding);
+            var model = new GameModel(teamId, "Modelo de prueba", "2025-2026");
+
+            var recover = new GamePrinciple(model.Id, 1, "recuperar-balon-1", 1, "Recuperar balon", "Texto");
+            model.Principles.Add(recover);
+            recover.Subprincipios.Add(new Subprincipio(recover.Id, "recuperar-balon-1.1", "1.1", "Presion", $"{RecoverMarker} {filler}"));
+
+            var buildUp = new GamePrinciple(model.Id, 2, "salida-balon-2", 2, "Salida de balon", "Texto");
+            model.Principles.Add(buildUp);
+            buildUp.Subprincipios.Add(new Subprincipio(buildUp.Id, "salida-balon-2.1", "2.1", "Progresion", $"{BuildUpMarker} {filler}"));
+
+            return model;
+        }
+
+        [Fact]
+        public async Task BuildAsync_FocusNamesOneBranch_SendsItsFullTextAndOnlyTheTitlesOfTheOthers()
+        {
+            await using var appDb = _fixture.CreateDbContext();
+            await using var fedDb = _fixture.CreateFederationDbContext();
+            var seeded = await SeedTeamAsync(appDb);
+            var (monitor, _) = OptionsFromConfiguration(("FullDetailCharacters", "0"));
+
+            var context = await CreateBuilder(appDb, fedDb, monitor).BuildAsync(
+                BuildTwoBranchModel(seeded.TeamId, 50), seeded.TeamId, CancellationToken.None,
+                new[] { "Modifica el principio de Recuperar balón" });
+
+            Assert.Contains(RecoverMarker, context.Text);
+            Assert.DoesNotContain(BuildUpMarker, context.Text);
+            Assert.Contains("salida-balon-2", context.Text);
+            Assert.Contains("Salida de balon", context.Text);
+        }
+
+        [Fact]
+        public async Task BuildAsync_FocusMatchesNoBranch_SendsOnlyTitlesAndAsksForTheBranch()
+        {
+            await using var appDb = _fixture.CreateDbContext();
+            await using var fedDb = _fixture.CreateFederationDbContext();
+            var seeded = await SeedTeamAsync(appDb);
+            var (monitor, _) = OptionsFromConfiguration(("FullDetailCharacters", "0"));
+
+            var context = await CreateBuilder(appDb, fedDb, monitor).BuildAsync(
+                BuildTwoBranchModel(seeded.TeamId, 50), seeded.TeamId, CancellationToken.None,
+                new[] { "Hazlo mas claro" });
+
+            Assert.DoesNotContain(RecoverMarker, context.Text);
+            Assert.DoesNotContain(BuildUpMarker, context.Text);
+            Assert.Contains("recuperar-balon-1", context.Text);
+            Assert.Contains("salida-balon-2", context.Text);
+            Assert.Contains("ninguna rama concreta", context.Text);
+        }
+
+        [Fact]
+        public async Task BuildAsync_LastMessageMatchesNothing_FallsBackToTheNextFocusText()
+        {
+            await using var appDb = _fixture.CreateDbContext();
+            await using var fedDb = _fixture.CreateFederationDbContext();
+            var seeded = await SeedTeamAsync(appDb);
+            var (monitor, _) = OptionsFromConfiguration(("FullDetailCharacters", "0"));
+
+            var context = await CreateBuilder(appDb, fedDb, monitor).BuildAsync(
+                BuildTwoBranchModel(seeded.TeamId, 50), seeded.TeamId, CancellationToken.None,
+                new[] { "Si, hazlo", "Revisa la Salida de balon\nSi, hazlo" });
+
+            Assert.Contains(BuildUpMarker, context.Text);
+            Assert.DoesNotContain(RecoverMarker, context.Text);
+        }
+
+        [Fact]
+        public async Task BuildAsync_ModelFitsInFullDetailLimit_SendsEveryBranchInFull()
+        {
+            await using var appDb = _fixture.CreateDbContext();
+            await using var fedDb = _fixture.CreateFederationDbContext();
+            var seeded = await SeedTeamAsync(appDb);
+            var (monitor, _) = OptionsFromConfiguration(("FullDetailCharacters", "100000"));
+
+            var context = await CreateBuilder(appDb, fedDb, monitor).BuildAsync(
+                BuildTwoBranchModel(seeded.TeamId, 50), seeded.TeamId, CancellationToken.None,
+                new[] { "Modifica el principio de Recuperar balón" });
+
+            Assert.Contains(RecoverMarker, context.Text);
+            Assert.Contains(BuildUpMarker, context.Text);
+        }
+
+        [Fact]
+        public async Task BuildAsync_FullModelExceedsLimitButFocusedBranchFits_DoesNotThrow()
+        {
+            await using var appDb = _fixture.CreateDbContext();
+            await using var fedDb = _fixture.CreateFederationDbContext();
+            var seeded = await SeedTeamAsync(appDb);
+            var (monitor, _) = OptionsFromConfiguration(("FullDetailCharacters", "0"), ("MaxContextCharacters", "8000"));
+            var model = BuildTwoBranchModel(seeded.TeamId, 5000);
+
+            var context = await CreateBuilder(appDb, fedDb, monitor).BuildAsync(
+                model, seeded.TeamId, CancellationToken.None, new[] { "Cambia Recuperar balon" });
+
+            Assert.Contains(RecoverMarker, context.Text);
+            Assert.True(context.Text.Length <= 8000);
+        }
+
+        [Fact]
+        public async Task BuildAsync_FocusedBranchStillExceedsLimit_ThrowsContextTooLarge()
+        {
+            await using var appDb = _fixture.CreateDbContext();
+            await using var fedDb = _fixture.CreateFederationDbContext();
+            var seeded = await SeedTeamAsync(appDb);
+            var (monitor, _) = OptionsFromConfiguration(("FullDetailCharacters", "0"), ("MaxContextCharacters", "3000"));
+
+            var ex = await Assert.ThrowsAsync<DomainException>(() =>
+                CreateBuilder(appDb, fedDb, monitor).BuildAsync(
+                    BuildTwoBranchModel(seeded.TeamId, 5000), seeded.TeamId, CancellationToken.None, new[] { "Cambia Recuperar balon" }));
+
+            Assert.Equal(ErrorCodes.GameModelAssistantContextTooLarge, ex.Code);
+        }
+
         private static async Task SeedInjuryOfTypeAsync(AppDbContext db, string teamPlayerId, string injuryType, DateTime start, DateTime? end)
         {
             var injury = TeamPlayerInjury.Create(teamPlayerId, start, injuryType, InjuryDescription, EstimatedRecovery);
