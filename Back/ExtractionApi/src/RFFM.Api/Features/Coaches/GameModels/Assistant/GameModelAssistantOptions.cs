@@ -6,6 +6,7 @@ namespace RFFM.Api.Features.Coaches.GameModels.Assistant
 
         public int MaxClarifyingRounds { get; set; } = 2;
         public int MaxContextCharacters { get; set; } = 60000;
+        public int FullDetailCharacters { get; set; } = 12000;
         public int MaxOutputTokens { get; set; } = 4096;
         public int SessionWindowDays { get; set; } = 30;
         public int MaxMessages { get; set; } = 40;
