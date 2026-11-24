@@ -1,13 +1,26 @@
+/* The app header and footer / team nav sit above the drawer (z-index 1600), so the panel lives between them. */
+.paper,
+.paperNarrow {
+  top: var(--rffm-header-h, 64px) !important;
+  bottom: calc(var(--rffm-team-nav-h, 64px) + env(safe-area-inset-bottom, 0px)) !important;
+  height: auto !important;
+  background: #07071a;
+}
+
 .paper {
   width: 420px;
   max-width: 100%;
-  background: #07071a;
   border-left: 1px solid rgba(77, 157, 224, 0.25);
 }
 
 .paperNarrow {
   width: 100%;
-  background: #07071a;
+}
+
+@media (min-width: 1200px) {
+  .paper {
+    bottom: var(--rffm-footer-h, 64px) !important;
+  }
 }
 
 .panel {
@@ -15,6 +28,8 @@
   flex-direction: column;
   gap: 12px;
   height: 100%;
+  min-height: 0;
+  overflow: hidden;
   padding: 16px;
   box-sizing: border-box;
   color: #e8e8e8;
@@ -38,6 +53,10 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+  flex: 0 1 auto;
+  min-height: 0;
+  max-height: 30%;
+  overflow-y: auto;
   padding: 10px 12px;
   border-radius: 8px;
   border: 1px solid rgba(77, 157, 224, 0.25);
@@ -52,8 +71,8 @@
 }
 
 .conversation {
-  flex: 1 1 auto;
-  min-height: 120px;
+  flex: 1 1 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -92,6 +111,52 @@
   color: #e8e8e8;
 }
 
+.changeCard {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(77, 157, 224, 0.35);
+  background: rgba(77, 157, 224, 0.08);
+  overflow-wrap: anywhere;
+}
+
+.changeHeading {
+  margin: 0 !important;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  text-transform: uppercase;
+  color: #4d9de0 !important;
+}
+
+.changeTitle {
+  margin: 0 !important;
+  font-size: 0.9rem !important;
+  font-weight: 600 !important;
+}
+
+.changeText {
+  margin: 0 !important;
+  font-size: 0.85rem !important;
+  line-height: 1.45 !important;
+  color: #e8e8e8 !important;
+}
+
+.changeActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.changeAccepted {
+  margin: 4px 0 0 !important;
+  font-size: 0.8rem !important;
+  font-weight: 600 !important;
+  color: #4caf50 !important;
+}
+
 .status {
   margin: 0;
   font-size: 0.8rem;
@@ -99,10 +164,12 @@
 }
 
 .alert {
+  flex: 0 0 auto;
   align-items: center;
 }
 
 .composer {
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   gap: 8px;

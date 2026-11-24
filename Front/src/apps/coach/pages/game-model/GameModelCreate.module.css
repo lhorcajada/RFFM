@@ -5,6 +5,17 @@
   padding: 60px 0;
 }
 
+.assistantNotice {
+  font-size: 0.9rem !important;
+  color: #e8e8e8 !important;
+  margin-bottom: 10px !important;
+}
+
+.assistantLink {
+  color: #4d9de0;
+  font-weight: 600;
+}
+
 /* ── Editor wrapper ── */
 
 .editor {

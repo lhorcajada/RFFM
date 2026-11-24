@@ -13,17 +13,21 @@ import {
   ListItem,
   ListItemText,
 } from "@mui/material";
-import { useNavigate, useLocation } from "react-router-dom";
+import { Link as RouterLink, useNavigate, useLocation } from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import SaveIcon from "@mui/icons-material/Save";
+import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import useTeamAndClub from "../../hooks/useTeamAndClub";
 import gameModelService from "../../services/gameModelService";
+import { getAiProviders } from "../../services/aiProviderService";
 import type { GameModel, GameMomentCatalogItem } from "../../types/gameModel";
 import { GameModelDraftProvider, useGameModelDraft } from "../../context/GameModelDraftContext";
 import GameModelFormEditor from "./components/GameModelFormEditor";
+import GameModelAssistantPanel from "./components/GameModelAssistantPanel";
 import MobileSaveCancelBar from "./components/MobileSaveCancelBar";
+import { useGameModelAssistant } from "./hooks/useGameModelAssistant";
 import styles from "./GameModelCreate.module.css";
 
 // ─── Validation ──────────────────────────────────────────────────────
@@ -93,9 +97,15 @@ function validateDraft(draft: GameModel): ValidationError[] {
   return errors;
 }
 
-function showSnackbar(message: string, severity: "success" | "error") {
+function showSnackbar(message: string, severity: "success" | "error" | "warning") {
   window.dispatchEvent(new CustomEvent("rffm.show_snackbar", { detail: { message, severity } }));
 }
+
+function isStaleModelError(error: unknown): boolean {
+  return typeof error === "object" && error !== null && (error as { code?: unknown }).code === "GameModelStale";
+}
+
+type SaveOptions = { expectedVersion?: string };
 
 function saveErrorMessage(error: unknown): string {
   const detail = (error as { response?: { data?: { detail?: unknown } } } | null)?.response?.data?.detail;
@@ -110,16 +120,28 @@ function GameModelFormEditorWithActions({
   onCancel,
   isEdit,
   saveRef,
+  assistantOpen,
+  onAssistantClose,
 }: {
   moments: GameMomentCatalogItem[];
-  onSave: (draft: GameModel) => Promise<GameModel | null>;
+  onSave: (draft: GameModel, options?: SaveOptions) => Promise<GameModel | null>;
   onCancel: () => void;
   isEdit: boolean;
   saveRef: React.MutableRefObject<(() => Promise<void>) | null>;
+  assistantOpen: boolean;
+  onAssistantClose: () => void;
 }) {
   const { draft, dispatch } = useGameModelDraft();
   const [saving, setSaving] = useState(false);
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
+
+  // Accepted assistant changes land in the form draft and are saved with the editor's own save.
+  const assistant = useGameModelAssistant({
+    gameModelId: draft.id,
+    model: draft,
+    onModelChange: (next) => dispatch({ type: "SET_DRAFT", draft: next }),
+  });
+  const acceptedCount = assistant.changes.filter((change) => change.status === "accepted").length;
 
   const handleSave = async () => {
     const errors = validateDraft(draft);
@@ -129,8 +151,13 @@ function GameModelFormEditorWithActions({
     }
     setSaving(true);
     try {
-      const reloaded = await onSave(draft);
-      if (reloaded) dispatch({ type: "SET_DRAFT", draft: reloaded });
+      const options = acceptedCount > 0 ? { expectedVersion: assistant.proposalVersion } : undefined;
+      const reloaded = await onSave(draft, options);
+      if (reloaded) {
+        dispatch({ type: "SET_DRAFT", draft: reloaded });
+        // The saved model has a new marker, so the proposal and the conversation belong to the old one.
+        assistant.close();
+      }
     } finally {
       setSaving(false);
     }
@@ -141,6 +168,22 @@ function GameModelFormEditorWithActions({
   return (
     <Box className={styles.editor}>
       <GameModelFormEditor moments={moments} />
+
+      {isEdit && (
+        <GameModelAssistantPanel
+          open={assistantOpen}
+          onClose={onAssistantClose}
+          messages={assistant.messages}
+          sending={assistant.sending}
+          error={assistant.error}
+          onSend={assistant.send}
+          onRetry={assistant.retry}
+          unsavedAcceptedCount={acceptedCount}
+          changes={assistant.changes}
+          onAccept={assistant.accept}
+          onReject={assistant.reject}
+        />
+      )}
 
       <Dialog open={validationErrors.length > 0} onClose={() => setValidationErrors([])} maxWidth="sm" fullWidth>
         <DialogTitle>Errores de validación</DialogTitle>
@@ -201,7 +244,29 @@ export default function GameModelCreate() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
+  const [assistantOpen, setAssistantOpen] = useState(false);
+  const [providersLoaded, setProvidersLoaded] = useState(false);
+  const [hasActiveProvider, setHasActiveProvider] = useState(false);
   const saveRef = useRef<(() => Promise<void>) | null>(null);
+
+  // The assistant needs an active provider; the button waits for this check so it never shows enabled by mistake.
+  useEffect(() => {
+    if (!isEdit) return;
+    let mounted = true;
+    getAiProviders()
+      .then((providers) => {
+        if (mounted) setHasActiveProvider(providers.some((provider) => provider.isActive));
+      })
+      .catch(() => {
+        if (mounted) setHasActiveProvider(false);
+      })
+      .finally(() => {
+        if (mounted) setProvidersLoaded(true);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [isEdit]);
 
   useEffect(() => {
     const teamId = team?.id || resolvedTeamId;
@@ -248,12 +313,12 @@ export default function GameModelCreate() {
   /** Saves without leaving the editor. On edit, reloads the model so newly created nodes get
    * their backend ids before the next save; on create, switches the URL to edit mode, whose
    * init effect reloads the saved model. Returns the reloaded model for the draft to adopt. */
-  const handleSave = async (currentDraft: GameModel): Promise<GameModel | null> => {
+  const handleSave = async (currentDraft: GameModel, options?: SaveOptions): Promise<GameModel | null> => {
     setSaving(true);
     try {
       let reloaded: GameModel | null = null;
       if (isEdit) {
-        await gameModelService.update(currentDraft);
+        await gameModelService.update(currentDraft, options);
         reloaded = await gameModelService.getByTeamIdAndSeason(currentDraft.teamId, currentDraft.season);
       } else {
         await gameModelService.create(currentDraft);
@@ -262,6 +327,11 @@ export default function GameModelCreate() {
       showSnackbar("Modelo guardado correctamente", "success");
       return reloaded;
     } catch (error) {
+      if (isStaleModelError(error)) {
+        // The proposal was made against an older saved model: show the saved one and ask for a new proposal.
+        showSnackbar("El modelo ha cambiado desde la propuesta. Pide una nueva propuesta al asistente.", "warning");
+        return gameModelService.getByTeamIdAndSeason(currentDraft.teamId, currentDraft.season).catch(() => null);
+      }
       showSnackbar(saveErrorMessage(error), "error");
       return null;
     } finally {
@@ -287,6 +357,17 @@ export default function GameModelCreate() {
             <Button startIcon={<ArrowBackIcon />} onClick={handleCancel} variant="outlined" size="small">
               Cancelar
             </Button>
+            {isEdit && providersLoaded && draft && (
+              <Button
+                startIcon={<SmartToyOutlinedIcon />}
+                onClick={() => setAssistantOpen(true)}
+                variant="outlined"
+                size="small"
+                disabled={!hasActiveProvider}
+              >
+                Asistente
+              </Button>
+            )}
             <Button
               startIcon={saving ? <CircularProgress size={14} color="inherit" /> : <SaveIcon />}
               onClick={handleTriggerSave}
@@ -315,12 +396,23 @@ export default function GameModelCreate() {
           </Box>
         ) : draft ? (
           <GameModelDraftProvider initialDraft={draft}>
+            {isEdit && providersLoaded && !hasActiveProvider && (
+              <Typography className={styles.assistantNotice}>
+                Para usar el asistente, activa un proveedor de IA en{" "}
+                <RouterLink to="/coach/ai-settings" className={styles.assistantLink}>
+                  Ajustes de IA
+                </RouterLink>
+                .
+              </Typography>
+            )}
             <GameModelFormEditorWithActions
               moments={moments}
               onSave={handleSave}
               onCancel={handleCancel}
               isEdit={isEdit}
               saveRef={saveRef}
+              assistantOpen={assistantOpen}
+              onAssistantClose={() => setAssistantOpen(false)}
             />
           </GameModelDraftProvider>
         ) : null}

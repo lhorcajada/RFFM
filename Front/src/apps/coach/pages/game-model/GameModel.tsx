@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Box,
   Typography,
@@ -15,10 +15,9 @@ import {
   TextField,
   type SelectChangeEvent,
 } from "@mui/material";
-import { Link as RouterLink, useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
-import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import EditNoteIcon from "@mui/icons-material/EditNote";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
@@ -30,37 +29,11 @@ import { COACH_FEATURE_ROUTES } from "../../constants/featureRoutes";
 import useTeamAndClub from "../../hooks/useTeamAndClub";
 import useTeamDashboardBack from "../../hooks/useTeamDashboardBack";
 import gameModelService from "../../services/gameModelService";
-import { getAiProviders } from "../../services/aiProviderService";
 import seasonService, { type Season } from "../../services/seasonService";
 import type { GameModel as GameModelType } from "../../types/gameModel";
 import GameModelReadingView from "./components/GameModelReadingView";
-import GameModelAssistantPanel from "./components/GameModelAssistantPanel";
-import { assistantPendingChanges } from "./components/gameModelAssistantPending";
-import { useGameModelAssistant } from "./hooks/useGameModelAssistant";
 import { exportGameModelPdf } from "./gameModelPdfExport";
 import styles from "./GameModel.module.css";
-
-const EMPTY_GAME_MODEL: GameModelType = {
-  id: "",
-  teamId: "",
-  name: "",
-  season: "",
-  principles: [],
-  setPieceRules: [],
-  openIssues: [],
-};
-
-function notify(message: string, severity: "success" | "error" | "warning") {
-  window.dispatchEvent(new CustomEvent("rffm.show_snackbar", { detail: { message, severity } }));
-}
-
-function saveErrorMessage(error: unknown): string {
-  return error instanceof Error && error.message ? error.message : "No se pudo guardar el modelo.";
-}
-
-function isStaleModelError(error: unknown): boolean {
-  return typeof error === "object" && error !== null && (error as { code?: unknown }).code === "GameModelStale";
-}
 
 export default function GameModel() {
   useAuditPageAccess('GameModel');
@@ -89,20 +62,6 @@ export default function GameModel() {
   const [createSeasonLoading, setCreateSeasonLoading] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [savedModel, setSavedModel] = useState<GameModelType | null>(null);
-  const [providersLoaded, setProvidersLoaded] = useState(false);
-  const [hasActiveProvider, setHasActiveProvider] = useState(false);
-  const [assistantOpen, setAssistantOpen] = useState(false);
-  const [savingAssistant, setSavingAssistant] = useState(false);
-
-  // The model on the page is a local draft: accepted assistant changes update it until they are saved or discarded.
-  const assistant = useGameModelAssistant({
-    gameModelId: gameModel?.id ?? "",
-    model: gameModel ?? EMPTY_GAME_MODEL,
-    onModelChange: setGameModel,
-  });
-  const pendingChanges = useMemo(() => assistantPendingChanges(assistant.changes), [assistant.changes]);
-  const acceptedCount = assistant.changes.filter((change) => change.status === "accepted").length;
 
   // Load available seasons once team is known
   useEffect(() => {
@@ -140,10 +99,7 @@ export default function GameModel() {
       setLoading(true);
       try {
         const model = await gameModelService.getByTeamIdAndSeason(teamId, selectedSeason);
-        if (mounted) {
-          setGameModel(model);
-          setSavedModel(model);
-        }
+        if (mounted) setGameModel(model);
       } finally {
         if (mounted) setLoading(false);
       }
@@ -154,29 +110,7 @@ export default function GameModel() {
     };
   }, [team, selectedSeason]);
 
-  // The assistant needs an active provider; the button waits for this check so it never shows enabled by mistake.
-  useEffect(() => {
-    if (!canEdit) return;
-    let mounted = true;
-    getAiProviders()
-      .then((providers) => {
-        if (mounted) setHasActiveProvider(providers.some((provider) => provider.isActive));
-      })
-      .catch(() => {
-        if (mounted) setHasActiveProvider(false);
-      })
-      .finally(() => {
-        if (mounted) setProvidersLoaded(true);
-      });
-    return () => {
-      mounted = false;
-    };
-  }, [canEdit]);
-
   const handleSeasonChange = (e: SelectChangeEvent) => {
-    // The conversation and the cards belong to the model of the season being left.
-    setAssistantOpen(false);
-    assistant.close();
     setSelectedSeason(e.target.value);
   };
 
@@ -191,9 +125,6 @@ export default function GameModel() {
       await gameModelService.delete(gameModel.id);
       setDeleteDialogOpen(false);
       setGameModel(null);
-      setSavedModel(null);
-      setAssistantOpen(false);
-      assistant.close();
       setAvailableSeasons((prev) => prev.filter((s) => s !== selectedSeason));
       setSelectedSeason("");
     } finally {
@@ -250,43 +181,6 @@ export default function GameModel() {
     }
   };
 
-  const reloadSavedModel = async () => {
-    if (!team?.id || !selectedSeason) return;
-    const fresh = await gameModelService.getByTeamIdAndSeason(team.id, selectedSeason);
-    setSavedModel(fresh);
-    setGameModel(fresh);
-  };
-
-  // Closing the chat discards the conversation, the pending cards and any accepted change not yet saved.
-  const closeAssistant = () => {
-    setAssistantOpen(false);
-    assistant.close();
-    if (savedModel) setGameModel(savedModel);
-  };
-
-  // Saves the draft once, against the marker of the proposal it came from.
-  const saveAssistantChanges = async () => {
-    if (!gameModel || savingAssistant) return;
-    setSavingAssistant(true);
-    try {
-      await gameModelService.update(gameModel, { expectedVersion: assistant.proposalVersion });
-      notify("Cambios del asistente guardados.", "success");
-      assistant.close();
-      await reloadSavedModel().catch(() => undefined);
-    } catch (error) {
-      if (isStaleModelError(error)) {
-        assistant.close();
-        await reloadSavedModel().catch(() => undefined);
-        notify("El modelo ha cambiado desde la propuesta. Pide una nueva propuesta al asistente.", "warning");
-      } else {
-        // The draft stays as it is, so the coach can retry the save with the same accepted changes.
-        notify(saveErrorMessage(error), "error");
-      }
-    } finally {
-      setSavingAssistant(false);
-    }
-  };
-
   const selectedDialogSeason = dialogSeasons.find((s) => s.id === selectedDialogSeasonId);
   const selectedSeasonHasModel = selectedDialogSeason
     ? availableSeasons.includes(selectedDialogSeason.name ?? "")
@@ -338,17 +232,6 @@ export default function GameModel() {
                 Editar Modelo
               </Button>
             )}
-            {canEdit && gameModel && providersLoaded && (
-              <Button
-                startIcon={<SmartToyOutlinedIcon />}
-                onClick={() => setAssistantOpen(true)}
-                variant="outlined"
-                size="small"
-                disabled={!hasActiveProvider}
-              >
-                Asistente
-              </Button>
-            )}
             {gameModel && (
               <Button startIcon={<PictureAsPdfIcon />} onClick={handleDownloadPdf} variant="contained" size="small" color="primary">
                 Descargar PDF
@@ -396,48 +279,12 @@ export default function GameModel() {
               )}
             </Box>
 
-            {canEdit && providersLoaded && !hasActiveProvider && (
-              <Typography className={styles.assistantNotice}>
-                Para usar el asistente, activa un proveedor de IA en{" "}
-                <RouterLink to="/coach/ai-settings" className={styles.assistantLink}>
-                  Ajustes de IA
-                </RouterLink>
-                .
-              </Typography>
-            )}
-            {acceptedCount > 0 && (
-              <Box className={styles.saveBar}>
-                <Typography className={styles.saveText}>
-                  {acceptedCount} {acceptedCount === 1 ? "cambio aceptado" : "cambios aceptados"} sin guardar
-                </Typography>
-                <Button variant="contained" size="small" onClick={saveAssistantChanges} disabled={savingAssistant}>
-                  Guardar cambios del asistente
-                </Button>
-              </Box>
-            )}
-
             <Box className={styles.documentContent}>
-              <GameModelReadingView
-                gameModel={gameModel}
-                pendingChanges={pendingChanges}
-                onAcceptChange={assistant.accept}
-                onRejectChange={assistant.reject}
-              />
+              <GameModelReadingView gameModel={gameModel} />
             </Box>
           </Box>
         )}
       </ContentLayout>
-
-      <GameModelAssistantPanel
-        open={assistantOpen}
-        onClose={closeAssistant}
-        messages={assistant.messages}
-        sending={assistant.sending}
-        error={assistant.error}
-        onSend={assistant.send}
-        onRetry={assistant.retry}
-        unsavedAcceptedCount={acceptedCount}
-      />
 
       {/* ── Dialog nueva temporada ── */}
       <Dialog open={newSeasonDialogOpen} onClose={handleCloseNewSeasonDialog} maxWidth="xs" fullWidth>

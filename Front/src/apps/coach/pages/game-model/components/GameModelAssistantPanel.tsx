@@ -4,7 +4,8 @@ import { useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import CloseIcon from "@mui/icons-material/Close";
 import SendIcon from "@mui/icons-material/Send";
-import type { AssistantMessage } from "../../../services/gameModelService";
+import type { AssistantChange, AssistantMessage } from "../../../services/gameModelService";
+import { canAccept, type TrackedChange } from "./gameModelProposalTree";
 import styles from "./GameModelAssistantPanel.module.css";
 
 export interface GameModelAssistantPanelProps {
@@ -17,6 +18,75 @@ export interface GameModelAssistantPanelProps {
   onRetry: () => void;
   /** Accepted changes not saved yet; while there are any, a new request is blocked. */
   unsavedAcceptedCount?: number;
+  /** The current proposal, one card per change. Rejected changes are not shown. */
+  changes?: TrackedChange[];
+  onAccept?: (changeId: string) => void;
+  onReject?: (changeId: string) => void;
+}
+
+const OPERATION_LABEL: Record<AssistantChange["operation"], string> = {
+  add: "Añadir",
+  change: "Cambiar",
+  remove: "Eliminar",
+};
+
+const NODE_LABEL: Record<AssistantChange["nodeType"], string> = {
+  principio: "principio",
+  subprincipio: "subprincipio",
+  zona: "zona",
+  subSubPrincipio: "sub-subprincipio",
+  habilidad: "habilidad",
+  nota: "nota",
+  setPieceRule: "regla de balón parado",
+};
+
+const TITLE_FIELDS = ["titulo", "rol", "nombre", "label", "tipo", "subtype"];
+const TEXT_FIELDS = ["texto", "descripcion", "zonaTexto"];
+
+function firstText(fields: Record<string, unknown>, keys: string[]): string | undefined {
+  for (const key of keys) {
+    const value = fields[key];
+    if (typeof value === "string" && value.trim() !== "") return value;
+  }
+  return undefined;
+}
+
+function ChangeCard({
+  change,
+  acceptable,
+  onAccept,
+  onReject,
+}: {
+  change: TrackedChange;
+  acceptable: boolean;
+  onAccept?: (changeId: string) => void;
+  onReject?: (changeId: string) => void;
+}) {
+  const title = firstText(change.fields, TITLE_FIELDS);
+  const text = firstText(change.fields, TEXT_FIELDS);
+  const accepted = change.status === "accepted";
+
+  return (
+    <Box className={styles.changeCard}>
+      <Typography component="p" className={styles.changeHeading}>
+        {OPERATION_LABEL[change.operation]} {NODE_LABEL[change.nodeType]}
+      </Typography>
+      {title && <Typography component="p" className={styles.changeTitle}>{title}</Typography>}
+      {text && <Typography component="p" className={styles.changeText}>{text}</Typography>}
+      {accepted ? (
+        <Typography component="p" className={styles.changeAccepted}>Aceptado</Typography>
+      ) : (
+        <Box className={styles.changeActions}>
+          <Button size="small" variant="contained" disabled={!acceptable} onClick={() => onAccept?.(change.id)}>
+            Aceptar
+          </Button>
+          <Button size="small" variant="outlined" onClick={() => onReject?.(change.id)}>
+            Rechazar
+          </Button>
+        </Box>
+      )}
+    </Box>
+  );
 }
 
 /** Side panel to talk with the game-model assistant. It holds only the text being typed; the conversation comes in through props. */
@@ -29,6 +99,9 @@ export default function GameModelAssistantPanel({
   onSend,
   onRetry,
   unsavedAcceptedCount = 0,
+  changes = [],
+  onAccept,
+  onReject,
 }: GameModelAssistantPanelProps) {
   const theme = useTheme();
   const isNarrow = useMediaQuery(theme.breakpoints.down("sm"));
@@ -93,6 +166,17 @@ export default function GameModelAssistantPanel({
               <p className={styles.bubbleText}>{message.content}</p>
             </Box>
           ))}
+          {changes
+            .filter((change) => change.status !== "rejected")
+            .map((change) => (
+              <ChangeCard
+                key={change.id}
+                change={change}
+                acceptable={canAccept(change, changes)}
+                onAccept={onAccept}
+                onReject={onReject}
+              />
+            ))}
           {sending && (
             <p className={styles.status} role="status">
               El asistente está respondiendo…
@@ -116,7 +200,7 @@ export default function GameModelAssistantPanel({
 
         {mustSaveFirst && (
           <Alert severity="info" className={styles.alert} role="status">
-            Guarda los cambios aceptados antes de pedir otra propuesta. Si cierras el asistente, se descartan.
+            Guarda los cambios aceptados antes de pedir otra propuesta.
           </Alert>
         )}
 
