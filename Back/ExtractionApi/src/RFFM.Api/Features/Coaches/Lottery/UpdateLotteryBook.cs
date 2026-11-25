@@ -12,7 +12,7 @@ using RFFM.Api.Infrastructure.Persistence;
 namespace RFFM.Api.Features.Coaches.Lottery
 {
     /// <summary>
-    /// Corrige un taco entregado: jugador, número, primera papeleta o fecha de entrega.
+    /// Corrige el número de taco, la primera o la última papeleta mientras el taco no esté entregado al jugador.
     /// PUT /api/teams/{teamId}/lottery-campaigns/{campaignId}/books/{bookId}
     /// See openspec/changes/team-lottery/design.md → D3.
     /// </summary>
@@ -37,10 +37,9 @@ namespace RFFM.Api.Features.Coaches.Lottery
             public string TeamId { get; init; } = null!;
             public string CampaignId { get; init; } = null!;
             public string BookId { get; init; } = null!;
-            public string TeamPlayerId { get; init; } = null!;
             public int BookNumber { get; init; }
             public int FirstTicketNumber { get; init; }
-            public DateOnly DeliveredOn { get; init; }
+            public int LastTicketNumber { get; init; }
             public string FeatureRoute => CoachFeatureRoutes.Lottery;
             public string RequiredPermission => LotteryConstants.ReadWrite;
         }
@@ -52,10 +51,9 @@ namespace RFFM.Api.Features.Coaches.Lottery
                 RuleFor(c => c.TeamId).NotEmpty();
                 RuleFor(c => c.CampaignId).NotEmpty();
                 RuleFor(c => c.BookId).NotEmpty();
-                RuleFor(c => c.TeamPlayerId).NotEmpty();
                 RuleFor(c => c.BookNumber).GreaterThan(0);
                 RuleFor(c => c.FirstTicketNumber).GreaterThanOrEqualTo(0);
-                RuleFor(c => c.DeliveredOn).NotEmpty();
+                RuleFor(c => c.LastTicketNumber).GreaterThanOrEqualTo(c => c.FirstTicketNumber);
             }
         }
 
@@ -63,9 +61,8 @@ namespace RFFM.Api.Features.Coaches.Lottery
         {
             public async ValueTask<LotteryCampaignDto> Handle(Command request, CancellationToken cancellationToken)
             {
-                await LotteryCampaignMapping.EnsurePlayerInTeamAsync(db, request.TeamId, request.TeamPlayerId, cancellationToken);
                 var campaign = await LotteryCampaignMapping.LoadAsync(db, request.TeamId, request.CampaignId, cancellationToken);
-                campaign.EditBook(request.BookId, request.TeamPlayerId, request.BookNumber, request.FirstTicketNumber, request.DeliveredOn);
+                campaign.EditBook(request.BookId, request.BookNumber, request.FirstTicketNumber, request.LastTicketNumber);
                 await db.SaveChangesAsync(cancellationToken);
                 return await LotteryCampaignMapping.ToDtoAsync(db, currentUser, campaign, cancellationToken);
             }

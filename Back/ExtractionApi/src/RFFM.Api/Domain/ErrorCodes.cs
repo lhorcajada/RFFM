@@ -204,8 +204,16 @@ namespace RFFM.Api.Domain
         public const string LotteryTicketRangeOverlap = "LotteryTicketRangeOverlap";
         public const string LotteryInvalidReturnAmount = "LotteryInvalidReturnAmount";
         public const string LotteryReturnBeforeDelivery = "LotteryReturnBeforeDelivery";
-        public const string LotteryBookAlreadyReturned = "LotteryBookAlreadyReturned";
-        public const string LotteryInvalidClubDeliveryAmount = "LotteryInvalidClubDeliveryAmount";
+        public const string LotteryInvalidBookCount = "LotteryInvalidBookCount";
+        public const string LotteryInvalidTicketRange = "LotteryInvalidTicketRange";
+        public const string LotteryBookNumbersLocked = "LotteryBookNumbersLocked";
+        public const string LotteryBookNotUnassigned = "LotteryBookNotUnassigned";
+        public const string LotteryBookNotAssigned = "LotteryBookNotAssigned";
+        public const string LotteryBookNotDeliveredToPlayer = "LotteryBookNotDeliveredToPlayer";
+        public const string LotteryBookNotReturned = "LotteryBookNotReturned";
+        public const string LotteryBookNotDeliveredToClub = "LotteryBookNotDeliveredToClub";
+        public const string LotteryBookNoNextStatus = "LotteryBookNoNextStatus";
+        public const string LotteryBookNothingToUndo = "LotteryBookNothingToUndo";
 
         // Team quiniela (Features/Coaches/Quiniela/*) - openspec change quiniela-team-pool.
         public const string QuinielaInvalidJornada = "QuinielaInvalidJornada";

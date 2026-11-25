@@ -18,7 +18,7 @@ The system SHALL expose `GET /api/catalog/team/{teamId}/transactions`, returning
 The list SHALL contain transactions of exactly these types, each projected from the source shown:
 
 - `Sanction`: each `TeamPlayerSanction` of the team's players whose `Fine` is greater than zero.
-- `Lottery`: each `LotteryBook` delivered in a lottery campaign of the team.
+- `Lottery`: each `LotteryBook` of a lottery campaign of the team whose status is `DeliveredToPlayer`, `ReturnedToCoach` or `DeliveredToClub`; `Unassigned` and `Assigned` books SHALL NOT be listed.
 - `Quiniela`: each `QuinielaTicket` of a quiniela jornada of the team, and each `TeamFundMovement` of the team whose source is `QuinielaFund` or `QuinielaDonation`.
 - `WalletTopUp`: each `QuinielaWalletMovement` of type `TopUp` in a quiniela wallet of the team.
 - `WalletCharge`: each `QuinielaWalletMovement` of type `TicketCharge` in a quiniela wallet of the team.
@@ -69,11 +69,15 @@ The transaction date SHALL come from the source as follows:
 - **WHEN** a quiniela ticket was paid from the wallet
 - **THEN** the list contains one `Quiniela` transaction for the ticket and one `WalletCharge` transaction for the wallet charge
 
+#### Scenario: Lottery books not yet delivered to a player are not listed
+- **WHEN** a team's lottery campaign has an `Unassigned` book and an `Assigned` book
+- **THEN** the transactions list contains no `Lottery` transaction for either book
+
 ### Requirement: Payment status is a typed two-value state computed per type
 Every transaction SHALL have a status of exactly `Pending` or `Paid`, computed at query time and never persisted. No other status value, including `Partial` or `Expired`, SHALL be returned. The status SHALL be computed per type:
 
 - `Sanction`: `Paid` when `AmountPaid` is at least `Fine`; otherwise `Pending`, including a partial payment. The outstanding amount SHALL be `Fine` minus `AmountPaid` (with a null `AmountPaid` counted as zero).
-- `Lottery`: `Paid` when the book's `AmountReturned` is informed; otherwise `Pending`. The amount SHALL be `AmountReturned` when informed, and the campaign `TicketPrice` multiplied by `TicketsPerBook` otherwise.
+- `Lottery`: `Paid` when the book's `AmountReturned` is informed; otherwise `Pending`. The amount SHALL be `AmountReturned` when informed, and otherwise the campaign `TicketPrice` multiplied by the book's own ticket count (`LastTicketNumber − FirstTicketNumber + 1`).
 - `Quiniela` ticket: `Paid` when its payment status is paid; otherwise `Pending`, including a ticket whose payment deadline has passed. The amount SHALL be the jornada `Price`.
 - `Quiniela` fund movement, `WalletTopUp`, `WalletCharge` and `QuinielaPrize`: always `Paid`, because they are movements already made. The amount SHALL be the absolute value of the movement `Amount`.
 
@@ -91,7 +95,7 @@ Every transaction SHALL have a status of exactly `Pending` or `Paid`, computed a
 
 #### Scenario: Lottery book not returned is pending
 - **WHEN** a lottery book has no `AmountReturned`
-- **THEN** its transaction has status `Pending` and an outstanding amount equal to the campaign `TicketPrice` multiplied by `TicketsPerBook`
+- **THEN** its transaction has status `Pending` and an outstanding amount equal to the campaign `TicketPrice` multiplied by the book's own ticket count
 
 #### Scenario: Lottery book with a returned amount is paid
 - **WHEN** a lottery book has `AmountReturned` informed

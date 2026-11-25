@@ -187,19 +187,24 @@ namespace RFFM.Api.Features.Coaches.Teams.Queries
                         from book in db.LotteryBooks.AsNoTracking()
                         join campaign in db.LotteryCampaigns.AsNoTracking() on book.LotteryCampaignId equals campaign.Id
                         join teamPlayer in db.TeamPlayers.AsNoTracking() on book.TeamPlayerId equals teamPlayer.Id
-                        where campaign.TeamId == teamId && (teamPlayerIds == null || teamPlayerIds.Contains(book.TeamPlayerId))
+                        where campaign.TeamId == teamId
+                              && (book.Status == LotteryBookStatus.DeliveredToPlayer
+                                  || book.Status == LotteryBookStatus.ReturnedToCoach
+                                  || book.Status == LotteryBookStatus.DeliveredToClub)
+                              && (teamPlayerIds == null || teamPlayerIds.Contains(book.TeamPlayerId!))
                         select new
                         {
                             book.Id, book.DeliveredOn, book.ReturnedOn, book.AmountReturned,
-                            campaign.TicketPrice, campaign.TicketsPerBook, teamPlayer.Player.Name, teamPlayer.Player.LastName
+                            campaign.TicketPrice, TicketCount = book.LastTicketNumber - book.FirstTicketNumber + 1,
+                            teamPlayer.Player.Name, teamPlayer.Player.LastName
                         })
                     .ToListAsync(ct);
 
                 return books.Select(book =>
                 {
                     var returned = book.AmountReturned is not null;
-                    var amount = book.AmountReturned ?? book.TicketPrice * book.TicketsPerBook;
-                    var date = (book.ReturnedOn ?? book.DeliveredOn).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+                    var amount = book.AmountReturned ?? book.TicketPrice * book.TicketCount;
+                    var date = (book.ReturnedOn ?? book.DeliveredOn ?? DateOnly.MinValue).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
                     return new Row($"lottery:{book.Id}", TransactionType.Lottery, FullName(book.Name, book.LastName), amount,
                         returned ? null : amount, date, Describe(null, TransactionType.Lottery),
                         returned ? TransactionStatus.Paid : TransactionStatus.Pending);

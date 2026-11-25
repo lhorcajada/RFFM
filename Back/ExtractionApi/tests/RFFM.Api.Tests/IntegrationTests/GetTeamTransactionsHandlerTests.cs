@@ -488,6 +488,66 @@ namespace RFFM.Api.Tests.IntegrationTests
         }
 
         [Fact]
+        public async Task Handle_LotteryBooksNotYetDeliveredToThePlayer_AreNotListed()
+        {
+            var seed = await SeedTeamAsync(_fixture);
+            var teamPlayerId = await TeamPlayerAsync(seed);
+            await SaveAsync(db =>
+            {
+                var campaign = Campaign(seed.TeamId);
+                campaign.CreateBooks(1);
+                campaign.AssignBook(null, teamPlayerId.ToString(), 2, 11, 20);
+                db.LotteryCampaigns.Add(campaign);
+                return campaign;
+            });
+
+            var rows = await HandleAsync(seed.TeamId, seed.CoachId);
+
+            Assert.Empty(rows);
+        }
+
+        [Fact]
+        public async Task Handle_LotteryBookWithDifferentSize_IsPendingForTicketPriceTimesItsOwnTickets()
+        {
+            var seed = await SeedTeamAsync(_fixture);
+            var teamPlayerId = await TeamPlayerAsync(seed);
+            await SaveAsync(db =>
+            {
+                var campaign = Campaign(seed.TeamId, ticketPrice: 2m, ticketsPerBook: 10);
+                var book = campaign.AssignBook(null, teamPlayerId.ToString(), 1, 1, 5);
+                campaign.AdvanceBook(book.Id, new DateOnly(2026, 2, 20), null);
+                db.LotteryCampaigns.Add(campaign);
+                return campaign;
+            });
+
+            var rows = await HandleAsync(seed.TeamId, seed.CoachId);
+
+            Assert.Equal(10m, Assert.Single(rows).Amount);
+        }
+
+        [Fact]
+        public async Task Handle_LotteryBookDeliveredToClub_IsPaid()
+        {
+            var seed = await SeedTeamAsync(_fixture);
+            var teamPlayerId = await TeamPlayerAsync(seed);
+            await SaveAsync(db =>
+            {
+                var campaign = Campaign(seed.TeamId, ticketPrice: 5m, ticketsPerBook: 10);
+                var book = campaign.DeliverBook(teamPlayerId.ToString(), 1, 1, new DateOnly(2026, 2, 20));
+                campaign.ReturnBook(book.Id, 15m, new DateOnly(2026, 3, 2));
+                campaign.AdvanceBook(book.Id, new DateOnly(2026, 3, 5), null);
+                db.LotteryCampaigns.Add(campaign);
+                return campaign;
+            });
+
+            var rows = await HandleAsync(seed.TeamId, seed.CoachId);
+
+            var row = Assert.Single(rows);
+            Assert.Equal("Paid", row.Status);
+            Assert.Equal(15m, row.Amount);
+        }
+
+        [Fact]
         public async Task Handle_PaidQuinielaTicket_IsPaidAtJornadaPriceAndOnPaidAtDate()
         {
             var seed = await SeedTeamAsync(_fixture);

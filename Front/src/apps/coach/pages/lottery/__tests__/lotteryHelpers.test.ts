@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
-  countByStatus,
-  initialStatusFilter,
-  playerLotteryStatus,
+  BOOK_STATUS_LABELS,
+  booksByPlayer,
+  bookTicketCount,
+  countByFilter,
+  initialFilter,
+  playerLotteryFilter,
   searchPlayers,
   suggestNextBook,
+  undoEffect,
 } from "../lotteryHelpers";
 import type { LotteryBook } from "../../../services/lotteryService";
 
@@ -24,9 +28,11 @@ function book(overrides: Partial<LotteryBook>): LotteryBook {
     bookNumber: 1,
     firstTicketNumber: 1,
     lastTicketNumber: 15,
+    status: "DeliveredToPlayer",
     deliveredOn: "2026-11-20",
     returnedOn: null,
     amountReturned: null,
+    clubDeliveredOn: null,
     ticketsSold: null,
     ticketsUnsold: null,
     ...overrides,
@@ -59,50 +65,110 @@ describe("searchPlayers", () => {
   });
 });
 
-describe("playerLotteryStatus", () => {
-  it("sin tacos es «none»", () => {
-    expect(playerLotteryStatus([])).toBe("none");
-  });
-
-  it("con algún taco sin devolver es «pending»", () => {
-    expect(playerLotteryStatus([book({ amountReturned: 75 }), book({ id: "b2", amountReturned: null })])).toBe("pending");
-  });
-
-  it("con todos los tacos devueltos es «returned»", () => {
-    expect(playerLotteryStatus([book({ amountReturned: 0 })])).toBe("returned");
+describe("BOOK_STATUS_LABELS", () => {
+  it("traduce los cinco estados al español", () => {
+    expect(BOOK_STATUS_LABELS).toEqual({
+      Unassigned: "Sin asignar",
+      Assigned: "Asignado",
+      DeliveredToPlayer: "Entregado al jugador",
+      ReturnedToCoach: "Devuelto al entrenador",
+      DeliveredToClub: "Entregado al club",
+    });
   });
 });
 
-describe("countByStatus e initialStatusFilter", () => {
-  const books = [book({ teamPlayerId: "p7" }), book({ id: "b2", teamPlayerId: "p10", amountReturned: 75 })];
+describe("playerLotteryFilter", () => {
+  it("sin tacos es «none»", () => {
+    expect(playerLotteryFilter([])).toBe("none");
+  });
 
-  it("cuenta jugadores por estado", () => {
-    expect(countByStatus(players, books)).toEqual({ none: 2, pending: 1, returned: 1 });
+  it("con varios tacos usa el estado menos avanzado", () => {
+    const books = [book({ status: "DeliveredToClub" }), book({ id: "b2", status: "Assigned" })];
+    expect(playerLotteryFilter(books)).toBe("Assigned");
+  });
+
+  it("con todos los tacos en el club es «DeliveredToClub»", () => {
+    expect(playerLotteryFilter([book({ status: "DeliveredToClub" })])).toBe("DeliveredToClub");
+  });
+});
+
+describe("booksByPlayer", () => {
+  it("agrupa por jugador ordenando por número y descarta los tacos sin jugador", () => {
+    const grouped = booksByPlayer([
+      book({ id: "b2", bookNumber: 2 }),
+      book({ id: "b1", bookNumber: 1 }),
+      book({ id: "b3", bookNumber: 3, teamPlayerId: null, status: "Unassigned" }),
+    ]);
+    expect(grouped.get("p7")?.map((b) => b.id)).toEqual(["b1", "b2"]);
+    expect(grouped.size).toBe(1);
+  });
+});
+
+describe("countByFilter e initialFilter", () => {
+  const books = [
+    book({ teamPlayerId: "p7" }),
+    book({ id: "b2", teamPlayerId: "p10", status: "ReturnedToCoach", amountReturned: 75 }),
+  ];
+
+  it("cuenta jugadores por su estado menos avanzado", () => {
+    expect(countByFilter(players, books)).toEqual({
+      none: 2,
+      Assigned: 0,
+      DeliveredToPlayer: 1,
+      ReturnedToCoach: 1,
+      DeliveredToClub: 0,
+    });
   });
 
   it("empieza en «Sin taco» si queda alguien sin taco", () => {
-    expect(initialStatusFilter({ none: 2, pending: 1, returned: 1 })).toBe("none");
+    expect(initialFilter({ none: 2, Assigned: 0, DeliveredToPlayer: 1, ReturnedToCoach: 1, DeliveredToClub: 0 })).toBe("none");
   });
 
-  it("empieza en «Por devolver» cuando todos tienen taco", () => {
-    expect(initialStatusFilter({ none: 0, pending: 3, returned: 1 })).toBe("pending");
+  it("empieza en el primer estado con jugadores cuando todos tienen taco", () => {
+    expect(initialFilter({ none: 0, Assigned: 0, DeliveredToPlayer: 3, ReturnedToCoach: 1, DeliveredToClub: 0 })).toBe(
+      "DeliveredToPlayer",
+    );
   });
 
-  it("empieza en «Devueltos» cuando ya está todo devuelto", () => {
-    expect(initialStatusFilter({ none: 0, pending: 0, returned: 4 })).toBe("returned");
+  it("empieza en «Entregado al club» cuando ya está todo en el club", () => {
+    expect(initialFilter({ none: 0, Assigned: 0, DeliveredToPlayer: 0, ReturnedToCoach: 0, DeliveredToClub: 4 })).toBe(
+      "DeliveredToClub",
+    );
   });
 });
 
 describe("suggestNextBook", () => {
-  it("sin tacos sugiere el taco 1 desde la papeleta 1", () => {
-    expect(suggestNextBook([])).toEqual({ bookNumber: 1, firstTicketNumber: 1 });
+  it("sin tacos sugiere el taco 1 con el tamaño de la campaña", () => {
+    expect(suggestNextBook([], 15)).toEqual({ bookNumber: 1, firstTicketNumber: 1, lastTicketNumber: 15 });
   });
 
-  it("sugiere el siguiente número y la papeleta siguiente a la última entregada", () => {
+  it("sugiere el siguiente número, la papeleta siguiente a la última y la última según el tamaño", () => {
     const books = [
       book({ bookNumber: 12, firstTicketNumber: 166, lastTicketNumber: 180 }),
       book({ id: "b2", bookNumber: 3, firstTicketNumber: 31, lastTicketNumber: 45 }),
     ];
-    expect(suggestNextBook(books)).toEqual({ bookNumber: 13, firstTicketNumber: 181 });
+    expect(suggestNextBook(books, 15)).toEqual({ bookNumber: 13, firstTicketNumber: 181, lastTicketNumber: 195 });
+  });
+});
+
+describe("bookTicketCount", () => {
+  it("cuenta las papeletas del rango del taco", () => {
+    expect(bookTicketCount(book({ firstTicketNumber: 31, lastTicketNumber: 40 }))).toBe(10);
+  });
+});
+
+describe("undoEffect", () => {
+  it("indica el dato que se borra y el estado al que vuelve cada paso", () => {
+    expect(undoEffect("Assigned")).toEqual({ removed: "el jugador", previous: "Unassigned" });
+    expect(undoEffect("DeliveredToPlayer")).toEqual({ removed: "la fecha de entrega", previous: "Assigned" });
+    expect(undoEffect("ReturnedToCoach")).toEqual({
+      removed: "la fecha y el importe de la devolución",
+      previous: "DeliveredToPlayer",
+    });
+    expect(undoEffect("DeliveredToClub")).toEqual({ removed: "la fecha de entrega al club", previous: "ReturnedToCoach" });
+  });
+
+  it("un taco sin asignar no tiene nada que deshacer", () => {
+    expect(undoEffect("Unassigned")).toBeNull();
   });
 });

@@ -12,22 +12,24 @@ using RFFM.Api.Infrastructure.Persistence;
 namespace RFFM.Api.Features.Coaches.Lottery
 {
     /// <summary>
-    /// Registra la devolución de un taco con el dinero recogido; las papeletas vendidas se calculan. Sin fecha,
-    /// se devuelve hoy.
-    /// PUT /api/teams/{teamId}/lottery-campaigns/{campaignId}/books/{bookId}/return
-    /// See openspec/changes/team-lottery/design.md → D3.
+    /// Asigna un taco a un jugador del equipo. Con <c>BookId</c> asigna un taco sin asignar ya creado; sin él, crea el
+    /// taco ya asignado. Guarda número de taco, primera y última papeleta.
+    /// POST /api/teams/{teamId}/lottery-campaigns/{campaignId}/books
     /// </summary>
-    public class ReturnLotteryBook : IFeatureModule
+    public class AssignLotteryBook : IFeatureModule
     {
         public void AddRoutes(IEndpointRouteBuilder app)
         {
-            app.MapPut($"{LotteryConstants.BaseRoute}/{{campaignId}}/books/{{bookId}}/return",
-                    async (string teamId, string campaignId, string bookId, Command command, IMediator mediator, CancellationToken ct) =>
-                        Results.Ok(await mediator.Send(command with { TeamId = teamId, CampaignId = campaignId, BookId = bookId }, ct)))
-                .WithName(nameof(ReturnLotteryBook))
+            app.MapPost($"{LotteryConstants.BaseRoute}/{{campaignId}}/books",
+                    async (string teamId, string campaignId, Command command, IMediator mediator, CancellationToken ct) =>
+                    {
+                        var campaign = await mediator.Send(command with { TeamId = teamId, CampaignId = campaignId }, ct);
+                        return Results.Created($"/api/teams/{teamId}/lottery-campaigns/{campaignId}", campaign);
+                    })
+                .WithName(nameof(AssignLotteryBook))
                 .WithTags(LotteryConstants.Tag)
                 .RequireAuthorization()
-                .Produces<LotteryCampaignDto>()
+                .Produces<LotteryCampaignDto>(StatusCodes.Status201Created)
                 .ProducesValidationProblem()
                 .ProducesProblem(StatusCodes.Status403Forbidden)
                 .ProducesProblem(StatusCodes.Status404NotFound);
@@ -37,9 +39,11 @@ namespace RFFM.Api.Features.Coaches.Lottery
         {
             public string TeamId { get; init; } = null!;
             public string CampaignId { get; init; } = null!;
-            public string BookId { get; init; } = null!;
-            public decimal Amount { get; init; }
-            public DateOnly? ReturnedOn { get; init; }
+            public string? BookId { get; init; }
+            public string TeamPlayerId { get; init; } = null!;
+            public int BookNumber { get; init; }
+            public int FirstTicketNumber { get; init; }
+            public int LastTicketNumber { get; init; }
             public string FeatureRoute => CoachFeatureRoutes.Lottery;
             public string RequiredPermission => LotteryConstants.ReadWrite;
         }
@@ -50,8 +54,10 @@ namespace RFFM.Api.Features.Coaches.Lottery
             {
                 RuleFor(c => c.TeamId).NotEmpty();
                 RuleFor(c => c.CampaignId).NotEmpty();
-                RuleFor(c => c.BookId).NotEmpty();
-                RuleFor(c => c.Amount).GreaterThanOrEqualTo(0);
+                RuleFor(c => c.TeamPlayerId).NotEmpty();
+                RuleFor(c => c.BookNumber).GreaterThan(0);
+                RuleFor(c => c.FirstTicketNumber).GreaterThanOrEqualTo(0);
+                RuleFor(c => c.LastTicketNumber).GreaterThanOrEqualTo(c => c.FirstTicketNumber);
             }
         }
 
@@ -59,8 +65,12 @@ namespace RFFM.Api.Features.Coaches.Lottery
         {
             public async ValueTask<LotteryCampaignDto> Handle(Command request, CancellationToken cancellationToken)
             {
+                await LotteryCampaignMapping.EnsurePlayerInTeamAsync(db, request.TeamId, request.TeamPlayerId, cancellationToken);
                 var campaign = await LotteryCampaignMapping.LoadAsync(db, request.TeamId, request.CampaignId, cancellationToken);
-                campaign.ReturnBook(request.BookId, request.Amount, request.ReturnedOn ?? LotteryCampaignMapping.Today());
+                var book = campaign.AssignBook(request.BookId, request.TeamPlayerId, request.BookNumber,
+                    request.FirstTicketNumber, request.LastTicketNumber);
+                if (request.BookId is null)
+                    db.LotteryBooks.Add(book);
                 await db.SaveChangesAsync(cancellationToken);
                 return await LotteryCampaignMapping.ToDtoAsync(db, currentUser, campaign, cancellationToken);
             }

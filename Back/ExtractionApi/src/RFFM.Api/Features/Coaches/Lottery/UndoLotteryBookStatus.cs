@@ -11,26 +11,26 @@ using RFFM.Api.Infrastructure.Persistence;
 namespace RFFM.Api.Features.Coaches.Lottery
 {
     /// <summary>
-    /// Deshace la liquidación con el club.
-    /// DELETE /api/teams/{teamId}/lottery-campaigns/{campaignId}/club-delivery
-    /// See openspec/changes/team-lottery/design.md → D3.
+    /// Deshace el último paso de un taco y borra solo los datos que añadió ese paso.
+    /// DELETE /api/teams/{teamId}/lottery-campaigns/{campaignId}/books/{bookId}/status
     /// </summary>
-    public class UndoLotteryClubDelivery : IFeatureModule
+    public class UndoLotteryBookStatus : IFeatureModule
     {
         public void AddRoutes(IEndpointRouteBuilder app)
         {
-            app.MapDelete($"{LotteryConstants.BaseRoute}/{{campaignId}}/club-delivery",
-                    async (string teamId, string campaignId, IMediator mediator, CancellationToken ct) =>
-                        Results.Ok(await mediator.Send(new Command(teamId, campaignId), ct)))
-                .WithName(nameof(UndoLotteryClubDelivery))
+            app.MapDelete($"{LotteryConstants.BaseRoute}/{{campaignId}}/books/{{bookId}}/status",
+                    async (string teamId, string campaignId, string bookId, IMediator mediator, CancellationToken ct) =>
+                        Results.Ok(await mediator.Send(new Command(teamId, campaignId, bookId), ct)))
+                .WithName(nameof(UndoLotteryBookStatus))
                 .WithTags(LotteryConstants.Tag)
                 .RequireAuthorization()
                 .Produces<LotteryCampaignDto>()
+                .ProducesProblem(StatusCodes.Status400BadRequest)
                 .ProducesProblem(StatusCodes.Status403Forbidden)
                 .ProducesProblem(StatusCodes.Status404NotFound);
         }
 
-        public record Command(string TeamId, string CampaignId)
+        public record Command(string TeamId, string CampaignId, string BookId)
             : RFFM.Api.Common.ICommand<LotteryCampaignDto>, IRequireFeaturePermission, IRequireTeamMembership
         {
             public string FeatureRoute => CoachFeatureRoutes.Lottery;
@@ -42,7 +42,7 @@ namespace RFFM.Api.Features.Coaches.Lottery
             public async ValueTask<LotteryCampaignDto> Handle(Command request, CancellationToken cancellationToken)
             {
                 var campaign = await LotteryCampaignMapping.LoadAsync(db, request.TeamId, request.CampaignId, cancellationToken);
-                campaign.UndoClubDelivery();
+                campaign.UndoBookStatus(request.BookId);
                 await db.SaveChangesAsync(cancellationToken);
                 return await LotteryCampaignMapping.ToDtoAsync(db, currentUser, campaign, cancellationToken);
             }

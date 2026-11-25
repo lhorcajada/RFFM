@@ -1,0 +1,44 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--rffm-card-bg, #1c1c30);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.title {
+  font-weight: 700;
+  color: var(--rffm-text, #f0f0f0);
+}
+
+.list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 8px;
+}
+
+.book {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.info {
+  flex: 1;
+  min-width: 0;
+}
+
+.bookNumber {
+  font-weight: 700;
+  color: var(--rffm-text, #f0f0f0);
+}
+
+.meta {
+  display: block;
+  color: var(--rffm-muted, #a59f9f);
+}

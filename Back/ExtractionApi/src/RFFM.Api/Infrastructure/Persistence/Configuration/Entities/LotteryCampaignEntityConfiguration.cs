@@ -21,7 +21,6 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Entities
             builder.Property(c => c.TicketsPerBook).IsRequired();
             builder.Property(c => c.ClubDeliveryFrom).IsRequired();
             builder.Property(c => c.ClubDeliveryTo).IsRequired();
-            builder.Property(c => c.ClubDeliveredAmount).HasColumnType("decimal(10,2)");
 
             builder.HasIndex(c => new { c.TeamId, c.DrawDate });
 
@@ -48,12 +47,11 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Entities
             builder.HasKey(b => b.Id);
 
             builder.Property(b => b.LotteryCampaignId).IsRequired();
-            builder.Property(b => b.TeamPlayerId).IsRequired();
             builder.Property(b => b.BookNumber).IsRequired();
             builder.Property(b => b.FirstTicketNumber).IsRequired();
-            builder.Property(b => b.DeliveredOn).IsRequired();
+            builder.Property(b => b.LastTicketNumber).IsRequired();
+            builder.Property(b => b.Status).HasConversion<string>().HasMaxLength(30).IsRequired();
             builder.Property(b => b.AmountReturned).HasColumnType("decimal(10,2)");
-
             builder.HasIndex(b => new { b.LotteryCampaignId, b.BookNumber }).IsUnique();
 
             // Restrict: un taco con dinero no desaparece en silencio si se borra al jugador.

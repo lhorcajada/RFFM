@@ -12,18 +12,18 @@ using RFFM.Api.Infrastructure.Persistence;
 namespace RFFM.Api.Features.Coaches.Lottery
 {
     /// <summary>
-    /// Registra la liquidación con el club. El importe puede no cuadrar con lo recogido. Sin fecha, hoy.
-    /// PUT /api/teams/{teamId}/lottery-campaigns/{campaignId}/club-delivery
-    /// See openspec/changes/team-lottery/design.md → D3.
+    /// Avanza un taco un paso con los datos de ese paso: fecha de entrega al jugador, fecha e importe de la devolución
+    /// al entrenador, o fecha de entrega al club. Sin fecha, hoy.
+    /// PUT /api/teams/{teamId}/lottery-campaigns/{campaignId}/books/{bookId}/status
     /// </summary>
-    public class RecordLotteryClubDelivery : IFeatureModule
+    public class AdvanceLotteryBookStatus : IFeatureModule
     {
         public void AddRoutes(IEndpointRouteBuilder app)
         {
-            app.MapPut($"{LotteryConstants.BaseRoute}/{{campaignId}}/club-delivery",
-                    async (string teamId, string campaignId, Command command, IMediator mediator, CancellationToken ct) =>
-                        Results.Ok(await mediator.Send(command with { TeamId = teamId, CampaignId = campaignId }, ct)))
-                .WithName(nameof(RecordLotteryClubDelivery))
+            app.MapPut($"{LotteryConstants.BaseRoute}/{{campaignId}}/books/{{bookId}}/status",
+                    async (string teamId, string campaignId, string bookId, Command command, IMediator mediator, CancellationToken ct) =>
+                        Results.Ok(await mediator.Send(command with { TeamId = teamId, CampaignId = campaignId, BookId = bookId }, ct)))
+                .WithName(nameof(AdvanceLotteryBookStatus))
                 .WithTags(LotteryConstants.Tag)
                 .RequireAuthorization()
                 .Produces<LotteryCampaignDto>()
@@ -36,8 +36,9 @@ namespace RFFM.Api.Features.Coaches.Lottery
         {
             public string TeamId { get; init; } = null!;
             public string CampaignId { get; init; } = null!;
-            public decimal Amount { get; init; }
-            public DateOnly? DeliveredOn { get; init; }
+            public string BookId { get; init; } = null!;
+            public DateOnly? Date { get; init; }
+            public decimal? Amount { get; init; }
             public string FeatureRoute => CoachFeatureRoutes.Lottery;
             public string RequiredPermission => LotteryConstants.ReadWrite;
         }
@@ -48,7 +49,7 @@ namespace RFFM.Api.Features.Coaches.Lottery
             {
                 RuleFor(c => c.TeamId).NotEmpty();
                 RuleFor(c => c.CampaignId).NotEmpty();
-                RuleFor(c => c.Amount).GreaterThanOrEqualTo(0);
+                RuleFor(c => c.BookId).NotEmpty();
             }
         }
 
@@ -57,7 +58,7 @@ namespace RFFM.Api.Features.Coaches.Lottery
             public async ValueTask<LotteryCampaignDto> Handle(Command request, CancellationToken cancellationToken)
             {
                 var campaign = await LotteryCampaignMapping.LoadAsync(db, request.TeamId, request.CampaignId, cancellationToken);
-                campaign.RecordClubDelivery(request.Amount, request.DeliveredOn ?? LotteryCampaignMapping.Today());
+                campaign.AdvanceBook(request.BookId, request.Date ?? LotteryCampaignMapping.Today(), request.Amount);
                 await db.SaveChangesAsync(cancellationToken);
                 return await LotteryCampaignMapping.ToDtoAsync(db, currentUser, campaign, cancellationToken);
             }

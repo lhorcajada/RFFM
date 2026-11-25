@@ -1,8 +1,33 @@
-import type { LotteryBook, LotteryCampaignRequest } from "../../services/lotteryService";
+import type { LotteryBook, LotteryBookStatus, LotteryCampaignRequest } from "../../services/lotteryService";
 
-export type LotteryStatus = "none" | "pending" | "returned";
+export const BOOK_STATUS_ORDER: LotteryBookStatus[] = [
+  "Unassigned",
+  "Assigned",
+  "DeliveredToPlayer",
+  "ReturnedToCoach",
+  "DeliveredToClub",
+];
 
-export type StatusCounts = Record<LotteryStatus, number>;
+export const BOOK_STATUS_LABELS: Record<LotteryBookStatus, string> = {
+  Unassigned: "Sin asignar",
+  Assigned: "Asignado",
+  DeliveredToPlayer: "Entregado al jugador",
+  ReturnedToCoach: "Devuelto al entrenador",
+  DeliveredToClub: "Entregado al club",
+};
+
+/** Filtro de jugadores: sin taco, o el estado menos avanzado de sus tacos. */
+export type PlayerLotteryFilter = "none" | Exclude<LotteryBookStatus, "Unassigned">;
+
+export const PLAYER_FILTER_ORDER: PlayerLotteryFilter[] = [
+  "none",
+  "Assigned",
+  "DeliveredToPlayer",
+  "ReturnedToCoach",
+  "DeliveredToClub",
+];
+
+export type FilterCounts = Record<PlayerLotteryFilter, number>;
 
 export type SearchablePlayer = {
   id: string;
@@ -54,9 +79,14 @@ export function searchPlayers<T extends SearchablePlayer>(players: T[], query: s
   return [...byExactDorsal, ...byAlias, ...byName];
 }
 
-export function playerLotteryStatus(books: LotteryBook[]): LotteryStatus {
+function statusIndex(status: LotteryBookStatus): number {
+  return BOOK_STATUS_ORDER.indexOf(status);
+}
+
+export function playerLotteryFilter(books: LotteryBook[]): PlayerLotteryFilter {
   if (books.length === 0) return "none";
-  return books.some((b) => b.amountReturned === null) ? "pending" : "returned";
+  const leastAdvanced = books.reduce((least, b) => (statusIndex(b.status) < statusIndex(least.status) ? b : least));
+  return leastAdvanced.status === "Unassigned" ? "none" : leastAdvanced.status;
 }
 
 export function booksByPlayer(books: LotteryBook[]): Map<string, LotteryBook[]> {
@@ -64,6 +94,7 @@ export function booksByPlayer(books: LotteryBook[]): Map<string, LotteryBook[]> 
   [...books]
     .sort((a, b) => a.bookNumber - b.bookNumber)
     .forEach((book) => {
+      if (book.teamPlayerId === null) return;
       const list = map.get(book.teamPlayerId) ?? [];
       list.push(book);
       map.set(book.teamPlayerId, list);
@@ -71,28 +102,44 @@ export function booksByPlayer(books: LotteryBook[]): Map<string, LotteryBook[]> 
   return map;
 }
 
-export function countByStatus(players: SearchablePlayer[], books: LotteryBook[]): StatusCounts {
+export function countByFilter(players: SearchablePlayer[], books: LotteryBook[]): FilterCounts {
   const grouped = booksByPlayer(books);
-  const counts: StatusCounts = { none: 0, pending: 0, returned: 0 };
+  const counts: FilterCounts = { none: 0, Assigned: 0, DeliveredToPlayer: 0, ReturnedToCoach: 0, DeliveredToClub: 0 };
   players.forEach((p) => {
-    counts[playerLotteryStatus(grouped.get(p.id) ?? [])] += 1;
+    counts[playerLotteryFilter(grouped.get(p.id) ?? [])] += 1;
   });
   return counts;
 }
 
-export function initialStatusFilter(counts: StatusCounts): LotteryStatus {
-  if (counts.none > 0) return "none";
-  if (counts.pending > 0) return "pending";
-  if (counts.returned > 0) return "returned";
-  return "none";
+export function initialFilter(counts: FilterCounts): PlayerLotteryFilter {
+  return PLAYER_FILTER_ORDER.find((filter) => counts[filter] > 0) ?? "none";
 }
 
-export function suggestNextBook(books: LotteryBook[]): { bookNumber: number; firstTicketNumber: number } {
-  if (books.length === 0) return { bookNumber: 1, firstTicketNumber: 1 };
-  return {
-    bookNumber: Math.max(...books.map((b) => b.bookNumber)) + 1,
-    firstTicketNumber: Math.max(...books.map((b) => b.lastTicketNumber)) + 1,
+export function bookTicketCount(book: LotteryBook): number {
+  return book.lastTicketNumber - book.firstTicketNumber + 1;
+}
+
+/** Siguiente número de taco, primera papeleta tras el último taco y última papeleta según el tamaño de la campaña. */
+export function suggestNextBook(
+  books: LotteryBook[],
+  ticketsPerBook: number,
+): { bookNumber: number; firstTicketNumber: number; lastTicketNumber: number } {
+  const bookNumber = books.length === 0 ? 1 : Math.max(...books.map((b) => b.bookNumber)) + 1;
+  const firstTicketNumber = books.length === 0 ? 1 : Math.max(...books.map((b) => b.lastTicketNumber)) + 1;
+  return { bookNumber, firstTicketNumber, lastTicketNumber: firstTicketNumber + ticketsPerBook - 1 };
+}
+
+/** Qué dato borra deshacer el paso actual del taco y a qué estado vuelve; `null` si no hay nada que deshacer. */
+export function undoEffect(status: LotteryBookStatus): { removed: string; previous: LotteryBookStatus } | null {
+  const removed: Partial<Record<LotteryBookStatus, string>> = {
+    Assigned: "el jugador",
+    DeliveredToPlayer: "la fecha de entrega",
+    ReturnedToCoach: "la fecha y el importe de la devolución",
+    DeliveredToClub: "la fecha de entrega al club",
   };
+  const text = removed[status];
+  if (!text) return null;
+  return { removed: text, previous: BOOK_STATUS_ORDER[statusIndex(status) - 1] };
 }
 
 export function formatEuros(value: number | null | undefined): string {

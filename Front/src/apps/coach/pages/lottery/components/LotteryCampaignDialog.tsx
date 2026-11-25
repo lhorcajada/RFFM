@@ -6,14 +6,14 @@ type Props = {
   open: boolean;
   title: string;
   initial: LotteryCampaignRequest;
-  /** Con tacos entregados no se pueden cambiar el precio ni las papeletas por taco. */
-  bookSettingsLocked: boolean;
+  /** Con tacos creados no se puede cambiar el precio de la papeleta. */
+  priceLocked: boolean;
   processing: boolean;
   onClose: () => void;
   onSubmit: (values: LotteryCampaignRequest) => void;
 };
 
-export default function LotteryCampaignDialog({ open, title, initial, bookSettingsLocked, processing, onClose, onSubmit }: Props) {
+export default function LotteryCampaignDialog({ open, title, initial, priceLocked, processing, onClose, onSubmit }: Props) {
   const [values, setValues] = useState<LotteryCampaignRequest>(initial);
 
   useEffect(() => {
@@ -53,7 +53,7 @@ export default function LotteryCampaignDialog({ open, title, initial, bookSettin
               value={values.ticketPrice}
               onChange={(e) => set("ticketPrice", Number(e.target.value))}
               size="small"
-              disabled={bookSettingsLocked}
+              disabled={priceLocked}
               inputProps={{ min: 0, step: 0.5, inputMode: "decimal" }}
             />
             <TextField
@@ -62,15 +62,13 @@ export default function LotteryCampaignDialog({ open, title, initial, bookSettin
               value={values.ticketsPerBook}
               onChange={(e) => set("ticketsPerBook", Number(e.target.value))}
               size="small"
-              disabled={bookSettingsLocked}
               inputProps={{ min: 1, max: 100, inputMode: "numeric" }}
             />
           </Stack>
-          {bookSettingsLocked && (
-            <Typography variant="caption" color="text.secondary">
-              Ya hay tacos entregados: el precio y las papeletas por taco no se pueden cambiar.
-            </Typography>
-          )}
+          <Typography variant="caption" color="text.secondary">
+            Las papeletas por taco son el tamaño sugerido al crear tacos; cada taco guarda su propio rango.
+            {priceLocked ? " Ya hay tacos creados: el precio de la papeleta no se puede cambiar." : ""}
+          </Typography>
           <Typography variant="subtitle2">Entrega al club</Typography>
           <Stack direction="row" spacing={1.5}>
             <TextField

@@ -6108,10 +6108,16 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.Property<int>("BookNumber")
                         .HasColumnType("integer");
 
-                    b.Property<DateOnly>("DeliveredOn")
+                    b.Property<DateOnly?>("ClubDeliveredOn")
+                        .HasColumnType("date");
+
+                    b.Property<DateOnly?>("DeliveredOn")
                         .HasColumnType("date");
 
                     b.Property<int>("FirstTicketNumber")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("LastTicketNumber")
                         .HasColumnType("integer");
 
                     b.Property<string>("LotteryCampaignId")
@@ -6121,8 +6127,12 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.Property<DateOnly?>("ReturnedOn")
                         .HasColumnType("date");
 
-                    b.Property<string>("TeamPlayerId")
+                    b.Property<string>("Status")
                         .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("TeamPlayerId")
                         .HasColumnType("text");
 
                     b.HasKey("Id");
@@ -6139,12 +6149,6 @@ namespace RFFM.Api.Infrastructure.Migrations
                 {
                     b.Property<string>("Id")
                         .HasColumnType("text");
-
-                    b.Property<decimal?>("ClubDeliveredAmount")
-                        .HasColumnType("decimal(10,2)");
-
-                    b.Property<DateOnly?>("ClubDeliveredOn")
-                        .HasColumnType("date");
 
                     b.Property<DateOnly>("ClubDeliveryFrom")
                         .HasColumnType("date");
@@ -7766,8 +7770,7 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.HasOne("RFFM.Api.Domain.Entities.TeamPlayers.TeamPlayer", null)
                         .WithMany()
                         .HasForeignKey("TeamPlayerId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("RFFM.Api.Domain.Entities.Teams.LotteryCampaign", b =>

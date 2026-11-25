@@ -11,7 +11,7 @@ using RFFM.Api.Infrastructure.Persistence;
 namespace RFFM.Api.Features.Coaches.Lottery
 {
     /// <summary>
-    /// Elimina un taco que aún no se ha devuelto.
+    /// Elimina un taco que sigue sin asignar.
     /// DELETE /api/teams/{teamId}/lottery-campaigns/{campaignId}/books/{bookId}
     /// See openspec/changes/team-lottery/design.md → D3.
     /// </summary>

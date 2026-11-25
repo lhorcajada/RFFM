@@ -77,8 +77,8 @@ namespace RFFM.Api.Tests.IntegrationTests
         private static readonly IFeatureModule[] Modules =
         {
             new GetLotteryCampaigns(), new GetLotteryCampaign(), new CreateLotteryCampaign(), new UpdateLotteryCampaign(),
-            new DeleteLotteryCampaign(), new DeliverLotteryBook(), new UpdateLotteryBook(), new DeleteLotteryBook(),
-            new ReturnLotteryBook(), new UndoLotteryBookReturn(), new RecordLotteryClubDelivery(), new UndoLotteryClubDelivery()
+            new DeleteLotteryCampaign(), new CreateLotteryBooks(), new AssignLotteryBook(), new UpdateLotteryBook(),
+            new DeleteLotteryBook(), new AdvanceLotteryBookStatus(), new UndoLotteryBookStatus()
         };
 
         private async Task<(IHost Host, HttpClient Client)> StartHostAsync()
@@ -213,6 +213,9 @@ namespace RFFM.Api.Tests.IntegrationTests
             return (seed, client, host, campaign);
         }
 
+        private static object NewBook(string teamPlayerId, int bookNumber, int first, int last, string? bookId = null) =>
+            new { bookId, teamPlayerId, bookNumber, firstTicketNumber = first, lastTicketNumber = last };
+
         [Fact]
         public async Task FullFlow_ComputesTotals()
         {
@@ -224,85 +227,145 @@ namespace RFFM.Api.Tests.IntegrationTests
             Assert.Equal(0, campaign.Totals.BooksDelivered);
             Assert.True(campaign.CanEdit);
 
-            await client.SendAsync(Request(HttpMethod.Post, $"{baseUrl}/books", new { teamPlayerId = seed.PlayerOneId, bookNumber = 1, firstTicketNumber = 1 }));
-            await client.SendAsync(Request(HttpMethod.Post, $"{baseUrl}/books", new { teamPlayerId = seed.PlayerOneId, bookNumber = 2, firstTicketNumber = 16 }));
-            var delivered = await ReadCampaignAsync(
-                await client.SendAsync(Request(HttpMethod.Post, $"{baseUrl}/books", new { teamPlayerId = seed.PlayerTwoId, bookNumber = 3, firstTicketNumber = 31, deliveredOn = "2026-11-20" })),
+            var created = await ReadCampaignAsync(
+                await client.SendAsync(Request(HttpMethod.Post, $"{baseUrl}/books/batch", new { count = 2 })),
                 HttpStatusCode.Created);
+            Assert.Equal(new[] { 1, 2 }, created.Books.Select(b => b.BookNumber));
+            Assert.Equal(new[] { 15, 30 }, created.Books.Select(b => b.LastTicketNumber));
+            Assert.All(created.Books, b => Assert.Equal("Unassigned", b.Status));
+            Assert.All(created.Books, b => Assert.Null(b.TeamPlayerId));
+            Assert.Equal(0, created.Totals.BooksDelivered);
 
-            var third = delivered.Books.Single(b => b.BookNumber == 3);
-            Assert.Equal(45, third.LastTicketNumber);
-            Assert.Equal(new DateOnly(2026, 11, 20), third.DeliveredOn);
-            var first = delivered.Books.Single(b => b.BookNumber == 1);
-            Assert.Equal(DateOnly.FromDateTime(DateTime.UtcNow), first.DeliveredOn);
+            var firstId = created.Books[0].Id;
+            var secondId = created.Books[1].Id;
+            await client.SendAsync(Request(HttpMethod.Post, $"{baseUrl}/books", NewBook(seed.PlayerOneId, 1, 1, 15, firstId)));
+            await client.SendAsync(Request(HttpMethod.Post, $"{baseUrl}/books", NewBook(seed.PlayerOneId, 2, 16, 30, secondId)));
+            var assigned = await ReadCampaignAsync(
+                await client.SendAsync(Request(HttpMethod.Post, $"{baseUrl}/books", NewBook(seed.PlayerTwoId, 3, 31, 40))),
+                HttpStatusCode.Created);
+            var third = assigned.Books.Single(b => b.BookNumber == 3);
+            Assert.Equal("Assigned", third.Status);
+            Assert.Equal(40, third.LastTicketNumber);
+            Assert.Null(third.DeliveredOn);
+            Assert.Equal(0, assigned.Totals.BooksDelivered);
 
-            await client.SendAsync(Request(HttpMethod.Put, $"{baseUrl}/books/{first.Id}/return", new { amount = 75m }));
+            await client.SendAsync(Request(HttpMethod.Put, $"{baseUrl}/books/{firstId}/status", new { }));
+            await client.SendAsync(Request(HttpMethod.Put, $"{baseUrl}/books/{secondId}/status", new { }));
+            var delivered = await ReadCampaignAsync(await client.SendAsync(
+                Request(HttpMethod.Put, $"{baseUrl}/books/{third.Id}/status", new { date = "2026-11-20" })));
+            Assert.Equal(new DateOnly(2026, 11, 20), delivered.Books.Single(b => b.Id == third.Id).DeliveredOn);
+            Assert.Equal(DateOnly.FromDateTime(DateTime.UtcNow), delivered.Books.Single(b => b.Id == firstId).DeliveredOn);
+            Assert.Equal("DeliveredToPlayer", delivered.Books.Single(b => b.Id == firstId).Status);
+
+            await client.SendAsync(Request(HttpMethod.Put, $"{baseUrl}/books/{firstId}/status", new { amount = 75m }));
             var returned = await ReadCampaignAsync(await client.SendAsync(
-                Request(HttpMethod.Put, $"{baseUrl}/books/{third.Id}/return", new { amount = 40m, returnedOn = "2026-12-01" })));
+                Request(HttpMethod.Put, $"{baseUrl}/books/{third.Id}/status", new { amount = 40m, date = "2026-12-01" })));
 
             var totals = returned.Totals;
             Assert.Equal(3, totals.BooksDelivered);
             Assert.Equal(2, totals.BooksReturned);
             Assert.Equal(1, totals.BooksPending);
-            Assert.Equal(45, totals.TicketsDelivered);
+            Assert.Equal(40, totals.TicketsDelivered);
             Assert.Equal(23, totals.TicketsSold);
-            Assert.Equal(7, totals.TicketsUnsold);
+            Assert.Equal(2, totals.TicketsUnsold);
             Assert.Equal(15, totals.TicketsPending);
             Assert.Equal(115m, totals.AmountCollected);
             Assert.Equal(75m, totals.AmountPending);
             var thirdReturned = returned.Books.Single(b => b.Id == third.Id);
+            Assert.Equal("ReturnedToCoach", thirdReturned.Status);
             Assert.Equal(8, thirdReturned.TicketsSold);
-            Assert.Equal(7, thirdReturned.TicketsUnsold);
+            Assert.Equal(2, thirdReturned.TicketsUnsold);
+            Assert.Equal(0, returned.ClubDelivery.BooksDelivered);
+            Assert.Equal(2, returned.ClubDelivery.BooksPending);
 
             var settled = await ReadCampaignAsync(await client.SendAsync(
-                Request(HttpMethod.Put, $"{baseUrl}/club-delivery", new { amount = 115m, deliveredOn = "2026-12-10" })));
-            Assert.Equal(new DateOnly(2026, 12, 10), settled.ClubDeliveredOn);
-            Assert.Equal(115m, settled.ClubDeliveredAmount);
+                Request(HttpMethod.Put, $"{baseUrl}/books/{firstId}/status", new { date = "2026-12-10" })));
+            Assert.Equal(1, settled.ClubDelivery.BooksDelivered);
+            Assert.Equal(1, settled.ClubDelivery.BooksPending);
+            Assert.Equal(75m, settled.ClubDelivery.AmountDelivered);
+            Assert.Equal(40m, settled.ClubDelivery.AmountPending);
+            Assert.Equal(new DateOnly(2026, 12, 10), settled.ClubDelivery.LastDeliveredOn);
+            Assert.Equal(new DateOnly(2026, 12, 10), settled.Books.Single(b => b.Id == firstId).ClubDeliveredOn);
         }
 
         [Fact]
-        public async Task UndoReturn_AndDeleteBook_Work()
+        public async Task UndoStatus_AndDeleteBook_Work()
         {
             var (seed, client, host, campaign) = await CreateCampaignAsync();
             using var _ = host;
             var baseUrl = $"/api/teams/{seed.TeamId}/lottery-campaigns/{campaign.Id}";
-            var delivered = await ReadCampaignAsync(await client.SendAsync(
-                Request(HttpMethod.Post, $"{baseUrl}/books", new { teamPlayerId = seed.PlayerOneId, bookNumber = 1, firstTicketNumber = 1 })),
-                HttpStatusCode.Created);
-            var bookId = delivered.Books.Single().Id;
-            await client.SendAsync(Request(HttpMethod.Put, $"{baseUrl}/books/{bookId}/return", new { amount = 75m }));
+            var created = await ReadCampaignAsync(await client.SendAsync(
+                Request(HttpMethod.Post, $"{baseUrl}/books/batch", new { count = 1 })), HttpStatusCode.Created);
+            var bookId = created.Books.Single().Id;
+            await client.SendAsync(Request(HttpMethod.Post, $"{baseUrl}/books", NewBook(seed.PlayerOneId, 1, 1, 15, bookId)));
+            await client.SendAsync(Request(HttpMethod.Put, $"{baseUrl}/books/{bookId}/status", new { }));
 
-            var deleteReturned = await client.SendAsync(Request(HttpMethod.Delete, $"{baseUrl}/books/{bookId}"));
-            Assert.Equal(HttpStatusCode.BadRequest, deleteReturned.StatusCode);
-            Assert.Equal(ErrorCodes.LotteryBookAlreadyReturned, await ProblemCodeAsync(deleteReturned));
+            var deleteDelivered = await client.SendAsync(Request(HttpMethod.Delete, $"{baseUrl}/books/{bookId}"));
+            Assert.Equal(HttpStatusCode.BadRequest, deleteDelivered.StatusCode);
+            Assert.Equal(ErrorCodes.LotteryBookNotUnassigned, await ProblemCodeAsync(deleteDelivered));
 
-            var undone = await ReadCampaignAsync(await client.SendAsync(Request(HttpMethod.Delete, $"{baseUrl}/books/{bookId}/return")));
-            Assert.Null(undone.Books.Single().AmountReturned);
+            var backToAssigned = await ReadCampaignAsync(await client.SendAsync(Request(HttpMethod.Delete, $"{baseUrl}/books/{bookId}/status")));
+            var assigned = backToAssigned.Books.Single();
+            Assert.Equal("Assigned", assigned.Status);
+            Assert.Null(assigned.DeliveredOn);
+            Assert.NotNull(assigned.TeamPlayerId);
+
+            var backToUnassigned = await ReadCampaignAsync(await client.SendAsync(Request(HttpMethod.Delete, $"{baseUrl}/books/{bookId}/status")));
+            var unassigned = backToUnassigned.Books.Single();
+            Assert.Equal("Unassigned", unassigned.Status);
+            Assert.Null(unassigned.TeamPlayerId);
+
+            var nothingToUndo = await client.SendAsync(Request(HttpMethod.Delete, $"{baseUrl}/books/{bookId}/status"));
+            Assert.Equal(HttpStatusCode.BadRequest, nothingToUndo.StatusCode);
+            Assert.Equal(ErrorCodes.LotteryBookNothingToUndo, await ProblemCodeAsync(nothingToUndo));
 
             var removed = await ReadCampaignAsync(await client.SendAsync(Request(HttpMethod.Delete, $"{baseUrl}/books/{bookId}")));
             Assert.Empty(removed.Books);
         }
 
         [Fact]
-        public async Task UpdateCampaign_ClubWindowWithBooks_IsAllowed()
+        public async Task UpdateBook_NumbersWhileAssigned_AreChangedAndLockedAfterDelivery()
         {
             var (seed, client, host, campaign) = await CreateCampaignAsync();
             using var _ = host;
             var baseUrl = $"/api/teams/{seed.TeamId}/lottery-campaigns/{campaign.Id}";
-            await client.SendAsync(Request(HttpMethod.Post, $"{baseUrl}/books", new { teamPlayerId = seed.PlayerOneId, bookNumber = 1, firstTicketNumber = 1 }));
+            var assigned = await ReadCampaignAsync(await client.SendAsync(
+                Request(HttpMethod.Post, $"{baseUrl}/books", NewBook(seed.PlayerOneId, 1, 1, 15))), HttpStatusCode.Created);
+            var bookId = assigned.Books.Single().Id;
+
+            var edited = await ReadCampaignAsync(await client.SendAsync(Request(HttpMethod.Put, $"{baseUrl}/books/{bookId}",
+                new { bookNumber = 7, firstTicketNumber = 100, lastTicketNumber = 112 })));
+            var book = edited.Books.Single();
+            Assert.Equal((7, 100, 112), (book.BookNumber, book.FirstTicketNumber, book.LastTicketNumber));
+
+            await client.SendAsync(Request(HttpMethod.Put, $"{baseUrl}/books/{bookId}/status", new { }));
+            var locked = await client.SendAsync(Request(HttpMethod.Put, $"{baseUrl}/books/{bookId}",
+                new { bookNumber = 8, firstTicketNumber = 100, lastTicketNumber = 112 }));
+            Assert.Equal(HttpStatusCode.BadRequest, locked.StatusCode);
+            Assert.Equal(ErrorCodes.LotteryBookNumbersLocked, await ProblemCodeAsync(locked));
+        }
+
+        [Fact]
+        public async Task UpdateCampaign_ClubWindowAndBookSizeWithBooks_AreAllowed()
+        {
+            var (seed, client, host, campaign) = await CreateCampaignAsync();
+            using var _ = host;
+            var baseUrl = $"/api/teams/{seed.TeamId}/lottery-campaigns/{campaign.Id}";
+            await client.SendAsync(Request(HttpMethod.Post, $"{baseUrl}/books", NewBook(seed.PlayerOneId, 1, 1, 15)));
 
             var updated = await ReadCampaignAsync(await client.SendAsync(Request(HttpMethod.Put, baseUrl, new
             {
                 name = "Lotería de Navidad 2026",
                 drawDate = "2026-12-22",
                 ticketPrice = 5m,
-                ticketsPerBook = 15,
+                ticketsPerBook = 20,
                 clubDeliveryFrom = "2026-12-12",
                 clubDeliveryTo = "2026-12-19"
             })));
 
             Assert.Equal(new DateOnly(2026, 12, 12), updated.ClubDeliveryFrom);
             Assert.Equal(new DateOnly(2026, 12, 19), updated.ClubDeliveryTo);
+            Assert.Equal(20, updated.TicketsPerBook);
             Assert.Single(updated.Books);
         }
 
@@ -325,7 +388,7 @@ namespace RFFM.Api.Tests.IntegrationTests
         }
 
         [Fact]
-        public async Task DeliverBook_ToPlayerOfAnotherTeam_ReturnsNotFound()
+        public async Task AssignBook_ToPlayerOfAnotherTeam_ReturnsNotFound()
         {
             var (seed, client, host, campaign) = await CreateCampaignAsync();
             using var _ = host;
@@ -334,10 +397,35 @@ namespace RFFM.Api.Tests.IntegrationTests
 
             var response = await client.SendAsync(Request(HttpMethod.Post,
                 $"/api/teams/{seed.TeamId}/lottery-campaigns/{campaign.Id}/books",
-                new { teamPlayerId = foreignPlayerId, bookNumber = 1, firstTicketNumber = 1 }));
+                NewBook(foreignPlayerId, 1, 1, 15)));
 
             Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
             Assert.Equal(ErrorCodes.TeamPlayerNotFound, await ProblemCodeAsync(response));
+        }
+
+        [Fact]
+        public async Task AssignBook_WithLastTicketLowerThanFirst_ReturnsValidationProblem()
+        {
+            var (seed, client, host, campaign) = await CreateCampaignAsync();
+            using var _ = host;
+
+            var response = await client.SendAsync(Request(HttpMethod.Post,
+                $"/api/teams/{seed.TeamId}/lottery-campaigns/{campaign.Id}/books",
+                NewBook(seed.PlayerOneId, 1, 20, 19)));
+
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task CreateBooks_WithZeroCount_ReturnsValidationProblem()
+        {
+            var (seed, client, host, campaign) = await CreateCampaignAsync();
+            using var _ = host;
+
+            var response = await client.SendAsync(Request(HttpMethod.Post,
+                $"/api/teams/{seed.TeamId}/lottery-campaigns/{campaign.Id}/books/batch", new { count = 0 }));
+
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
 
         [Fact]
@@ -358,11 +446,13 @@ namespace RFFM.Api.Tests.IntegrationTests
             var (seed, client, host, campaign) = await CreateCampaignAsync();
             using var _ = host;
             var baseUrl = $"/api/teams/{seed.TeamId}/lottery-campaigns/{campaign.Id}";
-            var delivered = await ReadCampaignAsync(await client.SendAsync(
-                Request(HttpMethod.Post, $"{baseUrl}/books", new { teamPlayerId = seed.PlayerOneId, bookNumber = 1, firstTicketNumber = 1 })),
+            var assigned = await ReadCampaignAsync(await client.SendAsync(
+                Request(HttpMethod.Post, $"{baseUrl}/books", NewBook(seed.PlayerOneId, 1, 1, 15))),
                 HttpStatusCode.Created);
+            var bookId = assigned.Books.Single().Id;
+            await client.SendAsync(Request(HttpMethod.Put, $"{baseUrl}/books/{bookId}/status", new { }));
 
-            var response = await client.SendAsync(Request(HttpMethod.Put, $"{baseUrl}/books/{delivered.Books.Single().Id}/return", new { amount = 62m }));
+            var response = await client.SendAsync(Request(HttpMethod.Put, $"{baseUrl}/books/{bookId}/status", new { amount = 62m }));
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
             Assert.Equal(ErrorCodes.LotteryInvalidReturnAmount, await ProblemCodeAsync(response));
@@ -394,15 +484,15 @@ namespace RFFM.Api.Tests.IntegrationTests
             var (seed, client, host, campaign) = await CreateCampaignAsync();
             using var _ = host;
             var baseUrl = $"/api/teams/{seed.TeamId}/lottery-campaigns/{campaign.Id}";
-            await client.SendAsync(Request(HttpMethod.Post, $"{baseUrl}/books", new { teamPlayerId = seed.PlayerOneId, bookNumber = 1, firstTicketNumber = 1 }));
-            await client.SendAsync(Request(HttpMethod.Post, $"{baseUrl}/books", new { teamPlayerId = seed.PlayerTwoId, bookNumber = 2, firstTicketNumber = 16 }));
+            await client.SendAsync(Request(HttpMethod.Post, $"{baseUrl}/books", NewBook(seed.PlayerOneId, 1, 1, 15)));
+            await client.SendAsync(Request(HttpMethod.Post, $"{baseUrl}/books", NewBook(seed.PlayerTwoId, 2, 16, 30)));
+            await client.SendAsync(Request(HttpMethod.Post, $"{baseUrl}/books/batch", new { count = 1 }));
 
             var asPlayer = await ReadCampaignAsync(await client.SendAsync(
                 Request(HttpMethod.Get, baseUrl, role: "Player", userId: seed.PlayerUserId)));
 
             var book = Assert.Single(asPlayer.Books);
             Assert.Equal(seed.PlayerOneId, book.TeamPlayerId);
-            Assert.Equal(1, asPlayer.Totals.BooksDelivered);
             Assert.False(asPlayer.CanEdit);
         }
 
@@ -420,9 +510,10 @@ namespace RFFM.Api.Tests.IntegrationTests
                 Request(HttpMethod.Post, $"/api/teams/{seed.TeamId}/lottery-campaigns", NewCampaign(), role, seed.PlayerUserId),
                 Request(HttpMethod.Put, baseUrl, NewCampaign(), role, seed.PlayerUserId),
                 Request(HttpMethod.Delete, baseUrl, role: role, userId: seed.PlayerUserId),
-                Request(HttpMethod.Post, $"{baseUrl}/books", new { teamPlayerId = seed.PlayerOneId, bookNumber = 1, firstTicketNumber = 1 }, role, seed.PlayerUserId),
-                Request(HttpMethod.Put, $"{baseUrl}/club-delivery", new { amount = 10m }, role, seed.PlayerUserId),
-                Request(HttpMethod.Delete, $"{baseUrl}/club-delivery", role: role, userId: seed.PlayerUserId)
+                Request(HttpMethod.Post, $"{baseUrl}/books/batch", new { count = 1 }, role, seed.PlayerUserId),
+                Request(HttpMethod.Post, $"{baseUrl}/books", NewBook(seed.PlayerOneId, 1, 1, 15), role, seed.PlayerUserId),
+                Request(HttpMethod.Put, $"{baseUrl}/books/any/status", new { }, role, seed.PlayerUserId),
+                Request(HttpMethod.Delete, $"{baseUrl}/books/any/status", role: role, userId: seed.PlayerUserId)
             };
 
             foreach (var request in requests)

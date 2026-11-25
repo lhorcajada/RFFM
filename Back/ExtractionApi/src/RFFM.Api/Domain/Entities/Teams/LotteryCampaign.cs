@@ -1,8 +1,8 @@
 namespace RFFM.Api.Domain.Entities.Teams
 {
     /// <summary>
-    /// Campaña de lotería de un equipo: configuración del sorteo, tacos entregados a los jugadores y
-    /// liquidación con el club. See openspec/changes/team-lottery/design.md → D1.
+    /// Campaña de lotería de un equipo: configuración del sorteo y tacos que avanzan por los pasos de
+    /// <see cref="LotteryBookStatus"/> hasta su entrega al club.
     /// </summary>
     public class LotteryCampaign : BaseEntity
     {
@@ -12,6 +12,7 @@ namespace RFFM.Api.Domain.Entities.Teams
         {
             public const int NameMaxLength = 100;
             public const int MaxTicketsPerBook = 100;
+            public const int MaxBooksPerBatch = 200;
         }
 
         public string TeamId { get; private set; } = null!;
@@ -21,8 +22,6 @@ namespace RFFM.Api.Domain.Entities.Teams
         public int TicketsPerBook { get; private set; }
         public DateOnly ClubDeliveryFrom { get; private set; }
         public DateOnly ClubDeliveryTo { get; private set; }
-        public DateOnly? ClubDeliveredOn { get; private set; }
-        public decimal? ClubDeliveredAmount { get; private set; }
 
         private readonly List<LotteryBook> _books = new();
         public IReadOnlyCollection<LotteryBook> Books => _books.AsReadOnly();
@@ -43,9 +42,9 @@ namespace RFFM.Api.Domain.Entities.Teams
         public void Update(string name, DateOnly drawDate, decimal ticketPrice, int ticketsPerBook,
             DateOnly clubDeliveryFrom, DateOnly clubDeliveryTo)
         {
-            var bookSettingsChanged = ticketPrice != TicketPrice || ticketsPerBook != TicketsPerBook;
-            if (bookSettingsChanged && _books.Count > 0)
-                throw new DomainException(Title, "No se puede cambiar el precio ni las papeletas por taco cuando ya hay tacos entregados.",
+            var priceChanged = ticketPrice != TicketPrice;
+            if (priceChanged && _books.Count > 0)
+                throw new DomainException(Title, "No se puede cambiar el precio de la papeleta cuando ya hay tacos creados.",
                     ErrorCodes.LotteryCampaignHasBooks);
 
             Configure(name, drawDate, ticketPrice, ticketsPerBook, clubDeliveryFrom, clubDeliveryTo);
@@ -53,74 +52,128 @@ namespace RFFM.Api.Domain.Entities.Teams
 
         public void EnsureCanBeDeleted()
         {
-            if (_books.Count > 0)
-                throw new DomainException(Title, "No se puede eliminar una campaña con tacos entregados.", ErrorCodes.LotteryCampaignHasBooks);
+            if (_books.Any(b => b.Status != LotteryBookStatus.Unassigned))
+                throw new DomainException(Title, "No se puede eliminar una campaña con tacos asignados.", ErrorCodes.LotteryCampaignHasBooks);
         }
-
-        public int LastTicketNumber(LotteryBook book) => book.FirstTicketNumber + TicketsPerBook - 1;
 
         public int? TicketsSold(LotteryBook book) => book.AmountReturned is { } amount ? (int)(amount / TicketPrice) : null;
 
-        public int? TicketsUnsold(LotteryBook book) => TicketsSold(book) is { } sold ? TicketsPerBook - sold : null;
+        public int? TicketsUnsold(LotteryBook book) => TicketsSold(book) is { } sold ? book.TicketCount - sold : null;
 
-        public LotteryBook DeliverBook(string teamPlayerId, int bookNumber, int firstTicketNumber, DateOnly deliveredOn)
+        public IReadOnlyList<LotteryBook> CreateBooks(int count)
         {
-            EnsureBookIsUnique(null, bookNumber, firstTicketNumber);
-            var book = LotteryBook.Create(Id, teamPlayerId, bookNumber, firstTicketNumber, deliveredOn);
-            _books.Add(book);
-            return book;
+            if (count < 1 || count > Rules.MaxBooksPerBatch)
+                throw new DomainException(Title, $"Se pueden crear entre 1 y {Rules.MaxBooksPerBatch} tacos de una vez.",
+                    ErrorCodes.LotteryInvalidBookCount);
+
+            var nextBookNumber = _books.Count == 0 ? 1 : _books.Max(b => b.BookNumber) + 1;
+            var nextFirstTicket = _books.Count == 0 ? 1 : _books.Max(b => b.LastTicketNumber) + 1;
+            var created = new List<LotteryBook>(count);
+            for (var i = 0; i < count; i++)
+            {
+                var lastTicket = nextFirstTicket + TicketsPerBook - 1;
+                created.Add(LotteryBook.CreateUnassigned(Id, nextBookNumber + i, nextFirstTicket, lastTicket));
+                nextFirstTicket = lastTicket + 1;
+            }
+
+            _books.AddRange(created);
+            return created;
         }
 
-        public void EditBook(string bookId, string teamPlayerId, int bookNumber, int firstTicketNumber, DateOnly deliveredOn)
+        /// <summary>Asigna un jugador a un taco sin asignar; sin <paramref name="bookId"/> crea el taco ya asignado.</summary>
+        public LotteryBook AssignBook(string? bookId, string teamPlayerId, int bookNumber, int firstTicketNumber, int lastTicketNumber)
+        {
+            var existing = bookId is null ? null : FindBook(bookId);
+            EnsureBookIsUnique(existing?.Id, bookNumber, firstTicketNumber, lastTicketNumber);
+
+            if (existing is null)
+            {
+                var created = LotteryBook.CreateUnassigned(Id, bookNumber, firstTicketNumber, lastTicketNumber);
+                created.Assign(teamPlayerId);
+                _books.Add(created);
+                return created;
+            }
+
+            existing.Assign(teamPlayerId);
+            existing.SetNumbers(bookNumber, firstTicketNumber, lastTicketNumber);
+            return existing;
+        }
+
+        public void EditBook(string bookId, int bookNumber, int firstTicketNumber, int lastTicketNumber)
         {
             var book = FindBook(bookId);
-            EnsureBookIsUnique(book.Id, bookNumber, firstTicketNumber);
-            if (book.ReturnedOn is { } returnedOn && returnedOn < deliveredOn)
-                throw new DomainException(Title, "La devolución no puede ser anterior a la entrega.", ErrorCodes.LotteryReturnBeforeDelivery);
+            if (book.HasBeenDeliveredToPlayer)
+                throw new DomainException(Title, "Los números del taco no se pueden cambiar una vez entregado al jugador.",
+                    ErrorCodes.LotteryBookNumbersLocked);
 
-            book.Set(teamPlayerId, bookNumber, firstTicketNumber, deliveredOn);
+            EnsureBookIsUnique(book.Id, bookNumber, firstTicketNumber, lastTicketNumber);
+            book.SetNumbers(bookNumber, firstTicketNumber, lastTicketNumber);
         }
 
-        public void ReturnBook(string bookId, decimal amount, DateOnly returnedOn)
+        /// <summary>Avanza el taco un paso: entrega al jugador, devolución (con importe) o entrega al club.</summary>
+        public void AdvanceBook(string bookId, DateOnly date, decimal? amount)
         {
             var book = FindBook(bookId);
-            var maxAmount = TicketPrice * TicketsPerBook;
-            var isMultipleOfPrice = amount % TicketPrice == 0;
-            if (amount < 0 || amount > maxAmount || !isMultipleOfPrice)
-                throw new DomainException(Title,
-                    $"El dinero devuelto debe ser múltiplo de {TicketPrice:0.##} € y no superar {maxAmount:0.##} €.",
-                    ErrorCodes.LotteryInvalidReturnAmount);
-            if (returnedOn < book.DeliveredOn)
-                throw new DomainException(Title, "La devolución no puede ser anterior a la entrega.", ErrorCodes.LotteryReturnBeforeDelivery);
-
-            book.Return(amount, returnedOn);
+            switch (book.Status)
+            {
+                case LotteryBookStatus.Unassigned:
+                case LotteryBookStatus.Assigned:
+                    book.DeliverToPlayer(date);
+                    break;
+                case LotteryBookStatus.DeliveredToPlayer:
+                    book.Return(ValidReturnAmount(book, amount), date);
+                    break;
+                case LotteryBookStatus.ReturnedToCoach:
+                    book.DeliverToClub(date);
+                    break;
+                default:
+                    throw new DomainException(Title, "El taco ya está entregado al club y no tiene más pasos.", ErrorCodes.LotteryBookNoNextStatus);
+            }
         }
 
-        public void UndoReturn(string bookId) => FindBook(bookId).UndoReturn();
+        /// <summary>Deshace el último paso del taco y borra solo los datos que ese paso añadió.</summary>
+        public void UndoBookStatus(string bookId)
+        {
+            var book = FindBook(bookId);
+            switch (book.Status)
+            {
+                case LotteryBookStatus.Assigned:
+                    book.UndoAssign();
+                    break;
+                case LotteryBookStatus.DeliveredToPlayer:
+                    book.UndoDeliverToPlayer();
+                    break;
+                case LotteryBookStatus.ReturnedToCoach:
+                    book.UndoReturn();
+                    break;
+                case LotteryBookStatus.DeliveredToClub:
+                    book.UndoDeliverToClub();
+                    break;
+                default:
+                    throw new DomainException(Title, "El taco está sin asignar y no tiene pasos que deshacer.", ErrorCodes.LotteryBookNothingToUndo);
+            }
+        }
 
         public void RemoveBook(string bookId)
         {
             var book = FindBook(bookId);
-            if (book.IsReturned)
-                throw new DomainException(Title, "No se puede eliminar un taco ya devuelto. Deshaz antes la devolución.",
-                    ErrorCodes.LotteryBookAlreadyReturned);
+            if (book.Status != LotteryBookStatus.Unassigned)
+                throw new DomainException(Title, "Solo se puede eliminar un taco sin asignar. Deshaz antes sus pasos.",
+                    ErrorCodes.LotteryBookNotUnassigned);
 
             _books.Remove(book);
         }
 
-        public void RecordClubDelivery(decimal amount, DateOnly deliveredOn)
+        private decimal ValidReturnAmount(LotteryBook book, decimal? amount)
         {
-            if (amount < 0)
-                throw new DomainException(Title, "El importe entregado al club no puede ser negativo.", ErrorCodes.LotteryInvalidClubDeliveryAmount);
+            var maxAmount = TicketPrice * book.TicketCount;
+            var validAmount = amount is { } value && value >= 0 && value <= maxAmount && value % TicketPrice == 0;
+            if (!validAmount)
+                throw new DomainException(Title,
+                    $"El dinero devuelto debe ser múltiplo de {TicketPrice:0.##} € y no superar {maxAmount:0.##} €.",
+                    ErrorCodes.LotteryInvalidReturnAmount);
 
-            ClubDeliveredAmount = amount;
-            ClubDeliveredOn = deliveredOn;
-        }
-
-        public void UndoClubDelivery()
-        {
-            ClubDeliveredAmount = null;
-            ClubDeliveredOn = null;
+            return amount!.Value;
         }
 
         private void Configure(string name, DateOnly drawDate, decimal ticketPrice, int ticketsPerBook,
@@ -151,17 +204,18 @@ namespace RFFM.Api.Domain.Entities.Teams
             _books.SingleOrDefault(b => b.Id == bookId)
             ?? throw new NotFoundException($"LotteryBook '{bookId}' Not Found", ErrorCodes.LotteryBookNotFound);
 
-        private void EnsureBookIsUnique(string? bookId, int bookNumber, int firstTicketNumber)
+        private void EnsureBookIsUnique(string? bookId, int bookNumber, int firstTicketNumber, int lastTicketNumber)
         {
+            LotteryBook.EnsureValidRange(firstTicketNumber, lastTicketNumber);
+
             var others = _books.Where(b => b.Id != bookId).ToList();
             if (others.Any(b => b.BookNumber == bookNumber))
-                throw new DomainException(Title, $"El taco {bookNumber} ya está entregado en esta campaña.", ErrorCodes.LotteryBookNumberDuplicated);
+                throw new DomainException(Title, $"El taco {bookNumber} ya existe en esta campaña.", ErrorCodes.LotteryBookNumberDuplicated);
 
-            var lastTicketNumber = firstTicketNumber + TicketsPerBook - 1;
-            var overlapping = others.FirstOrDefault(b => firstTicketNumber <= LastTicketNumber(b) && b.FirstTicketNumber <= lastTicketNumber);
+            var overlapping = others.FirstOrDefault(b => firstTicketNumber <= b.LastTicketNumber && b.FirstTicketNumber <= lastTicketNumber);
             if (overlapping is not null)
                 throw new DomainException(Title,
-                    $"Las papeletas {firstTicketNumber}–{lastTicketNumber} coinciden con el taco {overlapping.BookNumber} ({overlapping.FirstTicketNumber}–{LastTicketNumber(overlapping)}).",
+                    $"Las papeletas {firstTicketNumber}–{lastTicketNumber} coinciden con el taco {overlapping.BookNumber} ({overlapping.FirstTicketNumber}–{overlapping.LastTicketNumber}).",
                     ErrorCodes.LotteryTicketRangeOverlap);
         }
     }

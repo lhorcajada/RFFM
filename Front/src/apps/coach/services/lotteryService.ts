@@ -6,15 +6,24 @@ export type LotteryCampaignSummary = {
   drawDate: string;
 };
 
+export type LotteryBookStatus =
+  | "Unassigned"
+  | "Assigned"
+  | "DeliveredToPlayer"
+  | "ReturnedToCoach"
+  | "DeliveredToClub";
+
 export type LotteryBook = {
   id: string;
-  teamPlayerId: string;
+  teamPlayerId: string | null;
   bookNumber: number;
   firstTicketNumber: number;
   lastTicketNumber: number;
-  deliveredOn: string;
+  status: LotteryBookStatus;
+  deliveredOn: string | null;
   returnedOn: string | null;
   amountReturned: number | null;
+  clubDeliveredOn: string | null;
   ticketsSold: number | null;
   ticketsUnsold: number | null;
 };
@@ -31,6 +40,14 @@ export type LotteryTotals = {
   amountPending: number;
 };
 
+export type LotteryClubDelivery = {
+  booksDelivered: number;
+  booksPending: number;
+  amountDelivered: number;
+  amountPending: number;
+  lastDeliveredOn: string | null;
+};
+
 export type LotteryCampaign = {
   id: string;
   teamId: string;
@@ -40,8 +57,7 @@ export type LotteryCampaign = {
   ticketsPerBook: number;
   clubDeliveryFrom: string;
   clubDeliveryTo: string;
-  clubDeliveredOn: string | null;
-  clubDeliveredAmount: number | null;
+  clubDelivery: LotteryClubDelivery;
   totals: LotteryTotals;
   books: LotteryBook[];
   canEdit: boolean;
@@ -56,28 +72,27 @@ export type LotteryCampaignRequest = {
   clubDeliveryTo: string;
 };
 
-export type DeliverBookRequest = {
+export type CreateBooksRequest = {
+  count: number;
+};
+
+export type AssignBookRequest = {
+  bookId?: string;
   teamPlayerId: string;
   bookNumber: number;
   firstTicketNumber: number;
-  deliveredOn?: string;
+  lastTicketNumber: number;
 };
 
 export type UpdateBookRequest = {
-  teamPlayerId: string;
   bookNumber: number;
   firstTicketNumber: number;
-  deliveredOn: string;
+  lastTicketNumber: number;
 };
 
-export type ReturnBookRequest = {
-  amount: number;
-  returnedOn?: string;
-};
-
-export type ClubDeliveryRequest = {
-  amount: number;
-  deliveredOn?: string;
+export type AdvanceBookRequest = {
+  date?: string;
+  amount?: number;
 };
 
 const campaignsUrl = (teamId: string) => `/api/teams/${encodeURIComponent(teamId)}/lottery-campaigns`;
@@ -114,10 +129,19 @@ export async function deleteLotteryCampaign(teamId: string, campaignId: string):
   await client.delete(campaignUrl(teamId, campaignId));
 }
 
-export async function deliverLotteryBook(
+export async function createLotteryBooks(
   teamId: string,
   campaignId: string,
-  body: DeliverBookRequest,
+  body: CreateBooksRequest,
+): Promise<LotteryCampaign> {
+  const resp = await client.post<LotteryCampaign>(`${campaignUrl(teamId, campaignId)}/books/batch`, body);
+  return resp.data;
+}
+
+export async function assignLotteryBook(
+  teamId: string,
+  campaignId: string,
+  body: AssignBookRequest,
 ): Promise<LotteryCampaign> {
   const resp = await client.post<LotteryCampaign>(`${campaignUrl(teamId, campaignId)}/books`, body);
   return resp.data;
@@ -138,36 +162,22 @@ export async function deleteLotteryBook(teamId: string, campaignId: string, book
   return resp.data;
 }
 
-export async function returnLotteryBook(
+export async function advanceLotteryBookStatus(
   teamId: string,
   campaignId: string,
   bookId: string,
-  body: ReturnBookRequest,
+  body: AdvanceBookRequest,
 ): Promise<LotteryCampaign> {
-  const resp = await client.put<LotteryCampaign>(`${bookUrl(teamId, campaignId, bookId)}/return`, body);
+  const resp = await client.put<LotteryCampaign>(`${bookUrl(teamId, campaignId, bookId)}/status`, body);
   return resp.data;
 }
 
-export async function undoLotteryBookReturn(
+export async function undoLotteryBookStatus(
   teamId: string,
   campaignId: string,
   bookId: string,
 ): Promise<LotteryCampaign> {
-  const resp = await client.delete<LotteryCampaign>(`${bookUrl(teamId, campaignId, bookId)}/return`);
-  return resp.data;
-}
-
-export async function recordLotteryClubDelivery(
-  teamId: string,
-  campaignId: string,
-  body: ClubDeliveryRequest,
-): Promise<LotteryCampaign> {
-  const resp = await client.put<LotteryCampaign>(`${campaignUrl(teamId, campaignId)}/club-delivery`, body);
-  return resp.data;
-}
-
-export async function undoLotteryClubDelivery(teamId: string, campaignId: string): Promise<LotteryCampaign> {
-  const resp = await client.delete<LotteryCampaign>(`${campaignUrl(teamId, campaignId)}/club-delivery`);
+  const resp = await client.delete<LotteryCampaign>(`${bookUrl(teamId, campaignId, bookId)}/status`);
   return resp.data;
 }
 
@@ -177,11 +187,10 @@ export default {
   createLotteryCampaign,
   updateLotteryCampaign,
   deleteLotteryCampaign,
-  deliverLotteryBook,
+  createLotteryBooks,
+  assignLotteryBook,
   updateLotteryBook,
   deleteLotteryBook,
-  returnLotteryBook,
-  undoLotteryBookReturn,
-  recordLotteryClubDelivery,
-  undoLotteryClubDelivery,
+  advanceLotteryBookStatus,
+  undoLotteryBookStatus,
 };
