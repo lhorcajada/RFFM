@@ -30,8 +30,9 @@ namespace RFFM.Api.Features.Coaches.Availability
         {
             var clubId = await db.Teams
                 .Where(t => t.Id == teamId)
-                .Select(t => t.ClubId)
-                .FirstAsync(cancellationToken);
+                .Select(t => (string?)t.ClubId)
+                .SingleOrDefaultAsync(cancellationToken)
+                ?? throw new NotFoundException($"Team '{teamId}' Not Found", ErrorCodes.TeamNotFound);
             await EnsureCanManageTeamAsync(db, currentUser, teamId, clubId, cancellationToken);
         }
 

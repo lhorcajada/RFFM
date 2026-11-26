@@ -193,6 +193,9 @@ namespace RFFM.Api.Tests.IntegrationTests
             setupDb.TeamPlayers.Add(teamPlayer);
             await setupDb.SaveChangesAsync();
 
+            setupDb.UserClubs.Add(new UserClub(CoachUserId, club.Id, Membership.Coach.Id));
+            await setupDb.SaveChangesAsync();
+
             return teamPlayer.Id;
         }
 
@@ -213,6 +216,8 @@ namespace RFFM.Api.Tests.IntegrationTests
             return teamPlayer.TeamId;
         }
 
+        private const string CoachUserId = "selfedit-coach-test-user";
+
         private static HttpRequestMessage BuildUpdateRequest(string teamPlayerId, UpdateTeamPlayer.UpdateRequest body, string role, string? userId = null)
         {
             var request = new HttpRequestMessage(HttpMethod.Put, $"/api/catalog/teamplayer/{teamPlayerId}")
@@ -220,9 +225,10 @@ namespace RFFM.Api.Tests.IntegrationTests
                 Content = JsonContent.Create(body)
             };
             request.Headers.Add("X-Test-Role", role);
-            if (userId != null)
+            var effectiveUserId = userId ?? (role == "Coach" ? CoachUserId : null);
+            if (effectiveUserId != null)
             {
-                request.Headers.Add("X-Test-UserId", userId);
+                request.Headers.Add("X-Test-UserId", effectiveUserId);
             }
             return request;
         }
@@ -514,6 +520,36 @@ namespace RFFM.Api.Tests.IntegrationTests
             Assert.Equal("Calle Falsa 123", resp.ContactInfo?.Address?.Street);
             Assert.Equal("Madrid", resp.ContactInfo?.Address?.City);
             Assert.Equal("28080", resp.ContactInfo?.Address?.PostalCode);
+        }
+
+        [Fact]
+        public async Task Administrator_without_club_membership_can_still_update_player_of_other_club()
+        {
+            var teamPlayerId = await CreateTeamPlayerAsync();
+            var adminUserId = $"admin-{Guid.NewGuid():N}"; // authenticated, no UserClub row for this club
+            var (host, client) = await StartHostAsync(new UpdateTeamPlayer());
+            using var _ = host;
+
+            var body = new UpdateTeamPlayer.UpdateRequest(
+                Dorsal: null,
+                PlayerInfo: new UpdateTeamPlayer.PlayerInfoRequest("Admin Renamed", "Admin LastName", null, null),
+                Demarcation: null,
+                ContactInfo: new UpdateTeamPlayer.ContactRequest("688888888", "admin-edit@example.com"),
+                PhysicalInfo: null,
+                FamilyMembers: null);
+
+            var response = await client.SendAsync(BuildUpdateRequest(teamPlayerId, body, "Administrator", adminUserId));
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+            await using var verifyDb = _fixture.CreateDbContext();
+            var teamPlayer = await verifyDb.TeamPlayers
+                .Include(tp => tp.ContactInfo)
+                .AsNoTracking()
+                .SingleAsync(tp => tp.Id == teamPlayerId);
+            var player = await verifyDb.Players.AsNoTracking().SingleAsync(p => p.Id == teamPlayer.PlayerId);
+            Assert.Equal("688888888", teamPlayer.ContactInfo?.Phone);
+            Assert.Equal("Admin Renamed", player.Name);
         }
     }
 }

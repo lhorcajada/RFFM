@@ -38,7 +38,9 @@ namespace RFFM.Api.Features.Coaches.Invitation
             }
 
             var normalizedCode = (code ?? string.Empty).Trim().ToUpperInvariant();
+            // A join code is presented before the caller belongs to the team's club.
             var team = await db.Teams
+                .IgnoreQueryFilters()
                 .FirstOrDefaultAsync(t => t.JoinCode != null
                                            && t.JoinCode.ToUpper() == normalizedCode,
                     cancellationToken);

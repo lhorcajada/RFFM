@@ -71,6 +71,16 @@
 - Authenticated administrator on `UpdateTeamPlayer` for a team of a club they do not belong to: still succeeds as before the change.
 - The adapted existing tests pass with a `UserClub` row (or a `UserTeam` row for Player-role principals) seeded for their test user.
 
+**Added during implementation (onboarding by team code)**:
+- `GetTeamPlayersForSelection`: `GET /api/catalog/team/{teamId}/players-for-selection?joinCode={code}`; `GetTeamPlayersQuery(string TeamId, string? JoinCode = null)`.
+- `VerifyPlayerIdentity`: `VerifyPlayerRequest(string? Name, string? LastName, DateOnly? BirthDate, string? TeamPlayerId, string? JoinCode = null)`; `VerifyPlayerQuery(string TeamId, string? Name, string? LastName, DateOnly? BirthDate, string? TeamPlayerId, string? UserId, string? JoinCode = null)`. A successful verification with a valid code and an authenticated user adds a `UserTeam` row with the Player membership when the user has no link to that team.
+- Front `teamService.getTeamPlayersForSelection(teamId, joinCode)` and `teamService.verifyPlayerIdentity(teamId, teamPlayerId, joinCode)`; `useTeamAppEntry` keeps the code validated by `validateTeamCode` and passes it to both calls.
+
+**Test assertions (onboarding)**:
+- Non-member with the join code of that team: player list returned; identity verification succeeds, a `UserTeam` row exists afterwards, and the user's context then reads that Team and its Players.
+- Non-member without a code, with a wrong code, or with another team's code: both calls return not found; no `UserTeam` or `UserProfile` row is written.
+- Member of the club without a code: both calls behave as before.
+
 ## Step 5: Filter Season and UserActivityLog with audit opt-outs
 
 **Interfaces**:

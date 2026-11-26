@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using RFFM.Api.Domain.Aggregates.UserClubs;
 using RFFM.Api.Domain.Entities;
 using RFFM.Api.Domain.Services;
 using RFFM.Api.FeatureModules;
@@ -28,7 +29,7 @@ namespace RFFM.Api.Features.Coaches.Teams.Queries
                         var userId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value
                                      ?? httpContext.User.FindFirst("sub")?.Value;
 
-                        var query = new VerifyPlayerQuery(teamId, body.Name, body.LastName, body.BirthDate, body.TeamPlayerId, userId);
+                        var query = new VerifyPlayerQuery(teamId, body.Name, body.LastName, body.BirthDate, body.TeamPlayerId, userId, body.JoinCode);
                         var result = await mediator.Send(query, cancellationToken);
                         return result is null
                             ? Results.NotFound()
@@ -41,9 +42,9 @@ namespace RFFM.Api.Features.Coaches.Teams.Queries
                 .RequireAuthorization();
         }
 
-        public record VerifyPlayerRequest(string? Name, string? LastName, DateOnly? BirthDate, string? TeamPlayerId);
+        public record VerifyPlayerRequest(string? Name, string? LastName, DateOnly? BirthDate, string? TeamPlayerId, string? JoinCode = null);
 
-        public record VerifyPlayerQuery(string TeamId, string? Name, string? LastName, DateOnly? BirthDate, string? TeamPlayerId, string? UserId)
+        public record VerifyPlayerQuery(string TeamId, string? Name, string? LastName, DateOnly? BirthDate, string? TeamPlayerId, string? UserId, string? JoinCode = null)
             : IRequest<VerifyPlayerResponse?>;
 
         public record VerifyPlayerResponse(string PlayerId, string TeamId, string TeamName, string[]? Roles = null, string? Token = null);
@@ -71,13 +72,18 @@ namespace RFFM.Api.Features.Coaches.Teams.Queries
                 VerifyPlayerQuery request,
                 CancellationToken cancellationToken = default)
             {
-                var team = await _db.Teams
+                // A valid join code for this exact team lets a caller who is not yet linked verify one of its players (onboarding).
+                var provesTeam = await TeamJoinCodeGate.ProvesTeamAsync(_db, request.TeamId, request.JoinCode, cancellationToken);
+
+                var teams = provesTeam ? _db.Teams.IgnoreQueryFilters() : _db.Teams;
+                var team = await teams
                     .AsNoTracking()
                     .FirstOrDefaultAsync(t => t.Id == request.TeamId, cancellationToken);
 
                 if (team is null) return null;
 
-                var teamPlayers = await _db.TeamPlayers
+                var teamPlayerRows = provesTeam ? _db.TeamPlayers.IgnoreQueryFilters() : _db.TeamPlayers;
+                var teamPlayers = await teamPlayerRows
                     .AsNoTracking()
                     .Include(tp => tp.Player)
                     .Where(tp => tp.TeamId == request.TeamId)
@@ -123,6 +129,9 @@ namespace RFFM.Api.Features.Coaches.Teams.Queries
                     var user = await _userManager.FindByIdAsync(request.UserId);
                     if (user is not null)
                     {
+                        if (provesTeam)
+                            await EnsureTeamPlayerLinkAsync(request.UserId, team.Id, cancellationToken);
+
                         await EnsureRoleAssignedAsync(user, AppRoles.Player.Name, cancellationToken);
                         await SaveUserProfileAsync(request.UserId, AppRoles.Player.Name, teamPlayerId, team.Id, cancellationToken);
                         roles = (await _userManager.GetRolesAsync(user)).ToArray();
@@ -131,6 +140,17 @@ namespace RFFM.Api.Features.Coaches.Teams.Queries
                 }
 
                 return new VerifyPlayerResponse(teamPlayerId, team.Id, team.Name, roles, jwt);
+            }
+
+            private async Task EnsureTeamPlayerLinkAsync(string userId, string teamId, CancellationToken ct)
+            {
+                var alreadyLinked = await _db.UserTeams
+                    .AnyAsync(ut => ut.ApplicationUserId == userId && ut.TeamId == teamId, ct);
+                if (alreadyLinked)
+                    return;
+
+                _db.UserTeams.Add(new UserTeam(userId, teamId, Membership.Player.Id));
+                await _db.SaveChangesAsync(ct);
             }
 
             private async Task EnsureRoleAssignedAsync(IdentityUser user, string roleName, CancellationToken ct)

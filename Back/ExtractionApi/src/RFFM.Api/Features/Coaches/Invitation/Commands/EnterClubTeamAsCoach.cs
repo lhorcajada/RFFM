@@ -88,7 +88,9 @@ namespace RFFM.Api.Features.Coaches.Invitation.Commands
                 }
 
                 var normalizedCode = request.Code.Trim().ToUpperInvariant();
+                // A join code is presented before the caller belongs to the team's club.
                 var team = await _db.Teams
+                    .IgnoreQueryFilters()
                     .AsNoTracking()
                     .FirstOrDefaultAsync(t => t.JoinCode == normalizedCode, cancellationToken);
 

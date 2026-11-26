@@ -238,7 +238,9 @@ namespace RFFM.Api.Features.Audit
 
                 var relevantTeamIds = effectiveTeamIdByEntry.Values.Where(t => t != null).Select(t => t!).Distinct().ToArray();
 
-                var teams = await _db.Set<Team>().AsNoTracking()
+                // Federation and Administrator see entries of every club, so they resolve teams of every club too.
+                var teamsQuery = isFederationOrAdmin ? _db.Set<Team>().IgnoreQueryFilters() : _db.Set<Team>();
+                var teams = await teamsQuery.AsNoTracking()
                     .Where(t => relevantTeamIds.Contains(t.Id))
                     .ToDictionaryAsync(t => t.Id, t => t, ct);
 

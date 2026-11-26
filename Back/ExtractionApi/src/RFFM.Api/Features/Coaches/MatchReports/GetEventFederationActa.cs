@@ -65,7 +65,11 @@ namespace RFFM.Api.Features.Coaches.MatchReports
                         CompetitionId = se.Team != null ? se.Team.RffmCompetitionId : null,
                         GroupId = se.Team != null ? se.Team.RffmGroupId : null
                     })
-                    .SingleAsync(cancellationToken);
+                    .SingleOrDefaultAsync(cancellationToken);
+
+                // A caller outside the event's club gets no row: the Team navigation is filtered by club.
+                if (sportEvent is null)
+                    throw NotAvailable();
 
                 var hasFederationReport = MatchReportRules.HasFederationReport(
                     sportEvent.EventTypeId, sportEvent.CodActa, sportEvent.LocalGoals, sportEvent.VisitorGoals);

@@ -228,6 +228,9 @@ namespace RFFM.Api.Infrastructure.Persistence
             modelBuilder.ConfigureSmartEnum();
 
             ApplyAllEntityConfigurations(modelBuilder);
+
+            ApplyClubScopeFilter<Team>(modelBuilder);
+            ApplyClubScopeFilter<Player>(modelBuilder);
         }
 
         public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

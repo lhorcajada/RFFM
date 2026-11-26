@@ -39,6 +39,11 @@ namespace RFFM.Api.Features.Coaches.Players.Commands
                             .Any(r => string.Equals(r, AppRoles.Coach.Name, StringComparison.OrdinalIgnoreCase) ||
                                       string.Equals(r, AppRoles.Administrator.Name, StringComparison.OrdinalIgnoreCase));
 
+                        // Administrators edit players of any club; every other role stays limited to its club.
+                        var isAdministrator = (currentUser.Roles ?? Enumerable.Empty<string>())
+                            .Any(r => string.Equals(r, AppRoles.Administrator.Name, StringComparison.OrdinalIgnoreCase));
+                        var players = isAdministrator ? db.Players.IgnoreQueryFilters() : db.Players.AsQueryable();
+
                         if (!isPrivileged)
                         {
                             var isOwnPlayer = await db.Set<UserTeam>()
@@ -89,7 +94,7 @@ namespace RFFM.Api.Features.Coaches.Players.Commands
                         // update player basic info
                         if (req.PlayerInfo != null)
                         {
-                            var playerEntity = await db.Players.FirstOrDefaultAsync(p => p.Id == item.PlayerId, cancellationToken);
+                            var playerEntity = await players.FirstOrDefaultAsync(p => p.Id == item.PlayerId, cancellationToken);
                             if (playerEntity != null)
                             {
                                 if (!string.IsNullOrEmpty(req.PlayerInfo.Name)) playerEntity.UpdateName(req.PlayerInfo.Name);
@@ -166,7 +171,7 @@ namespace RFFM.Api.Features.Coaches.Players.Commands
                         await db.SaveChangesAsync(cancellationToken);
 
                         // map to response similar to GetTeamPlayer
-                        var player = await db.Players.AsNoTracking().FirstOrDefaultAsync(p => p.Id == item.PlayerId, cancellationToken);
+                        var player = await players.AsNoTracking().FirstOrDefaultAsync(p => p.Id == item.PlayerId, cancellationToken);
 
                         var playerModel = new PlayerModel
                         {

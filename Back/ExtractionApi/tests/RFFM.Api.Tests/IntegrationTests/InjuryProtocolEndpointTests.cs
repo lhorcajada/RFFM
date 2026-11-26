@@ -55,6 +55,7 @@ namespace RFFM.Api.Tests.IntegrationTests
         private class TestAuthHandler : AuthenticationHandler<AuthenticationSchemeOptions>
         {
             public const string SchemeName = "Test";
+            public const string UserId = "injury-protocol-test-user";
 
             public TestAuthHandler(
                 IOptionsMonitor<AuthenticationSchemeOptions> options,
@@ -73,6 +74,7 @@ namespace RFFM.Api.Tests.IntegrationTests
                 var claims = new List<Claim>
                 {
                     new Claim(ClaimTypes.Name, "test-user"),
+                    new Claim(ClaimTypes.NameIdentifier, UserId),
                 };
                 if (!string.IsNullOrEmpty(role))
                 {
@@ -159,6 +161,9 @@ namespace RFFM.Api.Tests.IntegrationTests
                 SeasonId = season.Id
             });
             setupDb.Teams.Add(team);
+            await setupDb.SaveChangesAsync();
+
+            setupDb.UserClubs.Add(new UserClub(TestAuthHandler.UserId, club.Id, Membership.Coach.Id));
             await setupDb.SaveChangesAsync();
 
             return team.Id;

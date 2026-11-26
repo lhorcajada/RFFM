@@ -14,9 +14,9 @@ namespace RFFM.Api.Features.Coaches.Teams.Queries
         public void AddRoutes(IEndpointRouteBuilder app)
         {
             app.MapGet("/api/catalog/team/{teamId}/players-for-selection",
-                    async (string teamId, IMediator mediator, CancellationToken cancellationToken) =>
+                    async (string teamId, string? joinCode, IMediator mediator, CancellationToken cancellationToken) =>
                     {
-                        var result = await mediator.Send(new GetTeamPlayersQuery(teamId), cancellationToken);
+                        var result = await mediator.Send(new GetTeamPlayersQuery(teamId, joinCode), cancellationToken);
                         return result is null
                             ? Results.NotFound()
                             : Results.Ok(result);
@@ -37,7 +37,7 @@ namespace RFFM.Api.Features.Coaches.Teams.Queries
             string? BirthDate,
             int? Dorsal);
 
-        public record GetTeamPlayersQuery(string TeamId) : IRequest<GetTeamPlayersResponse?>;
+        public record GetTeamPlayersQuery(string TeamId, string? JoinCode = null) : IRequest<GetTeamPlayersResponse?>;
 
         public record GetTeamPlayersResponse(
             string TeamId,
@@ -57,13 +57,18 @@ namespace RFFM.Api.Features.Coaches.Teams.Queries
                 GetTeamPlayersQuery request,
                 CancellationToken cancellationToken = default)
             {
-                var team = await _db.Teams
+                // A valid join code for this exact team lets a caller who is not yet linked list its players (onboarding).
+                var provesTeam = await TeamJoinCodeGate.ProvesTeamAsync(_db, request.TeamId, request.JoinCode, cancellationToken);
+
+                var teams = provesTeam ? _db.Teams.IgnoreQueryFilters() : _db.Teams;
+                var team = await teams
                     .AsNoTracking()
                     .FirstOrDefaultAsync(t => t.Id == request.TeamId, cancellationToken);
 
                 if (team is null) return null;
 
-                var players = await _db.TeamPlayers
+                var teamPlayers = provesTeam ? _db.TeamPlayers.IgnoreQueryFilters() : _db.TeamPlayers;
+                var players = await teamPlayers
                     .AsNoTracking()
                     .Include(tp => tp.Player)
                     .Where(tp => tp.TeamId == request.TeamId)

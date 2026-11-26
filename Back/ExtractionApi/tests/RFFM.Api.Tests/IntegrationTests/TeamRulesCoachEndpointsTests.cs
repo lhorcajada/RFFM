@@ -58,6 +58,7 @@ namespace RFFM.Api.Tests.IntegrationTests
         private class TestAuthHandler : AuthenticationHandler<AuthenticationSchemeOptions>
         {
             public const string SchemeName = "Test";
+            public const string UserId = "team-rules-test-user";
 
             public TestAuthHandler(
                 IOptionsMonitor<AuthenticationSchemeOptions> options,
@@ -72,7 +73,8 @@ namespace RFFM.Api.Tests.IntegrationTests
                 var claims = new List<Claim>
                 {
                     new(ClaimTypes.Name, "test-user"),
-                    new(ClaimTypes.Role, "Administrator")
+                    new(ClaimTypes.Role, "Administrator"),
+                    new(ClaimTypes.NameIdentifier, UserId)
                 };
                 var identity = new ClaimsIdentity(claims, SchemeName);
                 var principal = new ClaimsPrincipal(identity);
@@ -163,6 +165,9 @@ namespace RFFM.Api.Tests.IntegrationTests
                 SeasonId = season.Id
             });
             db.Teams.Add(team);
+            await db.SaveChangesAsync();
+
+            db.UserClubs.Add(new UserClub(TestAuthHandler.UserId, club.Id, Membership.Coach.Id));
             await db.SaveChangesAsync();
 
             return team.Id;

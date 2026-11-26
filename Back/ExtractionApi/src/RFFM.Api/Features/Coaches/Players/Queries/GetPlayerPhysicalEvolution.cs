@@ -105,8 +105,9 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                 var teamCategoryId = await db.Teams
                     .AsNoTracking()
                     .Where(t => t.Id == request.TeamId)
-                    .Select(t => t.CategoryId)
-                    .SingleAsync(cancellationToken);
+                    .Select(t => (int?)t.CategoryId)
+                    .SingleOrDefaultAsync(cancellationToken)
+                    ?? throw new NotFoundException($"Team '{request.TeamId}' Not Found", ErrorCodes.TeamNotFound);
                 int? categoryHalfMinutes = MatchDurationMinutesByCategory.TryGetMinutes(teamCategoryId, out var halfMinutes) ? halfMinutes : null;
 
                 var eventsInWindow = await db.SportEvents

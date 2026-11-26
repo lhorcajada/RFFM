@@ -47,7 +47,9 @@ namespace RFFM.Api.Features.Coaches.Teams.Queries
                 CancellationToken cancellationToken = default)
             {
                 var normalizedCode = request.Code.Trim().ToUpper();
+                // A join code is presented before the caller belongs to the team's club.
                 var team = await _db.Teams
+                    .IgnoreQueryFilters()
                     .AsNoTracking()
                     .FirstOrDefaultAsync(t => t.JoinCode == normalizedCode, cancellationToken);
 

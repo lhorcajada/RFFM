@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Common;
+using RFFM.Api.Domain;
 using RFFM.Api.Domain.Aggregates.Assistances;
 using RFFM.Api.Domain.Entities;
 using RFFM.Api.Domain.Entities.Competitions;
@@ -310,8 +311,9 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                 var teamCategoryId = await db.Teams
                     .AsNoTracking()
                     .Where(t => t.Id == request.TeamId)
-                    .Select(t => t.CategoryId)
-                    .SingleAsync(cancellationToken);
+                    .Select(t => (int?)t.CategoryId)
+                    .SingleOrDefaultAsync(cancellationToken)
+                    ?? throw new NotFoundException($"Team '{request.TeamId}' Not Found", ErrorCodes.TeamNotFound);
                 var hasStandardMinutes = MatchDurationMinutesByCategory.TryGetMinutes(teamCategoryId, out var standardMinutes);
 
                 var matchLikeEventTypeIds = new[]

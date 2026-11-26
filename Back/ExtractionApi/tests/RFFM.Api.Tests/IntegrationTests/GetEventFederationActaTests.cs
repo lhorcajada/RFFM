@@ -92,6 +92,18 @@ namespace RFFM.Api.Tests.IntegrationTests
         }
 
         [Fact]
+        public async Task NonMemberOfEventClub_ReturnsNotFound()
+        {
+            var (eventId, _) = await SeedLeagueEventAsync("781");
+            var outsiderId = $"acta-outsider-{Guid.NewGuid():N}";
+
+            var (status, acta) = await RequestAsync(eventId, new MatchRffm(), "Coach", outsiderId);
+
+            Assert.Equal(HttpStatusCode.NotFound, status);
+            acta.Verify(s => s.GetMatchFromActaAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Fact]
         public async Task TeamWithoutRffmCompetition_ReturnsNotFound()
         {
             await using var db = _fixture.CreateDbContext();

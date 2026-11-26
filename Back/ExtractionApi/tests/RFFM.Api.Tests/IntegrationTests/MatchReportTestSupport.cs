@@ -145,6 +145,10 @@ namespace RFFM.Api.Tests.IntegrationTests
             var team = new Team(new TeamModelBase { Name = "MatchReport Test Team", CategoryId = Category.NationalCategory.Id, ClubId = club.Id, SeasonId = season.Id });
             db.Teams.Add(team);
             await db.SaveChangesAsync();
+
+            // The default test caller ("test-user") is a coach of the seeded club, so the club-scoped data filter lets it read the team.
+            db.UserClubs.Add(new UserClub("test-user", club.Id, Membership.Coach.Id));
+            await db.SaveChangesAsync();
             return team;
         }
 

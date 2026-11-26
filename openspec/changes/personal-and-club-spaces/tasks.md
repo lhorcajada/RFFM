@@ -61,7 +61,7 @@
 
 ## Step 4: Filter Team and Player with leak tests
 
-- [ ] Step 4: Filter Team and Player with leak tests
+- [x] Step 4: Filter Team and Player with leak tests
 
 **Routing**: category=backend · context=large · difficulty=high
 

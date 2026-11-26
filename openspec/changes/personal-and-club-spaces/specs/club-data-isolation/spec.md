@@ -43,6 +43,12 @@ Existing flows that legitimately run without a membership of the club they act o
 - **WHEN** background work with no authenticated user reads or writes club-scoped data as it does before this change
 - **THEN** the work completes and is not blocked by the filter
 
+#### Scenario: Player or family member onboarding by team code
+- **WHEN** an authenticated user who is not yet linked to a team requests its player list, or verifies the identity of one of its players, and sends that team's join code
+- **THEN** the request succeeds as it does before this change
+- **AND** a successful identity verification links the user to that team, so the user can then read that team's data
+- **AND** the same request without the join code, or with the join code of another team, returns not found and changes nothing
+
 #### Scenario: Non-member through the normal paths
 - **WHEN** an authenticated user who is not a member of a club uses a normal read or write path on that club's data
 - **THEN** the data is not returned and not modified

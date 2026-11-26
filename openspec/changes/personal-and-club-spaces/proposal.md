@@ -26,7 +26,7 @@ None.
 - Backend only (`Back/ExtractionApi`): `Club` entity and its EF configuration, a schema migration, `AppDbContext` global query filters, and club listing and search flows that must hide Personal spaces from non-members.
 - Affected entities: `Team`, `Player`, `TaskTrainingBase`, `Season`, `UserActivityLog`.
 - Real-database leak tests, one per filtered entity.
-- No frontend contract change beyond the labels "Espacio personal" and "Club"; the internal values are never shown.
+- Frontend: the labels "Espacio personal" and "Club" (internal values are never shown), and the web onboarding of players and family members sends the team join code when it requests the player list and when it verifies the identity.
 
 ## Proposal Research Documentation
 
