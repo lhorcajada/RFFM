@@ -119,7 +119,7 @@
 
 ## Step 6: Filter TaskTrainingBase
 
-- [ ] Step 6: Filter TaskTrainingBase
+- [x] Step 6: Filter TaskTrainingBase
 
 **Routing**: category=backend · context=small · difficulty=medium
 

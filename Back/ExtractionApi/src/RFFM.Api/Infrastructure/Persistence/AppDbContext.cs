@@ -233,6 +233,7 @@ namespace RFFM.Api.Infrastructure.Persistence
             ApplyClubScopeFilter<Player>(modelBuilder);
             ApplyClubScopeFilter<Season>(modelBuilder);
             ApplyClubScopeFilter<UserActivityLog>(modelBuilder);
+            ApplyClubScopeFilter<TaskTrainingBase>(modelBuilder);
         }
 
         public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
