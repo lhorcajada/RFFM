@@ -1,0 +1,12 @@
+schema: sai-workflow
+created: 2026-11-25
+backlog_origin: https://github.com/lhorcajada/RFFM/issues/33
+approval:
+  specs:
+    approved_at: 2026-11-25
+    notes: ""
+    amendment:
+      at: 2026-11-25
+      notes: "Design-time amendment, in place: removed PlayerModelBase from the filtered entities (an unmapped input model, not an entity; Player holds the data) in proposal.md and club-data-isolation spec; membership for the filter now also comes from team links (UserTeam), added scenario Member through a team link."
+overview:
+  state: stale

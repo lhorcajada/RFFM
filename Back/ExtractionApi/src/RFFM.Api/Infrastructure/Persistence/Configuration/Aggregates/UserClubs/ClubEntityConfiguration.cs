@@ -18,6 +18,10 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.UserClubs
             builder.Property(c => c.CountryId)
                 .IsRequired();
 
+            builder.Property(c => c.SpaceType)
+                .IsRequired()
+                .HasDefaultValue(SpaceType.PersonalSpace);
+
             builder.Property(c => c.ShieldUrl)
                 .HasMaxLength(ValidationConstants.ClubShieldUrlMaxLength);
 

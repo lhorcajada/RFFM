@@ -10,6 +10,8 @@ namespace RFFM.Api.Domain.Aggregates.UserClubs
         public string? ShieldUrl { get; private set; }
         public string? InvitationCode { get; private set; }
 
+        public SpaceType SpaceType { get; private set; } = SpaceType.PersonalSpace;
+
         public List<UserClub> UserClubs { get; set; } = null!;
         public List<Team> Teams { get; set; } = null!;
         public Country Country { get; set; }
@@ -20,17 +22,18 @@ namespace RFFM.Api.Domain.Aggregates.UserClubs
         {
         }
 
-        public static Club Create(string name, int countryId, string? shieldUrl = "", string? invitationCode = null)
+        public static Club Create(string name, int countryId, string? shieldUrl = "", string? invitationCode = null, SpaceType? spaceType = null)
         {
-            return new Club(name, countryId, shieldUrl, invitationCode);
+            return new Club(name, countryId, shieldUrl, invitationCode, spaceType ?? SpaceType.PersonalSpace);
         }
-        private Club(string name, int countryId, string? shieldUrl = "", string? invitationCode = null)
+
+        private Club(string name, int countryId, string? shieldUrl, string? invitationCode, SpaceType spaceType)
         {
             UpdateName(name);
             UpdateCountry(countryId);
             UpdateInvitationCode(invitationCode);
             UpdateShieldUrl(shieldUrl);
-
+            SpaceType = spaceType;
         }
 
         public void UpdateName(string name)
