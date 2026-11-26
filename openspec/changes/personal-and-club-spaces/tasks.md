@@ -40,7 +40,7 @@
 
 ## Step 3: Context wiring and shared filter helper, with probe and no-user guard tests
 
-- [ ] Step 3: Context wiring and shared filter helper, with probe and no-user guard tests
+- [x] Step 3: Context wiring and shared filter helper, with probe and no-user guard tests
 
 **Routing**: category=backend · context=medium · difficulty=high
 

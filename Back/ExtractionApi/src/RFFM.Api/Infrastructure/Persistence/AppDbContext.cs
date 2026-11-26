@@ -23,6 +23,7 @@ using RFFM.Api.Domain.Entities.SeasonAccess;
 using RFFM.Api.Domain.Entities.News;
 using RFFM.Api.Domain.Entities.PushNotifications;
 using RFFM.Api.Domain.Entities.WebPushNotifications;
+using RFFM.Api.Domain.Services;
 using RFFM.Api.Infrastructure.Persistence.Configuration.Entities;
 using SmartEnum.EFCore;
 
@@ -33,6 +34,7 @@ namespace RFFM.Api.Infrastructure.Persistence
         public DbSet<Club> Clubs { get; set; }
         public DbSet<UserClub> UserClubs { get; set; }
         public DbSet<UserTeam> UserTeams { get; set; }
+        public DbSet<UserTeamClub> UserTeamClubs { get; set; }
         public DbSet<ClubJoinRequest> ClubJoinRequests { get; set; }
         public DbSet<FamilyMemberAccountRequest> FamilyMemberAccountRequests { get; set; }
         public DbSet<TeamPlayerLinkRequest> TeamPlayerLinkRequests { get; set; }
@@ -189,9 +191,32 @@ namespace RFFM.Api.Infrastructure.Persistence
         // Per-user AI provider settings (ai-provider-settings)
         public DbSet<AiProviderSetting> AiProviderSettings { get; set; }
 
+        private readonly ICurrentUserService? _currentUser;
+
+        public string? CurrentUserId => _currentUser?.UserId;
+
+        public bool ClubFilterActive => _currentUser?.IsAuthenticated == true;
+
         public AppDbContext(DbContextOptions<AppDbContext> options)
             : base(options)
         {
+        }
+
+        public AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUserService currentUser)
+            : base(options)
+        {
+            _currentUser = currentUser;
+        }
+
+        protected void ApplyClubScopeFilter<TEntity>(ModelBuilder modelBuilder) where TEntity : class
+        {
+            // Team links reach their club through the keyless UserTeamClubs mapping: a navigation to Team or an
+            // IgnoreQueryFilters inside the predicate would expand other filters in the same query.
+            modelBuilder.Entity<TEntity>().HasQueryFilter(entity =>
+                !ClubFilterActive ||
+                EF.Property<string?>(entity, "ClubId") == null ||
+                UserClubs.Any(uc => uc.ApplicationUserId == CurrentUserId && uc.ClubId == EF.Property<string?>(entity, "ClubId")) ||
+                UserTeamClubs.Any(utc => utc.ApplicationUserId == CurrentUserId && utc.ClubId == EF.Property<string?>(entity, "ClubId")));
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -222,7 +247,7 @@ namespace RFFM.Api.Infrastructure.Persistence
 
             var configurationType = typeof(IEntityTypeConfiguration<>);
 
-            var configurations = GetType().Assembly
+            var configurations = typeof(AppDbContext).Assembly
                 .GetTypes()
                 .Where(t => t.IsClass && !t.IsAbstract)
                 .SelectMany(t => t.GetInterfaces()

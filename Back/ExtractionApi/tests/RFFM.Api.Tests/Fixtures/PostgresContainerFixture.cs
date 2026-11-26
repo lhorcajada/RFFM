@@ -119,6 +119,22 @@ namespace RFFM.Api.Tests.Fixtures
             return new AppDbContext(options);
         }
 
+        public AppDbContext CreateDbContext(string? userId)
+        {
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseNpgsql(ConnectionString, npgsql =>
+                {
+                    npgsql.EnableRetryOnFailure(
+                        maxRetryCount: 5,
+                        maxRetryDelay: TimeSpan.FromSeconds(30),
+                        errorCodesToAdd: null);
+                    npgsql.MigrationsHistoryTable("__EFMigrationsHistory", "app");
+                })
+                .Options;
+
+            return new AppDbContext(options, new FixedCurrentUserService(userId));
+        }
+
         public IdentityDbContext CreateIdentityDbContext()
         {
             var options = new DbContextOptionsBuilder<IdentityDbContext>()
