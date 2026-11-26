@@ -184,4 +184,58 @@ describe("useTeamAppEntry — entrada de Coach a un equipo del club por código"
     expect(result.current.codeDialogOpen).toBe(true);
     expect(result.current.codeDialogError).toBe("Este código pertenece a un equipo de otro club.");
   });
+
+  it("pide la lista de jugadores del jugador con el código de equipo validado (normalizado en mayúsculas y sin espacios)", async () => {
+    (teamService.validateTeamCode as ReturnType<typeof vi.fn>).mockResolvedValue({
+      teamId: "team-7",
+      teamName: "Infantil B",
+    });
+    (teamService.getTeamPlayersForSelection as ReturnType<typeof vi.fn>).mockResolvedValue({
+      teamId: "team-7",
+      teamName: "Infantil B",
+      players: [],
+    });
+
+    const { result } = renderHook(() => useTeamAppEntry());
+
+    act(() => {
+      result.current.handleUserTypeSelect("Player");
+    });
+    await act(async () => {
+      await result.current.handleCodeAccept(" abcd1234 ");
+    });
+
+    expect(teamService.getTeamPlayersForSelection).toHaveBeenCalledWith("team-7", "ABCD1234");
+  });
+
+  it("verifica la identidad del jugador enviando el mismo código de equipo validado", async () => {
+    (teamService.validateTeamCode as ReturnType<typeof vi.fn>).mockResolvedValue({
+      teamId: "team-7",
+      teamName: "Infantil B",
+    });
+    (teamService.getTeamPlayersForSelection as ReturnType<typeof vi.fn>).mockResolvedValue({
+      teamId: "team-7",
+      teamName: "Infantil B",
+      players: [{ id: "tp-1", name: "Ana" }],
+    });
+    (teamService.verifyPlayerIdentity as ReturnType<typeof vi.fn>).mockResolvedValue({
+      playerId: "tp-1",
+      teamId: "team-7",
+      teamName: "Infantil B",
+    });
+
+    const { result } = renderHook(() => useTeamAppEntry());
+
+    act(() => {
+      result.current.handleUserTypeSelect("Player");
+    });
+    await act(async () => {
+      await result.current.handleCodeAccept("abcd1234");
+    });
+    await act(async () => {
+      await result.current.handleIdentityAccept("tp-1");
+    });
+
+    expect(teamService.verifyPlayerIdentity).toHaveBeenCalledWith("team-7", "tp-1", "ABCD1234");
+  });
 });

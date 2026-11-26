@@ -196,18 +196,12 @@ export async function enterClubTeamByCode(
 
 export async function verifyPlayerIdentity(
   teamId: string,
-  nameOrPlayerId: string,
-  lastName: string = "",
-  birthDate: string = ""
+  teamPlayerId: string,
+  joinCode: string
 ): Promise<{ playerId: string; teamId: string; teamName: string; roles?: string[]; token?: string }> {
-  // If lastName and birthDate are empty, assume we're using the new flow with playerId
-  const payload = lastName === "" && birthDate === "" 
-    ? { teamPlayerId: nameOrPlayerId }
-    : { name: nameOrPlayerId, lastName, birthDate };
-  
   const resp = await client.post<{ playerId: string; teamId: string; teamName: string; roles?: string[]; token?: string }>(
     `/api/catalog/team/${encodeURIComponent(teamId)}/verify-player`,
-    payload
+    { teamPlayerId, joinCode: joinCode.trim().toUpperCase() }
   );
   return resp.data;
 }
@@ -237,10 +231,11 @@ export type GetTeamPlayersResponse = {
 };
 
 export async function getTeamPlayersForSelection(
-  teamId: string
+  teamId: string,
+  joinCode: string
 ): Promise<GetTeamPlayersResponse> {
   const resp = await client.get<GetTeamPlayersResponse>(
-    `/api/catalog/team/${encodeURIComponent(teamId)}/players-for-selection`
+    `/api/catalog/team/${encodeURIComponent(teamId)}/players-for-selection?joinCode=${encodeURIComponent(joinCode.trim().toUpperCase())}`
   );
   return resp.data;
 }

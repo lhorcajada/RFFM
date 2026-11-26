@@ -29,6 +29,7 @@ export function useTeamAppEntry() {
   const [codeDialogError, setCodeDialogError] = React.useState<string | null>(null);
   const [selectedUserType, setSelectedUserType] = React.useState<InternalSelectionType | null>(null);
   const [validatedTeam, setValidatedTeam] = React.useState<{ teamId: string; teamName: string } | null>(null);
+  const [validatedJoinCode, setValidatedJoinCode] = React.useState<string | null>(null);
   const [players, setPlayers] = React.useState<PlayerForSelection[]>([]);
   const [playersLoading, setPlayersLoading] = React.useState(false);
   const [identityDialogOpen, setIdentityDialogOpen] = React.useState(false);
@@ -156,11 +157,13 @@ export function useTeamAppEntry() {
       const team = await teamService.validateTeamCode(code);
       setCodeDialogOpen(false);
       if (selectedUserType === "Player" || selectedUserType === "FamilyMember") {
+        const joinCode = code.trim().toUpperCase();
         setValidatedTeam(team);
+        setValidatedJoinCode(joinCode);
         // Fetch players for selection
         setPlayersLoading(true);
         try {
-          const response = await teamService.getTeamPlayersForSelection(team.teamId);
+          const response = await teamService.getTeamPlayersForSelection(team.teamId, joinCode);
           setPlayers(response.players);
         } catch {
           setPlayersLoading(false);
@@ -200,15 +203,15 @@ export function useTeamAppEntry() {
     setIdentityDialogOpen(false);
     setIdentityDialogError(null);
     setPlayers([]);
+    setValidatedJoinCode(null);
   }
 
   async function handleIdentityAccept(playerId: string) {
-    if (!validatedTeam) return;
+    if (!validatedTeam || !validatedJoinCode) return;
     setIdentityDialogLoading(true);
     setIdentityDialogError(null);
     try {
-      // Use the playerId from selection to verify identity (new flow)
-      const result = await teamService.verifyPlayerIdentity(validatedTeam.teamId, playerId);
+      const result = await teamService.verifyPlayerIdentity(validatedTeam.teamId, playerId, validatedJoinCode);
       // Store the refreshed JWT (now includes "Player" role) so the next session skips onboarding
       if (result.token) {
         coachAuthService.storeUpdatedToken(result.token);
@@ -218,6 +221,7 @@ export function useTeamAppEntry() {
         try { localStorage.setItem("coach_player_teamId", result.teamId); } catch {}
       }
       setIdentityDialogOpen(false);
+      setValidatedJoinCode(null);
       navigate(result.teamId ? `/coach/dashboard?teamId=${result.teamId}` : "/coach/dashboard");
     } catch {
       setIdentityDialogError(
