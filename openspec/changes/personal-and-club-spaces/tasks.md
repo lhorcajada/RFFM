@@ -100,7 +100,7 @@
 
 ## Step 5: Filter Season and UserActivityLog with audit opt-outs
 
-- [ ] Step 5: Filter Season and UserActivityLog with audit opt-outs
+- [x] Step 5: Filter Season and UserActivityLog with audit opt-outs
 
 **Routing**: category=backend · context=medium · difficulty=high
 

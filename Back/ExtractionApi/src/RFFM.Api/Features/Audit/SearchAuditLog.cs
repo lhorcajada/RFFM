@@ -100,13 +100,15 @@ namespace RFFM.Api.Features.Audit
                 if (pageSize < 1) pageSize = 25;
                 var pageNumber = Math.Max(request.PageNumber, 1);
 
-                // Build base query
-                IQueryable<UserActivityLog> query = _db.UserActivityLogs.AsNoTracking();
-
                 // Resolve scope: Federation/Administrator see all; ClubDirector see own clubs; Coach see own teams
                 var isFederationOrAdmin = roles.Any(r =>
                     r.Equals(AppRoles.Federation.Name, StringComparison.OrdinalIgnoreCase) ||
                     r.Equals(AppRoles.Administrator.Name, StringComparison.OrdinalIgnoreCase));
+
+                // Build base query; Federation and Administrator read entries of every club.
+                IQueryable<UserActivityLog> query = isFederationOrAdmin
+                    ? _db.UserActivityLogs.IgnoreQueryFilters().AsNoTracking()
+                    : _db.UserActivityLogs.AsNoTracking();
 
                 if (!isFederationOrAdmin)
                 {

@@ -72,7 +72,9 @@ namespace RFFM.Api.Features.Audit
                 DeleteAuditLogEntriesCommand request,
                 CancellationToken cancellationToken = default)
             {
+                // Only Federation and Administrator reach this handler (route authorization above); they delete entries of every club.
                 var deleted = await db.UserActivityLogs
+                    .IgnoreQueryFilters()
                     .Where(a => request.Ids.Contains(a.Id))
                     .ExecuteDeleteAsync(cancellationToken);
 
