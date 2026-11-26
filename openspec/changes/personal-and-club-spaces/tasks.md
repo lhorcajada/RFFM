@@ -22,7 +22,7 @@
 
 ## Step 2: Hide Personal spaces from non-members in the club list
 
-- [ ] Step 2: Hide Personal spaces from non-members in the club list
+- [x] Step 2: Hide Personal spaces from non-members in the club list
 
 **Routing**: category=backend · context=small · difficulty=low
 

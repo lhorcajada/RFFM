@@ -43,7 +43,7 @@ namespace RFFM.Api.Features.Coaches.Clubs.Queries
             public string RequiredPermission => "Read";
         }
 
-        public record ClubsResponse(string Id, string Name, CountriesResponse Country, string? shieldUrl, string? invitationCode);
+        public record ClubsResponse(string Id, string Name, CountriesResponse Country, string? shieldUrl, string? invitationCode, string SpaceTypeLabel);
 
         public class ClubsRequestHandler : IRequestHandler<ClubsQueryApp, ClubsResponse[]>
         {
@@ -61,6 +61,7 @@ namespace RFFM.Api.Features.Coaches.Clubs.Queries
                     : await ClubInvitationCodeVisibility.DirectorClubIdsAsync(_db, request.RequestingUserId, cancellationToken);
 
                 var clubs = await _db.Clubs
+                    .VisibleTo(_db, request.RequestingUserId)
                     .Include(c => c.Country)
                     .ToListAsync(cancellationToken);
 
@@ -71,7 +72,8 @@ namespace RFFM.Api.Features.Coaches.Clubs.Queries
                         club.ShieldUrl,
                         request.CanViewAllInvitationCodes || (directorClubIds?.Contains(club.Id) ?? false)
                             ? club.InvitationCode
-                            : null))
+                            : null,
+                        club.SpaceType.Label))
                     .ToArray();
             }
         }
