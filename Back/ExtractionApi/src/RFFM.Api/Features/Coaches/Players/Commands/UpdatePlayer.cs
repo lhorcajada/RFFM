@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Common.Behaviors;
+using RFFM.Api.Domain;
 using RFFM.Api.Domain.Entities.Audit;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Infrastructure.Persistence;
@@ -58,7 +59,7 @@ namespace RFFM.Api.Features.Coaches.Players.Commands
             var player = await _catalogDbContext.Players
                 .FirstOrDefaultAsync(c => c.Id == request.Id, cancellationToken: cancellationToken);
             if (player == null)
-                throw new KeyNotFoundException($"Player '{request.Id}' Not Found");
+                throw new NotFoundException($"Player '{request.Id}' Not Found", ErrorCodes.PlayerNotFound);
 
             player.UpdateName(request.Name);
             player.UpdateLastName(request.LastName);

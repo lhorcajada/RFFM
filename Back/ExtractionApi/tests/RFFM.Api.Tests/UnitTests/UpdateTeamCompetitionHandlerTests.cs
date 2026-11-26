@@ -249,7 +249,7 @@ namespace RFFM.Api.Tests.UnitTests
             };
 
             // Act & Assert
-            await Assert.ThrowsAsync<KeyNotFoundException>(() => handler.Handle(command, CancellationToken.None).AsTask());
+            await Assert.ThrowsAsync<RFFM.Api.Domain.NotFoundException>(() => handler.Handle(command, CancellationToken.None).AsTask());
         }
     }
 }

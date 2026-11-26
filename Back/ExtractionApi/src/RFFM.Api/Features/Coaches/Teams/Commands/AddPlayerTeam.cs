@@ -172,7 +172,7 @@ namespace RFFM.Api.Features.Coaches.Teams.Commands
                 var teamExists = await _catalogDbContext.Teams
                     .AnyAsync(t => t.Id == request.TeamId, cancellationToken);
                 if (!teamExists)
-                    throw new KeyNotFoundException($"Team '{request.TeamId}' Not Found");
+                    throw new NotFoundException($"Team '{request.TeamId}' Not Found", ErrorCodes.TeamNotFound);
             }
 
             

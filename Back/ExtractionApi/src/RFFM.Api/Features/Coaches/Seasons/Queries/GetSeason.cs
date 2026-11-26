@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Common;
 using RFFM.Api.Common.Behaviors;
+using RFFM.Api.Domain;
 using RFFM.Api.Domain.Entities.Seasons;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Infrastructure.Persistence;
@@ -46,7 +47,7 @@ namespace RFFM.Api.Features.Coaches.Seasons.Queries
                 var season = await db.Seasons
                     .FirstOrDefaultAsync(c => c.Id == request.SeasonId, cancellationToken);
                 if (season == null)
-                    throw new KeyNotFoundException($"{nameof(Season)} '{request.SeasonId}' Not Found");
+                    throw new NotFoundException($"{nameof(Season)} '{request.SeasonId}' Not Found", ErrorCodes.SeasonNotFound);
 
                 return new GetSeasonResponse(season.Id, season.Name, season.StartDate, season.EndDate, season.IsActive);
 

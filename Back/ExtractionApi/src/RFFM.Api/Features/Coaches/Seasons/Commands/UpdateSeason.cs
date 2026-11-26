@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Common.Behaviors;
+using RFFM.Api.Domain;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Infrastructure.Persistence;
 
@@ -52,7 +53,7 @@ namespace RFFM.Api.Features.Coaches.Seasons.Commands
             var season = await _catalogDbContext.Seasons
                 .FirstOrDefaultAsync(c => c.Id == request.SeasonId, cancellationToken: cancellationToken);
             if (season == null)
-                throw new KeyNotFoundException($"Season '{request.SeasonId}' Not Found");
+                throw new NotFoundException($"Season '{request.SeasonId}' Not Found", ErrorCodes.SeasonNotFound);
 
             season.UpdateName(request.SeasonName);
             season.UpdatePeriod(request.StartDate, request.EndDate);

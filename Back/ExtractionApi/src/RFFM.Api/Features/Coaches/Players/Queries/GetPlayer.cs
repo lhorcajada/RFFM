@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Common;
 using RFFM.Api.Common.Behaviors;
+using RFFM.Api.Domain;
 using RFFM.Api.Domain.Entities.Players;
 using RFFM.Api.Domain.Models;
 using RFFM.Api.FeatureModules;
@@ -48,7 +49,7 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                 var player = await db.Players
                     .FirstOrDefaultAsync(c => c.Id == request.PlayerId, cancellationToken);
                 if (player == null)
-                    throw new KeyNotFoundException($"{nameof(Player)} '{request.PlayerId}' Not Found");
+                    throw new NotFoundException($"{nameof(Player)} '{request.PlayerId}' Not Found", ErrorCodes.PlayerNotFound);
 
                 return new GetPlayerResponse(new PlayerModel
                 {

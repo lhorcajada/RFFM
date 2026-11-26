@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Common;
+using RFFM.Api.Domain;
 using RFFM.Api.Domain.Models;
 using RFFM.Api.Domain.Entities;
 using RFFM.Api.FeatureModules;
@@ -77,7 +78,7 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                     .FirstOrDefaultAsync(tp => tp.Id == request.TeamPlayerId, cancellationToken);
 
                 if (item == null)
-                    throw new KeyNotFoundException($"TeamPlayer '{request.TeamPlayerId}' Not Found");
+                    throw new NotFoundException($"TeamPlayer '{request.TeamPlayerId}' Not Found", ErrorCodes.TeamPlayerNotFound);
 
                 // map PlayerModel
                 var playerModel = new PlayerModel

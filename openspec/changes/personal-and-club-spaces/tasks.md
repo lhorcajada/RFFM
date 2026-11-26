@@ -135,7 +135,7 @@
 
 ## Step 7: Coverage guard and not-found response check
 
-- [ ] Step 7: Coverage guard and not-found response check
+- [x] Step 7: Coverage guard and not-found response check
 
 **Routing**: category=backend · context=medium · difficulty=medium
 

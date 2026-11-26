@@ -157,6 +157,7 @@ namespace RFFM.Api.Domain
         // DeleteFamilyMember.cs) - openspec change player-family-members-crud.
         public const string TeamPlayerNotFound = "TeamPlayerNotFound";
         public const string TeamNotFound = "TeamNotFound";
+        public const string PlayerNotFound = "PlayerNotFound";
         public const string FamilyMemberNotFound = "FamilyMemberNotFound";
         public const string FamilyMemberRelationUnknown = "FamilyMemberRelationUnknown";
 

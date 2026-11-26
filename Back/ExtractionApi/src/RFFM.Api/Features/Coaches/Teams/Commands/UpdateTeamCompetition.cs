@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Common;
 using RFFM.Api.Common.Behaviors;
+using RFFM.Api.Domain;
 using RFFM.Api.Domain.Entities;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Infrastructure.Persistence;
@@ -66,7 +67,7 @@ namespace RFFM.Api.Features.Coaches.Teams.Commands
             var team = await _catalogDbContext.Teams
                 .FirstOrDefaultAsync(t => t.Id == request.Id, cancellationToken);
             if (team == null)
-                throw new KeyNotFoundException($"Team '{request.Id}' Not Found");
+                throw new NotFoundException($"Team '{request.Id}' Not Found", ErrorCodes.TeamNotFound);
 
             team.UpdateRffmCompetitionId(request.RffmCompetitionId);
             team.UpdateRffmGroupId(request.RffmGroupId);

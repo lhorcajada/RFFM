@@ -58,7 +58,7 @@ namespace RFFM.Api.Features.Coaches.Teams.Commands
             var team = await _catalogDbContext.Teams
                 .FirstOrDefaultAsync(c => c.Id == request.TeamModel.Id, cancellationToken: cancellationToken);
             if (team == null)
-                throw new KeyNotFoundException($"Team '{request.TeamModel.Id}' Not Found");
+                throw new NotFoundException($"Team '{request.TeamModel.Id}' Not Found", ErrorCodes.TeamNotFound);
 
             var canEdit = await TeamEditAuthorization.CanEditAsync(
                 _catalogDbContext, request.UserId, team.Id, team.ClubId, cancellationToken);

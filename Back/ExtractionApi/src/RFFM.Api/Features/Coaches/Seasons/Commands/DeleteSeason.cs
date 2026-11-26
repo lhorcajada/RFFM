@@ -64,7 +64,7 @@ namespace RFFM.Api.Features.Coaches.Seasons.Commands
             var season = await _catalogDbContext.Seasons
                 .FirstOrDefaultAsync(c => c.Id == request.SeasonId, cancellationToken: cancellationToken);
             if (season == null)
-                throw new KeyNotFoundException($"Season '{request.SeasonId}' Not Found");
+                throw new NotFoundException($"Season '{request.SeasonId}' Not Found", ErrorCodes.SeasonNotFound);
 
             var hasRelatedData = await _catalogDbContext.Teams.AnyAsync(team => team.SeasonId == season.Id, cancellationToken)
                 || await _catalogDbContext.ClubKits.AnyAsync(kit => kit.SeasonId == season.Id, cancellationToken)
