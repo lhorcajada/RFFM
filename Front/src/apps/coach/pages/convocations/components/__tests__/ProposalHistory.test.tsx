@@ -32,6 +32,23 @@ describe("ProposalHistory", () => {
     expect(within(summary).getByRole("img", { name: "Temporada de Sergio: 2 desconvocatorias en 2 partidos de liga" })).toBeInTheDocument();
   });
 
+  it("cada casilla de la tira indica su jornada, también en temporadas largas", () => {
+    const season: MatchColumn[] = Array.from({ length: 30 }, (_, i) => ({
+      eventId: `m${30 - i}`,
+      label: `J${30 - i} · 4 oct`,
+      date: "2026-10-04",
+      rival: null,
+      isLeague: true,
+    }));
+    render(<ProposalHistory playerId="p1" playerName="Sergio" columns={season} grid={new Map()} />);
+
+    const strip = screen.getByRole("img", { name: /Temporada de Sergio/ });
+
+    expect(Array.from(strip.children, (cell) => cell.textContent)).toEqual(
+      Array.from({ length: 30 }, (_, i) => `J${i + 1}`),
+    );
+  });
+
   it("muestra los motivos solo al abrir el desplegable", () => {
     renderHistory();
     expect(screen.queryByRole("list", { name: "Motivos de desconvocatoria de Sergio" })).not.toBeInTheDocument();

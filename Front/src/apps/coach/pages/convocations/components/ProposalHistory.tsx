@@ -13,6 +13,11 @@ export type ProposalHistoryData = {
 
 type Props = ProposalHistoryData & { playerId: string; playerName: string };
 
+/** "J7 · 21 nov" → "J7": the date does not fit in a cell, it stays in the tooltip. */
+function matchday(label: string): string {
+  return label.split(" · ")[0];
+}
+
 /** Compact league deconvocation history of a player; the reasons float over the card so it never grows. */
 export default function ProposalHistory({ playerId, playerName, columns, grid }: Props) {
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
@@ -46,10 +51,12 @@ export default function ProposalHistory({ playerId, playerName, columns, grid }:
         {season.map((cell) => (
           <div
             key={cell.eventId}
-            className={styles.cell}
+            className={`${styles.cell} ${cell.cause ? styles.cellOut : ""}`}
             title={cell.cause ? `${cell.label} · ${cell.cause.label}` : cell.label}
             style={cell.cause ? { background: cell.cause.text } : undefined}
-          />
+          >
+            {matchday(cell.label)}
+          </div>
         ))}
       </div>
 
