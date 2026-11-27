@@ -1,0 +1,127 @@
+/* Resumen del historial de desconvocatorias de un jugador dentro de la propuesta */
+
+.history {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.stat {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.value {
+  font-family: 'Oswald', sans-serif;
+  font-size: 1.25rem;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.technical {
+  color: #ff8040;
+}
+
+.streak {
+  color: #4ec9b0;
+}
+
+.label {
+  font-size: 0.7rem;
+  line-height: 1.2;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.strip {
+  display: flex;
+  gap: 3px;
+}
+
+.cell {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 10px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.75rem;
+}
+
+.last {
+  min-width: 0;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.last strong {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.causesButton {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #ffffff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.popover {
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 12px !important;
+  background: #1c2533 !important;
+  color: #ffffff !important;
+}
+
+.causes {
+  min-width: 210px;
+  margin: 0;
+  padding: 6px 0;
+  list-style: none;
+  font-size: 0.82rem;
+}
+
+.cause {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+}
+
+.causeLabel {
+  flex: 1;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.empty {
+  margin: 0;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.65);
+}

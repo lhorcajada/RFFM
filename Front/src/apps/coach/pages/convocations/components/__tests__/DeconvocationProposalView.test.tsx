@@ -95,6 +95,47 @@ function renderView(value: DeconvokeProposal, props: Partial<React.ComponentProp
 }
 
 describe("DeconvocationProposalView", () => {
+  const history = {
+    columns: [{ eventId: "j1", label: "J1 · 4 oct", date: "2026-10-04", rival: null, isLeague: true }],
+    grid: new Map(),
+  };
+
+  it("muestra el historial de propuestos, protegidos, elegibles y ya desconvocados", () => {
+    renderView(proposal(), { history });
+
+    for (const name of ["Sergio", "Vargas", "Pedro", "Marcos M."]) {
+      expect(screen.getByRole("group", { name: `Historial de ${name}` })).toBeInTheDocument();
+    }
+  });
+
+  it("muestra el historial en el orden de desconvocatoria", () => {
+    renderView(
+      proposal({
+        order: [
+          { rank: 1, playerId: "p9", name: "Nico", position: "Central", outcome: "proposed", chips: [], versusNext: null },
+        ],
+      }),
+      { history },
+    );
+
+    const orderList = screen.getByRole("list", { name: "Orden de desconvocatoria" });
+    expect(within(orderList).getByRole("group", { name: "Historial de Nico" })).toBeInTheDocument();
+  });
+
+  it("no muestra el historial en las estimaciones de próximos partidos", () => {
+    const upcoming = [
+      {
+        match: { eventId: "n1", round: 9, label: "J9", rival: "Rival",date: "2026-10-21", difficulty: "medium" as const, winProbability: 0.5, rivalPosition: null },
+        proposal: proposal(),
+      },
+    ];
+    renderView(proposal(), { history, upcoming });
+
+    fireEvent.click(screen.getByRole("tab", { name: "J9 · Rival" }));
+
+    expect(screen.queryByRole("group", { name: /^Historial de/ })).not.toBeInTheDocument();
+  });
+
   it("muestra el objetivo, los ya desconvocados y la plantilla", () => {
     renderView(proposal());
 

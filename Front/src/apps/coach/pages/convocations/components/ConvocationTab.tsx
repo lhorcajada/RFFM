@@ -28,6 +28,7 @@ import type { DeconvokeProposal } from "../utils/deconvokeProposal";
 import type { SimulatedProposal } from "../utils/simulateUpcomingProposals";
 import type { DeconvocationRuleConfig } from "../utils/rules/ruleCatalog";
 import DeconvocationProposalView, { type FitContext } from "./DeconvocationProposalView";
+import type { ProposalHistoryData } from "./ProposalHistory";
 import DeconvocationRulesDialog from "./DeconvocationRulesDialog";
 import PlayerProposalDataDialog from "./PlayerProposalDataDialog";
 import styles from "./ConvocationTab.module.css";
@@ -120,6 +121,8 @@ type Props = {
   rules?: DeconvocationRuleConfig[];
   /** Fit orders and trait ratings to explain each player's fit in the proposal. */
   fitContext?: FitContext;
+  /** Past matches shown as each player's history in the proposal. */
+  proposalHistory?: ProposalHistoryData;
   /** Rodaje/condición física por teamPlayerId (best-effort, puede estar vacío mientras carga). */
   readinessMap?: Record<string, Pick<PlayerStatistics, "readiness" | "fatigue"> & Partial<Pick<PlayerStatistics, "formStatus">>>;
   /** Jugadores en la semana de recuperación tras una baja de dos semanas o más. */
@@ -196,6 +199,7 @@ export default function ConvocationTab({
   teamId,
   rules,
   fitContext,
+  proposalHistory,
   readinessMap,
   recoveringIds,
   readOnly = false,
@@ -554,6 +558,7 @@ export default function ConvocationTab({
           fitContext={fitContext}
           onMoveInOrder={onMoveInOrder}
           onResetOrder={onResetOrder}
+          history={proposalHistory}
         />
       )}
 

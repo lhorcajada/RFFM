@@ -1,4 +1,4 @@
-import { Fragment, useState } from "react";
+import { Fragment, useState, type ReactNode } from "react";
 import { Alert, Button, CircularProgress, IconButton, Tab, Tabs } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
@@ -21,6 +21,7 @@ import {
 import { formatShortfall, roleLabel } from "../utils/positionRequirements";
 import type { SimulatedProposal } from "../utils/simulateUpcomingProposals";
 import PlayerFitDialog from "./PlayerFitDialog";
+import ProposalHistory, { type ProposalHistoryData } from "./ProposalHistory";
 import styles from "./DeconvocationProposalView.module.css";
 
 type Props = {
@@ -42,7 +43,11 @@ type Props = {
   onMoveInOrder?: (playerId: string, direction: "up" | "down") => void;
   /** Goes back from the order chosen by hand to the automatic proposal. */
   onResetOrder?: () => void;
+  /** Past matches; each player card shows its league deconvocation history. Hidden in the estimates. */
+  history?: ProposalHistoryData;
 };
+
+type RenderHistory = (playerId: string, playerName: string) => ReactNode;
 
 export type FitContext = {
   positionFit: PositionFit[];
@@ -129,7 +134,15 @@ function FitButton({ item, onShowFit }: { item: PlayerProposal; onShowFit?: (ite
   );
 }
 
-function ProposedCard({ item, onShowFit }: { item: PlayerProposal; onShowFit?: (item: PlayerProposal) => void }) {
+function ProposedCard({
+  item,
+  onShowFit,
+  renderHistory,
+}: {
+  item: PlayerProposal;
+  onShowFit?: (item: PlayerProposal) => void;
+  renderHistory: RenderHistory;
+}) {
   const { decision } = item;
   return (
     <article className={styles.card}>
@@ -148,6 +161,7 @@ function ProposedCard({ item, onShowFit }: { item: PlayerProposal; onShowFit?: (
       <p className={styles.reason}>{decision.reason}</p>
       {decision.compare && <p className={styles.compare}>{decision.compare}</p>}
       <FitButton item={item} onShowFit={onShowFit} />
+      {renderHistory(item.playerId, item.displayName)}
       <div className={styles.chips}>
         <span className={styles.chip}>{item.calledCount} conv.</span>
         {item.startsDataAvailable && <span className={styles.chip}>{item.startsCount} tit.</span>}
@@ -186,7 +200,9 @@ function OrderList({
   order,
   manual,
   onMove,
+  renderHistory,
 }: {
+  renderHistory: RenderHistory;
   order: ProposalOrderEntry[];
   manual: boolean;
   onMove?: (playerId: string, direction: "up" | "down") => void;
@@ -228,6 +244,7 @@ function OrderList({
                 </div>
                 {entry.versusNext && <p className={styles.orderVersus}>{entry.versusNext.text}</p>}
                 {entry.heldReason && <p className={styles.orderVersus}>{entry.heldReason}</p>}
+                {renderHistory(entry.playerId, entry.name)}
               </div>
               {onMove && (
                 <div className={styles.orderMoves}>
@@ -262,7 +279,15 @@ function OrderList({
   );
 }
 
-function ReasonCard({ item, onShowFit }: { item: PlayerProposal; onShowFit?: (item: PlayerProposal) => void }) {
+function ReasonCard({
+  item,
+  onShowFit,
+  renderHistory,
+}: {
+  item: PlayerProposal;
+  onShowFit?: (item: PlayerProposal) => void;
+  renderHistory: RenderHistory;
+}) {
   return (
     <article className={styles.reasonCard}>
       <div className={styles.reasonCardName}>
@@ -273,6 +298,7 @@ function ReasonCard({ item, onShowFit }: { item: PlayerProposal; onShowFit?: (it
       </div>
       <p className={styles.reasonText}>{item.decision.reason}</p>
       <FitButton item={item} onShowFit={onShowFit} />
+      {renderHistory(item.playerId, item.displayName)}
     </article>
   );
 }
@@ -295,6 +321,7 @@ export default function DeconvocationProposalView({
   fitContext,
   onMoveInOrder,
   onResetOrder,
+  history,
 }: Props) {
   const [fitTarget, setFitTarget] = useState<PlayerProposal | null>(null);
   const [tab, setTab] = useState(0);
@@ -302,6 +329,8 @@ export default function DeconvocationProposalView({
   const estimate = activeTab > 0 ? upcoming[activeTab - 1] : null;
   const proposal = estimate?.proposal ?? currentProposal;
   const onShowFit = fitContext ? setFitTarget : undefined;
+  const renderHistory: RenderHistory = (playerId, playerName) =>
+    history && !estimate ? <ProposalHistory playerId={playerId} playerName={playerName} {...history} /> : null;
   const fitPosition = fitTarget?.fit ? fitContext?.positionFit.find((p) => p.position === fitTarget.fit?.position) : undefined;
   const fitLevels = fitContext?.traitRatings.find((r) => r.teamPlayerId === fitTarget?.playerId)?.levels ?? [];
 
@@ -479,7 +508,12 @@ export default function DeconvocationProposalView({
           </section>
 
           {proposal.order.length > 0 && (
-            <OrderList order={proposal.order} manual={proposal.isManual === true} onMove={estimate ? undefined : onMoveInOrder} />
+            <OrderList
+              order={proposal.order}
+              manual={proposal.isManual === true}
+              onMove={estimate ? undefined : onMoveInOrder}
+              renderHistory={renderHistory}
+            />
           )}
 
           {proposal.players.length > 0 && proposed.length === 0 && (
@@ -490,7 +524,7 @@ export default function DeconvocationProposalView({
               <h4 className={styles.sectionLabel}>Propuestos para desconvocar</h4>
               <div className={styles.grid}>
                 {proposed.map((item) => (
-                  <ProposedCard key={item.playerId} item={item} onShowFit={onShowFit} />
+                  <ProposedCard key={item.playerId} item={item} onShowFit={onShowFit} renderHistory={renderHistory} />
                 ))}
               </div>
             </>
@@ -509,6 +543,7 @@ export default function DeconvocationProposalView({
                       </span>
                       <span className={styles.alreadyBadge}>Ya desconvocado</span>
                     </div>
+                    {renderHistory(item.playerId, item.displayName)}
                   </article>
                 ))}
               </div>
@@ -528,7 +563,7 @@ export default function DeconvocationProposalView({
                     <div key={group.title} role="group" aria-label={group.title} className={styles.group}>
                       <h5 className={styles.groupTitle}>{group.title}</h5>
                       {members.map((item) => (
-                        <ReasonCard key={item.playerId} item={item} onShowFit={onShowFit} />
+                        <ReasonCard key={item.playerId} item={item} onShowFit={onShowFit} renderHistory={renderHistory} />
                       ))}
                     </div>
                   );
@@ -542,7 +577,7 @@ export default function DeconvocationProposalView({
               <h4 className={`${styles.sectionLabel} ${styles.sectionLabelDim}`}>Elegibles no elegidos</h4>
               <div className={styles.grid}>
                 {notChosen.map((item) => (
-                  <ReasonCard key={item.playerId} item={item} onShowFit={onShowFit} />
+                  <ReasonCard key={item.playerId} item={item} onShowFit={onShowFit} renderHistory={renderHistory} />
                 ))}
               </div>
             </div>

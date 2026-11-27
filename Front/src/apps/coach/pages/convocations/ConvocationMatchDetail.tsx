@@ -297,6 +297,10 @@ export default function ConvocationMatchDetail() {
     () => leagueStreaks(convocation.players.map((p) => p.id), grid.matchColumns, grid.enrichedGrid),
     [convocation.players, grid.matchColumns, grid.enrichedGrid],
   );
+  const proposalHistory = useMemo(
+    () => ({ columns: grid.matchColumns, grid: grid.enrichedGrid }),
+    [grid.matchColumns, grid.enrichedGrid],
+  );
 
   const { difficulty: rivalDifficulty, winProbability: rivalWinProbability, rivalPosition, upcoming: upcomingDifficulties, upcomingMatches } = useRivalOutlook(teamId, proposalRivalName, deconvocationRules, match?.date);
 
@@ -526,6 +530,7 @@ export default function ConvocationMatchDetail() {
             teamId={teamId}
             rules={deconvocationRules}
             fitContext={fitContext}
+            proposalHistory={proposalHistory}
             onRefreshProposal={handleRefreshProposal}
             onMoveInOrder={moveInOrder}
             onResetOrder={resetOrder}
