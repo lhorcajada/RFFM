@@ -74,6 +74,7 @@ namespace RFFM.Api.Infrastructure.Persistence
         public DbSet<QuinielaTicket> QuinielaTickets { get; set; }
         public DbSet<QuinielaTeamSettings> QuinielaTeamSettings { get; set; }
         public DbSet<DeconvocationRulesSettings> DeconvocationRulesSettings { get; set; }
+        public DbSet<DeconvocationSavedProposal> DeconvocationSavedProposals { get; set; }
         public DbSet<QuinielaWallet> QuinielaWallets { get; set; }
         public DbSet<QuinielaWalletMovement> QuinielaWalletMovements { get; set; }
         public DbSet<TeamInjuryProtocol> TeamInjuryProtocols { get; set; }

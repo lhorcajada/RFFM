@@ -127,6 +127,11 @@ namespace RFFM.Api.Domain
         // Features/Coaches/Convocations/AddConvocations.cs (409: one convocation per player and event)
         public const string PlayerAlreadyConvocated = "PlayerAlreadyConvocated";
 
+        // Saved deconvocation proposals (Features/Coaches/DeconvocationProposals)
+        public const string DeconvocationProposalNotFound = "DeconvocationProposalNotFound";
+        public const string DeconvocationProposalLimitReached = "DeconvocationProposalLimitReached";
+        public const string DeconvocationProposalPlayerNotInTeam = "DeconvocationProposalPlayerNotInTeam";
+
         // League match availability (Features/Coaches/Availability)
         public const string AvailabilityOnlyForLeagueMatches = "AvailabilityOnlyForLeagueMatches";
         public const string AvailabilityAlreadyDecided = "AvailabilityAlreadyDecided";
