@@ -1,0 +1,122 @@
+/* Buscador de la propuesta de desconvocatoria y sus resultados. Mobile-first, sin tablas. */
+
+.search {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.input,
+.select {
+  min-height: 44px;
+  box-sizing: border-box;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  padding: 0 12px;
+  background: #1c2533;
+  color: #ffffff;
+  font: inherit;
+  font-size: 0.85rem;
+}
+
+.input {
+  width: 100%;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.toggle,
+.clear {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #ffffff;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.toggleOn {
+  border-color: #ff8040;
+  background: rgba(255, 128, 64, 0.22);
+}
+
+.clear {
+  border-color: transparent;
+  background: transparent;
+  text-decoration: underline;
+}
+
+.sort {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.select {
+  max-width: 100%;
+}
+
+.count {
+  margin: 0;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.results {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.result {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.resultTop {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.position {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.situation {
+  margin-left: auto;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.situationOut {
+  background: rgba(240, 100, 100, 0.2);
+  color: #ff9a9a;
+}

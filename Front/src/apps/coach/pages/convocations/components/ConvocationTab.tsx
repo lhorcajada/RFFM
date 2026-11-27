@@ -28,6 +28,8 @@ import type { DeconvokeProposal } from "../utils/deconvokeProposal";
 import type { SimulatedProposal } from "../utils/simulateUpcomingProposals";
 import type { DeconvocationRuleConfig } from "../utils/rules/ruleCatalog";
 import DeconvocationProposalView, { type FitContext } from "./DeconvocationProposalView";
+import type { SavedProposalsController } from "./SavedProposals";
+import { useSavedProposals } from "../hooks/useSavedProposals";
 import type { ProposalHistoryData } from "./ProposalHistory";
 import DeconvocationRulesDialog from "./DeconvocationRulesDialog";
 import PlayerProposalDataDialog from "./PlayerProposalDataDialog";
@@ -207,6 +209,7 @@ export default function ConvocationTab({
   const [showProposal, setShowProposal] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
   const [refreshingProposal, setRefreshingProposal] = useState(false);
+  const savedStore = useSavedProposals(mgmtEventId, showProposal && !readOnly);
 
   async function handleRefreshProposal() {
     if (!onRefreshProposal || refreshingProposal) return;
@@ -490,6 +493,19 @@ export default function ConvocationTab({
     );
   }
 
+  const savedProposals: SavedProposalsController | undefined =
+    readOnly || !mgmtEventId
+      ? undefined
+      : {
+          ...savedStore,
+          apply: async (playerIds) => {
+            await onApplyProposal(playerIds);
+            setShowProposal(false);
+          },
+          playerName: (playerId) => (players.some((p) => p.id === playerId) ? playerNameOf(playerId) : null),
+          notCalledIds: new Set(mgmtNotCalled),
+        };
+
   async function handleApplyProposalClick() {
     if (selectedProposalPlayers.length === 0 || applyingProposal) return;
     setApplyingProposal(true);
@@ -559,6 +575,7 @@ export default function ConvocationTab({
           onMoveInOrder={onMoveInOrder}
           onResetOrder={onResetOrder}
           history={proposalHistory}
+          saved={savedProposals}
         />
       )}
 

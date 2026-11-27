@@ -1,0 +1,95 @@
+/* Propuestas de desconvocatoria guardadas. Mobile-first, sin tablas. */
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.title {
+  margin: 0;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+  gap: 8px;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.cardTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.applied {
+  flex: none;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(78, 201, 176, 0.2);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #4ec9b0;
+}
+
+.date,
+.missing {
+  margin: 0;
+  font-size: 0.74rem;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.players {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.player {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(240, 100, 100, 0.2);
+  font-size: 0.78rem;
+  color: #ff9a9a;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.button {
+  min-height: 44px;
+}
+
+.confirm {
+  font-size: 0.9rem;
+}
+
+.confirm p {
+  margin: 0 0 8px;
+}

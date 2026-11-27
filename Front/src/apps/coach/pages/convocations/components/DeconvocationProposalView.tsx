@@ -22,6 +22,13 @@ import { formatShortfall, roleLabel } from "../utils/positionRequirements";
 import type { SimulatedProposal } from "../utils/simulateUpcomingProposals";
 import PlayerFitDialog from "./PlayerFitDialog";
 import ProposalHistory, { type ProposalHistoryData } from "./ProposalHistory";
+import ProposalSearch from "./ProposalSearch";
+import ProposalSearchResults from "./ProposalSearchResults";
+import SaveProposalDialog from "./SaveProposalDialog";
+import SavedProposals, { type SavedProposalsController } from "./SavedProposals";
+import { nextProposalName, proposedIdsInOrder } from "../utils/savedProposals";
+import BookmarkAddIcon from "@mui/icons-material/BookmarkAdd";
+import { DEFAULT_CRITERIA, isSearching, searchProposal } from "../utils/proposalSearch";
 import styles from "./DeconvocationProposalView.module.css";
 
 type Props = {
@@ -45,6 +52,8 @@ type Props = {
   onResetOrder?: () => void;
   /** Past matches; each player card shows its league deconvocation history. Hidden in the estimates. */
   history?: ProposalHistoryData;
+  /** Candidate proposals of the match; saving and the saved list are hidden when omitted and in the estimates. */
+  saved?: SavedProposalsController;
 };
 
 type RenderHistory = (playerId: string, playerName: string) => ReactNode;
@@ -322,9 +331,12 @@ export default function DeconvocationProposalView({
   onMoveInOrder,
   onResetOrder,
   history,
+  saved,
 }: Props) {
+  const [saveOpen, setSaveOpen] = useState(false);
   const [fitTarget, setFitTarget] = useState<PlayerProposal | null>(null);
   const [tab, setTab] = useState(0);
+  const [criteria, setCriteria] = useState(DEFAULT_CRITERIA);
   const activeTab = tab <= upcoming.length ? tab : 0;
   const estimate = activeTab > 0 ? upcoming[activeTab - 1] : null;
   const proposal = estimate?.proposal ?? currentProposal;
@@ -343,6 +355,8 @@ export default function DeconvocationProposalView({
   const byRules = protectedPlayers.length - byPosition.length;
   const eligibleCount = proposed.filter((p) => !p.forced).length + notChosen.length;
   const hard = proposal.rivalDifficulty === "hard";
+  const searchHistory = estimate ? undefined : history;
+  const searching = searchHistory && isSearching(criteria);
 
   const steps = [
     {
@@ -403,6 +417,17 @@ export default function DeconvocationProposalView({
           {onOpenRules && (
             <Button variant="outlined" size="small" startIcon={<RuleIcon />} onClick={onOpenRules}>
               Reglas
+            </Button>
+          )}
+          {saved && !estimate && (
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<BookmarkAddIcon />}
+              disabled={loading || proposed.length === 0}
+              onClick={() => setSaveOpen(true)}
+            >
+              Guardar propuesta
             </Button>
           )}
           {!estimate && (
@@ -477,12 +502,18 @@ export default function DeconvocationProposalView({
         </Alert>
       )}
 
+      {saved && !estimate && <SavedProposals saved={saved} />}
+
+      {searchHistory && !loading && <ProposalSearch criteria={criteria} onChange={setCriteria} />}
+
       {loading ? (
         <div className={styles.center}>
           <CircularProgress size={28} />
         </div>
       ) : proposal.players.length === 0 && proposal.alreadyDeconvoked.length === 0 ? (
         <EmptyState description="No hay convocados para evaluar." />
+      ) : searching ? (
+        <ProposalSearchResults results={searchProposal(proposal, searchHistory, criteria)} history={searchHistory} />
       ) : (
         <>
           <section className={styles.funnel} aria-label="Cómo se ha decidido">
@@ -583,6 +614,13 @@ export default function DeconvocationProposalView({
             </div>
           )}
         </>
+      )}
+      {saved && saveOpen && (
+        <SaveProposalDialog
+          defaultName={nextProposalName(saved.items.map((item) => item.name))}
+          onSave={(name) => saved.save(name, proposedIdsInOrder(currentProposal))}
+          onClose={() => setSaveOpen(false)}
+        />
       )}
       {fitTarget && (
         <PlayerFitDialog
