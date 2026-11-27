@@ -1,7 +1,7 @@
 import type { GridCell, MatchColumn } from "../components/convocationMatchDetail.types";
 import { buildDeconvokeProposal, type BuildProposalInput, type DeconvokeProposal } from "./deconvokeProposal";
 import type { UpcomingMatch } from "./rivalDifficulty";
-import { leagueTechnicalTotals } from "./technicalTotals";
+import { leagueStreaks, leagueTechnicalTotals } from "./technicalTotals";
 
 export type SimulatedProposal = {
   match: UpcomingMatch;
@@ -23,30 +23,6 @@ const CALLED_CELL: GridCell = { statusId: 2, excuseTypeId: null, statusName: "Co
 const TECHNICAL_CELL: GridCell = { statusId: 5, excuseTypeId: null, statusName: "Deconvoke", excuseName: "Decisión técnica" };
 const INJURY_CELL: GridCell = { statusId: 5, excuseTypeId: 1, statusName: "Deconvoke", excuseName: "Lesión" };
 const OTHER_CELL: GridCell = { statusId: 5, excuseTypeId: 2, statusName: "Deconvoke", excuseName: "Otro motivo" };
-
-const NOT_CALLED_NAMES = new Set(["Deconvoke", "No disponible"]);
-
-/** Matchdays in a row, newest first, without a technical decision: same count the match screen shows. */
-function consecutiveStreaks(
-  playerIds: string[],
-  columns: MatchColumn[],
-  grid: Map<string, Map<string, GridCell>>,
-): Map<string, number> {
-  return new Map(
-    playerIds.map((id) => {
-      let streak = 0;
-      for (const col of columns) {
-        const cell = grid.get(col.eventId)?.get(id);
-        if (cell && NOT_CALLED_NAMES.has(cell.statusName)) {
-          const technical = !cell.excuseTypeId || !!cell.excuseName?.toLowerCase().includes("decisi");
-          if (technical) break;
-        }
-        streak++;
-      }
-      return [id, streak];
-    }),
-  );
-}
 
 /** What the match column looks like once the proposal is applied: who was out and why, and who was called. */
 function columnAfter(proposal: DeconvokeProposal, playerIds: string[], injuredIds: ReadonlySet<string>): Map<string, GridCell> {
@@ -103,7 +79,7 @@ export function simulateUpcomingProposals({ base, baseProposal, matches, injuryR
       ...base,
       players: base.players.map((p) => (returned.has(p.id) ? { ...p, isInjured: false } : p)),
       alreadyOutIds: stillInjured,
-      streaks: consecutiveStreaks(playerIds, columns, grid),
+      streaks: leagueStreaks(playerIds, columns, grid),
       technicalTotals: leagueTechnicalTotals(playerIds, columns, grid),
       seasonColumns: columns,
       enrichedGrid: grid,

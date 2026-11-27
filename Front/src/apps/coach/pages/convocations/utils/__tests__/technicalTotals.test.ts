@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { GridCell, MatchColumn } from "../../components/convocationMatchDetail.types";
-import { leagueTechnicalTotals } from "../technicalTotals";
+import { leagueStreaks, leagueTechnicalTotals } from "../technicalTotals";
 
 const TECHNICAL: GridCell = { statusId: 3, excuseTypeId: null, statusName: "Deconvoke", excuseName: null };
 const INJURY: GridCell = { statusId: 3, excuseTypeId: 1, statusName: "Deconvoke", excuseName: "Lesión" };
@@ -15,6 +15,24 @@ const columns: MatchColumn[] = [
 function grid(cells: Record<string, GridCell>) {
   return new Map(Object.entries(cells).map(([eventId, cell]) => [eventId, new Map([["p1", cell]])]));
 }
+
+describe("leagueStreaks", () => {
+  it("no cuenta los amistosos como jornadas sin decisión técnica", () => {
+    const streaks = leagueStreaks(["p1"], columns, grid({ league: CALLED, friendly: CALLED, old: TECHNICAL }));
+
+    expect(streaks.get("p1")).toBe(1);
+  });
+
+  it("una decisión técnica en un amistoso no corta la racha", () => {
+    const streaks = leagueStreaks(["p1"], columns, grid({ league: CALLED, friendly: TECHNICAL, old: CALLED }));
+
+    expect(streaks.get("p1")).toBe(2);
+  });
+
+  it("una ausencia por lesión no corta la racha", () => {
+    expect(leagueStreaks(["p1"], columns, grid({ league: INJURY, old: CALLED })).get("p1")).toBe(2);
+  });
+});
 
 describe("leagueTechnicalTotals", () => {
   it("cuenta las desconvocatorias técnicas de partidos de liga", () => {

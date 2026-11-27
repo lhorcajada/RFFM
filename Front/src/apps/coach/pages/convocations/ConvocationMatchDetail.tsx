@@ -33,7 +33,7 @@ import { usePositionFitOrder } from "./hooks/usePositionFitOrder";
 import { useRivalOutlook } from "./hooks/useRivalDifficulty";
 import { useUpcomingProposals } from "./hooks/useUpcomingProposals";
 import { useManualDeconvocationOrder } from "./hooks/useManualDeconvocationOrder";
-import { leagueTechnicalTotals } from "./utils/technicalTotals";
+import { leagueStreaks, leagueTechnicalTotals } from "./utils/technicalTotals";
 import { resolveRule } from "./utils/rules/ruleCatalog";
 import { buildMatchUnavailability } from "./utils/matchUnavailability";
 import { toIsoDay } from "./utils/deconvokeProposal";
@@ -292,6 +292,12 @@ export default function ConvocationMatchDetail() {
     [convocation.players, grid.matchColumns, grid.enrichedGrid],
   );
 
+  // The proposal only counts league matches; the rest of the screen keeps the streaks of every match.
+  const proposalStreaks = useMemo(
+    () => leagueStreaks(convocation.players.map((p) => p.id), grid.matchColumns, grid.enrichedGrid),
+    [convocation.players, grid.matchColumns, grid.enrichedGrid],
+  );
+
   const { difficulty: rivalDifficulty, winProbability: rivalWinProbability, rivalPosition, upcoming: upcomingDifficulties, upcomingMatches } = useRivalOutlook(teamId, proposalRivalName, deconvocationRules, match?.date);
 
   const squadIds = useMemo(() => convocation.players.map((p) => p.id), [convocation.players]);
@@ -330,7 +336,7 @@ export default function ConvocationMatchDetail() {
     squadIds,
     alreadyOutIds,
     ratings: convocation.mgmtRatings,
-    playerStreaks,
+    playerStreaks: proposalStreaks,
     playerTechnicalTotals: proposalTechnicalTotals,
     seasonEvents: seasonEvents as any,
     seasonColumns: grid.matchColumns,

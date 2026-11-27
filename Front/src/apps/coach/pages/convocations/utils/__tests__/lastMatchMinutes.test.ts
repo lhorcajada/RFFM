@@ -24,6 +24,17 @@ describe("buildLastMatchMinutes", () => {
     expect(result?.minutes.get("b")).toBe(0);
   });
 
+  it("ignora los minutos de un amistoso más reciente", () => {
+    const withFriendly: MatchColumn[] = [
+      { eventId: "f1", label: "Amist. · 15 abr", date: "2026-04-15", rival: null, isLeague: false },
+      ...columns,
+    ];
+
+    const result = buildLastMatchMinutes([row("f1", "a", 5), row("e2", "a", 60)], withFriendly);
+
+    expect(result?.label).toBe("J2 · 05 abr");
+  });
+
   it("no mezcla los minutos de partidos anteriores", () => {
     const result = buildLastMatchMinutes([row("e2", "a", 10), row("e1", "c", 60)], columns);
 

@@ -9,14 +9,14 @@ export type LastMatchMinutes = {
 };
 
 /**
- * Minutes of the most recent match of the season that has participation data. `seasonColumns` is
- * ordered newest first. Null when no match has minutes yet.
+ * Minutes of the most recent league match of the season that has participation data. `seasonColumns`
+ * is ordered newest first. Null when no match has minutes yet.
  */
 export function buildLastMatchMinutes(
   rows: MatchMinutesRow[],
   seasonColumns: MatchColumn[],
 ): LastMatchMinutes | null {
-  for (const col of seasonColumns) {
+  for (const col of seasonColumns.filter((c) => c.isLeague !== false)) {
     const matchRows = rows.filter((r) => r.eventId === col.eventId);
     if (matchRows.length === 0) continue;
     return {
