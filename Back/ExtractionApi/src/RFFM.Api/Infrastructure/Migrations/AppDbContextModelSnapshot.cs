@@ -6102,6 +6102,34 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.ToTable("DeconvocationRulesSettings", "app");
                 });
 
+            modelBuilder.Entity("RFFM.Api.Domain.Entities.Teams.DeconvocationSavedProposal", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedOn")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.Property<string>("SportEventId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("TeamPlayerIdsJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SportEventId");
+
+                    b.ToTable("DeconvocationSavedProposals", "app");
+                });
+
             modelBuilder.Entity("RFFM.Api.Domain.Entities.Teams.LotteryBook", b =>
                 {
                     b.Property<string>("Id")
@@ -6624,6 +6652,24 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("WebPushSubscriptions", "app");
+                });
+
+            modelBuilder.Entity("RFFM.Api.Infrastructure.Persistence.UserTeamClub", b =>
+                {
+                    b.Property<string>("ApplicationUserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ClubId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.ToTable("UserTeamClubs", "app", t =>
+                        {
+                            t.ExcludeFromMigrations();
+                        });
+
+                    b.ToSqlQuery("SELECT ut.\"ApplicationUserId\", t.\"ClubId\"\nFROM app.\"UserTeams\" ut\nINNER JOIN app.\"Teams\" t ON t.\"Id\" = ut.\"TeamId\"");
                 });
 
             modelBuilder.Entity("RFFM.Api.Domain.Aggregates.Assistances.AvailabilityRequest", b =>
@@ -7760,6 +7806,15 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.HasOne("RFFM.Api.Domain.Aggregates.UserClubs.Team", null)
                         .WithMany()
                         .HasForeignKey("TeamId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Entities.Teams.DeconvocationSavedProposal", b =>
+                {
+                    b.HasOne("RFFM.Api.Domain.Aggregates.Assistances.SportEvent", null)
+                        .WithMany()
+                        .HasForeignKey("SportEventId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
